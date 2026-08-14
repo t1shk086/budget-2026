@@ -21,85 +21,81 @@ def load_deposit(trip_name):
             return 0.0
     return 0.0
 
-# Функция за генериране на PDF на български език
-def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
-    from reportlab.lib.pagesizes import letter
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib import colors
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
+# Функция за генериране на HTML, който браузърът превръща в PDF с перфектна кирилица
+def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
+    html_content = f"""
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Arial', 'Helvetica', sans-serif; color: #2c3e50; padding: 20px; }}
+            h1 {{ color: #1f77b4; border-bottom: 2px solid #1f77b4; padding-bottom: 10px; }}
+            h2 {{ color: #2c3e50; margin-top: 30px; }}
+            .stats {{ background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
+            th, td {{ border: 1px solid #bdc3c7; padding: 10px; text-align: left; }}
+            th {{ background-color: #f2f2f2; }}
+            .chrono-th {{ background-color: #e6f2ff; }}
+        </style>
+    </head>
+    <body>
+        <h1>Финансов отчет: {trip_name.upper().replace('_', ' ')}</h1>
+        <p><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
+        
+        <div class="stats">
+            <h2>Обща статистика</h2>
+            <p><b>Платен депозит за хотел:</b> {deposit:.2f} лв.</p>
+            <p><b>Общо похарчени на място:</b> {total_site:.2f} лв.</p>
+            <p><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} лв.</p>
+        </div>
 
-    # Използваме вградения Times-Roman, който има фабрична поддръжка за източноевропейско кодиране
-    font_name = 'Times-Roman'
-
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, title=f"Budget_{trip_name}")
-    styles = getSampleStyleSheet()
+        <h2>Разходи по категории</h2>
+        <table>
+            <tr>
+                <th>Категория</th>
+                <th>Сума (лв.)</th>
+                <th>Процент</th>
+            </tr>
+    """
     
-    # Дефиниране на заглавия и текстове
-    title_style = ParagraphStyle('TitleStyle', fontName=font_name, fontSize=24, leading=28, spaceAfter=20, textColor=colors.HexColor('#1f77b4'))
-    heading_style = ParagraphStyle('HeadingStyle', fontName=font_name, fontSize=16, leading=20, spaceAfter=10, spaceBefore=15, textColor=colors.HexColor('#2c3e50'))
-    text_style = ParagraphStyle('TextStyle', fontName=font_name, fontSize=11, leading=15, spaceAfter=6)
-
-    story = []
-    story.append(Paragraph(f"Финансов отчет: {trip_name.upper().replace('_', ' ')}", title_style))
-    story.append(Paragraph(f"Дата на генериране: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", text_style))
-    story.append(Spacer(1, 15))
-    
-    story.append(Paragraph("Обща статистика", heading_style))
-    story.append(Paragraph(f"Платен депозит за хотел: {deposit:.2f} лв.", text_style))
-    story.append(Paragraph(f"Общо похарчени на място: {total_site:.2f} лв.", text_style))
-    story.append(Paragraph(f"ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА: {deposit + total_site:.2f} лв.", text_style))
-    story.append(Spacer(1, 15))
-    
-    story.append(Paragraph("Разходи по категории", heading_style))
-    
-    cat_data = [[Paragraph("Категория", text_style), Paragraph("Сума (лв.)", text_style), Paragraph("Процент", text_style)]]
     for kat, s_value in categories_totals.items():
         percentage = (s_value / total_site * 100) if total_site > 0 else 0.0
-        cat_data.append([
-            Paragraph(str(kat), text_style), 
-            Paragraph(f"{s_value:.2f} лв.", text_style), 
-            Paragraph(f"{percentage:.1f}%", text_style)
-        ])
-    
-    t_cat = Table(cat_data, colWidths=[200, 150, 150])
-    t_cat.setStyle(TableStyle([
-        ('FONTNAME', (0,0), (-1,-1), font_name),
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f2f2f2')),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-    ]))
-    story.append(t_cat)
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("Пълна хронология на плащанията", heading_style))
-    chrono_data = [[Paragraph("Дата/Час", text_style), Paragraph("Сума", text_style), Paragraph("Категория", text_style), Paragraph("Описание", text_style)]]
+        html_content += f"""
+            <tr>
+                <td>{kat}</td>
+                <td>{s_value:.2f} лв.</td>
+                <td>{percentage:.1f}%</td>
+            </tr>
+        """
+        
+    html_content += """
+        </table>
+        <h2>Пълна хронология на плащанията</h2>
+        <table>
+            <tr>
+                <th class="chrono-th">Дата/Час</th>
+                <th class="chrono-th">Сума</th>
+                <th class="chrono-th">Категория</th>
+                <th class="chrono-th">Описание</th>
+            </tr>
+    """
     
     for row in reversed(rows_data):
-        chrono_data.append([
-            Paragraph(str(row[0]), text_style), 
-            Paragraph(f"{row[1]:.2f} лв.", text_style), 
-            Paragraph(str(row[2]), text_style), 
-            Paragraph(str(row[3]), text_style)
-        ])
+        html_content += f"""
+            <tr>
+                <td>{row[0]}</td>
+                <td>{row[1]:.2f} лв.</td>
+                <td>{row[2]}</td>
+                <td>{row[3]}</td>
+            </tr>
+        """
         
-    t_chrono = Table(chrono_data, colWidths=[100, 80, 140, 180])
-    t_chrono.setStyle(TableStyle([
-        ('FONTNAME', (0,0), (-1,-1), font_name),
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e6f2ff')),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
-        ('TOPPADDING', (0,0), (-1,-1), 5),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-    ]))
-    story.append(t_chrono)
-    
-    doc.build(story)
-    buffer.seek(0)
-    return buffer
-
+    html_content += """
+        </table>
+    </body>
+    </html>
+    """
+    return html_content.encode('utf-8')
 # 1. СТАРТОВ ЕКРАН (Избор на пътуване)
 st.title("💰 Бюджет 2026")
 
@@ -230,18 +226,18 @@ if trip_id:
             st.success("Разходът беше изтрит успешно!")
             st.rerun()
 
-    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА И ЕКСПОРТ
+    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА (ГЕНЕРИРАНЕ НА ОТЧЕТ)
     st.markdown("---")
     st.subheader("🏁 Приключване на почивката")
-    st.write("Свалете официален PDF отчет с пълна хронология на разходите преди затваряне.")
+    st.write("Свалете официален отчет. Когато файлът се отвори в браузъра ви, натиснете **Ctrl + P** (или Споделяне -> Печат на телефон) и изберете **'Запиши като PDF'**.")
     
-    pdf_buffer = generate_pdf(trip_id, total_on_site, depozit_hotel, categories_totals, rows_data)
+    html_buffer = generate_html_pdf(trip_id, total_on_site, depozit_hotel, categories_totals, rows_data)
     
     st.download_button(
-        label="📥 ИЗТЕГЛИ PDF ОТЧЕТ",
-        data=pdf_buffer,
-        file_name=f"otchet_{trip_id}_2026.pdf",
-        mime="application/pdf",
+        label="📥 ИЗТЕГЛИ ОТЧЕТ ЗА PDF",
+        data=html_buffer,
+        file_name=f"otchet_{trip_id}_2026.html",
+        mime="text/html",
         use_container_width=True
     )
 
@@ -262,4 +258,3 @@ if trip_id:
         depozit_hotel = 0.0
         st.success(f"Пътуването '{име_за_показване}' и неговите файлове бяха изтрити!")
         st.rerun()
-
