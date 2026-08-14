@@ -155,6 +155,104 @@ if trip_id:
                 f.write(f"{data_chas}|{suma_vavedena}|{suma_vavedena}|{selected_category}|{opisanie if opisanie else 'Без описание'}|обикновен\n")
             st.success(f"Успешно записан разход за {selected_category}!")
             st.rerun()
-streamlit
-pandas
-reportlab
+    # 3. СТАТИСТИКА И ХРОНОЛОГИЯ
+    st.markdown("---")
+    st.subheader("📊 Екранна статистика")
+
+    total_on_site = 0.0
+    categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
+    rows_data = []
+    original_lines = []
+
+    if os.path.exists(ime_fail_razhodi) and os.path.getsize(ime_fail_razhodi) > 0:
+        with open(ime_fail_razhodi, "r", encoding="utf-8") as f:
+            for line in f:
+                stripped_line = line.strip()
+                if not stripped_line: 
+                    continue
+                original_lines.append(stripped_line)
+                try:
+                    c_date, c_zapis, c_vavedena, c_kat, c_opis, c_tip = stripped_line.split("|")
+                    val_vavedena = float(c_vavedena)
+                    total_on_site += val_vavedena
+                    if c_kat in categories_totals: 
+                        categories_totals[c_kat] += val_vavedena
+                    rows_data.append([c_date, val_vavedena, c_kat, c_opis])
+                except ValueError:
+                    continue 
+
+    for kat, s_value in categories_totals.items():
+        percentage = (s_value / total_on_site) if total_on_site > 0 else 0.0
+        st.write(f"**{kat}**: {s_value:.2f} лв. ({percentage * 100:.1f}%)")
+        st.progress(float(percentage))
+
+    st.markdown("---")
+    col_stat1, col_stat2 = st.columns(2)
+    with col_stat1:
+        st.metric("🏨 ПЛАТЕН ДЕПОЗИТ", f"{depozit_hotel:.2f} лв.")
+    with col_stat2:
+        st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} лв.")
+
+    if rows_data:
+        st.markdown("---")
+        st.subheader("📋 Хронология на плащанията")
+        df = pd.DataFrame(rows_data, columns=["Дата/Час", "Сума (лв.)", "Категория", "Описание"])
+        st.dataframe(df.iloc[::-1], use_container_width=True)
+
+        # 4. УПРАВЛЕНИЕ И ИЗТРИВАНЕ НА РАЗХОДИ
+        st.markdown("---")
+        st.subheader("🗑️ Управление и изтриване на отделни разходи")
+        
+        delete_options = []
+        for index, row in enumerate(rows_data):
+            option_text = f"[{row[0]}] {row[2]} | {row[1]:.2f} лв. ({row[3]})"
+            delete_options.append((index, option_text))
+        
+        selected_to_delete = st.selectbox(
+            "Изберете кой разход искате да изтриете:", 
+            options=delete_options, 
+            format_func=lambda x: x[1]
+        )
+        
+        if st.button("❌ Изтрий избрания разход", type="primary", use_container_width=True):
+            index_to_remove = selected_to_delete[0]
+            del original_lines[index_to_remove]
+            
+            with open(ime_fail_razhodi, "w", encoding="utf-8") as f:
+                for remaining_line in original_lines:
+                    f.write(remaining_line + "\n")
+            st.success("Разходът беше изтрит успешно!")
+            st.rerun()
+
+    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА И ЕКСПОРТ
+    st.markdown("---")
+    st.subheader("🏁 Приключване на почивката")
+    st.write("Свалете официален PDF отчет с пълна хронология на разходите преди затваряне.")
+    
+    pdf_buffer = generate_pdf(trip_id, total_on_site, depozit_hotel, categories_totals, rows_data)
+    
+    st.download_button(
+        label="📥 ИЗТЕГЛИ PDF ОТЧЕТ",
+        data=pdf_buffer,
+        file_name=f"otchet_{trip_id}_2026.pdf",
+        mime="application/pdf",
+        use_container_width=True
+    )
+
+    # 6. ИЗТРИВАНЕ НА ЦЯЛО ПЪТУВАНЕ
+    st.markdown("---")
+    st.subheader("🚨 Изтриване на цялото пътуване")
+    
+    име_за_показване = trip_id.upper().replace('_', ' ')
+    st.warning(f"Внимание: Това ще изтрие перманентно всички файлове, разходи и депозити за '{име_за_показване}'!")
+    potvurditel = st.checkbox(f"Потвърждавам, че искам да изтрия '{име_за_показване}' завинаги.")
+    
+    if st.button("🗑️ ИЗТРИЙ ЦЯЛОТО ПЪТУВАНЕ", type="primary", use_container_width=True, disabled=not potvurditel):
+        if os.path.exists(ime_fail_razhodi):
+            os.remove(ime_fail_razhodi)
+        if os.path.exists(ime_fail_depozit):
+            os.remove(ime_fail_depozit)
+            
+        depozit_hotel = 0.0
+        st.success(f"Пътуването '{име_за_показване}' и неговите файлове бяха изтрити!")
+        st.rerun()
