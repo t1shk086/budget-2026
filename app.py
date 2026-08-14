@@ -23,7 +23,7 @@ def load_deposit(trip_name):
 # 1. СТАРТОВ ЕКРАН (Избор на пътуване)
 st.title("💰 Бюджет 2026")
 
-# Търсене на съществуващи почивки
+# Търсене на съществуващие почивки
 all_files = glob.glob("vsichki_razhodi_*.txt")
 existing_trips = []
 for file_path in all_files:
@@ -110,7 +110,7 @@ if trip_id:
                         categories_totals[c_kat] += val_vavedena
                     rows_data.append([c_date, val_vavedena, c_kat, c_opis])
                 except ValueError:
-                    continue # Пропускане на евентуално повредени редове
+                    continue # Пропускане на повредени редове
 
     for kat, s_value in categories_totals.items():
         percentage = (s_value / total_on_site) if total_on_site > 0 else 0.0
@@ -175,6 +175,9 @@ if trip_id:
         # Премахване на депозита
         if os.path.exists(ime_fail_depozit):
             os.remove(ime_fail_depozit)
+            
+        # Спешна корекция: нулираме стойността в паметта преди рестарт
+        depozit_hotel = 0.0
             
         st.success(f"Пътуването '{име_за_показване}' и неговите файлове бяха изтрити!")
         st.rerun()
