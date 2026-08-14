@@ -116,11 +116,11 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     </html>
     """
     return html_content.encode('utf-8')
-# Инициализация на състоянията на полетата, ако все още не съществуват
-if "vavedena_suma" not in st.session_state:
-    st.session_state.vavedena_suma = 0.0
-if "vavedeno_opisanie" not in st.session_state:
-    st.session_state.vavedeno_opisanie = ""
+# Използваме състоянието без твърдо заключване (без директен key в джаджите)
+if "temp_suma" not in st.session_state:
+    st.session_state.temp_suma = 0.0
+if "temp_opisanie" not in st.session_state:
+    st.session_state.temp_opisanie = ""
 
 # 1. СТАРТОВ ЕКРАН (Избор на пътуване)
 st.title("💰 Бюджет 2026")
@@ -154,12 +154,12 @@ if trip_id:
     ime_fail_depozit = f"depozit_{trip_id}_2026.txt"
     depozit_hotel = load_deposit(trip_id)
 
-    # 2. ВЪВЕЖДАНЕ НА ДАННИ (Обвързани със st.session_state)
+    # 2. ВЪВЕЖДАНЕ НА ДАННИ (Зареждат се от динамичната памет)
     col1, col2 = st.columns(2)
     with col1:
-        suma_vavedena = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key="vavedena_suma")
+        suma_vavedena = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", value=st.session_state.temp_suma)
     with col2:
-        opisanie = st.text_input("Описание", placeholder="Без описание", key="vavedeno_opisanie")
+        opisanie = st.text_input("Описание", placeholder="Без описание", value=st.session_state.temp_opisanie)
 
     st.write("Изберете категория за запис:")
     grid = st.columns(3)
@@ -170,7 +170,7 @@ if trip_id:
             if st.button(kat, use_container_width=True, key=f"btn_{i}"):
                 selected_category = kat
 
-    # Обработка на записа и автоматично нулиране на полетата
+    # Изпълнение на запис и безопасно рестартиране
     if selected_category and suma_vavedena > 0:
         чисто_описание = opisanie.replace("|", "-").strip() if opisanie else "Без описание"
         
@@ -185,10 +185,14 @@ if trip_id:
                 f.write(f"{data_chas}|{suma_vavedena}|{suma_vavedena}|{selected_category}|{чисто_описание}|обикновен\n")
             st.success(f"Успешно записан разход за {selected_category}!")
         
-        # МАГИЯТА ТУК: Изпразваме стойностите в session_state веднага след запис
-        st.session_state.vavedena_suma = 0.0
-        st.session_state.vavedeno_opisanie = ""
+        # Безопасно нулиране: Променяме междинните променливи преди опресняването на екрана
+        st.session_state.temp_suma = 0.0
+        st.session_state.temp_opisanie = ""
         st.rerun()
+        
+    # Превантивна мярка: Ако потребителят пише ръчно, обновяваме междинното състояние
+    st.session_state.temp_suma = suma_vavedena
+    st.session_state.temp_opisanie = opisanie
     # 3. СТАТИСТИКА И МОБИЛНА ХРОНОЛОГИЯ
     st.markdown("---")
     st.subheader("📊 Екранна статистика")
@@ -237,7 +241,7 @@ if trip_id:
             r_date, r_suma, r_kat, r_opis = row
             icon = get_emoji(r_kat)
             
-            c_text, c_button = st.columns([4, 1])
+            c_text, c_button = st.columns()
             
             with c_text:
                 st.markdown(f"{icon} **{r_kat}** — <span style='color:#ff4b4b; font-weight:bold;'>{r_suma:.2f} EUR</span>", unsafe_allow_html=True)
