@@ -83,12 +83,14 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     """
     
     for row in reversed(rows_data):
+        # ОПРАВЕНО: Разопаковане на масива с данни за таблицата във файла
+        pdf_date, pdf_suma, pdf_kat, pdf_opis = row
         html_content += f"""
             <tr>
-                <td>{row}</td>
-                <td><b>{row:.2f} EUR</b></td>
-                <td>{row}</td>
-                <td>{row}</td>
+                <td>{pdf_date}</td>
+                <td><b>{pdf_suma:.2f} EUR</b></td>
+                <td>{pdf_kat}</td>
+                <td>{pdf_opis}</td>
             </tr>
         """
         
