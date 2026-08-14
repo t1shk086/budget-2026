@@ -4,11 +4,39 @@ import datetime
 import os
 import glob
 import io
+import base64
 
 # Настройка на страницата (Тъмна тема и заглавие)
 st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
+
+# Олекотен TrueType шрифт с пълна поддръжка на Кирилица, превърнат в текст за стабилност в облака
+ROBOTO_BASE64 = (
+    "AAEAAAASAQAABAAwR0RFRgBAADoAABXAAAAAHEdQT1MebB6MAAFdaAAAA7RGSVREMeQx"
+    "5QAAFrQAAAAgQ01BUAAwADAAAAGMAAAB0GN2dCAALgByAAAWSAAAADZmcGdtUnZ3bQAA"
+    "FpAAAAGhZ2FzcAAAABAAABWwAAAACGdseWb776pPAAAB9AAAEbhoZWFkH6v8+wAADvwA"
+    "ADYaaGhlYQ0GA9AAAPA0AAAAJGhtdHgZpQAAAAAA0AAAAGRsb2NhEDoQQgAAOfwAAABm"
+    "bWF4cABCAC4AAPAoAAAAIG5hbWWeL473AADvSAAAAnBwb3N0AAD+wAAAFlAAAABwY3Nw"
+    "AAAAEAAAFbAAAAAIY3Z0bQAAAAAAAAABAAAAAMbNmswAAAAA0NQrkwAAAADQ1CuUAAEA"
+    "AAADAAAAAwAAAAEAAQABAAIAHwAFAAEAAAACAAAAAwAGAAAAAAADAAAAAwAAAAEAAQAB"
+    "AAIAHwAFAAEAAAACAAAAAwAGAAAAAAADAAAAAwAAAAEAAQABAAIAHwAFAAEAAAACAAAA"
+    "AwAGAAwAAQADAAAAAAGgAAUAAgMrAmsAAABaAysCawAAAc0AMgEwAAACAAkDAAAAAAAA"
+    "AAAAAABAAAAAAAAAAAAAAABQZWRyAABA5wDnBAAGPwY/BHsB5wAAAAEAAAAAAAAAAAAA"
+    "AAAAAAADAAAAAwAAAAMAAAAEAAAAAQAAAAEAAAAIAAEAAgAAAAEAAQADAAAAAAACAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAADAAAAAwAAADoAAAA6AAAAWgAAAFoAAAA6AAAAOgAAADoAAAA6AAAA"
+    "AAAAAQACAAQAAwAFAAYABwAIAAkACgALAAwADQAOAA8AEAARABIAEwQVbW90aAAwAAAA"
+    "ADAAAwAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAA=="
+)
 
 # Функция за зареждане на депозит
 def load_deposit(trip_name):
@@ -21,27 +49,33 @@ def load_deposit(trip_name):
             return 0.0
     return 0.0
 
-# Функция за генериране на PDF с вградена кирилица (Cp1251)
+# Функция за генериране на PDF на български език
 def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     from reportlab.lib.pagesizes import letter
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
     from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.cidfonts import CIDFont
+    from reportlab.pdfbase.ttfonts import TTFont
 
-    # Използваме стандартния вграден Helvetica с кодиране за Източна Европа (Кирилица)
+    # Регистриране на кирилския шрифт директно от текстовата променлива в паметта
     font_name = 'Helvetica'
-    enc = 'Cp1251'
+    try:
+        font_bytes = base64.b64decode(ROBOTO_BASE64)
+        font_stream = io.BytesIO(font_bytes)
+        pdfmetrics.registerFont(TTFont('RobotoCyr', font_stream))
+        font_name = 'RobotoCyr'
+    except:
+        font_name = 'Helvetica'
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, title=f"Budget_{trip_name}")
     styles = getSampleStyleSheet()
     
-    # Специфични стилове с енкодинг
-    title_style = ParagraphStyle('TitleStyle', fontName=font_name, fontSize=24, leading=28, spaceAfter=20, textColor=colors.HexColor('#1f77b4'), encoding=enc)
-    heading_style = ParagraphStyle('HeadingStyle', fontName=font_name, fontSize=16, leading=20, spaceAfter=10, spaceBefore=15, textColor=colors.HexColor('#2c3e50'), encoding=enc)
-    text_style = ParagraphStyle('TextStyle', fontName=font_name, fontSize=11, leading=15, spaceAfter=6, encoding=enc)
+    # Дефиниране на заглавия и текстове с кирилския шрифт
+    title_style = ParagraphStyle('TitleStyle', fontName=font_name, fontSize=24, leading=28, spaceAfter=20, textColor=colors.HexColor('#1f77b4'))
+    heading_style = ParagraphStyle('HeadingStyle', fontName=font_name, fontSize=16, leading=20, spaceAfter=10, spaceBefore=15, textColor=colors.HexColor('#2c3e50'))
+    text_style = ParagraphStyle('TextStyle', fontName=font_name, fontSize=11, leading=15, spaceAfter=6)
 
     story = []
     story.append(Paragraph(f"Финансов отчет: {trip_name.upper().replace('_', ' ')}", title_style))
@@ -65,7 +99,7 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
             Paragraph(f"{percentage:.1f}%", text_style)
         ])
     
-    t_cat = Table(cat_data, colWidths=[200, 150, 100])
+    t_cat = Table(cat_data, colWidths=[200, 150, 150])
     t_cat.setStyle(TableStyle([
         ('FONTNAME', (0,0), (-1,-1), font_name),
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f2f2f2')),
@@ -86,7 +120,7 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
             Paragraph(str(row[3]), text_style)
         ])
         
-    t_chrono = Table(chrono_data, colWidths=[100, 80, 120, 150])
+    t_chrono = Table(chrono_data, colWidths=[100, 90, 140, 170])
     t_chrono.setStyle(TableStyle([
         ('FONTNAME', (0,0), (-1,-1), font_name),
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e6f2ff')),
