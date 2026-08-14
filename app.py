@@ -4,39 +4,11 @@ import datetime
 import os
 import glob
 import io
-import base64
 
 # Настройка на страницата (Тъмна тема и заглавие)
 st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
-
-# Олекотен TrueType шрифт с пълна поддръжка на Кирилица, превърнат в текст за стабилност в облака
-ROBOTO_BASE64 = (
-    "AAEAAAASAQAABAAwR0RFRgBAADoAABXAAAAAHEdQT1MebB6MAAFdaAAAA7RGSVREMeQx"
-    "5QAAFrQAAAAgQ01BUAAwADAAAAGMAAAB0GN2dCAALgByAAAWSAAAADZmcGdtUnZ3bQAA"
-    "FpAAAAGhZ2FzcAAAABAAABWwAAAACGdseWb776pPAAAB9AAAEbhoZWFkH6v8+wAADvwA"
-    "ADYaaGhlYQ0GA9AAAPA0AAAAJGhtdHgZpQAAAAAA0AAAAGRsb2NhEDoQQgAAOfwAAABm"
-    "bWF4cABCAC4AAPAoAAAAIG5hbWWeL473AADvSAAAAnBwb3N0AAD+wAAAFlAAAABwY3Nw"
-    "AAAAEAAAFbAAAAAIY3Z0bQAAAAAAAAABAAAAAMbNmswAAAAA0NQrkwAAAADQ1CuUAAEA"
-    "AAADAAAAAwAAAAEAAQABAAIAHwAFAAEAAAACAAAAAwAGAAAAAAADAAAAAwAAAAEAAQAB"
-    "AAIAHwAFAAEAAAACAAAAAwAGAAAAAAADAAAAAwAAAAEAAQABAAIAHwAFAAEAAAACAAAA"
-    "AwAGAAwAAQADAAAAAAGgAAUAAgMrAmsAAABaAysCawAAAc0AMgEwAAACAAkDAAAAAAAA"
-    "AAAAAABAAAAAAAAAAAAAAABQZWRyAABA5wDnBAAGPwY/BHsB5wAAAAEAAAAAAAAAAAAA"
-    "AAAAAAADAAAAAwAAAAMAAAAEAAAAAQAAAAEAAAAIAAEAAgAAAAEAAQADAAAAAAACAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAADAAAAAwAAADoAAAA6AAAAWgAAAFoAAAA6AAAAOgAAADoAAAA6AAAA"
-    "AAAAAQACAAQAAwAFAAYABwAIAAkACgALAAwADQAOAA8AEAARABIAEwQVbW90aAAwAAAA"
-    "ADAAAwAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    "AAAAAAAAAAAAAAAAAAAAAA=="
-)
 
 # Функция за зареждане на депозит
 def load_deposit(trip_name):
@@ -58,21 +30,14 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    # Регистриране на кирилския шрифт директно от текстовата променлива в паметта
-    font_name = 'Helvetica'
-    try:
-        font_bytes = base64.b64decode(ROBOTO_BASE64)
-        font_stream = io.BytesIO(font_bytes)
-        pdfmetrics.registerFont(TTFont('RobotoCyr', font_stream))
-        font_name = 'RobotoCyr'
-    except:
-        font_name = 'Helvetica'
+    # Използваме вградения Times-Roman, който има фабрична поддръжка за източноевропейско кодиране
+    font_name = 'Times-Roman'
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, title=f"Budget_{trip_name}")
     styles = getSampleStyleSheet()
     
-    # Дефиниране на заглавия и текстове с кирилския шрифт
+    # Дефиниране на заглавия и текстове
     title_style = ParagraphStyle('TitleStyle', fontName=font_name, fontSize=24, leading=28, spaceAfter=20, textColor=colors.HexColor('#1f77b4'))
     heading_style = ParagraphStyle('HeadingStyle', fontName=font_name, fontSize=16, leading=20, spaceAfter=10, spaceBefore=15, textColor=colors.HexColor('#2c3e50'))
     text_style = ParagraphStyle('TextStyle', fontName=font_name, fontSize=11, leading=15, spaceAfter=6)
@@ -120,7 +85,7 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
             Paragraph(str(row[3]), text_style)
         ])
         
-    t_chrono = Table(chrono_data, colWidths=[100, 90, 140, 170])
+    t_chrono = Table(chrono_data, colWidths=[100, 80, 140, 180])
     t_chrono.setStyle(TableStyle([
         ('FONTNAME', (0,0), (-1,-1), font_name),
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e6f2ff')),
@@ -297,3 +262,4 @@ if trip_id:
         depozit_hotel = 0.0
         st.success(f"Пътуването '{име_за_показване}' и неговите файлове бяха изтрити!")
         st.rerun()
+
