@@ -116,16 +116,9 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     </html>
     """
     return html_content.encode('utf-8')
-# Първоначално зареждане на чисти стойности в паметта
-if "v_suma" not in st.session_state:
-    st.session_state["v_suma"] = 0.0
-if "v_opis" not in st.session_state:
-    st.session_state["v_opis"] = ""
-
-# Функция, която Streamlit извиква ОФИЦИАЛНО за нулиране на полетата на екрана
-def reset_inputs():
-    st.session_state["v_suma"] = 0.0
-    st.session_state["v_opis"] = ""
+# Използваме брояч на итерациите, за да форсираме преначертаване на чисти полета
+if "form_version" not in st.session_state:
+    st.session_state["form_version"] = 0
 
 # 1. СТАРТОВ ЕКРАН (Избор на пътуване)
 st.title("💰 Бюджет 2026")
@@ -159,17 +152,17 @@ if trip_id:
     ime_fail_depozit = f"depozit_{trip_id}_2026.txt"
     depozit_hotel = load_deposit(trip_id)
 
-    # 2. ВЪВЕЖДАНЕ НА ДАННИ (Привързани към сигурни вътрешни променливи)
+    # 2. ВЪВЕЖДАНЕ НА ДАННИ (Ключът се променя динамично, което гарантира нулиране)
+    v_id = st.session_state["form_version"]
     col1, col2 = st.columns(2)
     with col1:
-        s_input = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key="v_suma")
+        s_input = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key=f"suma_{v_id}")
     with col2:
-        o_input = st.text_input("Описание", placeholder="Без описание", key="v_opis")
+        o_input = st.text_input("Описание", placeholder="Без описание", key=f"opis_{v_id}")
 
     st.write("Изберете категория за запис:")
     grid = st.columns(3)
     
-    # Тъй като не ползваме on_click за запис (който бъгваше S24), проверяваме кой бутон е натиснат в реално време
     for i, kat in enumerate(KATEGORII):
         with grid[i % 3]:
             if st.button(kat, use_container_width=True, key=f"btn_{i}"):
@@ -185,8 +178,8 @@ if trip_id:
                         with open(ime_fail_razhodi, "a", encoding="utf-8") as f:
                             f.write(f"{data_chas}|{s_input}|{s_input}|{kat}|{чисто_описание}|обикновен\n")
                     
-                    # Извикваме ОФИЦИАЛНАТА функция за изчистване и презареждаме мигновено
-                    reset_inputs()
+                    # МАГИЯТА: Променяме версията, което унищожава старите текстови кутии и ги отваря празни
+                    st.session_state["form_version"] += 1
                     st.rerun()
     # 3. СТАТИСТИКА И МОБИЛНА ХРОНОЛОГИЯ
     st.markdown("---")
