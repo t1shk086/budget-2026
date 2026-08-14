@@ -165,7 +165,7 @@ if trip_id:
                 f.write(f"{data_chas}|{suma_vavedena}|{suma_vavedena}|{selected_category}|{opisanie if opisanie else 'Без описание'}|обикновен\n")
             st.success(f"Успешно записан разход за {selected_category}!")
             st.rerun()
-    # 3. МОДЕРНА СТАТИСТИКА И ТАБЛО (DASHBOARD)
+        # 3. МОДЕРНА СТАТИСТИКА И ТАБЛО (DASHBOARD)
     st.markdown("---")
     st.subheader("📊 Финансово табло на почивката")
 
@@ -241,17 +241,23 @@ if trip_id:
         
         delete_options = []
         for index, row in enumerate(rows_data):
-            option_text = f"{row} | {row} | {row:.2f} лв. ({row})"
+            # Точно и безопасно разпределяне на променливите от масива с данни
+            r_date = row[0]
+            r_suma = row[1]
+            r_kat = row[2]
+            r_opis = row[3]
+            
+            option_text = f"{r_date} | {r_kat} | {r_suma:.2f} лв. ({r_opis})"
             delete_options.append((index, option_text))
         
         selected_to_delete = st.selectbox(
             "Изберете кой разход искате да изтриете:", 
             options=delete_options, 
-            format_func=lambda x: x
+            format_func=lambda x: x[1]
         )
         
         if st.button("❌ Изтрий избрания разход", type="primary", use_container_width=True):
-            index_to_remove = selected_to_delete
+            index_to_remove = selected_to_delete[0]
             del original_lines[index_to_remove]
             
             with open(ime_fail_razhodi, "w", encoding="utf-8") as f:
