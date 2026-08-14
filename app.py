@@ -4,6 +4,7 @@ import datetime
 import os
 import glob
 import io
+import base64
 
 # Настройка на страницата (Тъмна тема и заглавие)
 st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
@@ -29,7 +30,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         <meta charset="utf-8">
         <title>Отчет_{trip_name}</title>
         <style>
-            body {{ font-family: 'Arial', 'Helvetica', sans-serif; color: #2c3e50; padding: 30px; }}
+            body {{ font-family: 'Arial', sans-serif; color: #2c3e50; padding: 30px; }}
             h1 {{ color: #1f77b4; border-bottom: 2px solid #1f77b4; padding-bottom: 10px; margin-bottom: 5px; }}
             h2 {{ color: #2c3e50; margin-top: 25px; font-size: 18px; border-left: 4px solid #1f77b4; padding-left: 10px; }}
             .stats {{ background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 15px; border: 1px solid #e2e8f0; }}
@@ -45,7 +46,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         <p style="color: #64748b; font-size: 13px;"><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
         
         <div class="stats">
-            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} лв.</p>
+            <p style="margin: 5px 0;"><b>Платен депозит заホテル:</b> {deposit:.2f} лв.</p>
             <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} лв.</p>
             <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} лв.</p>
         </div>
@@ -91,7 +92,6 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
             </tr>
         """
         
-    # Скрит скрипт, който задейства прозореца за запис на PDF веднага след зареждане на документа
     html_content += """
         </table>
         <script>
@@ -233,22 +233,36 @@ if trip_id:
             st.success("Разходът беше изтрит успешно!")
             st.rerun()
 
-    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА (С КРАСИВ БУТОН ЗА ИЗТЕГЛЯНЕ)
+    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА (МОДЕРЕН БУТОН С ЧИСТ ДИЗАЙН)
     st.markdown("---")
     st.subheader("🏁 Приключване на почивката")
-    st.write("Кликнете върху бутона долу, за да генерирате и запазите официалния PDF отчет.")
+    st.write("Свалете официалния отчет. Документът ще се отвори в браузъра и сам ще предложи запис като PDF.")
     
     html_buffer = generate_html_pdf(trip_id, total_on_site, depozit_hotel, categories_totals, rows_data)
+    b64_html = base64.b64encode(html_buffer).decode()
     
-    # Красив, червен и широк системен бутон
-    st.download_button(
-        label="📥 ПРИКЛЮЧИ ПОЧИВКАТА И СВАЛИ PDF",
-        data=html_buffer,
-        file_name=f"otchet_{trip_id}_2026.html",
-        mime="text/html",
-        use_container_width=True,
-        type="primary"
-    )
+    # Красив изчистен бутон с вграден линк
+    button_uuid = f"download_{trip_id}"
+    custom_css_button = f"""
+        <a href="data:text/html;base64,{b64_html}" download="otchet_{trip_id}_2026.html" style="text-decoration: none;">
+            <button style="
+                width: 100%;
+                background-color: #ff4b4b;
+                color: white;
+                padding: 12px 20px;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                transition: background-color 0.3s ease;
+            ">
+                📥 ПРИКЛЮЧИ ПОЧИВКАТА И СВАЛИ PDF
+            </button>
+        </a>
+    """
+    st.markdown(custom_css_button, unsafe_allow_html=True)
 
     # 6. ИЗТРИВАНЕ НА ЦЯЛО ПЪТУВАНЕ
     st.markdown("---")
