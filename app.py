@@ -116,7 +116,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     </html>
     """
     return html_content.encode('utf-8')
-# Използваме състоянието без твърдо заключване (без директен key в джаджите)
+# Използваме състоянието без твърдо заключване
 if "temp_suma" not in st.session_state:
     st.session_state.temp_suma = 0.0
 if "temp_opisanie" not in st.session_state:
@@ -185,12 +185,12 @@ if trip_id:
                 f.write(f"{data_chas}|{suma_vavedena}|{suma_vavedena}|{selected_category}|{чисто_описание}|обикновен\n")
             st.success(f"Успешно записан разход за {selected_category}!")
         
-        # Безопасно нулиране: Променяме междинните променливи преди опресняването на екрана
+        # Нулиране на междинните променливи преди опресняването на екрана
         st.session_state.temp_suma = 0.0
         st.session_state.temp_opisanie = ""
         st.rerun()
         
-    # Превантивна мярка: Ако потребителят пише ръчно, обновяваме междинното състояние
+    # Синхронизация на състоянието при ръчно писане
     st.session_state.temp_suma = suma_vavedena
     st.session_state.temp_opisanie = opisanie
     # 3. СТАТИСТИКА И МОБИЛНА ХРОНОЛОГИЯ
@@ -241,7 +241,8 @@ if trip_id:
             r_date, r_suma, r_kat, r_opis = row
             icon = get_emoji(r_kat)
             
-            c_text, c_button = st.columns()
+            # ОПРАВЕНО: Задаваме твърдо разпределение, за да работи в новите версии на Streamlit
+            c_text, c_button = st.columns([5, 1])
             
             with c_text:
                 st.markdown(f"{icon} **{r_kat}** — <span style='color:#ff4b4b; font-weight:bold;'>{r_suma:.2f} EUR</span>", unsafe_allow_html=True)
