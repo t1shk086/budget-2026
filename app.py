@@ -5,6 +5,7 @@ import os
 import glob
 import io
 import base64
+import altair as alt  # Нов модул за модерни интерактивни графики
 
 # Настройка на страницата (Тъмна тема и заглавие)
 st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
@@ -22,7 +23,7 @@ def load_deposit(trip_name):
             return 0.0
     return 0.0
 
-# Функция за генериране на HTML, който автоматично се разпечатва като PDF в браузъра
+# Функция за генериране на HTML отчет
 def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     html_content = f"""
     <html>
@@ -46,7 +47,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         <p style="color: #64748b; font-size: 13px;"><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
         
         <div class="stats">
-            <p style="margin: 5px 0;"><b>Платен депозит заホテル:</b> {deposit:.2f} лв.</p>
+            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} лв.</p>
             <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} лв.</p>
             <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} лв.</p>
         </div>
@@ -85,10 +86,10 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     for row in reversed(rows_data):
         html_content += f"""
             <tr>
-                <td>{row[0]}</td>
-                <td><b>{row[1]:.2f} лв.</b></td>
-                <td>{row[2]}</td>
-                <td>{row[3]}</td>
+                <td>{row}</td>
+                <td><b>{row:.2f} лв.</b></td>
+                <td>{row}</td>
+                <td>{row}</td>
             </tr>
         """
         
@@ -164,9 +165,9 @@ if trip_id:
                 f.write(f"{data_chas}|{suma_vavedena}|{suma_vavedena}|{selected_category}|{opisanie if opisanie else 'Без описание'}|обикновен\n")
             st.success(f"Успешно записан разход за {selected_category}!")
             st.rerun()
-    # 3. СТАТИСТИКА И ХРОНОЛОГИЯ
+    # 3. МОДЕРНА СТАТИСТИКА И ТАБЛО (DASHBOARD)
     st.markdown("---")
-    st.subheader("📊 Екранна статистика")
+    st.subheader("📊 Финансово табло на почивката")
 
     total_on_site = 0.0
     categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
@@ -190,17 +191,43 @@ if trip_id:
                 except ValueError:
                     continue 
 
-    for kat, s_value in categories_totals.items():
-        percentage = (s_value / total_on_site) if total_on_site > 0 else 0.0
-        st.write(f"**{kat}**: {s_value:.2f} лв. ({percentage * 100:.1f}%)")
-        st.progress(float(percentage))
+    # Горни карти с ключови показатели
+    m_col1, m_col2, m_col3 = st.columns(3)
+    with m_col1:
+        st.metric("🏨 Депозит/Хотел", f"{depozit_hotel:.2f} лв.")
+    with m_col2:
+        st.metric("💰 Разходи на място", f"{total_on_site:.2f} лв.")
+    with m_col3:
+        st.metric("💳 Общо бюджет", f"{(depozit_hotel + total_on_site):.2f} лв.")
 
-    st.markdown("---")
-    col_stat1, col_stat2 = st.columns(2)
-    with col_stat1:
-        st.metric("🏨 ПЛАТЕН ДЕПОЗИТ", f"{depozit_hotel:.2f} лв.")
-    with col_stat2:
-        st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} лв.")
+    st.write("")
+
+    # Генериране на модерна Донат диаграма при наличие на данни
+    if total_on_site > 0:
+        chart_data = pd.DataFrame([
+            {"Категория": k, "Сума (лв.)": v} 
+            for k, v in categories_totals.items() if v > 0
+        ])
+        
+        if not chart_data.empty:
+            donut_chart = alt.Chart(chart_data).mark_arc(innerRadius=60, stroke="#111").encode(
+                theta=alt.Theta(field="Сума (лв.)", type="quantitative"),
+                color=alt.Color(field="Категория", type="nominal", scale=alt.Scale(scheme="tableau10")),
+                tooltip=["Категория", "Сума (лв.)"]
+            ).properties(width=300, height=250)
+            
+            # Разделяне на екрана: Графика вляво, Чист списък вдясно
+            g_col1, g_col2 = st.columns([1.2, 1])
+            with g_col1:
+                st.altair_chart(donut_chart, use_container_width=True)
+            with g_col2:
+                st.write("**Разпределение по пера:**")
+                for kat, s_value in categories_totals.items():
+                    if s_value > 0:
+                        pct = (s_value / total_on_site) * 100
+                        st.write(f"• **{kat}**: {s_value:.2f} лв. (`{pct:.1f}%`)")
+    else:
+        st.info("Все още няма въведени разходи на място, за да се зареди графиката.")
 
     if rows_data:
         st.markdown("---")
@@ -214,17 +241,17 @@ if trip_id:
         
         delete_options = []
         for index, row in enumerate(rows_data):
-            option_text = f"{row[0]} | {row[2]} | {row[1]:.2f} лв. ({row[3]})"
+            option_text = f"{row} | {row} | {row:.2f} лв. ({row})"
             delete_options.append((index, option_text))
         
         selected_to_delete = st.selectbox(
             "Изберете кой разход искате да изтриете:", 
             options=delete_options, 
-            format_func=lambda x: x[1]
+            format_func=lambda x: x
         )
         
         if st.button("❌ Изтрий избрания разход", type="primary", use_container_width=True):
-            index_to_remove = selected_to_delete[0]
+            index_to_remove = selected_to_delete
             del original_lines[index_to_remove]
             
             with open(ime_fail_razhodi, "w", encoding="utf-8") as f:
@@ -233,7 +260,7 @@ if trip_id:
             st.success("Разходът беше изтрит успешно!")
             st.rerun()
 
-    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА (МОДЕРЕН БУТОН С ЧИСТ ДИЗАЙН)
+    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА
     st.markdown("---")
     st.subheader("🏁 Приключване на почивката")
     st.write("Свалете официалния отчет. Документът ще се отвори в браузъра и сам ще предложи запис като PDF.")
@@ -241,8 +268,6 @@ if trip_id:
     html_buffer = generate_html_pdf(trip_id, total_on_site, depozit_hotel, categories_totals, rows_data)
     b64_html = base64.b64encode(html_buffer).decode()
     
-    # Красив изчистен бутон с вграден линк
-    button_uuid = f"download_{trip_id}"
     custom_css_button = f"""
         <a href="data:text/html;base64,{b64_html}" download="otchet_{trip_id}_2026.html" style="text-decoration: none;">
             <button style="
