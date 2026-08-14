@@ -58,7 +58,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         <p style="color: #64748b; font-size: 13px;"><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
         
         <div class="stats">
-            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} EUR</p>
+            <p style="margin: 5px 0;"><b>Платен депозит заホテル:</b> {deposit:.2f} EUR</p>
             <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} EUR</p>
             <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} EUR</p>
         </div>
@@ -116,11 +116,29 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     </html>
     """
     return html_content.encode('utf-8')
-# Използваме състоянието без твърдо заключване
-if "temp_suma" not in st.session_state:
-    st.session_state.temp_suma = 0.0
-if "temp_opisanie" not in st.session_state:
-    st.session_state.temp_opisanie = ""
+# Функция-Асистент, която записва разхода и МИГНОВЕНО ИЗЧИСТВА кутиите на екрана
+def h_zapis(kat_ime, r_fail, d_fail, d_hotel):
+    # Извличаме какво е написано в полетата в момента на клика
+    s_vavedena = st.session_state.get("vavedena_suma", 0.0)
+    o_vavedeno = st.session_state.get("vavedeno_opisanie", "").strip()
+    
+    if s_vavedena > 0:
+        чисто_описание = o_vavedeno.replace("|", "-") if o_vavedeno else "Без описание"
+        
+        if kat_ime == "Депозит/Резервация":
+            nov_depozit = d_hotel + s_vavedena
+            with open(d_fail, "w", encoding="utf-8") as f: 
+                f.write(str(nov_depozit))
+        else:
+            data_chas = datetime.datetime.now().strftime("%d.%m %H:%M")
+            with open(r_fail, "a", encoding="utf-8") as f:
+                f.write(f"{data_chas}|{s_vavedena}|{s_vavedena}|{kat_ime}|{чисто_описание}|обикновен\n")
+        
+        # КЛЮЧЪТ КЪМ УСПЕХА: Изтриваме твърдо ключовете, което кара Streamlit да изпразни полетата
+        if "vavedena_suma" in st.session_state:
+            del st.session_state["vavedena_suma"]
+        if "vavedeno_opisanie" in st.session_state:
+            del st.session_state["vavedeno_opisanie"]
 
 # 1. СТАРТОВ ЕКРАН (Избор на пътуване)
 st.title("💰 Бюджет 2026")
@@ -154,45 +172,26 @@ if trip_id:
     ime_fail_depozit = f"depozit_{trip_id}_2026.txt"
     depozit_hotel = load_deposit(trip_id)
 
-    # 2. ВЪВЕЖДАНЕ НА ДАННИ (Зареждат се от динамичната памет)
+    # 2. ВЪВЕЖДАНЕ НА ДАННИ (С твърдо привързани системни ключове)
     col1, col2 = st.columns(2)
     with col1:
-        suma_vavedena = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", value=st.session_state.temp_suma)
+        st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key="vavedena_suma")
     with col2:
-        opisanie = st.text_input("Описание", placeholder="Без описание", value=st.session_state.temp_opisanie)
+        st.text_input("Описание", placeholder="Без описание", key="vavedeno_opisanie")
 
     st.write("Изберете категория за запис:")
     grid = st.columns(3)
     
-    selected_category = None
     for i, kat in enumerate(KATEGORII):
         with grid[i % 3]:
-            if st.button(kat, use_container_width=True, key=f"btn_{i}"):
-                selected_category = kat
-
-    # Изпълнение на запис и безопасно рестартиране
-    if selected_category and suma_vavedena > 0:
-        чисто_описание = opisanie.replace("|", "-").strip() if opisanie else "Без описание"
-        
-        if selected_category == "Депозит/Резервация":
-            nov_depozit = depozit_hotel + suma_vavedena
-            with open(ime_fail_depozit, "w", encoding="utf-8") as f: 
-                f.write(str(nov_depozit))
-            st.success(f"Записан депозит: {suma_vavedena:.2f} EUR")
-        else:
-            data_chas = datetime.datetime.now().strftime("%d.%m %H:%M")
-            with open(ime_fail_razhodi, "a", encoding="utf-8") as f:
-                f.write(f"{data_chas}|{suma_vavedena}|{suma_vavedena}|{selected_category}|{чисто_описание}|обикновен\n")
-            st.success(f"Успешно записан разход за {selected_category}!")
-        
-        # Нулиране на междинните променливи преди опресняването на екрана
-        st.session_state.temp_suma = 0.0
-        st.session_state.temp_opisanie = ""
-        st.rerun()
-        
-    # Синхронизация на състоянието при ръчно писане
-    st.session_state.temp_suma = suma_vavedena
-    st.session_state.temp_opisanie = opisanie
+            # Бутоните директно задействат функцията-асистент (on_click)
+            st.button(
+                kat, 
+                use_container_width=True, 
+                key=f"btn_{i}", 
+                on_click=h_zapis, 
+                args=(kat, ime_fail_razhodi, ime_fail_depozit, depozit_hotel)
+            )
     # 3. СТАТИСТИКА И МОБИЛНА ХРОНОЛОГИЯ
     st.markdown("---")
     st.subheader("📊 Екранна статистика")
@@ -241,7 +240,6 @@ if trip_id:
             r_date, r_suma, r_kat, r_opis = row
             icon = get_emoji(r_kat)
             
-            # ОПРАВЕНО: Задаваме твърдо разпределение, за да работи в новите версии на Streamlit
             c_text, c_button = st.columns([5, 1])
             
             with c_text:
