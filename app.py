@@ -6,10 +6,22 @@ import glob
 import io
 import base64
 
-# Настройка на страницата (Тъмна тема и заглавие)
+# Настройка на страницата (Тъмна тема и оптимизиран мобилен изглед)
 st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
+
+# Функция за определяне на емоджи според категорията за мобилния изглед
+def get_emoji(category):
+    mapping = {
+        "Храна и напитки": "🍔",
+        "Транспорт": "🚗",
+        "Куче": "🐾",
+        "Нощувки/Хотел": "🏨",
+        "Депозит/Резервация": "📌",
+        "Други": "🪙"
+    }
+    return mapping.get(category, "💳")
 
 # Функция за зареждане на депозит
 def load_deposit(trip_name):
@@ -83,7 +95,6 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     """
     
     for row in reversed(rows_data):
-        # ОПРАВЕНО: Разопаковане на масива с данни за таблицата във файла
         pdf_date, pdf_suma, pdf_kat, pdf_opis = row
         html_content += f"""
             <tr>
@@ -166,7 +177,7 @@ if trip_id:
                 f.write(f"{data_chas}|{suma_vavedena}|{suma_vavedena}|{selected_category}|{opisanie if opisanie else 'Без описание'}|обикновен\n")
             st.success(f"Успешно записан разход за {selected_category}!")
             st.rerun()
-    # 3. СТАТИСТИКА И ХРОНОЛОГИЯ
+    # 3. СТАТИСТИКА И МОБИЛНА ХРОНОЛОГИЯ
     st.markdown("---")
     st.subheader("📊 Екранна статистика")
 
@@ -192,7 +203,7 @@ if trip_id:
                 except ValueError:
                     continue 
 
-    # Показване на класическите прогрес барове
+    # Прогрес барове
     for kat, s_value in categories_totals.items():
         percentage = (s_value / total_on_site) if total_on_site > 0 else 0.0
         st.write(f"**{kat}**: {s_value:.2f} EUR ({percentage * 100:.1f}%)")
@@ -205,46 +216,39 @@ if trip_id:
     with col_stat2:
         st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} EUR")
 
-    # Модерна хронология с бутони за бързо изтриване на всеки ред
+    # Хронология, напълно оптимизирана за мобилни екрани (Samsung S24)
     if rows_data:
         st.markdown("---")
         st.subheader("📋 Хронология на плащанията")
         
-        # Заглавна лента на таблицата за по-добра четимост
-        h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([1.2, 1.2, 1.5, 2.5, 0.6])
-        h_col1.markdown("**Дата/Час**")
-        h_col2.markdown("**Сума**")
-        h_col3.markdown("**Категория**")
-        h_col4.markdown("**Описание**")
-        h_col5.markdown("**Действие**")
-        st.markdown("---")
-
-        # Извеждане на разходите в обратен ред (най-новите най-отгоре)
         for idx, row in reversed(list(enumerate(rows_data))):
             r_date, r_suma, r_kat, r_opis = row
+            icon = get_emoji(r_kat)
             
-            c1, c2, c3, c4, c5 = st.columns([1.2, 1.2, 1.5, 2.5, 0.6])
-            c1.write(r_date)
-            c2.write(f"**{r_suma:.2f} EUR**")
-            c3.write(r_kat)
-            c4.write(r_opis)
+            # Разделяне само на две интелигентни колони: Текст вляво, Бутон вдясно
+            c_text, c_button = st.columns([5, 1])
             
-            # Малко бутонче „Х“ за моментално премахване на конкретния ред
-            if c5.button("❌", key=f"del_btn_{idx}"):
-                del original_lines[idx]
-                with open(ime_fail_razhodi, "w", encoding="utf-8") as f:
-                    for remaining_line in original_lines:
-                        f.write(remaining_line + "\n")
-                st.success("Разходът беше изтрит!")
-                st.rerun()
-                
-            # Добавяне на тънка, елегантна разделителна линия след всеки ред
-            st.markdown(
-                '<hr style="border: 0; height: 1px; background: #333; margin: 8px 0; opacity: 0.15;">', 
-                unsafe_allow_html=True
-            )
+            with c_text:
+                # Горна линия на картата: Икона, Категория и Сума (изпъкваща)
+                st.markdown(f"{icon} **{r_kat}** — <span style='color:#ff4b4b; font-weight:bold;'>{r_suma:.2f} EUR</span>", unsafe_allow_html=True)
+                # Долна линия на картата: Дата и Описание с по-малък, дискретен шрифт
+                st.markdown(f"<small style='color:#888;'>📅 {r_date} | 📝 {r_opis}</small>", unsafe_allow_html=True)
+            
+            with c_button:
+                # Вертикално подравнен бутон за бързо изтриване
+                st.write("")
+                if st.button("❌", key=f"del_btn_{idx}"):
+                    del original_lines[idx]
+                    with open(ime_fail_razhodi, "w", encoding="utf-8") as f:
+                        for remaining_line in original_lines:
+                            f.write(remaining_line + "\n")
+                    st.success("Разходът беше изтрит!")
+                    st.rerun()
+            
+            # Фина, елегантна разделителна линия между мобилните карти
+            st.markdown('<hr style="border: 0; height: 1px; background: #333; margin: 12px 0; opacity: 0.15;">', unsafe_allow_html=True)
 
-    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА (С КРАСИВ БУТОН ЗА ИЗТЕГЛЯНЕ)
+    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА
     st.markdown("---")
     st.subheader("🏁 Приключване на почивката")
     st.write("Свалете официалния отчет. Документът ще се отвори в браузъра и сам ще предложи запис като PDF.")
