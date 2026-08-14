@@ -11,7 +11,7 @@ st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="cen
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 
-# Funktion за зареждане на депозит
+# Функция за зареждане на депозит
 def load_deposit(trip_name):
     filename = f"depozit_{trip_name}_2026.txt"
     if os.path.exists(filename):
@@ -22,7 +22,7 @@ def load_deposit(trip_name):
             return 0.0
     return 0.0
 
-# Функция за генериране на HTML отчет за разпечатване на кирилица
+# Функция за генериране на HTML отчет за разпечатване на кирилица в Евро
 def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     html_content = f"""
     <html>
@@ -46,16 +46,16 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         <p style="color: #64748b; font-size: 13px;"><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
         
         <div class="stats">
-            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} €</p>
-            <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} €</p>
-            <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} €</p>
+            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} EUR</p>
+            <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} EUR</p>
+            <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} EUR</p>
         </div>
 
         <h2>Разходи по категории</h2>
         <table>
             <tr>
                 <th>Категория</th>
-                <th>Сума (€)</th>
+                <th>Сума (EUR)</th>
                 <th>Процент</th>
             </tr>
     """
@@ -65,7 +65,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         html_content += f"""
             <tr>
                 <td><b>{kat}</b></td>
-                <td>{s_value:.2f} €</td>
+                <td>{s_value:.2f} EUR</td>
                 <td>{percentage:.1f}%</td>
             </tr>
         """
@@ -85,10 +85,10 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     for row in reversed(rows_data):
         html_content += f"""
             <tr>
-                <td>{row[0]}</td>
-                <td><b>{row[1]:.2f} €</b></td>
-                <td>{row[2]}</td>
-                <td>{row[3]}</td>
+                <td>{row}</td>
+                <td><b>{row:.2f} EUR</b></td>
+                <td>{row}</td>
+                <td>{row}</td>
             </tr>
         """
         
@@ -138,7 +138,7 @@ if trip_id:
     # 2. ВЪВЕЖДАНЕ НА ДАННИ
     col1, col2 = st.columns(2)
     with col1:
-        suma_vavedena = st.number_input("СУМА (лв.)", min_value=0.0, step=1.0, format="%.2f", key="suma_input")
+        suma_vavedena = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key="suma_input")
     with col2:
         opisanie = st.text_input("Описание", placeholder="Без описание", key="opis_input").replace("|", "-")
 
@@ -156,7 +156,7 @@ if trip_id:
             nov_depozit = depozit_hotel + suma_vavedena
             with open(ime_fail_depozit, "w", encoding="utf-8") as f: 
                 f.write(str(nov_depozit))
-            st.success(f"Записан депозит: {suma_vavedena:.2f} лв. (Общо до момента: {nov_depozit:.2f} лв.)")
+            st.success(f"Записан депозит: {suma_vavedena:.2f} EUR (Общо до момента: {nov_depozit:.2f} EUR)")
             st.rerun()
         else:
             data_chas = datetime.datetime.now().strftime("%d.%m %H:%M")
@@ -193,15 +193,15 @@ if trip_id:
     # Показване на класическите прогрес барове
     for kat, s_value in categories_totals.items():
         percentage = (s_value / total_on_site) if total_on_site > 0 else 0.0
-        st.write(f"**{kat}**: {s_value:.2f} лв. ({percentage * 100:.1f}%)")
+        st.write(f"**{kat}**: {s_value:.2f} EUR ({percentage * 100:.1f}%)")
         st.progress(float(percentage))
 
     st.markdown("---")
     col_stat1, col_stat2 = st.columns(2)
     with col_stat1:
-        st.metric("🏨 ПЛАТЕН ДЕПОЗИТ", f"{depozit_hotel:.2f} лв.")
+        st.metric("🏨 ПЛАТЕН ДЕПОЗИТ", f"{depozit_hotel:.2f} EUR")
     with col_stat2:
-        st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} лв.")
+        st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} EUR")
 
     # Модерна хронология с бутони за бързо изтриване на всеки ред
     if rows_data:
@@ -223,7 +223,7 @@ if trip_id:
             
             c1, c2, c3, c4, c5 = st.columns([1.2, 1.2, 1.5, 2.5, 0.6])
             c1.write(r_date)
-            c2.write(f"**{r_suma:.2f} лв.**")
+            c2.write(f"**{r_suma:.2f} EUR**")
             c3.write(r_kat)
             c4.write(r_opis)
             
