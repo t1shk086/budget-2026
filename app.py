@@ -22,7 +22,7 @@ def load_deposit(trip_name):
             return 0.0
     return 0.0
 
-# Функция за генериране на HTML, който автоматично се разпечатва като PDF в браузъра
+# Функция за генериране на HTML отчет за разпечатване на кирилица
 def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     html_content = f"""
     <html>
@@ -46,7 +46,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         <p style="color: #64748b; font-size: 13px;"><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
         
         <div class="stats">
-            <p style="margin: 5px 0;"><b>Платен депозит заホテル:</b> {deposit:.2f} лв.</p>
+            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} лв.</p>
             <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} лв.</p>
             <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} лв.</p>
         </div>
@@ -190,6 +190,7 @@ if trip_id:
                 except ValueError:
                     continue 
 
+    # Показване на класическите прогрес барове
     for kat, s_value in categories_totals.items():
         percentage = (s_value / total_on_site) if total_on_site > 0 else 0.0
         st.write(f"**{kat}**: {s_value:.2f} лв. ({percentage * 100:.1f}%)")
@@ -202,38 +203,40 @@ if trip_id:
     with col_stat2:
         st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} лв.")
 
+    # Модерна хронология с бутони за бързо изтриване на всеки ред
     if rows_data:
         st.markdown("---")
         st.subheader("📋 Хронология на плащанията")
-        df = pd.DataFrame(rows_data, columns=["Дата/Час", "Сума (лв.)", "Категория", "Описание"])
-        st.dataframe(df.iloc[::-1], use_container_width=True)
-
-        # 4. УПРАВЛЕНИЕ И ИЗТРИВАНЕ НА РАЗХОДИ
+        
+        # Заглавна лента на таблицата за по-добра четимост
+        h_col1, h_col2, h_col3, h_col4, h_col5 = st.columns([1.2, 1.2, 1.5, 2.5, 0.6])
+        h_col1.markdown("**Дата/Час**")
+        h_col2.markdown("**Сума**")
+        h_col3.markdown("**Категория**")
+        h_col4.markdown("**Описание**")
+        h_col5.markdown("**Действие**")
         st.markdown("---")
-        st.subheader("🗑️ Управление и изтриване на отделни разходи")
-        
-        delete_options = []
-        for index, row in enumerate(rows_data):
-            option_text = f"{row[0]} | {row[2]} | {row[1]:.2f} лв. ({row[3]})"
-            delete_options.append((index, option_text))
-        
-        selected_to_delete = st.selectbox(
-            "Изберете кой разход искате да изтриете:", 
-            options=delete_options, 
-            format_func=lambda x: x[1]
-        )
-        
-        if st.button("❌ Изтрий избрания разход", type="primary", use_container_width=True):
-            index_to_remove = selected_to_delete[0]
-            del original_lines[index_to_remove]
-            
-            with open(ime_fail_razhodi, "w", encoding="utf-8") as f:
-                for remaining_line in original_lines:
-                    f.write(remaining_line + "\n")
-            st.success("Разходът беше изтрит успешно!")
-            st.rerun()
 
-    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА (МОДЕРЕН БУТОН С ЧИСТ ДИЗАЙН)
+        # Извеждане на разходите в обратен ред (най-новите най-отгоре)
+        for idx, row in reversed(list(enumerate(rows_data))):
+            r_date, r_suma, r_kat, r_opis = row
+            
+            c1, c2, c3, c4, c5 = st.columns([1.2, 1.2, 1.5, 2.5, 0.6])
+            c1.write(r_date)
+            c2.write(f"**{r_suma:.2f} лв.**")
+            c3.write(r_kat)
+            c4.write(r_opis)
+            
+            # Малко бутонче „Х“ за моментално премахване на конкретния ред
+            if c5.button("❌", key=f"del_btn_{idx}"):
+                del original_lines[idx]
+                with open(ime_fail_razhodi, "w", encoding="utf-8") as f:
+                    for remaining_line in original_lines:
+                        f.write(remaining_line + "\n")
+                st.success("Разходът беше изтрит!")
+                st.rerun()
+
+    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА (С КРАСИВ БУТОН ЗА ИЗТЕГЛЯНЕ)
     st.markdown("---")
     st.subheader("🏁 Приключване на почивката")
     st.write("Свалете официалния отчет. Документът ще се отвори в браузъра и сам ще предложи запис като PDF.")
@@ -241,8 +244,6 @@ if trip_id:
     html_buffer = generate_html_pdf(trip_id, total_on_site, depozit_hotel, categories_totals, rows_data)
     b64_html = base64.b64encode(html_buffer).decode()
     
-    # Красив изчистен бутон с вграден линк
-    button_uuid = f"download_{trip_id}"
     custom_css_button = f"""
         <a href="data:text/html;base64,{b64_html}" download="otchet_{trip_id}_2026.html" style="text-decoration: none;">
             <button style="
