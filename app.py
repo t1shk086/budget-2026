@@ -21,32 +21,33 @@ def load_deposit(trip_name):
             return 0.0
     return 0.0
 
-# Функция за генериране на HTML, който браузърът превръща в PDF с перфектна кирилица
+# Функция за генериране на HTML, който автоматично се разпечатва като PDF в браузъра
 def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     html_content = f"""
     <html>
     <head>
         <meta charset="utf-8">
+        <title>Отчет_{trip_name}</title>
         <style>
-            body {{ font-family: 'Arial', 'Helvetica', sans-serif; color: #2c3e50; padding: 20px; }}
-            h1 {{ color: #1f77b4; border-bottom: 2px solid #1f77b4; padding-bottom: 10px; }}
-            h2 {{ color: #2c3e50; margin-top: 30px; }}
-            .stats {{ background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
-            th, td {{ border: 1px solid #bdc3c7; padding: 10px; text-align: left; }}
-            th {{ background-color: #f2f2f2; }}
-            .chrono-th {{ background-color: #e6f2ff; }}
+            body {{ font-family: 'Arial', 'Helvetica', sans-serif; color: #2c3e50; padding: 30px; }}
+            h1 {{ color: #1f77b4; border-bottom: 2px solid #1f77b4; padding-bottom: 10px; margin-bottom: 5px; }}
+            h2 {{ color: #2c3e50; margin-top: 25px; font-size: 18px; border-left: 4px solid #1f77b4; padding-left: 10px; }}
+            .stats {{ background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 15px; border: 1px solid #e2e8f0; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }}
+            th, td {{ border: 1px solid #cbd5e1; padding: 10px; text-align: left; }}
+            th {{ background-color: #f1f5f9; color: #334155; font-weight: bold; }}
+            .chrono-th {{ background-color: #e2e8f0; color: #1e293b; }}
+            tr:nth-child(even) {{ background-color: #f8fafc; }}
         </style>
     </head>
     <body>
         <h1>Финансов отчет: {trip_name.upper().replace('_', ' ')}</h1>
-        <p><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
+        <p style="color: #64748b; font-size: 13px;"><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
         
         <div class="stats">
-            <h2>Обща статистика</h2>
-            <p><b>Платен депозит за хотел:</b> {deposit:.2f} лв.</p>
-            <p><b>Общо похарчени на място:</b> {total_site:.2f} лв.</p>
-            <p><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} лв.</p>
+            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} лв.</p>
+            <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} лв.</p>
+            <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} лв.</p>
         </div>
 
         <h2>Разходи по категории</h2>
@@ -62,7 +63,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         percentage = (s_value / total_site * 100) if total_site > 0 else 0.0
         html_content += f"""
             <tr>
-                <td>{kat}</td>
+                <td><b>{kat}</b></td>
                 <td>{s_value:.2f} лв.</td>
                 <td>{percentage:.1f}%</td>
             </tr>
@@ -84,14 +85,20 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         html_content += f"""
             <tr>
                 <td>{row[0]}</td>
-                <td>{row[1]:.2f} лв.</td>
+                <td><b>{row[1]:.2f} лв.</b></td>
                 <td>{row[2]}</td>
                 <td>{row[3]}</td>
             </tr>
         """
         
+    # Скрит скрипт, който задейства прозореца за запис на PDF веднага след зареждане на документа
     html_content += """
         </table>
+        <script>
+            window.onload = function() {
+                window.print();
+            }
+        </script>
     </body>
     </html>
     """
@@ -207,7 +214,7 @@ if trip_id:
         
         delete_options = []
         for index, row in enumerate(rows_data):
-            option_text = f"[{row[0]}] {row[2]} | {row[1]:.2f} лв. ({row[3]})"
+            option_text = f"{row[0]} | {row[2]} | {row[1]:.2f} лв. ({row[3]})"
             delete_options.append((index, option_text))
         
         selected_to_delete = st.selectbox(
@@ -226,19 +233,21 @@ if trip_id:
             st.success("Разходът беше изтрит успешно!")
             st.rerun()
 
-    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА (ГЕНЕРИРАНЕ НА ОТЧЕТ)
+    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА (С КРАСИВ БУТОН ЗА ИЗТЕГЛЯНЕ)
     st.markdown("---")
     st.subheader("🏁 Приключване на почивката")
-    st.write("Свалете официален отчет. Когато файлът се отвори в браузъра ви, натиснете **Ctrl + P** (или Споделяне -> Печат на телефон) и изберете **'Запиши като PDF'**.")
+    st.write("Кликнете върху бутона долу, за да генерирате и запазите официалния PDF отчет.")
     
     html_buffer = generate_html_pdf(trip_id, total_on_site, depozit_hotel, categories_totals, rows_data)
     
+    # Красив, червен и широк системен бутон
     st.download_button(
-        label="📥 ИЗТЕГЛИ ОТЧЕТ ЗА PDF",
+        label="📥 ПРИКЛЮЧИ ПОЧИВКАТА И СВАЛИ PDF",
         data=html_buffer,
         file_name=f"otchet_{trip_id}_2026.html",
         mime="text/html",
-        use_container_width=True
+        use_container_width=True,
+        type="primary"
     )
 
     # 6. ИЗТРИВАНЕ НА ЦЯЛО ПЪТУВАНЕ
