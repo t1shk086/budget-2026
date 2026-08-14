@@ -4,23 +4,11 @@ import datetime
 import os
 import glob
 import io
-import urllib.request
 
 # Настройка на страницата (Тъмна тема и заглавие)
 st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
 
-KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Hotel", "Депозит/Резервация"]
-
-# Функция за безопасно сваляне на кирилски шрифт от Google Fonts
-def download_cyrillic_font():
-    font_path = "Roboto-Regular.ttf"
-    if not os.path.exists(font_path):
-        try:
-            url = "https://github.com"
-            urllib.request.urlretrieve(url, font_path)
-        except:
-            pass
-    return font_path
+KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 
 # Функция за зареждане на депозит
 def load_deposit(trip_name):
@@ -33,34 +21,27 @@ def load_deposit(trip_name):
             return 0.0
     return 0.0
 
-# Функция за генериране на PDF на български език
+# Функция за генериране на PDF с вградена кирилица (Cp1251)
 def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     from reportlab.lib.pagesizes import letter
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
     from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfbase.cidfonts import CIDFont
 
-    # Подсигуряване на шрифта за кирилица
-    local_font = download_cyrillic_font()
+    # Използваме стандартния вграден Helvetica с кодиране за Източна Европа (Кирилица)
     font_name = 'Helvetica'
-    
-    if os.path.exists(local_font):
-        try:
-            pdfmetrics.registerFont(TTFont('Roboto', local_font))
-            font_name = 'Roboto'
-        except:
-            font_name = 'Helvetica'
+    enc = 'Cp1251'
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, title=f"Budget_{trip_name}")
     styles = getSampleStyleSheet()
     
-    # Специфични стилове с новия кирилски шрифт
-    title_style = ParagraphStyle('TitleStyle', fontName=font_name, fontSize=24, leading=28, spaceAfter=20, textColor=colors.HexColor('#1f77b4'))
-    heading_style = ParagraphStyle('HeadingStyle', fontName=font_name, fontSize=16, leading=20, spaceAfter=10, spaceBefore=15, textColor=colors.HexColor('#2c3e50'))
-    text_style = ParagraphStyle('TextStyle', fontName=font_name, fontSize=11, leading=15, spaceAfter=6)
+    # Специфични стилове с енкодинг
+    title_style = ParagraphStyle('TitleStyle', fontName=font_name, fontSize=24, leading=28, spaceAfter=20, textColor=colors.HexColor('#1f77b4'), encoding=enc)
+    heading_style = ParagraphStyle('HeadingStyle', fontName=font_name, fontSize=16, leading=20, spaceAfter=10, spaceBefore=15, textColor=colors.HexColor('#2c3e50'), encoding=enc)
+    text_style = ParagraphStyle('TextStyle', fontName=font_name, fontSize=11, leading=15, spaceAfter=6, encoding=enc)
 
     story = []
     story.append(Paragraph(f"Финансов отчет: {trip_name.upper().replace('_', ' ')}", title_style))
@@ -105,7 +86,7 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
             Paragraph(str(row[3]), text_style)
         ])
         
-    t_chrono = Table(chrono_data, colWidths=[100, 100, 120, 150])
+    t_chrono = Table(chrono_data, colWidths=[100, 80, 120, 150])
     t_chrono.setStyle(TableStyle([
         ('FONTNAME', (0,0), (-1,-1), font_name),
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e6f2ff')),
