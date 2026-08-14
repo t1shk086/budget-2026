@@ -11,7 +11,7 @@ st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="cen
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 
-# Функция за зареждане на депозит
+# Funktion за зареждане на депозит
 def load_deposit(trip_name):
     filename = f"depozit_{trip_name}_2026.txt"
     if os.path.exists(filename):
@@ -235,6 +235,12 @@ if trip_id:
                         f.write(remaining_line + "\n")
                 st.success("Разходът беше изтрит!")
                 st.rerun()
+                
+            # Добавяне на тънка, елегантна разделителна линия след всеки ред
+            st.markdown(
+                '<hr style="border: 0; height: 1px; background: #333; margin: 8px 0; opacity: 0.15;">', 
+                unsafe_allow_html=True
+            )
 
     # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА (С КРАСИВ БУТОН ЗА ИЗТЕГЛЯНЕ)
     st.markdown("---")
