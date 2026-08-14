@@ -4,11 +4,23 @@ import datetime
 import os
 import glob
 import io
+import urllib.request
 
 # Настройка на страницата (Тъмна тема и заглавие)
 st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
+
+# Функция за безопасно сваляне на кирилски шрифт от Google Fonts
+def download_cyrillic_font():
+    font_path = "Roboto-Regular.ttf"
+    if not os.path.exists(font_path):
+        try:
+            url = "https://github.com"
+            urllib.request.urlretrieve(url, font_path)
+        except:
+            pass
+    return font_path
 
 # Функция за зареждане на депозит
 def load_deposit(trip_name):
@@ -30,13 +42,14 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    try:
-        pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
-        font_name = 'DejaVuSans'
-    except:
+    # Подсигуряване на шрифта
+    local_font = download_cyrillic_font()
+    font_name = 'Helvetica'
+    
+    if os.path.exists(local_font):
         try:
-            pdfmetrics.registerFont(TTFont('LiberationSans', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'))
-            font_name = 'LiberationSans'
+            pdfmetrics.registerFont(TTFont('Roboto', local_font))
+            font_name = 'Roboto'
         except:
             font_name = 'Helvetica'
 
@@ -79,9 +92,14 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     chrono_data = [[Paragraph("<b>Дата/Час</b>", text_style), Paragraph("<b>Сума</b>", text_style), Paragraph("<b>Категория</b>", text_style), Paragraph("<b>Описание</b>", text_style)]]
     
     for row in reversed(rows_data):
-        chrono_data.append([Paragraph(str(row[0]), text_style), Paragraph(f"{row[1]:.2f} лв.", text_style), Paragraph(str(row[2]), text_style), Paragraph(str(row[3]), text_style)])
+        chrono_data.append([
+            Paragraph(str(row[0]), text_style), 
+            Paragraph(f"{row[1]:.2f} лв.", text_style), 
+            Paragraph(str(row[2]), text_style), 
+            Paragraph(str(row[3]), text_style)
+        ])
         
-    t_chrono = Table(chrono_data, colWidths=[90, 80, 130, 170])
+    t_chrono = Table(chrono_data, colWidths=[90, 80, 130, 150])
     t_chrono.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e6f2ff')),
         ('BOTTOMPADDING', (0,0), (-1,-1), 5),
@@ -94,37 +112,6 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     doc.build(story)
     buffer.seek(0)
     return buffer
-# 1. СТАРТОВ ЕКРАН (Избор на пътуване)
-st.title("💰 Бюджет 2026")
-
-all_files = glob.glob("vsichki_razhodi_*.txt")
-existing_trips = []
-for file_path in all_files:
-    file_name = os.path.basename(file_path).replace("vsichki_razhodi_", "")
-    parts = file_name.split("_")
-    if len(parts) > 1:
-        pure_name = " ".join(parts[:-1])
-        if pure_name and pure_name not in existing_trips:
-            existing_trips.append(pure_name)
-
-menu_options = existing_trips + ["➕ СЪЗДАЙ НОВО ПЪТУВАНЕ"]
-user_choice = st.selectbox("Изберете или създайте почивка:", menu_options)
-
-trip_id = ""
-if user_choice == "➕ СЪЗДАЙ НОВО ПЪТУВАНЕ":
-    input_text = st.text_input("Въведете име на новата дестинация:").strip()
-    if input_text:
-        trip_id = input_text.replace(" ", "_")
-else:
-    trip_id = user_choice.replace(" ", "_")
-
-if trip_id:
-    st.markdown("---")
-    st.subheader(f"🌴 Дестинация: {trip_id.upper().replace('_', ' ')}")
-    
-    ime_fail_razhodi = f"vsichki_razhodi_{trip_id}_2026.txt"
-    ime_fail_depozit = f"depozit_{trip_id}_2026.txt"
-    depozit_hotel = load_deposit(trip_id)
 
     # 2. ВЪВЕЖДАНЕ НА ДАННИ
     col1, col2 = st.columns(2)
