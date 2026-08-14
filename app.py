@@ -46,16 +46,16 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         <p style="color: #64748b; font-size: 13px;"><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
         
         <div class="stats">
-            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} лв.</p>
-            <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} лв.</p>
-            <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} лв.</p>
+            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} €</p>
+            <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} €</p>
+            <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} €</p>
         </div>
 
         <h2>Разходи по категории</h2>
         <table>
             <tr>
                 <th>Категория</th>
-                <th>Сума (лв.)</th>
+                <th>Сума (€)</th>
                 <th>Процент</th>
             </tr>
     """
@@ -65,7 +65,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         html_content += f"""
             <tr>
                 <td><b>{kat}</b></td>
-                <td>{s_value:.2f} лв.</td>
+                <td>{s_value:.2f} €</td>
                 <td>{percentage:.1f}%</td>
             </tr>
         """
@@ -86,7 +86,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         html_content += f"""
             <tr>
                 <td>{row[0]}</td>
-                <td><b>{row[1]:.2f} лв.</b></td>
+                <td><b>{row[1]:.2f} €</b></td>
                 <td>{row[2]}</td>
                 <td>{row[3]}</td>
             </tr>
