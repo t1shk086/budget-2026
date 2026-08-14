@@ -9,7 +9,7 @@ import urllib.request
 # Настройка на страницата (Тъмна тема и заглавие)
 st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
 
-KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
+KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Hotel", "Депозит/Резервация"]
 
 # Функция за безопасно сваляне на кирилски шрифт от Google Fonts
 def download_cyrillic_font():
@@ -57,9 +57,10 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     doc = SimpleDocTemplate(buffer, pagesize=letter, title=f"Budget_{trip_name}")
     styles = getSampleStyleSheet()
     
-    title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontName=font_name, fontSize=24, leading=28, spaceAfter=20, textColor=colors.HexColor('#1f77b4'))
-    heading_style = ParagraphStyle('HeadingStyle', parent=styles['Heading2'], fontName=font_name, fontSize=16, leading=20, spaceAfter=10, spaceBefore=15, textColor=colors.HexColor('#2c3e50'))
-    text_style = ParagraphStyle('TextStyle', parent=styles['Normal'], fontName=font_name, fontSize=11, leading=15, spaceAfter=6)
+    # Специфични стилове с новия кирилски шрифт
+    title_style = ParagraphStyle('TitleStyle', fontName=font_name, fontSize=24, leading=28, spaceAfter=20, textColor=colors.HexColor('#1f77b4'))
+    heading_style = ParagraphStyle('HeadingStyle', fontName=font_name, fontSize=16, leading=20, spaceAfter=10, spaceBefore=15, textColor=colors.HexColor('#2c3e50'))
+    text_style = ParagraphStyle('TextStyle', fontName=font_name, fontSize=11, leading=15, spaceAfter=6)
 
     story = []
     story.append(Paragraph(f"Финансов отчет: {trip_name.upper().replace('_', ' ')}", title_style))
@@ -67,19 +68,25 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     story.append(Spacer(1, 15))
     
     story.append(Paragraph("Обща статистика", heading_style))
-    story.append(Paragraph(f"<b>Платен депозит за хотел:</b> {deposit:.2f} лв.", text_style))
-    story.append(Paragraph(f"<b>Общо похарчени на място:</b> {total_site:.2f} лв.", text_style))
-    story.append(Paragraph(f"<b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} лв.", text_style))
+    story.append(Paragraph(f"Платен депозит за хотел: {deposit:.2f} лв.", text_style))
+    story.append(Paragraph(f"Общо похарчени на място: {total_site:.2f} лв.", text_style))
+    story.append(Paragraph(f"ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА: {deposit + total_site:.2f} лв.", text_style))
     story.append(Spacer(1, 15))
     
     story.append(Paragraph("Разходи по категории", heading_style))
-    cat_data = [[Paragraph("<b>Категория</b>", text_style), Paragraph("<b>Сума (лв.)</b>", text_style), Paragraph("<b>Процент</b>", text_style)]]
+    
+    cat_data = [[Paragraph("Категория", text_style), Paragraph("Сума (лв.)", text_style), Paragraph("Процент", text_style)]]
     for kat, s_value in categories_totals.items():
         percentage = (s_value / total_site * 100) if total_site > 0 else 0.0
-        cat_data.append([Paragraph(kat, text_style), Paragraph(f"{s_value:.2f} лв.", text_style), Paragraph(f"{percentage:.1f}%", text_style)])
+        cat_data.append([
+            Paragraph(str(kat), text_style), 
+            Paragraph(f"{s_value:.2f} лв.", text_style), 
+            Paragraph(f"{percentage:.1f}%", text_style)
+        ])
     
     t_cat = Table(cat_data, colWidths=[200, 150, 100])
     t_cat.setStyle(TableStyle([
+        ('FONTNAME', (0,0), (-1,-1), font_name),
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f2f2f2')),
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
         ('TOPPADDING', (0,0), (-1,-1), 6),
@@ -88,7 +95,7 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     story.append(t_cat)
     story.append(Spacer(1, 20))
     story.append(Paragraph("Пълна хронология на плащанията", heading_style))
-    chrono_data = [[Paragraph("<b>Дата/Час</b>", text_style), Paragraph("<b>Сума</b>", text_style), Paragraph("<b>Категория</b>", text_style), Paragraph("<b>Описание</b>", text_style)]]
+    chrono_data = [[Paragraph("Дата/Час", text_style), Paragraph("Сума", text_style), Paragraph("Категория", text_style), Paragraph("Описание", text_style)]]
     
     for row in reversed(rows_data):
         chrono_data.append([
@@ -98,8 +105,9 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
             Paragraph(str(row[3]), text_style)
         ])
         
-    t_chrono = Table(chrono_data, colWidths=[100, 90, 120, 160])
+    t_chrono = Table(chrono_data, colWidths=[100, 100, 120, 150])
     t_chrono.setStyle(TableStyle([
+        ('FONTNAME', (0,0), (-1,-1), font_name),
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e6f2ff')),
         ('BOTTOMPADDING', (0,0), (-1,-1), 5),
         ('TOPPADDING', (0,0), (-1,-1), 5),
