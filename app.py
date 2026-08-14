@@ -58,7 +58,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         <p style="color: #64748b; font-size: 13px;"><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
         
         <div class="stats">
-            <p style="margin: 5px 0;"><b>Платен депозит заホテル:</b> {deposit:.2f} EUR</p>
+            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} EUR</p>
             <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} EUR</p>
             <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} EUR</p>
         </div>
@@ -116,29 +116,16 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     </html>
     """
     return html_content.encode('utf-8')
-# Функция-Асистент, която записва разхода и МИГНОВЕНО ИЗЧИСТВА кутиите на екрана
-def h_zapis(kat_ime, r_fail, d_fail, d_hotel):
-    # Извличаме какво е написано в полетата в момента на клика
-    s_vavedena = st.session_state.get("vavedena_suma", 0.0)
-    o_vavedeno = st.session_state.get("vavedeno_opisanie", "").strip()
-    
-    if s_vavedena > 0:
-        чисто_описание = o_vavedeno.replace("|", "-") if o_vavedeno else "Без описание"
-        
-        if kat_ime == "Депозит/Резервация":
-            nov_depozit = d_hotel + s_vavedena
-            with open(d_fail, "w", encoding="utf-8") as f: 
-                f.write(str(nov_depozit))
-        else:
-            data_chas = datetime.datetime.now().strftime("%d.%m %H:%M")
-            with open(r_fail, "a", encoding="utf-8") as f:
-                f.write(f"{data_chas}|{s_vavedena}|{s_vavedena}|{kat_ime}|{чисто_описание}|обикновен\n")
-        
-        # КЛЮЧЪТ КЪМ УСПЕХА: Изтриваме твърдо ключовете, което кара Streamlit да изпразни полетата
-        if "vavedena_suma" in st.session_state:
-            del st.session_state["vavedena_suma"]
-        if "vavedeno_opisanie" in st.session_state:
-            del st.session_state["vavedeno_opisanie"]
+# Първоначално зареждане на чисти стойности в паметта
+if "v_suma" not in st.session_state:
+    st.session_state["v_suma"] = 0.0
+if "v_opis" not in st.session_state:
+    st.session_state["v_opis"] = ""
+
+# Функция, която Streamlit извиква ОФИЦИАЛНО за нулиране на полетата на екрана
+def reset_inputs():
+    st.session_state["v_suma"] = 0.0
+    st.session_state["v_opis"] = ""
 
 # 1. СТАРТОВ ЕКРАН (Избор на пътуване)
 st.title("💰 Бюджет 2026")
@@ -172,26 +159,35 @@ if trip_id:
     ime_fail_depozit = f"depozit_{trip_id}_2026.txt"
     depozit_hotel = load_deposit(trip_id)
 
-    # 2. ВЪВЕЖДАНЕ НА ДАННИ (С твърдо привързани системни ключове)
+    # 2. ВЪВЕЖДАНЕ НА ДАННИ (Привързани към сигурни вътрешни променливи)
     col1, col2 = st.columns(2)
     with col1:
-        st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key="vavedena_suma")
+        s_input = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key="v_suma")
     with col2:
-        st.text_input("Описание", placeholder="Без описание", key="vavedeno_opisanie")
+        o_input = st.text_input("Описание", placeholder="Без описание", key="v_opis")
 
     st.write("Изберете категория за запис:")
     grid = st.columns(3)
     
+    # Тъй като не ползваме on_click за запис (който бъгваше S24), проверяваме кой бутон е натиснат в реално време
     for i, kat in enumerate(KATEGORII):
         with grid[i % 3]:
-            # Бутоните директно задействат функцията-асистент (on_click)
-            st.button(
-                kat, 
-                use_container_width=True, 
-                key=f"btn_{i}", 
-                on_click=h_zapis, 
-                args=(kat, ime_fail_razhodi, ime_fail_depozit, depozit_hotel)
-            )
+            if st.button(kat, use_container_width=True, key=f"btn_{i}"):
+                if s_input > 0:
+                    чисто_описание = o_input.replace("|", "-").strip() if o_input else "Без описание"
+                    
+                    if kat == "Депозит/Резервация":
+                        nov_depozit = depozit_hotel + s_input
+                        with open(ime_fail_depozit, "w", encoding="utf-8") as f: 
+                            f.write(str(nov_depozit))
+                    else:
+                        data_chas = datetime.datetime.now().strftime("%d.%m %H:%M")
+                        with open(ime_fail_razhodi, "a", encoding="utf-8") as f:
+                            f.write(f"{data_chas}|{s_input}|{s_input}|{kat}|{чисто_описание}|обикновен\n")
+                    
+                    # Извикваме ОФИЦИАЛНАТА функция за изчистване и презареждаме мигновено
+                    reset_inputs()
+                    st.rerun()
     # 3. СТАТИСТИКА И МОБИЛНА ХРОНОЛОГИЯ
     st.markdown("---")
     st.subheader("📊 Екранна статистика")
