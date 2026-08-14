@@ -42,7 +42,7 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    # Подсигуряване на шрифта
+    # Подсигуряване на шрифта за кирилица
     local_font = download_cyrillic_font()
     font_name = 'Helvetica'
     
@@ -87,7 +87,6 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     ]))
     story.append(t_cat)
     story.append(Spacer(1, 20))
-    
     story.append(Paragraph("Пълна хронология на плащанията", heading_style))
     chrono_data = [[Paragraph("<b>Дата/Час</b>", text_style), Paragraph("<b>Сума</b>", text_style), Paragraph("<b>Категория</b>", text_style), Paragraph("<b>Описание</b>", text_style)]]
     
@@ -99,7 +98,7 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
             Paragraph(str(row[3]), text_style)
         ])
         
-    t_chrono = Table(chrono_data, colWidths=[90, 80, 130, 150])
+    t_chrono = Table(chrono_data, colWidths=[100, 90, 120, 160])
     t_chrono.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e6f2ff')),
         ('BOTTOMPADDING', (0,0), (-1,-1), 5),
@@ -112,6 +111,38 @@ def generate_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     doc.build(story)
     buffer.seek(0)
     return buffer
+
+# 1. СТАРТОВ ЕКРАН (Избор на пътуване)
+st.title("💰 Бюджет 2026")
+
+all_files = glob.glob("vsichki_razhodi_*.txt")
+existing_trips = []
+for file_path in all_files:
+    file_name = os.path.basename(file_path).replace("vsichki_razhodi_", "")
+    parts = file_name.split("_")
+    if len(parts) > 1:
+        pure_name = " ".join(parts[:-1])
+        if pure_name and pure_name not in existing_trips:
+            existing_trips.append(pure_name)
+
+menu_options = existing_trips + ["➕ СЪЗДАЙ НОВО ПЪТУВАНЕ"]
+user_choice = st.selectbox("Изберете или създайте почивка:", menu_options)
+
+trip_id = ""
+if user_choice == "➕ СЪЗДАЙ НОВО ПЪТУВАНЕ":
+    input_text = st.text_input("Въведете име на новата дестинация:").strip()
+    if input_text:
+        trip_id = input_text.replace(" ", "_")
+else:
+    trip_id = user_choice.replace(" ", "_")
+
+if trip_id:
+    st.markdown("---")
+    st.subheader(f"🌴 Дестинация: {trip_id.upper().replace('_', ' ')}")
+    
+    ime_fail_razhodi = f"vsichki_razhodi_{trip_id}_2026.txt"
+    ime_fail_depozit = f"depozit_{trip_id}_2026.txt"
+    depozit_hotel = load_deposit(trip_id)
 
     # 2. ВЪВЕЖДАНЕ НА ДАННИ
     col1, col2 = st.columns(2)
