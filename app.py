@@ -116,6 +116,12 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     </html>
     """
     return html_content.encode('utf-8')
+# Инициализация на състоянията на полетата, ако все още не съществуват
+if "vavedena_suma" not in st.session_state:
+    st.session_state.vavedena_suma = 0.0
+if "vavedeno_opisanie" not in st.session_state:
+    st.session_state.vavedeno_opisanie = ""
+
 # 1. СТАРТОВ ЕКРАН (Избор на пътуване)
 st.title("💰 Бюджет 2026")
 
@@ -148,12 +154,12 @@ if trip_id:
     ime_fail_depozit = f"depozit_{trip_id}_2026.txt"
     depozit_hotel = load_deposit(trip_id)
 
-    # 2. ВЪВЕЖДАНЕ НА ДАННИ
+    # 2. ВЪВЕЖДАНЕ НА ДАННИ (Обвързани със st.session_state)
     col1, col2 = st.columns(2)
     with col1:
-        suma_vavedena = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key="suma_input")
+        suma_vavedena = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key="vavedena_suma")
     with col2:
-        opisanie = st.text_input("Описание", placeholder="Без описание", key="opis_input").replace("|", "-")
+        opisanie = st.text_input("Описание", placeholder="Без описание", key="vavedeno_opisanie")
 
     st.write("Изберете категория за запис:")
     grid = st.columns(3)
@@ -164,19 +170,25 @@ if trip_id:
             if st.button(kat, use_container_width=True, key=f"btn_{i}"):
                 selected_category = kat
 
+    # Обработка на записа и автоматично нулиране на полетата
     if selected_category and suma_vavedena > 0:
+        чисто_описание = opisanie.replace("|", "-").strip() if opisanie else "Без описание"
+        
         if selected_category == "Депозит/Резервация":
             nov_depozit = depozit_hotel + suma_vavedena
             with open(ime_fail_depozit, "w", encoding="utf-8") as f: 
                 f.write(str(nov_depozit))
-            st.success(f"Записан депозит: {suma_vavedena:.2f} EUR (Общо до момента: {nov_depozit:.2f} EUR)")
-            st.rerun()
+            st.success(f"Записан депозит: {suma_vavedena:.2f} EUR")
         else:
             data_chas = datetime.datetime.now().strftime("%d.%m %H:%M")
             with open(ime_fail_razhodi, "a", encoding="utf-8") as f:
-                f.write(f"{data_chas}|{suma_vavedena}|{suma_vavedena}|{selected_category}|{opisanie if opisanie else 'Без описание'}|обикновен\n")
+                f.write(f"{data_chas}|{suma_vavedena}|{suma_vavedena}|{selected_category}|{чисто_описание}|обикновен\n")
             st.success(f"Успешно записан разход за {selected_category}!")
-            st.rerun()
+        
+        # МАГИЯТА ТУК: Изпразваме стойностите в session_state веднага след запис
+        st.session_state.vavedena_suma = 0.0
+        st.session_state.vavedeno_opisanie = ""
+        st.rerun()
     # 3. СТАТИСТИКА И МОБИЛНА ХРОНОЛОГИЯ
     st.markdown("---")
     st.subheader("📊 Екранна статистика")
@@ -225,17 +237,13 @@ if trip_id:
             r_date, r_suma, r_kat, r_opis = row
             icon = get_emoji(r_kat)
             
-            # Разделяне само на две интелигентни колони: Текст вляво, Бутон вдясно
-            c_text, c_button = st.columns([5, 1])
+            c_text, c_button = st.columns([4, 1])
             
             with c_text:
-                # Горна линия на картата: Икона, Категория и Сума (изпъкваща)
                 st.markdown(f"{icon} **{r_kat}** — <span style='color:#ff4b4b; font-weight:bold;'>{r_suma:.2f} EUR</span>", unsafe_allow_html=True)
-                # Долна линия на картата: Дата и Описание с по-малък, дискретен шрифт
                 st.markdown(f"<small style='color:#888;'>📅 {r_date} | 📝 {r_opis}</small>", unsafe_allow_html=True)
             
             with c_button:
-                # Вертикално подравнен бутон за бързо изтриване
                 st.write("")
                 if st.button("❌", key=f"del_btn_{idx}"):
                     del original_lines[idx]
@@ -245,7 +253,6 @@ if trip_id:
                     st.success("Разходът беше изтрит!")
                     st.rerun()
             
-            # Фина, елегантна разделителна линия между мобилните карти
             st.markdown('<hr style="border: 0; height: 1px; background: #333; margin: 12px 0; opacity: 0.15;">', unsafe_allow_html=True)
 
     # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА
