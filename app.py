@@ -180,7 +180,7 @@ if trip_id:
     with col2:
         o_input = st.text_input("Описание", placeholder="Без описание", key=f"opis_{v_id}")
 
-    st.write("Изберете категория за запис (3D Бутони):")
+    st.write("Изберете категория за запис:")
     grid = st.columns(3)
     
     for i, kat in enumerate(KATEGORII):
