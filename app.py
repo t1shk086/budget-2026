@@ -180,7 +180,7 @@ if trip_id:
     with col2:
         o_input = st.text_input("Описание", placeholder="Без описание", key=f"opis_{v_id}")
 
-    st.write("Изберете категория за запис:")
+    st.write("Изберете категория за запис (3D Бутони):")
     grid = st.columns(3)
     
     for i, kat in enumerate(KATEGORII):
@@ -232,7 +232,6 @@ if trip_id:
             <h2 style="color: #00f2fe; margin: 5px 0;">{total_on_site:.2f} EUR</h2>
         </div>
         """, unsafe_allow_html=True)
-
     if not df_trip.empty:
         st.markdown("---")
         st.subheader("📋 Хронология на плащанията")
@@ -253,12 +252,30 @@ if trip_id:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # НОВИЯТ КРАСИВ БУТОН С "❌ ИЗТРИЙ"
-                if st.button("❌ Изтрий", key=f"del_{idx}", use_container_width=True):
-                    df_all_data = df_all_data.drop(idx)
-                    df_all_data.to_csv(DATA_FILE, index=False, encoding="utf-8")
-                    st.success("Разходът е изтрит!")
-                    st.rerun()
+                # Защита при триене на разход
+                confirm_key = f"confirm_delete_{idx}"
+                if confirm_key not in st.session_state:
+                    st.session_state[confirm_key] = False
+                
+                if not st.session_state[confirm_key]:
+                    if st.button("❌ Изтрий", key=f"del_{idx}", use_container_width=True):
+                        st.session_state[confirm_key] = True
+                        st.rerun()
+                else:
+                    st.warning("⚠️ Наистина ли искате да изтриете този разход?")
+                    col_yes, col_no = st.columns(2)
+                    with col_yes:
+                        if st.button("✅ Да, изтрий го", key=f"yes_{idx}", use_container_width=True):
+                            df_all_data = df_all_data.drop(idx)
+                            df_all_data.to_csv(DATA_FILE, index=False, encoding="utf-8")
+                            st.session_state[confirm_key] = False
+                            st.success("Разходът е премахнат!")
+                            st.rerun()
+                    with col_no:
+                        if st.button("↩️ Отказ", key=f"no_{idx}", use_container_width=True):
+                            st.session_state[confirm_key] = False
+                            st.rerun()
+                            
                 st.markdown("<div style='margin-bottom:15px;'></div>", unsafe_allow_html=True)
         except:
             pass
@@ -278,7 +295,7 @@ if trip_id:
     st.markdown(custom_css_button, unsafe_allow_html=True)
 
     st.markdown("---")
-    with st.expander("📸 Снимки и спомени от почивката"):
+    with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
         if not os.path.exists(papka_snimki):
             try: os.makedirs(papka_snimki)
             except: pass
@@ -312,9 +329,24 @@ if trip_id:
                     st.markdown("<div style='border-radius:8px; overflow:hidden; box-shadow: 2px 2px 6px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.05); margin-bottom:5px;'>", unsafe_allow_html=True)
                     st.image(img_path, use_container_width=True)
                     st.markdown("</div>", unsafe_allow_html=True)
-                    if st.button("❌ Изтрий", key=f"del_img_{idx}", use_container_width=True):
-                        os.remove(img_path)
-                        st.rerun()
+                    
+                    # Защита при триене на снимка
+                    img_confirm_key = f"confirm_img_{idx}"
+                    if img_confirm_key not in st.session_state:
+                        st.session_state[img_confirm_key] = False
+                        
+                    if not st.session_state[img_confirm_key]:
+                        if st.button("❌ Изтрий", key=f"del_img_{idx}", use_container_width=True):
+                            st.session_state[img_confirm_key] = True
+                            st.rerun()
+                    else:
+                        if st.button("💥 ПОТВЪРДИ?", key=f"yes_img_{idx}", type="primary", use_container_width=True):
+                            os.remove(img_path)
+                            st.session_state[img_confirm_key] = False
+                            st.rerun()
+                        if st.button("↩️ Не", key=f"no_img_{idx}", use_container_width=True):
+                            st.session_state[img_confirm_key] = False
+                            st.rerun()
         else:
             st.info("Все още няма качени снимки.")
 
