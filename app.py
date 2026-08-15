@@ -220,7 +220,7 @@ if trip_id:
     with col_stat2:
         st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} EUR")
 
-    # Хронология
+    # Хронология (HTML без забиване на процеса)
     if rows_data:
         st.markdown("---")
         st.subheader("📋 Хронология на плащанията")
@@ -229,23 +229,21 @@ if trip_id:
             r_date, r_suma, r_kat, r_opis = row
             icon = get_emoji(r_kat)
             
-            c_text, c_button = st.columns([5, 1])
+            st.markdown(f"""
+            <div style="background-color: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; margin-bottom: 5px;">
+                <span style="font-size: 18px;">{icon}</span> <b>{r_kat}</b> — 
+                <span style="color:#ff4b4b; font-weight:bold;">{r_suma:.2f} EUR</span><br>
+                <small style="color:#888;">📅 {r_date} | 📝 {r_opis}</small>
+            </div>
+            """, unsafe_allow_html=True)
             
-            with c_text:
-                st.markdown(f"{icon} **{r_kat}** — <span style='color:#ff4b4b; font-weight:bold;'>{r_suma:.2f} EUR</span>", unsafe_allow_html=True)
-                st.markdown(f"<small style='color:#888;'>📅 {r_date} | 📝 {r_opis}</small>", unsafe_allow_html=True)
-            
-            with c_button:
-                st.write("")
-                if st.button("❌", key=f"del_btn_{idx}"):
-                    del original_lines[idx]
-                    with open(ime_fail_razhodi, "w", encoding="utf-8") as f:
-                        for remaining_line in original_lines:
-                            f.write(remaining_line + "\n")
-                    st.success("Разходът беше изтрит!")
-                    st.rerun()
-            
-            st.markdown('<hr style="border: 0; height: 1px; background: #333; margin: 12px 0; opacity: 0.15;">', unsafe_allow_html=True)
+            if st.button(f"🗑️ Изтрий този разход", key=f"del_btn_{idx}", use_container_width=True):
+                del original_lines[idx]
+                with open(ime_fail_razhodi, "w", encoding="utf-8") as f:
+                    for remaining_line in original_lines:
+                        f.write(remaining_line + "\n")
+                st.success("Разходът беше изтрит!")
+                st.rerun()
 
     # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА
     st.markdown("---")
@@ -275,7 +273,7 @@ if trip_id:
     """
     st.markdown(custom_css_button, unsafe_allow_html=True)
 
-    # NEW: 📸 ДИСКРЕТЕН АЛБУМ ЗА СПОМЕНИ
+    # 📸 ДИСКРЕТЕН АЛБУМ ЗА СПОМЕНИ
     st.markdown("---")
     with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
         if not os.path.exists(papka_snimki):
@@ -304,7 +302,7 @@ if trip_id:
             for idx, img_path in enumerate(saved_photos):
                 with img_grid[idx % 3]:
                     st.image(img_path, use_container_width=True)
-                    if st.button("🗑️", key=f"del_img_{idx}"):
+                    if st.button("🗑️ Снимка", key=f"del_img_{idx}"):
                         os.remove(img_path)
                         st.rerun()
         else:
