@@ -12,7 +12,7 @@ st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="cen
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE = "budget_data_2026.csv"
 
-# Функция за емоджи
+# Функция за емоджи според категорията
 def get_emoji(category):
     mapping = {
         "Храна и напитки": "🍔",
@@ -42,7 +42,7 @@ def get_trip_data(trip_id):
     except:
         return pd.DataFrame(columns=["trip_id", "date", "amount", "category", "description", "type"])
 
-# Сигурен запис на нов ред
+# Сигурен запис на нов ред в базата
 def add_expense(trip_id, amount, category, description, is_deposit=False):
     try:
         df = pd.read_csv(DATA_FILE, encoding="utf-8") if os.path.exists(DATA_FILE) else pd.DataFrame()
@@ -60,7 +60,7 @@ def add_expense(trip_id, amount, category, description, is_deposit=False):
     except:
         return False
 
-# Функция за генериране на HTML отчет
+# Функция за генериране на чист HTML/PDF отчет за разпечатване
 def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     html_content = f"""
     <html>
@@ -94,9 +94,21 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     for kat, s_value in categories_totals.items():
         percentage = (s_value / total_site * 100) if total_site > 0 else 0.0
         html_content += f"<tr><td><b>{kat}</b></td><td>{s_value:.2f} EUR</td><td>{percentage:.1f}%</td></tr>"
-    html_content += "</table><h2>Пълна хронология</h2><table><tr><th class='chrono-th'>Дата</th><th class='chrono-th'>Сума</th><th class='chrono-th'>Категория</th><th class='chrono-th'>Описание</th></tr>"
+    
+    html_content += """
+        </table>
+        <h2>Пълна хронология на плащанията</h2>
+        <table>
+            <tr>
+                <th class="chrono-th">Дата/Час</th>
+                <th class="chrono-th">Сума</th>
+                <th class="chrono-th">Категория</th>
+                <th class="chrono-th">Описание</th>
+            </tr>
+    """
     for row in reversed(rows_data):
         html_content += f"<tr><td>{row[0]}</td><td><b>{row[1]:.2f} EUR</b></td><td>{row[2]}</td><td>{row[3]}</td></tr>"
+        
     html_content += "</table><script>window.onload = function() { window.print(); }</script></body></html>"
     return html_content.encode('utf-8')
 if "form_version" not in st.session_state:
@@ -124,14 +136,14 @@ if user_choice == "➕ СЪЗДАЙ НОВО ПЪТУВАНЕ":
 else:
     trip_id = user_choice.replace(" ", "_")
 
-# Показваме формата само при заредено име
+# Показваме формата само при заредено име на дестинация
 if trip_id:
     st.markdown("---")
     st.subheader(f"🌴 Дестинация: {trip_id.upper().replace('_', ' ')}")
     
     papka_snimki = f"snimki_{trip_id}_2026"
     
-    # Зареждане на актуалните данни
+    # Зареждане на актуалните данни от DataFrame
     df_trip = get_trip_data(trip_id)
     depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum())
     
@@ -227,7 +239,7 @@ if trip_id:
     """
     st.markdown(custom_css_button, unsafe_allow_html=True)
 
-    # Дискретен албум за снимки
+    # 📸 ОПТИМИЗИРАН АЛБУМ ЗА СНИМКИ С ПРЕГЛЕД НА ЦЯЛ ЕКРАН
     st.markdown("---")
     with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
         if not os.path.exists(papka_snimki):
@@ -247,15 +259,27 @@ if trip_id:
         saved_photos = glob.glob(os.path.join(papka_snimki, "*"))
         if saved_photos:
             st.write(f"Запазени спомени: {len(saved_photos)}")
+            st.caption("ℹ️ Кликнете върху някоя снимка, за да я уголемите в нов прозорец.")
             img_grid = st.columns(3)
             for idx, img_path in enumerate(saved_photos):
                 with img_grid[idx % 3]:
-                    st.image(img_path, use_container_width=True)
-                    if st.button("🗑️ Снимка", key=f"del_img_{idx}"):
+                    with open(img_path, "rb") as f:
+                        encoded_img = base64.b64encode(f.read()).decode()
+                    
+                    st.markdown(f"""
+                        <a href="data:image/jpeg;base64,{encoded_img}" target="_blank">
+                            <img src="data:image/jpeg;base64,{encoded_img}" style="width:100%; border-radius:5px; border:1px solid #333; margin-bottom:5px; cursor:pointer;">
+                        </a>
+                    """, unsafe_allow_html=True)
+                    
+                    if st.button("❌ Изтрий", key=f"del_img_{idx}", use_container_width=True):
                         os.remove(img_path)
+                        st.success("Снимката е премахната!")
                         st.rerun()
+        else:
+            st.info("Все още няма качени снимки.")
 
-    # Изтриване на цяло пътуване от централната база данни
+    # Изтриване на цяло пътуване
     st.markdown("---")
     st.subheader("🚨 Изтриване на цялото пътуване")
     име_за_показване = trip_id.upper().replace('_', ' ')
