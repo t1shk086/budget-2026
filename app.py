@@ -180,7 +180,7 @@ if trip_id:
     with col2:
         o_input = st.text_input("Описание", placeholder="Без описание", key=f"opis_{v_id}")
 
-    st.write("Изберете категория за запис (3D Бутони):")
+    st.write("Изберете категория за запис:")
     grid = st.columns(3)
     
     for i, kat in enumerate(KATEGORII):
@@ -295,7 +295,7 @@ if trip_id:
     st.markdown(custom_css_button, unsafe_allow_html=True)
 
     st.markdown("---")
-    with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
+    with st.expander("📸 Снимки и спомени от почивката"):
         if not os.path.exists(papka_snimki):
             try: os.makedirs(papka_snimki)
             except: pass
