@@ -278,7 +278,7 @@ if trip_id:
     st.markdown(custom_css_button, unsafe_allow_html=True)
 
     st.markdown("---")
-    with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
+    with st.expander("📸 Снимки и спомени от почивката"):
         if not os.path.exists(papka_snimki):
             try: os.makedirs(papka_snimki)
             except: pass
