@@ -286,7 +286,7 @@ if trip_id:
     st.markdown("---")
     st.subheader("🚨 Изтриване на цялото пътуване")
     име_за_показване = trip_id.upper().replace('_', ' ')
-    st.warning(f"Внимание: Това ще изтрие permanentно всички разходи за '{име_за_показване}'!")
+    st.warning(f"Внимание: Това ще изтрие перманентно всички разходи за '{име_за_показване}'!")
     potvurditel = st.checkbox(f"Потвърждавам изтриването на '{име_за_показване}'.")
     
     if st.button("🗑️ ИЗТРИЙ ЦЯЛОТО ПЪТУВАНЕ", type="primary", use_container_width=True, disabled=not potvurditel):
