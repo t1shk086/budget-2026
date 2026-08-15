@@ -180,7 +180,7 @@ if trip_id:
     with col2:
         o_input = st.text_input("Описание", placeholder="Без описание", key=f"opis_{v_id}")
 
-    st.write("Изберете категория за запис:")
+    st.write("Изберете категория за запис (3D Бутони):")
     grid = st.columns(3)
     
     for i, kat in enumerate(KATEGORII):
@@ -208,13 +208,47 @@ if trip_id:
             categories_totals[row["category"]] += float(row["amount"])
         rows_data.append([row["date"], float(row["amount"]), row["category"], row["description"]])
 
+    # 📊 МОДЕРНО ТАБЛО С ДИНАМИЧНИ КАРТИ ТИП REVOLUT
     st.markdown("---")
-    st.subheader("📊 Екранна статистика")
+    st.subheader("📊 Анализ на разходите")
     
-    for kat, s_value in categories_totals.items():
-        percentage = (s_value / total_on_site) if total_on_site > 0 else 0.0
-        st.write(f"**{kat}**: {s_value:.2f} EUR ({percentage * 100:.1f}%)")
-        st.progress(float(percentage))
+    stat_grid = st.columns(2)
+    for idx, (kat, s_value) in enumerate(categories_totals.items()):
+        percentage = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
+        icon = get_emoji(kat)
+        
+        if percentage == 0:
+            border_color = "rgba(255,255,255,0.08)"
+            badge_bg = "rgba(255,255,255,0.1)"
+            badge_color = "#aaa"
+        elif percentage > 40:
+            border_color = "rgba(255, 75, 75, 0.4)"
+            badge_bg = "rgba(255, 75, 75, 0.2)"
+            badge_color = "#ff4b4b"
+        elif percentage > 20:
+            border_color = "rgba(255, 165, 0, 0.4)"
+            badge_bg = "rgba(255, 165, 0, 0.2)"
+            badge_color = "#ffa500"
+        else:
+            border_color = "rgba(0, 242, 254, 0.3)"
+            badge_bg = "rgba(0, 242, 254, 0.15)"
+            badge_color = "#00f2fe"
+
+        with stat_grid[idx % 2]:
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); 
+                        border: 1px solid {border_color}; padding: 15px; border-radius: 14px; 
+                        box-shadow: 3px 3px 10px rgba(0,0,0,0.3); margin-bottom: 12px; height: 110px;
+                        display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 14px; font-weight: bold; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{icon} {kat}</span>
+                    <span style="background: {badge_bg}; color: {badge_color}; font-size: 11px; padding: 2px 7px; border-radius: 20px; font-weight: bold;">{percentage:.1f}%</span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <h3 style="margin: 0; color: white; font-size: 20px; font-weight: 800;">{s_value:.2f} <span style="font-size: 12px; color: #aaa;">EUR</span></h3>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("---")
     col_stat1, col_stat2 = st.columns(2)
@@ -295,7 +329,7 @@ if trip_id:
     st.markdown(custom_css_button, unsafe_allow_html=True)
 
     st.markdown("---")
-    with st.expander("📸 Снимки и спомени от почивката"):
+    with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
         if not os.path.exists(papka_snimki):
             try: os.makedirs(papka_snimki)
             except: pass
