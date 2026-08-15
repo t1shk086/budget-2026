@@ -239,7 +239,7 @@ if trip_id:
     """
     st.markdown(custom_css_button, unsafe_allow_html=True)
 
-    # 📸 ОПТИМИЗИРАН АЛБУМ ЗА СНИМКИ С ПРЕГЛЕД НА ЦЯЛ ЕКРАН
+    # 📸 ВГРАДЕН АЛБУМ БЕЗ РИСК ОТ БЛОКИРАНЕ НА БРАУЗЪРА
     st.markdown("---")
     with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
         if not os.path.exists(papka_snimki):
@@ -259,19 +259,22 @@ if trip_id:
         saved_photos = glob.glob(os.path.join(papka_snimki, "*"))
         if saved_photos:
             st.write(f"Запазени спомени: {len(saved_photos)}")
-            st.caption("ℹ️ Кликнете върху някоя снимка, за да я уголемите в нов прозорец.")
+            
+            # Избор на снимка за преглед на цял екран вътре в самото приложение
+            снимки_имена = [os.path.basename(p) for p in saved_photos]
+            избрана_снимка = st.selectbox("👁️ Изберете снимка за преглед в голям размер:", ["-- Изберете снимка --"] + снимки_имена)
+            
+            if избрана_снимка != "-- Изберете снимка --":
+                път_към_голяма = os.path.join(papka_snimki, избрана_снимка)
+                st.image(път_към_голяма, use_container_width=True, caption=избрана_снимка)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.caption("📂 Галерия с бутони за премахване:")
+            
             img_grid = st.columns(3)
             for idx, img_path in enumerate(saved_photos):
                 with img_grid[idx % 3]:
-                    with open(img_path, "rb") as f:
-                        encoded_img = base64.b64encode(f.read()).decode()
-                    
-                    st.markdown(f"""
-                        <a href="data:image/jpeg;base64,{encoded_img}" target="_blank">
-                            <img src="data:image/jpeg;base64,{encoded_img}" style="width:100%; border-radius:5px; border:1px solid #333; margin-bottom:5px; cursor:pointer;">
-                        </a>
-                    """, unsafe_allow_html=True)
-                    
+                    st.image(img_path, use_container_width=True)
                     if st.button("❌ Изтрий", key=f"del_img_{idx}", use_container_width=True):
                         os.remove(img_path)
                         st.success("Снимката е премахната!")
@@ -283,7 +286,7 @@ if trip_id:
     st.markdown("---")
     st.subheader("🚨 Изтриване на цялото пътуване")
     име_за_показване = trip_id.upper().replace('_', ' ')
-    st.warning(f"Внимание: Това ще изтрие перманентно всички разходи за '{име_за_показване}'!")
+    st.warning(f"Внимание: Това ще изтрие permanentно всички разходи за '{име_за_показване}'!")
     potvurditel = st.checkbox(f"Потвърждавам изтриването на '{име_за_показване}'.")
     
     if st.button("🗑️ ИЗТРИЙ ЦЯЛОТО ПЪТУВАНЕ", type="primary", use_container_width=True, disabled=not potvurditel):
