@@ -9,10 +9,46 @@ import base64
 # Настройка на страницата за мобилен и десктоп изглед
 st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
 
+# ВГРАЖДАНЕ НА 3Д ДИЗАЙН: Прави всички големи блокове обемни със сенки и заоблени краища
+st.markdown("""
+<style>
+    /* Стил за белите контейнери / инфо кутии */
+    div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader, .stExpander {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        padding: 10px 15px !important;
+        box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4), 
+                    -2px -2px 8px rgba(255, 255, 255, 0.02) !important;
+        margin-bottom: 15px !important;
+    }
+    
+    /* 3D Ефект за бутоните за категории */
+    div.stButton > button {
+        background: linear-gradient(135deg, #2e2e2e, #1c1c1c) !important;
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 10px !important;
+        box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), 
+                    -1px -1px 4px rgba(255, 255, 255, 0.05) !important;
+        transition: all 0.2s ease !important;
+        font-weight: bold !important;
+    }
+    div.stButton > button:hover {
+        background: linear-gradient(135deg, #3d3d3d, #252525) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.6) !important;
+    }
+    div.stButton > button:active {
+        transform: translateY(1px) !important;
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5) !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE = "budget_data_2026.csv"
 
-# Функция за емоджи според категорията
 def get_emoji(category):
     mapping = {
         "Храна и напитки": "🍔",
@@ -24,7 +60,6 @@ def get_emoji(category):
     }
     return mapping.get(category, "💳")
 
-# Инициализиране на централната база данни (CSV), ако не съществува
 if not os.path.exists(DATA_FILE):
     try:
         df_init = pd.DataFrame(columns=["trip_id", "date", "amount", "category", "description", "type"])
@@ -32,7 +67,6 @@ if not os.path.exists(DATA_FILE):
     except:
         pass
 
-# Сигурно зареждане на данни за конкретно пътуване
 def get_trip_data(trip_id):
     if not os.path.exists(DATA_FILE):
         return pd.DataFrame(columns=["trip_id", "date", "amount", "category", "description", "type"])
@@ -42,7 +76,6 @@ def get_trip_data(trip_id):
     except:
         return pd.DataFrame(columns=["trip_id", "date", "amount", "category", "description", "type"])
 
-# Сигурен запис на нов ред в базата
 def add_expense(trip_id, amount, category, description, is_deposit=False):
     try:
         df = pd.read_csv(DATA_FILE, encoding="utf-8") if os.path.exists(DATA_FILE) else pd.DataFrame()
@@ -60,7 +93,6 @@ def add_expense(trip_id, amount, category, description, is_deposit=False):
     except:
         return False
 
-# ФИКСИРАНА ФУНКЦИЯ: Правилно разпределя и форматира хронологията в отчета
 def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     html_content = f"""
     <html>
@@ -94,31 +126,17 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     for kat, s_value in categories_totals.items():
         percentage = (s_value / total_site * 100) if total_site > 0 else 0.0
         html_content += f"<tr><td><b>{kat}</b></td><td>{s_value:.2f} EUR</td><td>{percentage:.1f}%</td></tr>"
-    
-    html_content += """
-        </table>
-        <h2>Пълна хронология на плащанията</h2>
-        <table>
-            <tr>
-                <th class="chrono-th">Дата/Час</th>
-                <th class="chrono-th">Сума</th>
-                <th class="chrono-th">Категория</th>
-                <th class="chrono-th">Описание</th>
-            </tr>
-    """
-    # Тук правилно разглобяваме елементите на всеки отделен разход
+    html_content += "</table><h2>Пълна хронология</h2><table><tr><th class='chrono-th'>Дата</th><th class='chrono-th'>Сума</th><th class='chrono-th'>Категория</th><th class='chrono-th'>Описание</th></tr>"
     for row in reversed(rows_data):
-        pdf_date, pdf_amount, pdf_cat, pdf_desc = row
-        html_content += f"<tr><td>{pdf_date}</td><td><b>{pdf_amount:.2f} EUR</b></td><td>{pdf_cat}</td><td>{pdf_desc}</td></tr>"
-        
+        html_content += f"<tr><td>{row[0]}</td><td><b>{row[1]:.2f} EUR</b></td><td>{row[2]}</td><td>{row[3]}</td></tr>"
     html_content += "</table><script>window.onload = function() { window.print(); }</script></body></html>"
     return html_content.encode('utf-8')
 if "form_version" not in st.session_state:
     st.session_state["form_version"] = 0
 
-st.title("💰 Бюджет 2026")
+# Основно заглавие с 3Д сянка
+st.markdown("<h1 style='text-shadow: 2px 2px 4px rgba(0,0,0,0.6);'>💰 Бюджет 2026</h1>", unsafe_allow_html=True)
 
-# Динамично извличане на съществуващи пътувания от базата данни
 existing_trips = []
 if os.path.exists(DATA_FILE):
     try:
@@ -128,6 +146,8 @@ if os.path.exists(DATA_FILE):
         pass
 
 menu_options = [t.replace("_", " ") for t in existing_trips] + ["➕ СЪЗДАЙ НОВО ПЪТУВАНЕ"]
+
+# Изборът на пътуване вече автоматично е обвит в 3Д поле от CSS-а
 user_choice = st.selectbox("Изберете или създайте почивка:", menu_options)
 
 trip_id = ""
@@ -138,32 +158,27 @@ if user_choice == "➕ СЪЗДАЙ НОВО ПЪТУВАНЕ":
 else:
     trip_id = user_choice.replace(" ", "_")
 
-# Показваме формата само при заредено име на дестинация
 if trip_id:
     st.markdown("---")
     st.subheader(f"🌴 Дестинация: {trip_id.upper().replace('_', ' ')}")
     
     papka_snimki = f"snimki_{trip_id}_2026"
-    
-    # Зареждане на актуалните данни от DataFrame
     df_trip = get_trip_data(trip_id)
     depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum())
     
     v_id = st.session_state["form_version"]
     col1, col2 = st.columns(2)
     with col1:
-        # Стойност по подразбиране е None (напълно празно поле)
         s_input = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", value=None, placeholder="Въведете сума...", key=f"suma_{v_id}")
     with col2:
         o_input = st.text_input("Описание", placeholder="Без описание", key=f"opis_{v_id}")
 
-    st.write("Изберете категория за запис:")
+    st.write("Изберете категория за запис (3D Бутони):")
     grid = st.columns(3)
     
     for i, kat in enumerate(KATEGORII):
         with grid[i % 3]:
             if st.button(kat, use_container_width=True, key=f"btn_{i}"):
-                # Проверяваме за валидно въведена сума
                 if s_input is not None and s_input > 0:
                     clean_desc = o_input.replace("|", "-").strip() if o_input else "Без описание"
                     is_dep = (kat == "Депозит/Резервация")
@@ -173,8 +188,7 @@ if trip_id:
                         st.success("Записано успешно!")
                         st.rerun()
                 else:
-                    st.warning("⚠️ Моля, въведете валидна сума преди да изберете категория!")
-    # Изчисляване на екранна статистика от DataFrame
+                    st.warning("⚠️ Моля, въведете сума!")
     df_expenses = df_trip[df_trip["type"] == "expense"]
     total_on_site = float(df_expenses["amount"].sum())
     
@@ -197,11 +211,22 @@ if trip_id:
     st.markdown("---")
     col_stat1, col_stat2 = st.columns(2)
     with col_stat1:
-        st.metric("🏨 ПЛАТЕН ДЕПОЗИТ", f"{depozit_hotel:.2f} EUR")
+        # Обемни 3Д кутии за големите суми
+        st.markdown(f"""
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.4); text-align: center;">
+            <small style="color: #aaa; font-weight: bold;">🏨 ПЛАТЕН ДЕПОЗИТ</small>
+            <h2 style="color: #ff4b4b; margin: 5px 0;">{depozit_hotel:.2f} EUR</h2>
+        </div>
+        """, unsafe_allow_html=True)
     with col_stat2:
-        st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} EUR")
+        st.markdown(f"""
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.4); text-align: center;">
+            <small style="color: #aaa; font-weight: bold;">💰 ОБЩО НА МЯСТО</small>
+            <h2 style="color: #00f2fe; margin: 5px 0;">{total_on_site:.2f} EUR</h2>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # Хронология в лек HTML формат
+    # 3D Обемна Хронология
     if not df_trip.empty:
         st.markdown("---")
         st.subheader("📋 Хронология на плащанията")
@@ -214,23 +239,24 @@ if trip_id:
                 r_row = df_all_data.loc[idx]
                 icon = get_emoji(r_row["category"])
                 
+                # Обемни 3Д редове със сенки за всеки разход
                 st.markdown(f"""
-                <div style="background-color: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; margin-bottom: 5px;">
+                <div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 12px; border-radius: 10px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 3px 3px 8px rgba(0,0,0,0.3);">
                     <span style="font-size: 18px;">{icon}</span> <b>{r_row["category"]}</b> — 
                     <span style="color:#ff4b4b; font-weight:bold;">{r_row["amount"]:.2f} EUR</span><br>
-                    <small style="color:#888;">📅 {r_row["date"]} | 📝 {r_row["description"]}</small>
+                    <small style="color:#aaa;">📅 {r_row["date"]} | 📝 {r_row["description"]}</small>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                if st.button(f"🗑️ Изтрий този разход", key=f"del_{idx}", use_container_width=True):
+                if st.button(f"🗑️ Изтрий разход", key=f"del_{idx}", use_container_width=True):
                     df_all_data = df_all_data.drop(idx)
                     df_all_data.to_csv(DATA_FILE, index=False, encoding="utf-8")
-                    st.success("Разходът е изтрит!")
+                    st.success("Изтрито!")
                     st.rerun()
         except:
             pass
 
-    # Бутон за PDF/HTML отчет
+    # Бутон за приключване
     st.markdown("---")
     st.subheader("🏁 Приключване на почивката")
     html_buffer = generate_html_pdf(trip_id, total_on_site, depozit_hotel, categories_totals, rows_data)
@@ -238,16 +264,16 @@ if trip_id:
     
     custom_css_button = f"""
         <a href="data:text/html;base64,{b64_html}" download="otchet_{trip_id}_2026.html" style="text-decoration: none;">
-            <button style="width: 100%; background-color: #ff4b4b; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <button style="width: 100%; background: linear-gradient(135deg, #ff4b4b, #b31010); color: white; padding: 12px 20px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 4px 4px 10px rgba(0,0,0,0.4); text-transform: uppercase;">
                 📥 ПРИКЛЮЧИ ПОЧИВКАТА И СВАЛИ PDF
             </button>
         </a>
     """
     st.markdown(custom_css_button, unsafe_allow_html=True)
 
-    # 📸 ВГРАДЕН АЛБУМ БЕЗ РИСК ОТ БЛОКИРАНЕ НА БРАУЗЪРА
+    # 3D Панел за снимки
     st.markdown("---")
-    with st.expander("📸 Снимки и спомени от почивката"):
+    with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
         if not os.path.exists(papka_snimki):
             try: os.makedirs(papka_snimki)
             except: pass
@@ -259,31 +285,32 @@ if trip_id:
                 if not os.path.exists(path_to_save):
                     with open(path_to_save, "wb") as f:
                         f.write(file.getbuffer())
-            st.success("Снимките са запазени!")
+            st.success("Запазени!")
             st.rerun()
             
         saved_photos = glob.glob(os.path.join(papka_snimki, "*"))
         if saved_photos:
             st.write(f"Запазени спомени: {len(saved_photos)}")
-            
-            # Избор на снимка за преглед на цял екран вътре в самото приложение
             снимки_имена = [os.path.basename(p) for p in saved_photos]
             избрана_снимка = st.selectbox("👁️ Изберете снимка за преглед в голям размер:", ["-- Изберете снимка --"] + снимки_имена)
             
             if избрана_снимка != "-- Изберете снимка --":
                 път_към_голяма = os.path.join(papka_snimki, избрана_снимка)
-                st.image(път_към_голяма, use_container_width=True, caption=избрана_снимка)
+                # Голямата снимка също има 3Д рамка
+                st.markdown("<div style='border-radius:12px; overflow:hidden; box-shadow: 5px 5px 15px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
+                st.image(път_към_голяма, use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
-            st.caption("📂 Галерия с бутони за премахване:")
-            
             img_grid = st.columns(3)
             for idx, img_path in enumerate(saved_photos):
                 with img_grid[idx % 3]:
+                    # Малките снимки получават елегантни рамки
+                    st.markdown("<div style='border-radius:8px; overflow:hidden; box-shadow: 2px 2px 6px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.05); margin-bottom:5px;'>", unsafe_allow_html=True)
                     st.image(img_path, use_container_width=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
                     if st.button("❌ Изтрий", key=f"del_img_{idx}", use_container_width=True):
                         os.remove(img_path)
-                        st.success("Снимката е премахната!")
                         st.rerun()
         else:
             st.info("Все още няма качени снимки.")
@@ -292,7 +319,6 @@ if trip_id:
     st.markdown("---")
     st.subheader("🚨 Изтриване на цялото пътуване")
     име_за_показване = trip_id.upper().replace('_', ' ')
-    st.warning(f"Внимание: Това ще изтрие перманентно всички разходи за '{име_за_показване}'!")
     potvurditel = st.checkbox(f"Потвърждавам изтриването на '{име_за_показване}'.")
     
     if st.button("🗑️ ИЗТРИЙ ЦЯЛОТО ПЪТУВАНЕ", type="primary", use_container_width=True, disabled=not potvurditel):
@@ -304,7 +330,7 @@ if trip_id:
                 for img_path in glob.glob(os.path.join(papka_snimki, "*")):
                     os.remove(img_path)
                 os.rmdir(papka_snimki)
-            st.success(f"Пътуването беше изтрито!")
+            st.success(f"Изтрито!")
             st.rerun()
         except:
             pass
