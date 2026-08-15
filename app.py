@@ -107,7 +107,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
             </tr>
     """
     for row in reversed(rows_data):
-        html_content += f"<tr><td>{row[0]}</td><td><b>{row[1]:.2f} EUR</b></td><td>{row[2]}</td><td>{row[3]}</td></tr>"
+        html_content += f"<tr><td>{row}</td><td><b>{row:.2f} EUR</b></td><td>{row}</td><td>{row}</td></tr>"
         
     html_content += "</table><script>window.onload = function() { window.print(); }</script></body></html>"
     return html_content.encode('utf-8')
@@ -150,7 +150,8 @@ if trip_id:
     v_id = st.session_state["form_version"]
     col1, col2 = st.columns(2)
     with col1:
-        s_input = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key=f"suma_{v_id}")
+        # Стойност по подразбиране е None (напълно празно поле)
+        s_input = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", value=None, placeholder="Въведете сума...", key=f"suma_{v_id}")
     with col2:
         o_input = st.text_input("Описание", placeholder="Без описание", key=f"opis_{v_id}")
 
@@ -160,7 +161,8 @@ if trip_id:
     for i, kat in enumerate(KATEGORII):
         with grid[i % 3]:
             if st.button(kat, use_container_width=True, key=f"btn_{i}"):
-                if s_input > 0:
+                # Проверяваме за валидно въведена сума
+                if s_input is not None and s_input > 0:
                     clean_desc = o_input.replace("|", "-").strip() if o_input else "Без описание"
                     is_dep = (kat == "Депозит/Резервация")
                     
@@ -168,6 +170,8 @@ if trip_id:
                         st.session_state["form_version"] += 1
                         st.success("Записано успешно!")
                         st.rerun()
+                else:
+                    st.warning("⚠️ Моля, въведете валидна сума преди да изберете категория!")
     # Изчисляване на екранна статистика от DataFrame
     df_expenses = df_trip[df_trip["type"] == "expense"]
     total_on_site = float(df_expenses["amount"].sum())
@@ -241,7 +245,7 @@ if trip_id:
 
     # 📸 ВГРАДЕН АЛБУМ БЕЗ РИСК ОТ БЛОКИРАНЕ НА БРАУЗЪРА
     st.markdown("---")
-    with st.expander("📸 Снимки и спомени от почивката"):
+    with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
         if not os.path.exists(papka_snimki):
             try: os.makedirs(papka_snimki)
             except: pass
@@ -286,7 +290,7 @@ if trip_id:
     st.markdown("---")
     st.subheader("🚨 Изтриване на цялото пътуване")
     име_за_показване = trip_id.upper().replace('_', ' ')
-    st.warning(f"Внимание: Това ще изтрие перманентно всички разходи за '{име_за_показване}'!")
+    st.warning(f"Внимание: Това ще изтрие permanentно всички разходи за '{име_за_показване}'!")
     potvurditel = st.checkbox(f"Потвърждавам изтриването на '{име_за_показване}'.")
     
     if st.button("🗑️ ИЗТРИЙ ЦЯЛОТО ПЪТУВАНЕ", type="primary", use_container_width=True, disabled=not potvurditel):
