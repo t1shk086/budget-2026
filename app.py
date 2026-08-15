@@ -23,16 +23,22 @@ def get_emoji(category):
     }
     return mapping.get(category, "💳")
 
-# Функция за зареждане на депозит
+# ФИКСИРАНА ФУНКЦИЯ: Зарежда депозит безопасно и създава файла, ако липсва
 def load_deposit(trip_name):
     filename = f"depozit_{trip_name}_2026.txt"
-    if os.path.exists(filename):
+    if not os.path.exists(filename):
         try:
-            with open(filename, "r", encoding="utf-8") as f: 
-                return float(f.read().strip())
-        except: 
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write("0.0")
             return 0.0
-    return 0.0
+        except:
+            return 0.0
+    try:
+        with open(filename, "r", encoding="utf-8") as f: 
+            content = f.read().strip()
+            return float(content) if content else 0.0
+    except: 
+        return 0.0
 
 # Функция за генериране на HTML отчет за разпечатване на кирилица в Евро
 def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
@@ -220,7 +226,7 @@ if trip_id:
     with col_stat2:
         st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} EUR")
 
-    # Хронология (HTML без забиване на процеса)
+    # Хронология (Лек HTML формат без риск от забиване)
     if rows_data:
         st.markdown("---")
         st.subheader("📋 Хронология на плащанията")
