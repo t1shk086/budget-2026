@@ -208,24 +208,27 @@ if trip_id:
             categories_totals[row["category"]] += float(row["amount"])
         rows_data.append([row["date"], float(row["amount"]), row["category"], row["description"]])
 
-    # 📊 МОДЕРНО ТАБЛО С ДИНАМИЧНИ КАРТИ ТИП REVOLUT
+    # 📊 МОДЕРНО ТАБЛО С ДИНАМИЧНИ КАРТИ + ЛЕНТИ ЗА СЪОТНОШЕНИЕ
     st.markdown("---")
     st.subheader("📊 Анализ на разходите")
     
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
-        percentage = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
+        # Десетично отношение за прогрес лентата (от 0.0 до 1.0)
+        percentage_ratio = (s_value / total_on_site) if total_on_site > 0 else 0.0
+        percentage_text = percentage_ratio * 100
         icon = get_emoji(kat)
         
-        if percentage == 0:
+        # Динамичен цвят според натоварването на бюджета
+        if percentage_text == 0:
             border_color = "rgba(255,255,255,0.08)"
             badge_bg = "rgba(255,255,255,0.1)"
             badge_color = "#aaa"
-        elif percentage > 40:
+        elif percentage_text > 40:
             border_color = "rgba(255, 75, 75, 0.4)"
             badge_bg = "rgba(255, 75, 75, 0.2)"
             badge_color = "#ff4b4b"
-        elif percentage > 20:
+        elif percentage_text > 20:
             border_color = "rgba(255, 165, 0, 0.4)"
             badge_bg = "rgba(255, 165, 0, 0.2)"
             badge_color = "#ffa500"
@@ -235,20 +238,25 @@ if trip_id:
             badge_color = "#00f2fe"
 
         with stat_grid[idx % 2]:
+            # Вграждане на 3D картата
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); 
-                        border: 1px solid {border_color}; padding: 15px; border-radius: 14px; 
-                        box-shadow: 3px 3px 10px rgba(0,0,0,0.3); margin-bottom: 12px; height: 110px;
+                        border: 1px solid {border_color}; padding: 12px 15px; border-radius: 14px; 
+                        box-shadow: 3px 3px 10px rgba(0,0,0,0.3); margin-bottom: 2px; height: 110px;
                         display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 14px; font-weight: bold; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{icon} {kat}</span>
-                    <span style="background: {badge_bg}; color: {badge_color}; font-size: 11px; padding: 2px 7px; border-radius: 20px; font-weight: bold;">{percentage:.1f}%</span>
+                    <span style="background: {badge_bg}; color: {badge_color}; font-size: 11px; padding: 2px 7px; border-radius: 20px; font-weight: bold;">{percentage_text:.1f}%</span>
                 </div>
-                <div style="margin-top: 10px;">
-                    <h3 style="margin: 0; color: white; font-size: 20px; font-weight: 800;">{s_value:.2f} <span style="font-size: 12px; color: #aaa;">EUR</span></h3>
+                <div style="margin-top: 5px; margin-bottom: 5px;">
+                    <h3 style="margin: 0; color: white; font-size: 19px; font-weight: 800;">{s_value:.2f} <span style="font-size: 11px; color: #aaa;">EUR</span></h3>
                 </div>
             </div>
             """, unsafe_allow_html=True)
+            
+            # ВГРАДЕНА ЛЕНТА ЗА СЪОТНОШЕНИЕ (Progress bar веднага под заглавната част на картата)
+            st.progress(float(percentage_ratio))
+            st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
     st.markdown("---")
     col_stat1, col_stat2 = st.columns(2)
@@ -266,6 +274,7 @@ if trip_id:
             <h2 style="color: #00f2fe; margin: 5px 0;">{total_on_site:.2f} EUR</h2>
         </div>
         """, unsafe_allow_html=True)
+
     if not df_trip.empty:
         st.markdown("---")
         st.subheader("📋 Хронология на плащанията")
