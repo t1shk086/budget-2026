@@ -247,7 +247,7 @@ if trip_id:
 
     # 📸 ВГРАДЕН АЛБУМ БЕЗ РИСК ОТ БЛОКИРАНЕ НА БРАУЗЪРА
     st.markdown("---")
-    with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
+    with st.expander("📸 Снимки и спомени от почивката"):
         if not os.path.exists(papka_snimki):
             try: os.makedirs(papka_snimki)
             except: pass
@@ -292,7 +292,7 @@ if trip_id:
     st.markdown("---")
     st.subheader("🚨 Изтриване на цялото пътуване")
     име_за_показване = trip_id.upper().replace('_', ' ')
-    st.warning(f"Внимание: Това ще изтрие permanentно всички разходи за '{име_за_показване}'!")
+    st.warning(f"Внимание: Това ще изтрие перманентно всички разходи за '{име_за_показване}'!")
     potvurditel = st.checkbox(f"Потвърждавам изтриването на '{име_за_показване}'.")
     
     if st.button("🗑️ ИЗТРИЙ ЦЯЛОТО ПЪТУВАНЕ", type="primary", use_container_width=True, disabled=not potvurditel):
