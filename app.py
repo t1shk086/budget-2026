@@ -6,12 +6,13 @@ import glob
 import io
 import base64
 
-# Настройка на страницата (Тъмна тема и оптимизиран мобилен изглед)
+# Настройка на страницата за мобилен и десктоп изглед
 st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
+DATA_FILE = "budget_data_2026.csv"
 
-# Функция за определяне на емоджи според категорията за мобилния изглед
+# Функция за емоджи
 def get_emoji(category):
     mapping = {
         "Храна и напитки": "🍔",
@@ -23,26 +24,43 @@ def get_emoji(category):
     }
     return mapping.get(category, "💳")
 
-# Зарежда депозит безопасно и създава файла, ако липсва
-def load_deposit(trip_name):
-    if not trip_name:
-        return 0.0
-    filename = f"depozit_{trip_name}_2026.txt"
-    if not os.path.exists(filename):
-        try:
-            with open(filename, "w", encoding="utf-8") as f:
-                f.write("0.0")
-            return 0.0
-        except:
-            return 0.0
+# Инициализиране на централната база данни (CSV), ако не съществува
+if not os.path.exists(DATA_FILE):
     try:
-        with open(filename, "r", encoding="utf-8") as f: 
-            content = f.read().strip()
-            return float(content) if content else 0.0
-    except: 
-        return 0.0
+        df_init = pd.DataFrame(columns=["trip_id", "date", "amount", "category", "description", "type"])
+        df_init.to_csv(DATA_FILE, index=False, encoding="utf-8")
+    except:
+        pass
 
-# Функция за генериране на HTML отчет за разпечатване на кирилица в Евро
+# Сигурно зареждане на данни за конкретно пътуване
+def get_trip_data(trip_id):
+    if not os.path.exists(DATA_FILE):
+        return pd.DataFrame(columns=["trip_id", "date", "amount", "category", "description", "type"])
+    try:
+        df = pd.read_csv(DATA_FILE, encoding="utf-8")
+        return df[df["trip_id"] == trip_id]
+    except:
+        return pd.DataFrame(columns=["trip_id", "date", "amount", "category", "description", "type"])
+
+# Сигурен запис на нов ред
+def add_expense(trip_id, amount, category, description, is_deposit=False):
+    try:
+        df = pd.read_csv(DATA_FILE, encoding="utf-8") if os.path.exists(DATA_FILE) else pd.DataFrame()
+        new_row = {
+            "trip_id": trip_id,
+            "date": datetime.datetime.now().strftime("%d.%m %H:%M"),
+            "amount": float(amount),
+            "category": category,
+            "description": description if description else "Без описание",
+            "type": "deposit" if is_deposit else "expense"
+        }
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        df.to_csv(DATA_FILE, index=False, encoding="utf-8")
+        return True
+    except:
+        return False
+
+# Функция за генериране на HTML отчет
 def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     html_content = f"""
     <html>
@@ -64,84 +82,38 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
     <body>
         <h1>Финансов отчет: {trip_name.upper().replace('_', ' ')}</h1>
         <p style="color: #64748b; font-size: 13px;"><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
-        
         <div class="stats">
-            <p style="margin: 5px 0;"><b>Платен депозит заホテル:</b> {deposit:.2f} EUR</p>
+            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} EUR</p>
             <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} EUR</p>
             <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} EUR</p>
         </div>
-
         <h2>Разходи по категории</h2>
         <table>
-            <tr>
-                <th>Категория</th>
-                <th>Сума (EUR)</th>
-                <th>Процент</th>
-            </tr>
+            <tr><th>Категория</th><th>Сума (EUR)</th><th>Процент</th></tr>
     """
-    
     for kat, s_value in categories_totals.items():
         percentage = (s_value / total_site * 100) if total_site > 0 else 0.0
-        html_content += f"""
-            <tr>
-                <td><b>{kat}</b></td>
-                <td>{s_value:.2f} EUR</td>
-                <td>{percentage:.1f}%</td>
-            </tr>
-        """
-        
-    html_content += """
-        </table>
-        <h2>Пълна хронология на плащанията</h2>
-        <table>
-            <tr>
-                <th class="chrono-th">Дата/Час</th>
-                <th class="chrono-th">Сума</th>
-                <th class="chrono-th">Категория</th>
-                <th class="chrono-th">Описание</th>
-            </tr>
-    """
-    
+        html_content += f"<tr><td><b>{kat}</b></td><td>{s_value:.2f} EUR</td><td>{percentage:.1f}%</td></tr>"
+    html_content += "</table><h2>Пълна хронология</h2><table><tr><th class='chrono-th'>Дата</th><th class='chrono-th'>Сума</th><th class='chrono-th'>Категория</th><th class='chrono-th'>Описание</th></tr>"
     for row in reversed(rows_data):
-        pdf_date, pdf_suma, pdf_kat, pdf_opis = row
-        html_content += f"""
-            <tr>
-                <td>{pdf_date}</td>
-                <td><b>{pdf_suma:.2f} EUR</b></td>
-                <td>{pdf_kat}</td>
-                <td>{pdf_opis}</td>
-            </tr>
-        """
-        
-    html_content += """
-        </table>
-        <script>
-            window.onload = function() {
-                window.print();
-            }
-        </script>
-    </body>
-    </html>
-    """
+        html_content += f"<tr><td>{row[0]}</td><td><b>{row[1]:.2f} EUR</b></td><td>{row[2]}</td><td>{row[3]}</td></tr>"
+    html_content += "</table><script>window.onload = function() { window.print(); }</script></body></html>"
     return html_content.encode('utf-8')
-# Използваме брояч на итерациите, за да форсираме преначертаване на чисти полета
 if "form_version" not in st.session_state:
     st.session_state["form_version"] = 0
 
-# 1. СТАРТОВ ЕКРАН (Избор на пътуване)
 st.title("💰 Бюджет 2026")
 
-all_files = glob.glob("vsichki_razhodi_*.txt")
+# Динамично извличане на съществуващи пътувания от базата данни
 existing_trips = []
-for file_path in all_files:
-    file_name = os.path.basename(file_path).replace("vsichki_razhodi_", "")
-    parts = file_name.split("_")
-    if len(parts) > 1:
-        pure_name = " ".join(parts[:-1])
-        if pure_name and pure_name not in existing_trips:
-            existing_trips.append(pure_name)
+if os.path.exists(DATA_FILE):
+    try:
+        df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+        existing_trips = list(df_all["trip_id"].unique())
+    except:
+        pass
 
-menu_options = existing_trips + ["➕ СЪЗДАЙ НОВО ПЪТУВАНЕ"]
+menu_options = [t.replace("_", " ") for t in existing_trips] + ["➕ СЪЗДАЙ НОВО ПЪТУВАНЕ"]
 user_choice = st.selectbox("Изберете или създайте почивка:", menu_options)
 
 trip_id = ""
@@ -152,17 +124,17 @@ if user_choice == "➕ СЪЗДАЙ НОВО ПЪТУВАНЕ":
 else:
     trip_id = user_choice.replace(" ", "_")
 
-# ЖЕЛЯЗНА ЗАЩИТА: Целият интерфейс се зарежда САМО при валидно име на пътуване
+# Показваме формата само при заредено име
 if trip_id:
     st.markdown("---")
     st.subheader(f"🌴 Дестинация: {trip_id.upper().replace('_', ' ')}")
     
-    ime_fail_razhodi = f"vsichki_razhodi_{trip_id}_2026.txt"
-    ime_fail_depozit = f"depozit_{trip_id}_2026.txt"
     papka_snimki = f"snimki_{trip_id}_2026"
-    depozit_hotel = load_deposit(trip_id)
-
-    # 2. ВЪВЕЖДАНЕ НА ДАННИ
+    
+    # Зареждане на актуалните данни
+    df_trip = get_trip_data(trip_id)
+    depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum())
+    
     v_id = st.session_state["form_version"]
     col1, col2 = st.columns(2)
     with col1:
@@ -177,46 +149,28 @@ if trip_id:
         with grid[i % 3]:
             if st.button(kat, use_container_width=True, key=f"btn_{i}"):
                 if s_input > 0:
-                    чисто_описание = o_input.replace("|", "-").strip() if o_input else "Без описание"
+                    clean_desc = o_input.replace("|", "-").strip() if o_input else "Без описание"
+                    is_dep = (kat == "Депозит/Резервация")
                     
-                    if kat == "Депозит/Резервация":
-                        nov_depozit = depozit_hotel + s_input
-                        with open(ime_fail_depozit, "w", encoding="utf-8") as f: 
-                            f.write(str(nov_depozit))
-                    else:
-                        data_chas = datetime.datetime.now().strftime("%d.%m %H:%M")
-                        with open(ime_fail_razhodi, "a", encoding="utf-8") as f:
-                            f.write(f"{data_chas}|{s_input}|{s_input}|{kat}|{чисто_описание}|обикновен\n")
-                    
-                    st.session_state["form_version"] += 1
-                    st.rerun()
-    # 3. СТАТИСТИКА И МОБИЛНА ХРОНОЛОГИЯ
-    st.markdown("---")
-    st.subheader("📊 Екранна статистика")
-
-    total_on_site = 0.0
+                    if add_expense(trip_id, s_input, kat, clean_desc, is_deposit=is_dep):
+                        st.session_state["form_version"] += 1
+                        st.success("Записано успешно!")
+                        st.rerun()
+    # Изчисляване на екранна статистика от DataFrame
+    df_expenses = df_trip[df_trip["type"] == "expense"]
+    total_on_site = float(df_expenses["amount"].sum())
+    
     categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
     rows_data = []
-    original_lines = []
+    
+    for _, row in df_expenses.iterrows():
+        if row["category"] in categories_totals:
+            categories_totals[row["category"]] += float(row["amount"])
+        rows_data.append([row["date"], float(row["amount"]), row["category"], row["description"]])
 
-    if os.path.exists(ime_fail_razhodi) and os.path.getsize(ime_fail_razhodi) > 0:
-        with open(ime_fail_razhodi, "r", encoding="utf-8") as f:
-            for line in f:
-                stripped_line = line.strip()
-                if not stripped_line: 
-                    continue
-                original_lines.append(stripped_line)
-                try:
-                    c_date, c_zapis, c_vavedena, c_kat, c_opis, c_tip = stripped_line.split("|")
-                    val_vavedena = float(c_vavedena)
-                    total_on_site += val_vavedena
-                    if c_kat in categories_totals: 
-                        categories_totals[c_kat] += val_vavedena
-                    rows_data.append([c_date, val_vavedena, c_kat, c_opis])
-                except ValueError:
-                    continue 
-
-    # Прогрес барове
+    st.markdown("---")
+    st.subheader("📊 Екранна статистика")
+    
     for kat, s_value in categories_totals.items():
         percentage = (s_value / total_on_site) if total_on_site > 0 else 0.0
         st.write(f"**{kat}**: {s_value:.2f} EUR ({percentage * 100:.1f}%)")
@@ -229,72 +183,58 @@ if trip_id:
     with col_stat2:
         st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} EUR")
 
-    # Хронология (HTML без забиване на процеса)
-    if rows_data:
+    # Хронология в лек HTML формат
+    if not df_trip.empty:
         st.markdown("---")
         st.subheader("📋 Хронология на плащанията")
         
-        for idx, row in reversed(list(enumerate(rows_data))):
-            r_date, r_suma, r_kat, r_opis = row
-            icon = get_emoji(r_kat)
+        try:
+            df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
+            trip_indices = df_all_data[df_all_data["trip_id"] == trip_id].index.tolist()
             
-            st.markdown(f"""
-            <div style="background-color: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; margin-bottom: 5px;">
-                <span style="font-size: 18px;">{icon}</span> <b>{r_kat}</b> — 
-                <span style="color:#ff4b4b; font-weight:bold;">{r_suma:.2f} EUR</span><br>
-                <small style="color:#888;">📅 {r_date} | 📝 {r_opis}</small>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            if st.button(f"🗑️ Изтрий този разход", key=f"del_btn_{idx}", use_container_width=True):
-                del original_lines[idx]
-                with open(ime_fail_razhodi, "w", encoding="utf-8") as f:
-                    for remaining_line in original_lines:
-                        f.write(remaining_line + "\n")
-                st.success("Разходът беше изтрит!")
-                st.rerun()
+            for idx in reversed(trip_indices):
+                r_row = df_all_data.loc[idx]
+                icon = get_emoji(r_row["category"])
+                
+                st.markdown(f"""
+                <div style="background-color: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; margin-bottom: 5px;">
+                    <span style="font-size: 18px;">{icon}</span> <b>{r_row["category"]}</b> — 
+                    <span style="color:#ff4b4b; font-weight:bold;">{r_row["amount"]:.2f} EUR</span><br>
+                    <small style="color:#888;">📅 {r_row["date"]} | 📝 {r_row["description"]}</small>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button(f"🗑️ Изтрий този разход", key=f"del_{idx}", use_container_width=True):
+                    df_all_data = df_all_data.drop(idx)
+                    df_all_data.to_csv(DATA_FILE, index=False, encoding="utf-8")
+                    st.success("Разходът е изтрит!")
+                    st.rerun()
+        except:
+            pass
 
-    # 5. ПРИКЛЮЧВАНЕ НА ПОЧИВКА
+    # Бутон за PDF/HTML отчет
     st.markdown("---")
     st.subheader("🏁 Приключване на почивката")
-    st.write("Свалете официалния отчет. Документът ще се отвори в браузъра и сам ще предложи запис като PDF.")
     html_buffer = generate_html_pdf(trip_id, total_on_site, depozit_hotel, categories_totals, rows_data)
     b64_html = base64.b64encode(html_buffer).decode()
     
     custom_css_button = f"""
         <a href="data:text/html;base64,{b64_html}" download="otchet_{trip_id}_2026.html" style="text-decoration: none;">
-            <button style="
-                width: 100%;
-                background-color: #ff4b4b;
-                color: white;
-                padding: 12px 20px;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                font-weight: bold;
-                cursor: pointer;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                transition: background-color 0.3s ease;
-            ">
+            <button style="width: 100%; background-color: #ff4b4b; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 📥 ПРИКЛЮЧИ ПОЧИВКАТА И СВАЛИ PDF
             </button>
         </a>
     """
     st.markdown(custom_css_button, unsafe_allow_html=True)
 
-    # 📸 ДИСКРЕТЕН АЛБУМ ЗА СПОМЕНИ
+    # Дискретен албум за снимки
     st.markdown("---")
     with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
         if not os.path.exists(papka_snimki):
-            os.makedirs(papka_snimki)
+            try: os.makedirs(papka_snimki)
+            except: pass
             
-        uploaded_files = st.file_uploader(
-            "Качете снимки за спомен:", 
-            type=["jpg", "jpeg", "png"], 
-            accept_multiple_files=True,
-            key=f"uploader_{trip_id}"
-        )
-        
+        uploaded_files = st.file_uploader("Качете снимки за спомен:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"uploader_{trip_id}")
         if uploaded_files:
             for file in uploaded_files:
                 path_to_save = os.path.join(papka_snimki, file.name)
@@ -314,29 +254,26 @@ if trip_id:
                     if st.button("🗑️ Снимка", key=f"del_img_{idx}"):
                         os.remove(img_path)
                         st.rerun()
-        else:
-            st.info("Все още няма качени снимки.")
 
-    # 6. ИЗТРИВАНЕ НА ЦЯЛО ПЪТУВАНЕ
+    # Изтриване на цяло пътуване от централната база данни
     st.markdown("---")
     st.subheader("🚨 Изтриване на цялото пътуване")
-    
     име_за_показване = trip_id.upper().replace('_', ' ')
-    st.warning(f"Внимание: Това ще изтрие перманентно всички файлове, разходи, снимки и депозити за '{име_за_показване}'!")
-    potvurditel = st.checkbox(f"Потвърждавам, че искам да изтрия '{име_за_показване}' завинаги.")
+    st.warning(f"Внимание: Това ще изтрие перманентно всички разходи за '{име_за_показване}'!")
+    potvurditel = st.checkbox(f"Потвърждавам изтриването на '{име_за_показване}'.")
     
     if st.button("🗑️ ИЗТРИЙ ЦЯЛОТО ПЪТУВАНЕ", type="primary", use_container_width=True, disabled=not potvurditel):
-        if os.path.exists(ime_fail_razhodi):
-            os.remove(ime_fail_razhodi)
-        if os.path.exists(ime_fail_depozit):
-            os.remove(ime_fail_depozit)
-        if os.path.exists(papka_snimki):
-            for img_path in glob.glob(os.path.join(papka_snimki, "*")):
-                os.remove(img_path)
-            os.rmdir(papka_snimki)
-            
-        depozit_hotel = 0.0
-        st.success(f"Пътуването '{име_за_показване}' и всички негови файлове бяха изтрити!")
-        st.rerun()
+        try:
+            df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
+            df_all_data = df_all_data[df_all_data["trip_id"] != trip_id]
+            df_all_data.to_csv(DATA_FILE, index=False, encoding="utf-8")
+            if os.path.exists(papka_snimki):
+                for img_path in glob.glob(os.path.join(papka_snimki, "*")):
+                    os.remove(img_path)
+                os.rmdir(papka_snimki)
+            st.success(f"Пътуването беше изтрито!")
+            st.rerun()
+        except:
+            pass
 else:
     st.info("👋 Добре дошли! Моля, изберете съществуващо пътуване от менюто горе или натиснете '➕ СЪЗДАЙ НОВО ПЪТУВАНЕ', за да започнете.")
