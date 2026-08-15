@@ -241,7 +241,7 @@ if trip_id:
 
     # 📸 ВГРАДЕН АЛБУМ БЕЗ РИСК ОТ БЛОКИРАНЕ НА БРАУЗЪРА
     st.markdown("---")
-    with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
+    with st.expander("📸 Снимки и спомени от почивката"):
         if not os.path.exists(papka_snimki):
             try: os.makedirs(papka_snimki)
             except: pass
