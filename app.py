@@ -23,8 +23,10 @@ def get_emoji(category):
     }
     return mapping.get(category, "💳")
 
-# ФИКСИРАНА ФУНКЦИЯ: Зарежда депозит безопасно и създава файла, ако липсва
+# Зарежда депозит безопасно и създава файла, ако липсва
 def load_deposit(trip_name):
+    if not trip_name:
+        return 0.0
     filename = f"depozit_{trip_name}_2026.txt"
     if not os.path.exists(filename):
         try:
@@ -64,7 +66,7 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
         <p style="color: #64748b; font-size: 13px;"><b>Дата на генериране:</b> {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
         
         <div class="stats">
-            <p style="margin: 5px 0;"><b>Платен депозит за хотел:</b> {deposit:.2f} EUR</p>
+            <p style="margin: 5px 0;"><b>Платен депозит заホテル:</b> {deposit:.2f} EUR</p>
             <p style="margin: 5px 0;"><b>Общо похарчени на място:</b> {total_site:.2f} EUR</p>
             <p style="margin: 5px 0; font-size: 16px; color: #1e3a8a;"><b>ОБЩО РАЗХОДИ ЗА ПОЧИВКАТА:</b> {deposit + total_site:.2f} EUR</p>
         </div>
@@ -150,6 +152,7 @@ if user_choice == "➕ СЪЗДАЙ НОВО ПЪТУВАНЕ":
 else:
     trip_id = user_choice.replace(" ", "_")
 
+# ЖЕЛЯЗНА ЗАЩИТА: Целият интерфейс се зарежда САМО при валидно име на пътуване
 if trip_id:
     st.markdown("---")
     st.subheader(f"🌴 Дестинация: {trip_id.upper().replace('_', ' ')}")
@@ -226,7 +229,7 @@ if trip_id:
     with col_stat2:
         st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} EUR")
 
-    # Хронология (Лек HTML формат без риск от забиване)
+    # Хронология (HTML без забиване на процеса)
     if rows_data:
         st.markdown("---")
         st.subheader("📋 Хронология на плащанията")
@@ -335,3 +338,5 @@ if trip_id:
         depozit_hotel = 0.0
         st.success(f"Пътуването '{име_за_показване}' и всички негови файлове бяха изтрити!")
         st.rerun()
+else:
+    st.info("👋 Добре дошли! Моля, изберете съществуващо пътуване от менюто горе или натиснете '➕ СЪЗДАЙ НОВО ПЪТУВАНЕ', за да започнете.")
