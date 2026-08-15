@@ -150,9 +150,10 @@ if trip_id:
     
     ime_fail_razhodi = f"vsichki_razhodi_{trip_id}_2026.txt"
     ime_fail_depozit = f"depozit_{trip_id}_2026.txt"
+    papka_snimki = f"snimki_{trip_id}_2026"
     depozit_hotel = load_deposit(trip_id)
 
-    # 2. ВЪВЕЖДАНЕ НА ДАННИ (Ключът се променя динамично, което гарантира нулиране)
+    # 2. ВЪВЕЖДАНЕ НА ДАННИ
     v_id = st.session_state["form_version"]
     col1, col2 = st.columns(2)
     with col1:
@@ -178,7 +179,6 @@ if trip_id:
                         with open(ime_fail_razhodi, "a", encoding="utf-8") as f:
                             f.write(f"{data_chas}|{s_input}|{s_input}|{kat}|{чисто_описание}|обикновен\n")
                     
-                    # МАГИЯТА: Променяме версията, което унищожава старите текстови кутии и ги отваря празни
                     st.session_state["form_version"] += 1
                     st.rerun()
     # 3. СТАТИСТИКА И МОБИЛНА ХРОНОЛОГИЯ
@@ -220,7 +220,7 @@ if trip_id:
     with col_stat2:
         st.metric("💰 ОБЩО НА МЯСТО", f"{total_on_site:.2f} EUR")
 
-    # Хронология, напълно оптимизирана за мобилни екрани (Samsung S24)
+    # Хронология
     if rows_data:
         st.markdown("---")
         st.subheader("📋 Хронология на плащанията")
@@ -251,7 +251,6 @@ if trip_id:
     st.markdown("---")
     st.subheader("🏁 Приключване на почивката")
     st.write("Свалете официалния отчет. Документът ще се отвори в браузъра и сам ще предложи запис като PDF.")
-    
     html_buffer = generate_html_pdf(trip_id, total_on_site, depozit_hotel, categories_totals, rows_data)
     b64_html = base64.b64encode(html_buffer).decode()
     
@@ -276,12 +275,47 @@ if trip_id:
     """
     st.markdown(custom_css_button, unsafe_allow_html=True)
 
+    # NEW: 📸 ДИСКРЕТЕН АЛБУМ ЗА СПОМЕНИ
+    st.markdown("---")
+    with st.expander("📸 Снимки и спомени от почивката (Дискретно)"):
+        if not os.path.exists(papka_snimki):
+            os.makedirs(papka_snimki)
+            
+        uploaded_files = st.file_uploader(
+            "Качете снимки за спомен:", 
+            type=["jpg", "jpeg", "png"], 
+            accept_multiple_files=True,
+            key=f"uploader_{trip_id}"
+        )
+        
+        if uploaded_files:
+            for file in uploaded_files:
+                path_to_save = os.path.join(papka_snimki, file.name)
+                if not os.path.exists(path_to_save):
+                    with open(path_to_save, "wb") as f:
+                        f.write(file.getbuffer())
+            st.success("Снимките са запазени!")
+            st.rerun()
+            
+        saved_photos = glob.glob(os.path.join(papka_snimki, "*"))
+        if saved_photos:
+            st.write(f"Запазени спомени: {len(saved_photos)}")
+            img_grid = st.columns(3)
+            for idx, img_path in enumerate(saved_photos):
+                with img_grid[idx % 3]:
+                    st.image(img_path, use_container_width=True)
+                    if st.button("🗑️", key=f"del_img_{idx}"):
+                        os.remove(img_path)
+                        st.rerun()
+        else:
+            st.info("Все още няма качени снимки.")
+
     # 6. ИЗТРИВАНЕ НА ЦЯЛО ПЪТУВАНЕ
     st.markdown("---")
     st.subheader("🚨 Изтриване на цялото пътуване")
     
     име_за_показване = trip_id.upper().replace('_', ' ')
-    st.warning(f"Внимание: Това ще изтрие перманентно всички файлове, разходи и депозити за '{име_за_показване}'!")
+    st.warning(f"Внимание: Това ще изтрие перманентно всички файлове, разходи, снимки и депозити за '{име_за_показване}'!")
     potvurditel = st.checkbox(f"Потвърждавам, че искам да изтрия '{име_за_показване}' завинаги.")
     
     if st.button("🗑️ ИЗТРИЙ ЦЯЛОТО ПЪТУВАНЕ", type="primary", use_container_width=True, disabled=not potvurditel):
@@ -289,7 +323,11 @@ if trip_id:
             os.remove(ime_fail_razhodi)
         if os.path.exists(ime_fail_depozit):
             os.remove(ime_fail_depozit)
+        if os.path.exists(papka_snimki):
+            for img_path in glob.glob(os.path.join(papka_snimki, "*")):
+                os.remove(img_path)
+            os.rmdir(papka_snimki)
             
         depozit_hotel = 0.0
-        st.success(f"Пътуването '{име_за_показване}' и неговите файлове бяха изтрити!")
+        st.success(f"Пътуването '{име_за_показване}' и всички негови файлове бяха изтрити!")
         st.rerun()
