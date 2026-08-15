@@ -60,7 +60,7 @@ def add_expense(trip_id, amount, category, description, is_deposit=False):
     except:
         return False
 
-# Функция за генериране на чист HTML/PDF отчет за разпечатване
+# ФИКСИРАНА ФУНКЦИЯ: Правилно разпределя и форматира хронологията в отчета
 def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data):
     html_content = f"""
     <html>
@@ -106,8 +106,10 @@ def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_da
                 <th class="chrono-th">Описание</th>
             </tr>
     """
+    # Тук правилно разглобяваме елементите на всеки отделен разход
     for row in reversed(rows_data):
-        html_content += f"<tr><td>{row}</td><td><b>{row:.2f} EUR</b></td><td>{row}</td><td>{row}</td></tr>"
+        pdf_date, pdf_amount, pdf_cat, pdf_desc = row
+        html_content += f"<tr><td>{pdf_date}</td><td><b>{pdf_amount:.2f} EUR</b></td><td>{pdf_cat}</td><td>{pdf_desc}</td></tr>"
         
     html_content += "</table><script>window.onload = function() { window.print(); }</script></body></html>"
     return html_content.encode('utf-8')
