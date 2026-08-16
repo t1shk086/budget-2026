@@ -122,15 +122,16 @@ if st.session_state["current_trip"] is None:
         txt = st.text_input("Име на дестинацията:").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
         st.write("---")
-        st.write("🚗 Пътувате ли со собствен автомобил?")
+        st.write("🚗 Пътувате ли със собствен автомобил?")
         viber_car = st.radio("Изберете вариант:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
             
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
-            if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
-                s_d_str = d_range.strftime("%d.%m.%Y")
+            # Прецизна проверка дали d_range е списък/кортеж или единична дата
+            if isinstance(d_range, (list, tuple)):
+                s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
             elif hasattr(d_range, "strftime"):
                 s_d_str = d_range.strftime("%d.%m.%Y")
@@ -218,8 +219,8 @@ else:
                 progressive_avg_con = (progressive_liters / progressive_dist * 100)
                 has_progressive_data = True
     except: pass
-
 # === КРАЙ НА ЧАСТ 4 ===
+
     if st.session_state["view_photos"]:
         if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True):
             st.session_state["view_photos"] = False; st.rerun()
