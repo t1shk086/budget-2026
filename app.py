@@ -272,7 +272,7 @@ else:
                 st.session_state["form_version"] += 1; st.rerun()
 
         if car_trip == "Да":
-            if st.button("⚙️ Настройки километри / автомобил", use_container_width=True): edit_car_modal()
+            if st.button("⚙️ Настройки на превозно средство и период", use_container_width=True): edit_car_modal()
         else:
             if st.button("🚗 Добави автомобил към пътуването", use_container_width=True): edit_car_modal()
 # === КРАЙ НА ЧАСТ 5 ===
