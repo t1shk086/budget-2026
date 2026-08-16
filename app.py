@@ -359,7 +359,7 @@ else:
             st.write("Променете настройките на почивката:")
             v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1, disabled=is_trip_finished)
             new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, placeholder="Напишете км...", disabled=is_trip_finished)
-            new_mf = st.number_input("Допълнителни ръчни литри (л):", value=None if m_fuel == 0.0 else m_fuel, placeholder="Напишете литри...", disabled=is_trip_finished)
+            new_mf = st.number_input("Добави пропуснато гориво(л)::", value=None if m_fuel == 0.0 else m_fuel, placeholder="Напишете литри...", disabled=is_trip_finished)
             
             has_cash_expense = False
             manual_cash_amt = 0.0
