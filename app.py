@@ -129,11 +129,11 @@ else:
     if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True):
         st.session_state["current_trip"] = None; st.rerun()
         
-    # ПРОМЯНА: Дестинацията вече има същия преливащ неонов ефект като логото, но е по-фина
+    # ПРОМЯНА: trip_id вече се показва в оригинален вид без .upper(), само сменени долни черти
     st.markdown(f"""
     <div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'>
         <h2 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 8px rgba(0, 242, 254, 0.1); margin-bottom: 0px;'>
-            🌴 Дестинация: {trip_id.upper().replace('_', ' ')}
+            🌴 Дестинация: {trip_id.replace('_', ' ')}
         </h2>
     </div>
     """, unsafe_allow_html=True)
