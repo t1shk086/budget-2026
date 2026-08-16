@@ -10,6 +10,7 @@ st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 st.markdown("""
 <style>
+    /* Модерни кутии за въвеждане на данни */
     div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {
         background: rgba(255, 255, 255, 0.03) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -17,15 +18,26 @@ st.markdown("""
         box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4), -2px -2px 8px rgba(255, 255, 255, 0.02) !important;
         margin-bottom: 15px !important;
     }
-    div.stButton > button, [data-testid="stFileUploaderDropzone"] button {
-        background: linear-gradient(135deg, #2e2e2e, #1c1c1c) !important; color: white !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 10px !important;
+    /* Нов селектор за ПРЕМИУМ 3D БУТОНИ (Всички бутони в приложението) */
+    button[data-testid="stBaseButton-secondary"], 
+    button[data-testid="stBaseButton-primary"],
+    [data-testid="stFileUploaderDropzone"] button {
+        background: linear-gradient(135deg, #2e2e2e, #1c1c1c) !important; 
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important; 
+        border-radius: 10px !important;
         box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), -1px -1px 4px rgba(255, 255, 255, 0.05) !important;
-        transition: all 0.2s ease !important; font-weight: bold !important;
+        transition: all 0.2s ease !important; 
+        font-weight: bold !important;
+        width: 100% !important;
     }
-    div.stButton > button:hover, [data-testid="stFileUploaderDropzone"] button:hover {
+    /* Ефект при посочване с мишката (Hover) */
+    button[data-testid="stBaseButton-secondary"]:hover, 
+    button[data-testid="stBaseButton-primary"]:hover,
+    [data-testid="stFileUploaderDropzone"] button:hover {
         background: linear-gradient(135deg, #3d3d3d, #252525) !important;
-        transform: translateY(-2px) !important; box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.6) !important;
+        transform: translateY(-2px) !important; 
+        box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.6) !important;
     }
     small { color: #888 !important; }
 </style>
@@ -36,7 +48,8 @@ DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
-# === КРАЙ НА ЧАСТ 1 ===
+
+    
 for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters"]), (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date"])]:
     if not os.path.exists(f): pd.DataFrame(columns=cols).to_csv(f, index=False, encoding="utf-8")
 
