@@ -129,7 +129,6 @@ if st.session_state["current_trip"] is None:
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
             
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
-            # Прецизна проверка дали d_range е списък/кортеж или единична дата
             if isinstance(d_range, (list, tuple)):
                 s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
@@ -153,7 +152,7 @@ else:
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
 
-    # Глобален стабилен диалог за сигурно триене
+    # Глобален стабилен диалог за сигурно триене на разход
     @st.dialog("🗑️ Потвърждение за изтриване")
     def confirm_delete_dialog():
         if "delete_idx" in st.session_state and st.session_state["delete_idx"] is not None:
@@ -178,6 +177,32 @@ else:
                 if st.button("🛟 ОТКАЗ", use_container_width=True):
                     st.session_state["delete_idx"] = None
                     st.rerun()
+
+    # Глобален стабилен диалог за сигурно триене на цялото пътуване
+    @st.dialog("🚨 Изтриване на цялото пътуване")
+    def confirm_delete_trip_dialog():
+        st.error(f"ВНИМАНИЕ! Сигурни ли сте, че искате да изтриете напълно почивката до {trip_id.replace('_', ' ')}?")
+        st.write("Това действие ще премахне завинаги всички записани разходи, настройки и снимки от базата данни.")
+        st.write("")
+        c_tr1, c_tr2 = st.columns(2)
+        with c_tr1:
+            if st.button("💥 ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
+                try:
+                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                    df_all[df_all["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
+                    
+                    df_set = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                    df_set[df_set["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+                    
+                    if os.path.exists(papka_snimki):
+                        for p in glob.glob(os.path.join(papka_snimki, "*")): os.remove(p)
+                        os.rmdir(papka_snimki)
+                except: pass
+                st.session_state["current_trip"] = None
+                st.rerun()
+        with c_tr2:
+            if st.button("🛟 ОТКАЗ", use_container_width=True):
+                st.rerun()
 
     date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
     st.markdown(f"""
@@ -437,13 +462,9 @@ else:
         
         b64_pdf = base64.b64encode(pdf_html.encode('utf-8')).decode('utf-8')
         st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
-        st.markdown("---"); potv = st.checkbox("Потвърждавам изтриването на цялото пътуване")
-        if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, disabled=not potv):
-            try:
-                df_all = pd.read_csv(DATA_FILE, encoding="utf-8"); df_all[df_all["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
-                if os.path.exists(papka_snimki):
-                    for p in glob.glob(os.path.join(papka_snimki, "*")): os.remove(p)
-                    os.rmdir(papka_snimki)
-                st.session_state["current_trip"] = None; st.rerun()
-            except: pass
+        st.markdown("---")
+        
+        # Премахнат стария чекбокс, бутонът директно извиква новия стабилен диалог
+        if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True):
+            confirm_delete_trip_dialog()
 # === КРАЙ НА КОДА ===
