@@ -5,8 +5,8 @@ import os
 import glob
 import base64
 
-# 1. СТРАНИЦА И ОРИГИНАЛЕН ПРЕМIУМ 3Д CSS ДИЗАЙН
-st.set_page_config(page_title="Бюджет 2026", page_icon="💰", layout="centered")
+# 1. СТРАНИЦА И ОРИГИНАЛЕН ПРЕМIУМ 3Д CSS ДИЗАЙН (ОБНОВЕНИ ЗАГЛАВИЕ И ИКОНКА)
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 st.markdown("""
 <style>
@@ -32,6 +32,7 @@ st.markdown("""
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
+
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
