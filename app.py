@@ -117,9 +117,23 @@ else:
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
 
+    # ФИКСИРАНО ЗАГЛАВИЕ: Изнесено най-отгоре, за да не се размазват цветовете при смяна на екрана
+    date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+    st.markdown(f"""
+    <div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'>
+        <h2 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 8px rgba(0, 242, 254, 0.1); margin-bottom: 0px;'>
+            🌴 Дестинация: {trip_id.replace('_', ' ')}
+        </h2>
+        {date_html}
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("---")
+
+    # СЛУЧАЙ А: СЛЕДЕНЕ НА АЛБУМА СЪС СНИМКИ
     if st.session_state["view_photos"]:
-        if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True): st.session_state["view_photos"] = False; st.rerun()
-        st.markdown(f"<div style='text-align: center; margin-top: 10px; margin-bottom: 20px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #ffd700, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>📸 Албум: {trip_id.replace('_', ' ')}</h2></div>", unsafe_allow_html=True)
+        if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True):
+            st.session_state["view_photos"] = False; st.rerun()
+            
         if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
         up = st.file_uploader("Добавете нови спомени в албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}")
         if up:
@@ -127,6 +141,7 @@ else:
                 if not os.path.exists(os.path.join(papka_snimki, f.name)):
                     with open(os.path.join(papka_snimki, f.name), "wb") as out: out.write(f.getbuffer())
             st.rerun()
+            
         saved = glob.glob(os.path.join(papka_snimki, "*"))
         if saved:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -135,23 +150,29 @@ else:
                 with img_grid[idx % 2]:
                     st.image(p, use_container_width=True)
                     if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
-        else: st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма качени снимки.</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма качени снимки в този албум.</div>", unsafe_allow_html=True)
+
+    # СЛУЧАЙ Б: СТАНДАРТЕН ЕКРАН С РАЗХОДИ
     else:
-        if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
-        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-        st.markdown(f"<div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 8px rgba(0, 242, 254, 0.1); margin-bottom: 0px;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
-        st.markdown("---")
+        if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True):
+            st.session_state["current_trip"] = None; st.rerun()
+            
         df_trip = get_trip_data(trip_id); depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum()); v_id = st.session_state["form_version"]
+        
         col1, col2 = st.columns(2)
         with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
         with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
+
         @st.dialog("⛽ Зареждане на гориво")
         def fuel_modal(amount, category, description, is_dep):
             st.write(f"Засякохме гориво за **{amount:.2f} EUR**.")
             liters = st.number_input("Литри:", value=None, placeholder="Напишете литри...", step=0.1)
             if st.button("💾 Запиши", use_container_width=True, type="primary"):
                 lit = float(liters) if liters is not None else 0.0
-                if add_expense(trip_id, amount, category, f"[ГОРИВО] {description}", is_dep, lit): st.session_state["form_version"] += 1; st.rerun()
+                if add_expense(trip_id, amount, category, f"[ГОРИВО] {description}", is_dep, lit):
+                    st.session_state["form_version"] += 1; st.rerun()
+
         grid = st.columns(3)
         for i, kat in enumerate(KATEGORII):
             with grid[i % 3]:
@@ -159,9 +180,11 @@ else:
                     if s_input and s_input > 0:
                         desc = o_input.strip() if o_input else "Без описание"
                         is_d = (kat == "Депозит/Резервация")
-                        if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): fuel_modal(s_input, kat, desc, is_d)
+                        if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]):
+                            fuel_modal(s_input, kat, desc, is_d)
                         else:
                             if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
+
         if not st.session_state["view_photos"]:
             df_expenses = df_trip[df_trip["type"] == "expense"]; total_on_site = float(df_expenses["amount"].sum()); categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}; total_liters_sum, auto_fuel_money = 0.0, 0.0
             for _, row in df_expenses.iterrows():
