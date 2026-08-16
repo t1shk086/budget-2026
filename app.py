@@ -200,6 +200,7 @@ else:
                         else:
                             if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
         # ПОКАЗВАНЕ НА СТАТИСТИКИТЕ И АНАЛИЗА
+                # ПОКАЗВАНЕ НА СТАТИСТИКИТЕ И АНАЛИЗА
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
@@ -234,18 +235,24 @@ else:
                 current_start = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else datetime.date.today()
                 current_end = datetime.datetime.strptime(en_date, "%d.%m.%Y").date() if en_date and en_date != "nan" else datetime.date.today() + datetime.timedelta(days=5)
             except: current_start, current_end = datetime.date.today(), datetime.date.today() + datetime.timedelta(days=5)
+            
             edit_range = st.date_input("Изберете нови дати:", value=[current_start, current_end], key="edit_dates_cal")
+            
             if st.button("💾 Обнови", use_container_width=True, type="primary"):
                 sk_val = float(new_sk) if new_sk is not None else 0.0
                 ek_val = float(new_ek) if new_ek is not None else 0.0
                 mf_val = float(new_mf) if new_mf is not None else 0.0
+                
+                # СИГУРНО ИЗВЛИЧАНЕ: Предотвратява AttributeError при промяна на дати
                 if isinstance(edit_range, (list, tuple)) and len(edit_range) > 0:
-                    s_d_str = edit_range.strftime("%d.%m.%Y")
-                    e_d_str = edit_range.strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
+                    s_d_str = edit_range[0].strftime("%d.%m.%Y")
+                    e_d_str = edit_range[1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
                 elif hasattr(edit_range, "strftime"):
                     s_d_str = edit_range.strftime("%d.%m.%Y")
                     e_d_str = s_d_str
-                else: s_d_str, e_d_str = st_date, en_date
+                else:
+                    s_d_str, e_d_str = st_date, en_date
+                    
                 save_trip_settings(trip_id, str(v_car), "Да", sk_val, ek_val, mf_val, s_d_str, e_d_str)
                 st.session_state["form_version"] += 1; st.rerun()
 
@@ -253,6 +260,7 @@ else:
             if st.button("⚙️ Настройки километри / автомобил", use_container_width=True): edit_car_modal()
         else:
             if st.button("🚗 Добави автомобил към пътуването", use_container_width=True): edit_car_modal()
+
         st.markdown("---"); col_st1, col_st2 = st.columns(2)
         with col_st1: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
         with col_st2: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>💰 НА МЯСТО</small><h2 style='color:#00f2fe; margin:5px 0;'>{total_on_site:.2f} EUR</h2></div>", unsafe_allow_html=True)
