@@ -219,7 +219,7 @@ else:
                 avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
                 st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
             else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете краен пробег за разход.</small></div>', unsafe_allow_html=True)
-        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+            st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
 
     @st.dialog("⚙️ Настройки на превозно средство и период")
     def edit_car_modal():
@@ -229,7 +229,6 @@ else:
         new_ek = st.number_input("Крайни км:", value=None if e_km == 0.0 else e_km, placeholder="Напишете км...")
         new_mf = st.number_input("Допълнителни ръчни литри (л):", value=None if m_fuel == 0.0 else m_fuel, placeholder="Напишете литри...")
         
-        # ПРОМЯНА: Добавено избиране на дати в настройките за за запълване на стари почивки
         st.write("📅 Промяна на датите на почивката:")
         try:
             current_start = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else datetime.date.today()
@@ -244,8 +243,8 @@ else:
             ek_val = float(new_ek) if new_ek is not None else 0.0
             mf_val = float(new_mf) if new_mf is not None else 0.0
             
-            s_d_str = edit_range[0].strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
-            e_d_str = edit_range[1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
+            s_d_str = edit_range.strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
+            e_d_str = edit_range.strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
             
             save_trip_settings(trip_id, str(v_car), "Да", sk_val, ek_val, mf_val, s_d_str, e_d_str)
             st.session_state["form_version"] += 1; st.rerun()
@@ -289,8 +288,11 @@ else:
                     if st.button("❌", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
 
     st.markdown("---")
-    pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR</p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайни:</b> {e_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li></ul><h3>📋 Разходи:</h3><table><tr><th>Описание</th><th>Сума</th><th>Категория</th></tr>"
-    for _, row in df_trip.iterrows(): pdf_html += f"<tr><td>{row['description']}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
+    # ПРОМЯНА: Добавена колона "Дата и час" в структурата на таблицата на HTML/PDF отчета
+    date_pdf_txt = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
+    pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{date_pdf_txt}</p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайни:</b> {e_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Сума</th><th>Категория</th></tr>"
+    for _, row in df_trip.iterrows(): 
+        pdf_html += f"<tr><td>{row['date']}</td><td>{row['description']}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
     pdf_html += "</table></body></html>"
     b64_pdf = base64.b64encode(pdf_html.encode('utf-8')).decode('utf-8')
     st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
