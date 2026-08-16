@@ -92,6 +92,7 @@ if st.session_state["current_trip"] is None:
     if choice != "-- Изберете почивка --":
         if st.button("📂 ОТВОРИ ПОЧИВКАТА", use_container_width=True): st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
     st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
+    
     @st.dialog("➕ Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:").strip()
@@ -102,13 +103,23 @@ if st.session_state["current_trip"] is None:
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
+            
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
-            s_d_str = d_range.strftime("%d.%m.%Y") if len(d_range) > 0 else ""
-            e_d_str = d_range.strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
+            # ПОПРАВКА: Безопасно извличане на датите при първоначално създаване
+            if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
+                s_d_str = d_range[0].strftime("%d.%m.%Y")
+                e_d_str = d_range[1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
+            elif hasattr(d_range, "strftime"):
+                s_d_str = d_range.strftime("%d.%m.%Y")
+                e_d_str = s_d_str
+            else:
+                s_d_str, e_d_str = "", ""
+                
             sk = float(new_skm) if new_skm is not None else 0.0
             target_id = txt.replace(" ", "_")
             save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
             st.session_state["current_trip"] = target_id; st.rerun()
+            
     if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
 else:
     trip_id = st.session_state["current_trip"]
