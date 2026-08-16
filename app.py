@@ -139,35 +139,41 @@ def finish_modal(trip_id, car_trip, s_km, e_km, m_fuel, st_date, en_date):
         save_trip_settings(trip_id, car_trip, "Приключило", s_km, f_val, m_fuel, st_date, en_date)
         st.rerun()
 
+def confirm_delete_trip_callback(t_id, p_snimki):
+    try:
+        if os.path.exists(DATA_FILE):
+            df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+            df_all[df_all["trip_id"] != t_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
+        if os.path.exists(SETTINGS_FILE):
+            df_set = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+            df_set[df_set["trip_id"] != t_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+        if os.path.exists(p_snimki):
+            for p in glob.glob(os.path.join(p_snimki, "*")):
+                try: os.remove(p)
+                except: pass
+            try: os.rmdir(p_snimki)
+            except: pass
+    except: pass
+    st.session_state["current_trip"] = None
+    st.cache_data.clear()
+
 @st.dialog("🚨 ИЗТРИВАНЕ НА ЦЯЛОТО ПЪТУВАНЕ")
 def delete_entire_trip_modal(trip_id, papka_snimki):
     st.error("⚠️ ВНИМАНИЕ! Изтриване на всичко завинаги?")
     col_t1, col_t2 = st.columns(2)
     with col_t1:
-        # Добавихме уникален dynamic key, базиран на времето, за да не забива бутона в кеша
-        if st.button("🚨 ДА, ИЗТРИЙ", use_container_width=True, type="primary", key=f"del_trip_btn_{datetime.datetime.now().timestamp()}"):
-            try:
-                if os.path.exists(DATA_FILE):
-                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                    df_all[df_all["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
-                if os.path.exists(SETTINGS_FILE):
-                    df_set = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-                    df_set[df_set["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
-                if os.path.exists(papka_snimki):
-                    for p in glob.glob(os.path.join(papka_snimki, "*")):
-                        try: os.remove(p)
-                        except: pass
-                    try: os.rmdir(papka_snimki)
-                    except: pass
-                
-                # Почистваме състоянието, за да върне потребителя на начален екран
-                st.session_state["current_trip"] = None
-                st.cache_data.clear()
-                st.rerun()
-            except: pass
+        st.button(
+            "🚨 ДА, ИЗТРИЙ", 
+            use_container_width=True, 
+            type="primary", 
+            key="execute_delete_trip_final",
+            on_click=confirm_delete_trip_callback,
+            args=(trip_id, papka_snimki)
+        )
     with col_t2:
         if st.button("❌ ОТКАЗ", use_container_width=True, key="cancel_trip_btn"): 
             st.rerun()
+
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
