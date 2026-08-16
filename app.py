@@ -189,12 +189,6 @@ else:
 
     if st.button("⚙️ Настройки километри / автомобил", use_container_width=True): edit_car_modal()
 
-    pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR</p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайни:</b> {e_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li></ul><h3>📋 Разходи:</h3><table><tr><th>Категория</th><th>Сума</th><th>Описание</th></tr>"
-    for _, row in df_trip.iterrows(): pdf_html += f"<tr><td>{row['category']}</td><td>{row['amount']:.2f} EUR</td><td>{row['description']}</td></tr>"
-    pdf_html += "</table></body></html>"
-    b64_pdf = base64.b64encode(pdf_html.encode('utf-8')).decode('utf-8')
-    st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer; margin-top:10px; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
-
     st.markdown("---"); col_st1, col_st2 = st.columns(2)
     with col_st1: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
     with col_st2: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>💰 НА МЯСТО</small><h2 style='color:#00f2fe; margin:5px 0;'>{total_on_site:.2f} EUR</h2></div>", unsafe_allow_html=True)
@@ -225,6 +219,14 @@ else:
                 with img_grid[idx % 3]:
                     st.image(p, use_container_width=True)
                     if st.button("🗑️ Трий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
+
+    # МЕСТОПОЛОЖЕНИЕ: БУТОН ЗА ПЪЛЕН ОТЧЕТ НАЙ-ДОЛУ ПОД СНИМКИТЕ И ХРОНОЛОГИЯТА
+    st.markdown("---")
+    pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR</p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайни:</b> {e_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li></ul><h3>📋 Разходи:</h3><table><tr><th>Категория</th><th>Сума</th><th>Описание</th></tr>"
+    for _, row in df_trip.iterrows(): pdf_html += f"<tr><td>{row['category']}</td><td>{row['amount']:.2f} EUR</td><td>{row['description']}</td></tr>"
+    pdf_html += "</table></body></html>"
+    b64_pdf = base64.b64encode(pdf_html.encode('utf-8')).decode('utf-8')
+    st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
 
     st.markdown("---"); potv = st.checkbox("Потвърждавам изтриването на цялото пътуване")
     if st.button("🗑️ ИЗТРИЙ ЦЯЛОТО ПЪТУВАНЕ", type="primary", use_container_width=True, disabled=not potv):
