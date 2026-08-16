@@ -53,7 +53,7 @@ def get_trip_settings(t_id):
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
         if not f.empty:
-            res = f.iloc.to_dict()
+            res = f.iloc[0].to_dict()
             return {"trip_id": t_id, "car_trip": str(res.get("car_trip", "Не")), "track_fuel": str(res.get("track_fuel", "Добави впоследствие")), "start_km": float(res.get("start_km", 0.0)), "end_km": float(res.get("end_km", 0.0)), "manual_fuel": float(res.get("manual_fuel", 0.0))}
     except: pass
     return d
@@ -61,7 +61,7 @@ def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0):
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         df = df[df["trip_id"] != t_id]
-        df = pd.concat([df, pd.DataFrame([{"trip_id": t_id, "car_trip": c_t, "track_fuel": t_f, "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f)}])], ignore_index=True)
+        df = pd.concat([df, pd.DataFrame([{"trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f)}])], ignore_index=True)
         df.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
     except: pass
 
@@ -90,10 +90,13 @@ if st.session_state["current_trip"] is None:
         if viber_car == "Да, със собствен автомобил":
             track_option = "Да"
             st.write("📐 Въведете километри за изчисляване на разхода:")
-            new_skm = st.number_input("Начални километри (км)", value=0.0, step=1.0)
-            new_ekm = st.number_input("Крайни километри (км)", value=0.0, step=1.0)
+            # value=None премахва първоначалното 0.00
+            new_skm = st.number_input("Начални километри (км)", value=None, placeholder="Напишете км...", step=1.0)
+            new_ekm = st.number_input("Крайни километри (км)", value=None, placeholder="Напишете км...", step=1.0)
         if st.button("🚀 ОТВОРИ ПЪТУВАНЕТО", use_container_width=True, type="primary"):
-            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", track_option, new_skm, new_ekm, 0.0)
+            sk = float(new_skm) if new_skm is not None else 0.0
+            ek = float(new_ekm) if new_ekm is not None else 0.0
+            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", track_option, sk, ek, 0.0)
             st.session_state["current_trip"] = target_id; st.rerun()
 
     if choice == "➕ СЪЗДАЙ НОВО ПЪТУВАНЕ":
@@ -122,9 +125,10 @@ else:
     @st.dialog("⛽ Зареждане на гориво")
     def fuel_modal(amount, category, description, is_dep):
         st.write(f"Засякохме гориво за **{amount:.2f} EUR**.")
-        liters = st.number_input("Литри:", min_value=0.0, step=0.1)
+        liters = st.number_input("Литри:", value=None, placeholder="Напишете литри...", step=0.1)
         if st.button("💾 Запиши", use_container_width=True, type="primary"):
-            if add_expense(trip_id, amount, category, f"[ГОРИВО] {description}", is_dep, liters):
+            lit = float(liters) if liters is not None else 0.0
+            if add_expense(trip_id, amount, category, f"[ГОРИВО] {description}", is_dep, lit):
                 st.session_state["form_version"] += 1; st.rerun()
 
     grid = st.columns(3)
@@ -134,7 +138,7 @@ else:
                 if s_input and s_input > 0:
                     desc = o_input.strip() if o_input else "Без описание"
                     is_d = (kat == "Депозит/Резервация")
-                    if kat == "Транспорт" and car_trip == "Да" and t_fuel == "Да" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]):
+                    if kat == "Транспорт" and car_trip == "Да" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]):
                         fuel_modal(s_input, kat, desc, is_d)
                     else:
                         if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
@@ -161,8 +165,8 @@ else:
 
     st.markdown("#### ⛽ Справка за разхода и горивото")
     
-    # ТУК Е ЕЛЕГАНТНИЯТ ТЕКСТ С КИЛОМЕТРИТЕ И ЛИТРИТЕ НАД ТРИДЕТАТА БЛОКОВЕ
-    if dist > 0: st.markdown(f'<div style="text-align: center; margin-bottom: 10px; color: #aaa; font-size: 13px;">📍 Километри: <b>{s_km:.0f}</b> до <b>{e_km:.0f}</b> ({dist:.0f} км) | 💧 Общо гориво: <b>{total_liters_calculated:.1f} л</b></div>', unsafe_allow_html=True)
+    # ФИКС: ВЕЧЕ СМЯТА И ПОКАЗВА РАЗХОДА ПРАВИЛНО И НЕЗАВЪСИМО ОТ СТАТУСА НА КЛЮЧА
+    if car_trip == "Да" or dist > 0: st.markdown(f'<div style="text-align: center; margin-bottom: 10px; color: #aaa; font-size: 13px;">📍 Километри: <b>{s_km:.0f}</b> до <b>{e_km:.0f}</b> ({dist:.0f} км) | 💧 Общо гориво: <b>{total_liters_calculated:.1f} л</b></div>', unsafe_allow_html=True)
     else: st.markdown('<div style="text-align: center; margin-bottom: 10px; color: #888; font-size: 13px;">⚠️ Няма въведени километри / данни за автомобила</div>', unsafe_allow_html=True)
 
     col_fuel1, col_fuel2 = st.columns(2)
@@ -178,14 +182,17 @@ else:
     @st.dialog("⚙️ Корекция на данни")
     def edit_car_modal():
         st.write("Променете настройките на превозното средство:")
-        v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=1 if car_trip == "Да" else 0)
-        new_sk = st.number_input("Начални км:", value=s_km)
-        new_ek = st.number_input("Крайни км:", value=e_km)
-        new_mf = st.number_input("Допълнителни ръчни литри (л):", value=m_fuel)
+        v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1)
+        # Изчистени полета без 0.0
+        new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, placeholder="Напишете км...")
+        new_ek = st.number_input("Крайни км:", value=None if e_km == 0.0 else e_km, placeholder="Напишете км...")
+        new_mf = st.number_input("Допълнителни ръчни литри (л):", value=None if m_fuel == 0.0 else m_fuel, placeholder="Напишете литри...")
         if st.button("💾 Обнови", use_container_width=True, type="primary"):
-            final_car_status = "Да" if v_car == "Да" else "Не"
-            save_trip_settings(trip_id, final_car_status, "Да" if final_car_status == "Да" else "Добави впоследствие", new_sk, new_ek, new_mf)
-            st.rerun()
+            sk_val = float(new_sk) if new_sk is not None else 0.0
+            ek_val = float(new_ek) if new_ek is not None else 0.0
+            mf_val = float(new_mf) if new_mf is not None else 0.0
+            save_trip_settings(trip_id, str(v_car), "Да" if v_car == "Да" else "Добави впоследствие", sk_val, ek_val, mf_val)
+            st.st.session_state["form_version"] += 1; st.rerun()
 
     if st.button("⚙️ Настройки километри / автомобил", use_container_width=True): edit_car_modal()
 
