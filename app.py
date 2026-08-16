@@ -212,7 +212,7 @@ else:
         with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
         with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
-                @st.dialog("⛽ Зареждане на гориво")
+        @st.dialog("⛽ Зареждане на гориво")
         def fuel_modal(amount, category, description, is_dep):
             st.write(f"Засякохме гориво за **{amount:.2f} EUR**.")
             liters = st.number_input("Литри:", value=None, placeholder="Напишете литри...", step=0.1)
