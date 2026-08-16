@@ -188,7 +188,7 @@ else:
             st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма качени снимки в този албум.</div>", unsafe_allow_html=True)
 # === КРАЙ НА ЧАСТ 4 ===
     else:
-        if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True):
+        if st.button("⬅️ НАЗАД ", use_container_width=True):
             st.session_state["current_trip"] = None; st.rerun()
             
         v_id = st.session_state["form_version"]
