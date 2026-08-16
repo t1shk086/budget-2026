@@ -101,6 +101,21 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
         pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(DATA_FILE, index=False, encoding="utf-8")
         return True
     except: return False
+def get_map_points(t_id):
+    try:
+        df = pd.read_csv(MAP_FILE, encoding="utf-8")
+        return df[df["trip_id"] == t_id].copy()
+    except:
+        return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
+
+def add_map_point(t_id, lat, lon, title, color="blue"):
+    try:
+        df = pd.read_csv(MAP_FILE, encoding="utf-8")
+        row = {"trip_id": t_id, "lat": float(lat), "lon": float(lon), "title": str(title), "color": str(color)}
+        pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(MAP_FILE, index=False, encoding="utf-8")
+        return True
+    except:
+        return False
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
