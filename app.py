@@ -192,8 +192,8 @@ else:
                         avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
                         st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
                     else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете краен пробег за разход.</small></div>', unsafe_allow_html=True)
-                if not st.session_state["view_photos"]:
-        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+                        if not st.session_state["view_photos"]:
+            st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
             @st.dialog("⚙️ Настройки на превозно средство и период")
             def edit_car_modal():
                 st.write("Променете настройките на почивката:")
@@ -214,7 +214,6 @@ else:
                     ek_val = float(new_ek) if new_ek is not None else 0.0
                     mf_val = float(new_mf) if new_mf is not None else 0.0
                     
-                    # ПОПРАВКА: Безопасно извличане на датите от календара
                     if isinstance(edit_range, (list, tuple)) and len(edit_range) > 0:
                         s_d_str = edit_range[0].strftime("%d.%m.%Y")
                         e_d_str = edit_range[1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
@@ -266,4 +265,5 @@ else:
                         os.rmdir(papka_snimki)
                     st.session_state["current_trip"] = None; st.rerun()
                 except: pass
+
 
