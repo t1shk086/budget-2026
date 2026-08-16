@@ -361,7 +361,6 @@ else:
 
             km_progress_pct = 100 if is_final_status else min(100, max(15, (dist / 1000 * 100))) if dist > 0 else 0
             
-            # Напълно центриран и симетричен блок за следене на пробега
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); margin-bottom: 20px; text-align: center;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;">
@@ -381,6 +380,7 @@ else:
             </div>
             """, unsafe_allow_html=True)
 
+            # Два симетрично центрирани 3D блока за разхода и горивото
             st.markdown(f"""
             <div style="display: flex; flex-wrap: wrap; gap: 15px; width: 100%;">
                 <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);">
@@ -391,20 +391,21 @@ else:
                     </div>
                     <div style="color: #666; font-size: 11px; margin: 0;">{sub_lbl_gauge}</div>
                 </div>
-                <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 25px 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); box-sizing: border-box;">
-                    <div style="margin-bottom: 25px; text-align: left;">
-                        <div style="color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0;">💧 ИЗРАЗХОДВАНО ГОРИВО</div>
-                        <div style="color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2;">{total_liters_calculated:.1f} <span style="font-size: 14px; color: #666; font-weight: normal;">литра</span></div>
+                <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 25px 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); box-sizing: border-box;">
+                    <div style="margin-bottom: 25px; width: 100%;">
+                        <div style="color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;">💧 ИЗРАЗХОДВАНО ГОРИВО</div>
+                        <div style="color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;">{total_liters_calculated:.1f} <span style="font-size: 14px; color: #666; font-weight: normal;">литра</span></div>
                     </div>
-                    <div style="padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); text-align: left;">
-                        <div style="color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0;">💰 ОБЩА ФИНАНСОВА СТОЙНОСТ</div>
-                        <div style="color: #ffa500; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.2;">{auto_fuel_money:.2f} <span style="font-size: 12px; color: #666; font-weight: normal;">EUR</span></div>
+                    <div style="padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); width: 100%;">
+                        <div style="color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;">💰 ОБЩА ФИНАНСОВА СТОЙНОСТ</div>
+                        <div style="color: #ffa500; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.2; text-align: center;">{auto_fuel_money:.2f} <span style="font-size: 12px; color: #666; font-weight: normal;">EUR</span></div>
                     </div>
                 </div>
             </div>
             <br>
             """, unsafe_allow_html=True)
 # === КРАЙ НА ЧАСТ 6 ===
+
 
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
