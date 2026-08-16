@@ -51,7 +51,7 @@ if "current_trip" not in st.session_state: st.session_state["current_trip"] = No
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 if "view_photos" not in st.session_state: st.session_state["view_photos"] = False
 
-# СТИЛИЗИРАНЕ: Връщаме оригиналния сив/графитен премиум стил с меко 3D заобляне
+# СТИЛИЗИРАНЕ: Оригиналният сив/графитен премиум стил с меко 3D заобляне
 st.markdown("""
 <style>
     div.stButton > button {
@@ -116,11 +116,15 @@ if st.session_state["current_trip"] is None:
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
             
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
+            # КОРЕКЦИЯ: Сигурно извличане от списъка с дати без извикване на strftime върху целия списък
             if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
-                s_d_str = d_range.strftime("%d.%m.%Y")
+                s_d_str = d_range[0].strftime("%d.%m.%Y")
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
-            elif hasattr(d_range, "strftime"): s_d_str = d_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
-            else: s_d_str, e_d_str = "", ""
+            elif hasattr(d_range, "strftime"):
+                s_d_str = d_range.strftime("%d.%m.%Y")
+                e_d_str = s_d_str
+            else:
+                s_d_str, e_d_str = "", ""
                 
             sk = float(new_skm) if new_skm is not None else 0.0
             target_id = txt.replace(" ", "_")
