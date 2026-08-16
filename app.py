@@ -215,7 +215,7 @@ else:
                 avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
                 st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
             else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете моментни километри при горивото.</small></div>', unsafe_allow_html=True)
-        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+                st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
             v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1)
@@ -235,7 +235,7 @@ else:
             if st.button("💾 Запази промените", use_container_width=True, type="primary"):
                 sk_val, ek_val, mf_val = float(new_sk) if new_sk is not None else 0.0, float(new_ek) if new_ek is not None else 0.0, float(new_mf) if new_mf is not None else 0.0
                 if isinstance(edit_range, (list, tuple)) and len(edit_range) > 0:
-                    s_d_str = edit_range[0].strftime("%d.%m.%Y") if hasattr(edit_range[0], "strftime") else ""
+                    s_d_str = edit_range.strftime("%d.%m.%Y") if hasattr(edit_range, "strftime") else ""
                     e_d_str = edit_range[-1].strftime("%d.%m.%Y") if len(edit_range) > 1 and hasattr(edit_range[-1], "strftime") else s_d_str
                 elif hasattr(edit_range, "strftime"):
                     s_d_str = edit_range.strftime("%d.%m.%Y")
@@ -262,7 +262,9 @@ else:
                 if st.button("✅ ДА", use_container_width=True, type="primary"):
                     try:
                         df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                        df_all.drop(idx_to_del).to_csv(DATA_FILE, index=False, encoding="utf-8")
+                        df_all = df_all.drop(idx_to_del)
+                        df_all.to_csv(DATA_FILE, index=False, encoding="utf-8")
+                        st.cache_data.clear()
                         st.rerun()
                     except: pass
             with col_m2:
@@ -316,11 +318,14 @@ else:
                 if st.button("🚨 ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
                     try:
                         df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                        df_all[df_all["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
+                        df_all = df_all[df_all["trip_id"] != trip_id]
+                        df_all.to_csv(DATA_FILE, index=False, encoding="utf-8")
                         if os.path.exists(papka_snimki):
                             for p in glob.glob(os.path.join(papka_snimki, "*")): os.remove(p)
                             os.rmdir(papka_snimki)
-                        st.session_state["current_trip"] = None; st.rerun()
+                        st.session_state["current_trip"] = None
+                        st.cache_data.clear()
+                        st.rerun()
                     except: pass
             with col_t2:
                 if st.button("❌ ОТКАЗ", use_container_width=True): st.rerun()
