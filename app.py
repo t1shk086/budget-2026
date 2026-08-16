@@ -361,6 +361,11 @@ else:
 
             km_progress_pct = 100 if is_final_status else min(100, max(15, (dist / 1000 * 100))) if dist > 0 else 0
             
+            # Предварително форматиране на километражите за защита от грешки
+            start_km_txt = f"{s_km:.0f} км"
+            current_km_txt = f"{e_km:.0f} км" if e_km > 0 else "—"
+            dist_km_txt = f"{dist:.0f} км" if dist > 0 else ""
+            
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); margin-bottom: 20px; text-align: center;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;">
@@ -373,9 +378,9 @@ else:
                     {"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; left: calc({km_progress_pct}% - 10px); top: -12px; font-size: 16px;'>🚗</div>"}
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;">
-                    <div style="flex: 1; text-align: left;"><span style="color: #666; display: block; font-size: 11px;">Старт</span><b style="color: white; font-size: 14px;">{s_km:.0f} км</b></div>
-                    {f"<div style='flex: 1; text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div>" if dist > 0 else "<div style='flex: 1;'></div>"}
-                    <div style="flex: 1; text-align: right;"><span style="color: #666; display: block; font-size: 11px;">Текущи</span><b style="color: white; font-size: 14px;">{e_km if e_km > 0 else "—":.0f} км</b></div>
+                    <div style="flex: 1; text-align: left;"><span style="color: #666; display: block; font-size: 11px;">Старт</span><b style="color: white; font-size: 14px;">{start_km_txt}</b></div>
+                    {f"<div style='flex: 1; text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist_km_txt}</b></div>" if dist > 0 else "<div style='flex: 1;'></div>"}
+                    <div style="flex: 1; text-align: right;"><span style="color: #666; display: block; font-size: 11px;">Текущи</span><b style="color: white; font-size: 14px;">{current_km_txt}</b></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
