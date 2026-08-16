@@ -118,7 +118,7 @@ if st.session_state["current_trip"] is None:
         
     st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
     
-    @st.dialog("➕ Създаване на ново приключение")
+        @st.dialog("➕ Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
@@ -132,7 +132,7 @@ if st.session_state["current_trip"] is None:
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
                 s_d_str = d_range[0].strftime("%d.%m.%Y")
-                e_d_str = d_range[1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
+                e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
             elif hasattr(d_range, "strftime"):
                 s_d_str = d_range.strftime("%d.%m.%Y")
                 e_d_str = s_d_str
@@ -141,7 +141,7 @@ if st.session_state["current_trip"] is None:
                 
             sk = float(new_skm) if new_skm is not None else 0.0
             target_id = txt.replace(" ", "_")
-            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен ArrayList" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
+            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
             st.session_state["current_trip"] = target_id; st.rerun()
             
     if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
