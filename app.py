@@ -275,7 +275,7 @@ else:
                         st.rerun()
             with col_m2:
                 if st.button("❌ НЕ", use_container_width=True): st.rerun()
-        if not df_trip.empty:
+                            if not df_trip.empty:
             st.markdown("---"); st.subheader("📋 Хронология на плащанията")
             try:
                 df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
@@ -322,8 +322,7 @@ else:
             with col_t1:
                 if st.button("🚨 ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
                     try:
-                        st.session_state["current_trip"] = None
-                        st.cache_data.clear()
+                        # 1. ТИХО ИЗТРИВАНЕ НА ФАЙЛОВЕТЕ НА ДИСКА ПЪРВО
                         if os.path.exists(DATA_FILE):
                             df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
                             df_all[df_all["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
@@ -336,11 +335,17 @@ else:
                                 except: pass
                             try: os.rmdir(papka_snimki)
                             except: pass
+                            
+                        # 2. ЧАК СЛЕД ТОВА НУЛИРАМЕ СЕСИЯТА И ЗАТВАРЯМЕ ПРОЗОРЕЦА
+                        st.session_state["current_trip"] = None
+                        st.cache_data.clear()
                         st.rerun()
                     except: pass
             with col_t2:
                 if st.button("❌ ОТКАЗ", use_container_width=True): st.rerun()
 
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True): delete_entire_trip_modal()
+
+
 
 
