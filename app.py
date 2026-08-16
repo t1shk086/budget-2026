@@ -383,6 +383,7 @@ else:
             start_km_txt = f"{s_km:.0f} км"
             current_km_txt = f"{eff_end_km:.0f} км" if eff_end_km > 0 else "—"
             dist_km_txt = f"{dist:.0f} км" if dist > 0 else "0 км"
+            label_status_txt = "Крайни" if is_trip_finished else "Текущи"
             
             html_probel_box = (
                 f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); margin-bottom: 20px; text-align: center;'>"
@@ -398,7 +399,7 @@ else:
                 f"<div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'>"
                 f"<div style='flex: 1; text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{start_km_txt}</b></div>"
                 f"<div style='flex: 1; text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist_km_txt}</b></div>"
-                f"<div style='flex: 1; text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Текущи</span><b style='color: white; font-size: 14px;'>{current_km_txt}</b></div>"
+                f"<div style='flex: 1; text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>{label_status_txt}</span><b style='color: white; font-size: 14px;'>{current_km_txt}</b></div>"
                 f"</div>"
                 f"</div>"
             )
