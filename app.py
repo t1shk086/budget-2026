@@ -47,6 +47,13 @@ st.markdown("""
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
+# 🗺️ Нов CSV файл за съхранение на координатите и точките по картата
+MAP_FILE = "trip_map_points_2026.csv"
+
+# Автоматично създаване на файла за картата, ако не съществува
+if not os.path.exists(MAP_FILE):
+    pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
+
 # === КРАЙ НА ЧАСТ 1 ===
 # === НАЧАЛО НА ЧАСТ 2 ===
 def get_emoji(cat):
