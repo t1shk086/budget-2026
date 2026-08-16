@@ -341,9 +341,7 @@ else:
 
         if car_trip == "Да":
             st.markdown("#### ⛽ Автомобилно табло")
-            status_lbl = " LOCKED" if is_trip_finished else ""
             
-            # Изчисляване на стойностите за визуалния разход
             val_to_show = 0.0
             is_final_status = False
             if dist > 0:
@@ -352,17 +350,15 @@ else:
             elif has_progressive_data:
                 val_to_show = progressive_avg_con
 
-            # Динамичен цвят според икономичността на разхода
             if val_to_show == 0.0: color_gauge = "#666"
-            elif val_to_show <= 5.5: color_gauge = "#00ffcc" # Еко
-            elif val_to_show <= 8.0: color_gauge = "#00f2fe" # Нормален
-            elif val_to_show <= 11.0: color_gauge = "#ffa500" # Висок
-            else: color_gauge = "#ff4b4b" # Екстремен
+            elif val_to_show <= 5.5: color_gauge = "#00ffcc"
+            elif val_to_show <= 8.0: color_gauge = "#00f2fe"
+            elif val_to_show <= 11.0: color_gauge = "#ffa500"
+            else: color_gauge = "#ff4b4b"
 
             lbl_gauge = "ФИНАЛЕН РАЗХОД" if is_final_status else "ТЕКУЩ РАЗХОД"
             sub_lbl_gauge = "за целия пробег" if is_final_status else "изчислен от старта"
 
-            # Стилна 3D Линия на Маршрута (Timeline пробег)
             km_progress_pct = 100 if is_final_status else min(100, max(15, (dist / 1000 * 100))) if dist > 0 else 0
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); margin-bottom: 20px;">
@@ -383,38 +379,35 @@ else:
             </div>
             """, unsafe_allow_html=True)
 
-            # Две колони за 3D Спидометъра и Горивната Капсула
-            col_dash1, col_dash2 = st.columns(2)
-            
-            with col_dash1:
-                # Кръгов виртуален 3D Ограничител/Gauge за средния разход
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 16px; text-align: center; height: 160px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);">
-                    <small style="color: #888; font-weight: bold; font-size: 10px; letter-spacing: 0.5px;">{lbl_gauge}</small>
-                    <div style="margin: 10px 0; width: 85px; height: 85px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
-                        <h2 style="margin: 0; color: white; font-size: 22px; font-weight: 900;">{val_to_show:.1f}</h2>
-                        <small style="color: #666; font-size: 9px; font-weight: bold; margin-top: -2px;">л/100км</small>
+            # Мобилно адаптиран Flexbox контейнер против застъпване и залепване
+            st.markdown(f"""
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; width: 100%;">
+                <!-- БЛОК 1: ПО-ГОЛЯМ КРЪГ ЗА РАЗХОД -->
+                <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);">
+                    <small style="color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 12px;">{lbl_gauge}</small>
+                    <div style="width: 105px; height: 105px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 12px;">
+                        <h2 style="margin: 0; color: white; font-size: 26px; font-weight: 900;">{val_to_show:.1f}</h2>
+                        <small style="color: #888; font-size: 10px; font-weight: bold; margin-top: -2px;">л/100км</small>
                     </div>
-                    <small style="color: #555; font-size: 10px;">{sub_lbl_gauge}</small>
+                    <small style="color: #666; font-size: 11px;">{sub_lbl_gauge}</small>
                 </div>
-                """, unsafe_allow_html=True)
                 
-            with col_dash2:
-                # Модерна Хоризонтална Горивна Капсула (Резервоар)
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 16px; height: 160px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);">
-                    <div>
-                        <small style="color: #ffa500; font-weight: bold; font-size: 10px; letter-spacing: 0.5px;">💧 ИЗРАЗХОДВАНО ГОРИВО</small>
-                        <h3 style="color: white; margin: 8px 0 0 0; font-size: 26px; font-weight: 800;">{total_liters_calculated:.1f} <span style="font-size: 14px; color: #666; font-weight: normal;">литра</span></h3>
+                <!-- БЛОК 2: ГОРИВНА КАПСУЛА С ПОВЕЧЕ ПРОСТРАНСТВО -->
+                <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); min-height: 185px;">
+                    <div style="margin-bottom: 15px;">
+                        <small style="color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px;">💧 ИЗРАЗХОДВАНО ГОРИВО</small>
+                        <h3 style="color: white; margin: 6px 0 0 0; font-size: 28px; font-weight: 800;">{total_liters_calculated:.1f} <span style="font-size: 14px; color: #666; font-weight: normal;">литра</span></h3>
                     </div>
-                    <div>
-                        <small style="color: #888; font-weight: bold; font-size: 10px; letter-spacing: 0.5px;">💰 ОБЩА ФИНАНСОВА СТОЙНОСТ</small>
-                        <h4 style="color: #ffa500; margin: 2px 0 0 0; font-size: 18px; font-weight: 700;">{auto_fuel_money:.2f} <span style="font-size: 11px; color: #666; font-weight: normal;">EUR</span></h4>
+                    <div style="padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.03);">
+                        <small style="color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px;">💰 ОБЩА ФИНАНСОВА СТОЙНОСТ</small>
+                        <h4 style="color: #ffa500; margin: 4px 0 0 0; font-size: 20px; font-weight: 700;">{auto_fuel_money:.2f} <span style="font-size: 12px; color: #666; font-weight: normal;">EUR</span></h4>
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
-            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
+            </div>
+            <br>
+            """, unsafe_allow_html=True)
 # === КРАЙ НА ЧАСТ 6 ===
+
 
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
