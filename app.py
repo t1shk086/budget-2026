@@ -330,7 +330,6 @@ else:
         st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer;">📄 СВАЛИ ПЪЛЕН ОТЧЕТ</button></a>', unsafe_allow_html=True)
 
         st.markdown("---")
-                st.markdown("---")
         st.markdown("<b style='color:#ff4b4b;'>🚨 ЗОНА ЗА ИЗТРИВАНЕ</b>", unsafe_allow_html=True)
         
         suglasen_del = st.checkbox("Потвърждавам, че искам да изтрия това пътуване завинаги!", key=f"chk_del_{trip_id}")
