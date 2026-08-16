@@ -359,12 +359,12 @@ else:
             lbl_gauge = "ФИНАЛЕН РАЗХОД" if is_final_status else "ТЕКУЩ РАЗХОД"
             sub_lbl_gauge = "за целия пробег" if is_final_status else "изчислен от старта"
 
-            km_progress_pct = 100 if is_final_status else min(100, max(15, (dist / 1000 * 100))) if dist > 0 else 0
+            # Безопасно изчисляване на прогреса без чупене при 0 км
+            km_progress_pct = 100 if is_final_status else min(100, max(0, (dist / 1000 * 100))) if dist > 0 else 0
             
-            # Предварително форматиране на километражите за защита от грешки
             start_km_txt = f"{s_km:.0f} км"
             current_km_txt = f"{e_km:.0f} км" if e_km > 0 else "—"
-            dist_km_txt = f"{dist:.0f} км" if dist > 0 else ""
+            dist_km_txt = f"{dist:.0f} км" if dist > 0 else "0 км"
             
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); margin-bottom: 20px; text-align: center;">
@@ -379,7 +379,7 @@ else:
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;">
                     <div style="flex: 1; text-align: left;"><span style="color: #666; display: block; font-size: 11px;">Старт</span><b style="color: white; font-size: 14px;">{start_km_txt}</b></div>
-                    {f"<div style='flex: 1; text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist_km_txt}</b></div>" if dist > 0 else "<div style='flex: 1;'></div>"}
+                    <div style="flex: 1; text-align: center;"><span style="color: #666; display: block; font-size: 11px;">Изминати</span><b style="color: #00f2fe; font-size: 14px;">{dist_km_txt}</b></div>
                     <div style="flex: 1; text-align: right;"><span style="color: #666; display: block; font-size: 11px;">Текущи</span><b style="color: white; font-size: 14px;">{current_km_txt}</b></div>
                 </div>
             </div>
@@ -401,7 +401,7 @@ else:
                         <div style="color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;">{total_liters_calculated:.1f} <span style="font-size: 14px; color: #666; font-weight: normal;">литра</span></div>
                     </div>
                     <div style="padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); width: 100%;">
-                        <div style="color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;">💰 ОБЩА СТОЙНОСТ</div>
+                        <div style="color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;">💰 ОБЩА ФИНАНСОВА СТОЙНОСТ</div>
                         <div style="color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;">{auto_fuel_money:.2f} <span style="font-size: 14px; color: #666; font-weight: normal;">EUR</span></div>
                     </div>
                 </div>
@@ -409,7 +409,6 @@ else:
             <br>
             """, unsafe_allow_html=True)
 # === КРАЙ НА ЧАСТ 6 ===
-
 
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
