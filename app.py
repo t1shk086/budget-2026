@@ -78,13 +78,13 @@ if "current_trip" not in st.session_state: st.session_state["current_trip"] = No
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
 if st.session_state["current_trip"] is None:
-    # ОБНОВЕНО ЛОГО: СЪЩИЯ ДЕБЕЛ ШРИФТ В МОДЕРНО ЖЪЛТО
+    # ОФОРМЛЕНИЕ: СЪЩИЯ ШРИФТ, СТАНДАРТНИ БУКВИ, БЕЗ РАЗСТОЯНИЯ, В ЖЪЛТО
     st.markdown("""
     <div style='text-align: center; margin-bottom: 5px;'>
         <h1 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>
             🐾 PixelApp
         </h1>
-        <p style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: #ffd700; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; margin-bottom: 30px; text-shadow: 1px 1px 6px rgba(255, 215, 0, 0.15);'>
+        <p style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: #ffd700; font-weight: 800; letter-spacing: normal; text-transform: none; margin-top: 4px; margin-bottom: 30px; text-shadow: 1px 1px 6px rgba(255, 215, 0, 0.15);'>
             Трип Мениджър
         </p>
     </div>
@@ -112,7 +112,6 @@ if st.session_state["current_trip"] is None:
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True) and txt: create_car_modal(txt.replace(" ", "_"))
     elif choice != "-- Изберете почивка --":
         if st.button("📂 ОТВОРИ ПОЧИВКАТА", use_container_width=True): st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
-
 
 
 else:
