@@ -51,6 +51,16 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
         return True
     except: return False
 
+# НОВА ФУНКЦИЯ: Светкавично изтриване без зацикляне
+def delete_expense_direct(idx_to_del):
+    try:
+        df = pd.read_csv(DATA_FILE, encoding="utf-8")
+        df = df.drop(idx_to_del)
+        df.to_csv(DATA_FILE, index=False, encoding="utf-8")
+        st.cache_data.clear()
+        return True
+    except: return False
+
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 if "view_photos" not in st.session_state: st.session_state["view_photos"] = False
@@ -215,7 +225,7 @@ else:
                 avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
                 st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
             else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете моментни километри при горивото.</small></div>', unsafe_allow_html=True)
-        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+                st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
             v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1)
@@ -260,13 +270,9 @@ else:
             col_m1, col_m2 = st.columns(2)
             with col_m1:
                 if st.button("✅ ДА", use_container_width=True, type="primary"):
-                    try:
-                        df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                        df_all = df_all.drop(idx_to_del)
-                        df_all.to_csv(DATA_FILE, index=False, encoding="utf-8")
-                        st.cache_data.clear()
+                    if delete_expense_direct(idx_to_del):
+                        st.session_state["form_version"] += 1
                         st.rerun()
-                    except: pass
             with col_m2:
                 if st.button("❌ НЕ", use_container_width=True): st.rerun()
 
@@ -331,3 +337,4 @@ else:
                 if st.button("❌ ОТКАЗ", use_container_width=True): st.rerun()
 
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True): delete_entire_trip_modal()
+
