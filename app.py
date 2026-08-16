@@ -78,14 +78,14 @@ if "current_trip" not in st.session_state: st.session_state["current_trip"] = No
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
 if st.session_state["current_trip"] is None:
-    # ОФОРМЛЕНИЕ НА МОДЕРНОТО И ПРЕЛИВАЩО ЛОГО "PixelApp"
+    # ОБНОВЕНО ЛОГО С ТЕХНОЛОГИЧЕН И МОДЕРЕН ПОДТЕКСТ
     st.markdown("""
     <div style='text-align: center; margin-bottom: 5px;'>
-        <h1 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 900; font-size: 45px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.15); margin-bottom: 0px;'>
+        <h1 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>
             🐾 PixelApp
         </h1>
-        <p style='font-size: 15px; color: #888; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-top: -5px; margin-bottom: 25px;'>
-            Трип Мениджър
+        <p style='font-family: "Courier New", Courier, monospace; font-size: 13px; background: linear-gradient(90deg, #888, #bbb, #888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold; letter-spacing: 5px; text-transform: uppercase; margin-top: 2px; margin-bottom: 30px;'>
+            // ТРИП МЕНИДЖЪР
         </p>
     </div>
     """, unsafe_allow_html=True)
