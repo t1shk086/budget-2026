@@ -6,7 +6,7 @@ import glob
 import base64
 import folium
 from streamlit_folium import st_folium
-
+from geopy.geocoders import Nominatim
 # Страница и оригинален премиум 3D CSS дизайн за PixelApp
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
