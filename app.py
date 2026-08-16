@@ -94,7 +94,7 @@ if st.session_state["current_trip"] is None:
     if existing:
         opts = [t.replace("_", " ") for t in existing]
         choice = st.selectbox("Изберете пътуване до:", opts)
-        if st.button("📂 ОТВОРИ ПОЧИВКАТА", use_container_width=True):
+        if st.button("📂 ЗАРЕДИ ДАННИТЕ", use_container_width=True):
             st.session_state["current_trip"] = choice.replace(" ", "_")
             st.rerun()
     else:
