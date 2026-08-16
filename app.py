@@ -262,24 +262,32 @@ else:
         b64_pdf = base64.b64encode(pdf_html.encode('utf-8')).decode('utf-8')
         st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}.html"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; border-radius:10px;">📄 СВАЛИ ПЪЛЕН ОТЧЕТ</button></a>', unsafe_allow_html=True)
         
+        # --- ОРИГИНАЛЕН СИГУРЕН И БЪРЗ БУТОН ЗА ИЗТРИВАНЕ С ОТМЕТКА (БЕЗ ДИАЛОГ) ---
         st.markdown("---")
-        st.markdown("<b style='color:#ff4b4b;'>🚨 ЗОНА ЗА ИЗТРИВАНЕ</b>", unsafe_allow_html=True)
-        suglasen_del = st.checkbox("Потвърждавам, че искам да изтрия това пътуване завинаги!", key=f"chk_del_{trip_id}")
-        if suglasen_del:
+        potv = st.checkbox("Потвърждавам изтриването на цялото пътуване", key=f"chk_del_{trip_id}")
+        if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, disabled=not potv):
             try:
-                if os.path.exists(DATA_FILE):
-                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                    df_all[df_all["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
+                # 1. Изтрива разходите от базата данни
+                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                df_all[df_all["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
+                
+                # 2. Изтрива настройките на колата и периода
                 if os.path.exists(SETTINGS_FILE):
                     df_set = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
                     df_set[df_set["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+                
+                # 3. Изтрива снимките и папката им
                 if os.path.exists(papka_snimki):
                     for p in glob.glob(os.path.join(papka_snimki, "*")):
                         try: os.remove(p)
                         except: pass
                     try: os.rmdir(papka_snimki)
                     except: pass
+                
+                # 4. Моментално презареждане към начален екран
                 st.session_state["current_trip"] = None
                 st.cache_data.clear()
                 st.rerun()
-            except: pass
+            except:
+                pass
+
