@@ -16,13 +16,18 @@ def get_emoji(cat):
     return emojis.get(cat, "💰")
 
 def get_trip_settings(t_id):
+    # Принудително четем директно от диска, за да избегнем забиването на 0
     if os.path.exists(SETTINGS_FILE):
         try:
+            # Отваряме файла наново при всяко повикване
             df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
             res = df[df["trip_id"] == t_id]
-            if not res.empty: return res.iloc.to_dict()
+            if not res.empty: 
+                # Връщаме чистия речник директно от записания ред
+                return res.iloc[0].to_dict()
         except: pass
     return {"trip_id": t_id, "car_trip": "Не", "track_fuel": "Не", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
+
 
 def get_trip_data(t_id):
     if os.path.exists(DATA_FILE):
