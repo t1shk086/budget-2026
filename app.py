@@ -138,8 +138,8 @@ else:
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
     
-    # ПРОМЯНА: Текстът на датите се изписва под неоновото заглавие, ако съществуват
-    date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>📅 {st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+    # ПРОМЯНА: Премахнат е символът за календар
+    date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
     
     st.markdown(f"""
     <div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'>
@@ -177,6 +177,7 @@ else:
                         fuel_modal(s_input, kat, desc, is_d)
                     else:
                         if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
+
 
             df_expenses = df_trip[df_trip["type"] == "expense"]; total_on_site = float(df_expenses["amount"].sum()); categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}; total_liters_sum, auto_fuel_money = 0.0, 0.0
     for _, row in df_expenses.iterrows():
