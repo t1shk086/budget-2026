@@ -360,26 +360,27 @@ else:
             sub_lbl_gauge = "за целия пробег" if is_final_status else "изчислен от старта"
 
             km_progress_pct = 100 if is_final_status else min(100, max(15, (dist / 1000 * 100))) if dist > 0 else 0
+            
+            # Напълно центриран и симетричен блок за следене на пробега
             st.markdown(f"""
-            <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); margin-bottom: 20px; text-align: center;">
+                <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;">
                     <span style="font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;">📍 СЛЕДЕНЕ НА ПРОБЕГА</span>
                     {"<span style='background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;'>🔒 ЗАКЛЮЧЕН</span>" if is_trip_finished else ""}
                 </div>
-                <div style="position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 0 15px 0;">
+                <div style="position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;">
                     <div style="position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;"></div>
                     <div style="position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;">S</div>
                     {"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; left: calc({km_progress_pct}% - 10px); top: -12px; font-size: 16px;'>🚗</div>"}
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                    <div><span style="color: #666;">Старт:</span> <b style="color: white;">{s_km:.0f} км</b></div>
-                    {f"<div><span style='color: #666;'>Общо изминати:</span> <b style='color: #00f2fe;'>{dist:.0f} км</b></div>" if dist > 0 else ""}
-                    <div><span style="color: #666;">Текущи:</span> <b style="color: white;">{e_km if e_km > 0 else "—":.0f} км</b></div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;">
+                    <div style="flex: 1; text-align: left;"><span style="color: #666; display: block; font-size: 11px;">Старт</span><b style="color: white; font-size: 14px;">{s_km:.0f} км</b></div>
+                    {f"<div style='flex: 1; text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div>" if dist > 0 else "<div style='flex: 1;'></div>"}
+                    <div style="flex: 1; text-align: right;"><span style="color: #666; display: block; font-size: 11px;">Текущи</span><b style="color: white; font-size: 14px;">{e_km if e_km > 0 else "—":.0f} км</b></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-            # Напълно изчистен и работещ Flexbox без HTML коментари
             st.markdown(f"""
             <div style="display: flex; flex-wrap: wrap; gap: 15px; width: 100%;">
                 <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);">
