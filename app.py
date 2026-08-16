@@ -165,10 +165,21 @@ if st.session_state["current_trip"] is None:
             else:
                 s_d_str, e_d_str = "", ""
                 
-            sk = float(new_skm) if new_skm is not None else 0.0
+                        sk = float(new_skm) if new_skm is not None else 0.0
             target_id = txt.replace(" ", "_")
-            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
+            save_trip_settings(target_id, "Да" if viber_car == "Да, със warmup автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
+            
+            # 🌐 АВТОМАТИЧНО НАМИРАНЕ НА КООРДИНАТИ ПО ИМЕТО
+            try:
+                geolocator = Nominatim(user_agent="pixelapp_travel_manager_2026")
+                location = geolocator.geocode(txt)
+                if location:
+                    add_map_point(target_id, location.latitude, location.longitude, f"🏁 Център: {txt}", "red")
+            except:
+                pass # Ако няма интернет или мястото не е намерено, продължава без грешка
+                
             st.session_state["current_trip"] = target_id; st.rerun()
+
             
     if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
 
