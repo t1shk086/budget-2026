@@ -168,7 +168,6 @@ else:
             st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД ({dist:.0f} км)</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} л / 100 км</h3><small style="color: #aaa;">От {s_km:.0f} до {e_km:.0f} км</small></div>', unsafe_allow_html=True)
         else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Няма въведен автомобил или изминати км.</small></div>', unsafe_allow_html=True)
 
-    # ТУК Е КОРЕКЦИЯТА: ДОБАВЕН ВЕРТИКАЛЕН СТИЛИЗИРАН МАРЖИН (РАЗСТОЯНИЕ) ЗА ПОВЕЧЕ ВЪЗДУХ
     st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
 
     @st.dialog("⚙️ Корекция на данни")
@@ -195,7 +194,10 @@ else:
             df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
             for idx in reversed(df_all[df_all["trip_id"] == trip_id].index.tolist()):
                 r = df_all.loc[idx]; l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
-                st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 12px; border-radius: 10px; margin-bottom: 2px; border: 1px solid rgba(255,255,255,0.08);"><span style="font-size:18px;">{get_emoji(r["category"])}</span> <b>{r["category"]}</b> — <span style="color:#ff4b4b; font-weight:bold;">{r["amount"]:.2f} EUR</span><br><small style="color:#aaa;">📅 {r["date"]} | 📝 {r["description"]}{l_txt}</small></div>', unsafe_allow_html=True)
+                
+                # ТУК Е ЕЛЕГАНТНАТА ПРОМЯНА: ИКОНКА САМО ПРЕД ДАТАТА И ТИРЕ СЛЕД НЕЯ
+                st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 12px; border-radius: 10px; margin-bottom: 2px; border: 1px solid rgba(255,255,255,0.08);"><span style="font-size:18px;">{get_emoji(r["category"])}</span> <b>{r["category"]}</b> — <span style="color:#ff4b4b; font-weight:bold;">{r["amount"]:.2f} EUR</span><br><small style="color:#aaa;">📅 {r["date"]} — {r["description"]}{l_txt}</small></div>', unsafe_allow_html=True)
+                
                 if st.button("❌ Изтрий разход", key=f"dl_{idx}", use_container_width=True):
                     df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8"); st.rerun()
         except: pass
