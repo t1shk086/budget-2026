@@ -36,7 +36,6 @@ def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
 
-# Инициализиране на системните файлове
 for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters"]), (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel"])]:
     if not os.path.exists(f): pd.DataFrame(columns=cols).to_csv(f, index=False, encoding="utf-8")
 
@@ -74,10 +73,13 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0):
         return True
     except: return False
 
+def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data, fuel_info=None):
+    html_content = f"<html><body><h1>Финансов отчет: {trip_name.upper()}</h1><p><b>ОБЩО:</b> {deposit + total_site:.2f} EUR</p></body></html>"
+    return html_content.encode('utf-8')
+
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
-# ЕКРАН 1: СКРИТ НАЧАЛЕН ЕКРАН
 if st.session_state["current_trip"] is None:
     st.markdown("<h1 style='text-align: center;'>💰 Бюджет 2026</h1>", unsafe_allow_html=True)
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
@@ -98,21 +100,29 @@ else:
     st.markdown(f"<h2 style='text-align: center; color: #00f2fe;'>🌴 Дестинация: {trip_id.upper().replace('_', ' ')}</h2>", unsafe_allow_html=True)
     st.markdown("---")
     
-    # ТУК СЕ СЛУЧВА МАГИЯТА: ПОМНЕНЕ И ЗАКЛЮЧВАНЕ САМО ЗА ТАЗИ ПОЧИВКА
     c_s = get_trip_settings(trip_id)
     c_idx = 0 if c_s["car_trip"] == "Не" else 1
     car_choice = st.selectbox("Пътувате ли със собствен автомобил?", ["Не", "Да"], index=c_idx)
     
     t_fuel, s_km, e_km, m_fuel = str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     
+    @st.dialog("📊 Въвеждане на километраж")
+    def km_modal(current_skm, current_ekm):
+        st.write("Въведете километрите за засичане на средния разход:")
+        new_skm = st.number_input("Начални километри (км)", value=current_skm, step=1.0)
+        new_ekm = st.number_input("Крайни километри (км)", value=current_ekm, step=1.0)
+        if st.button("💾 Запази километрите", use_container_width=True, type="primary"):
+            save_trip_settings(trip_id, car_choice, "Да", new_skm, new_ekm, m_fuel)
+            st.rerun()
+
     if car_choice == "Да":
         t_idx = 0 if t_fuel == "Да" else 1
-        t_fuel = st.selectbox("Искате ли изчисляване на разход на гориво?", ["Да", "Добави впоследствие"], index=t_idx)
-        if t_fuel == "Да":
-            colk1, colk2 = st.columns(2)
-            with colk1: s_km = st.number_input("Начални километри (км)", value=s_km, step=1.0)
-            with colk2: e_km = st.number_input("Крайни километри (км)", value=e_km, step=1.0)
-            m_fuel = st.number_input("Допълнително гориво (EUR)", value=m_fuel, step=1.0)
+        t_fuel_selected = st.selectbox("Искате ли изчисляване на разход на гориво?", ["Да", "Добави впоследствие"], index=t_idx)
+        
+        # АКО ИЗБЕРЕ ДА, ОТВАРЯМЕ ИЗСКАЧАЩИЯ ПРОЗОРЕЦ ВЕДНАГА
+        if t_fuel_selected == "Да" and t_fuel != "Да":
+            km_modal(s_km, e_km)
+        t_fuel = t_fuel_selected
     else:
         t_fuel = "Добави впоследствие"
 
@@ -163,8 +173,16 @@ else:
             st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid {b_c}; padding: 12px 15px; border-radius: 14px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3); margin-bottom: 12px; height: 120px; display: flex; flex-direction: column; justify-content: space-between;"><div style="display: flex; justify-content: space-between; align-items: center;"><span>{get_emoji(kat)} {kat}</span><span style="background:{b_g}; color:{b_t}; font-size:11px; padding:2px 7px; border-radius:20px; font-weight:bold;">{pct:.1f}%</span></div><h3 style="margin:0; color:white; font-size:20px; font-weight:800;">{s_value:.2f} <span style="font-size:11px; color:#aaa;">EUR</span></h3><div style="background:rgba(255,255,255,0.05); width:100%; height:6px; border-radius:10px; overflow:hidden;"><div style="background:{b_t}; width:{pct}%; height:100%; border-radius:10px;"></div></div></div>', unsafe_allow_html=True)
 
     if car_choice == "Да" and t_fuel == "Да":
+        st.markdown("#### ⛽ Справка за разхода и горивото")
         dist = e_km - s_km
-        if dist > 0: st.info(f"⛽ Изминати: {dist:.1f} км | Среден разход: **{(total_liters_sum / dist * 100):.1f} л / 100 км** | Гориво: {total_fuel_calculated:.2f} EUR")
+        col_fuel1, col_fuel2 = st.columns(2)
+        with col_fuel1: st.markdown(f'<div style="background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); padding: 15px; border-radius: 12px; text-align: center;"><small style="color: #ffa500; font-weight: bold;">⛽ ОБЩО ЗА ГОРИВО</small><h3 style="color: white; margin: 5px 0;">{total_fuel_calculated:.2f} EUR</h3><small style="color: #aaa;">Общо: {total_liters_sum:.1f} л</small></div>', unsafe_allow_html=True)
+        with col_fuel2:
+            if dist > 0:
+                avg_con = (total_liters_sum / dist * 100) if total_liters_sum > 0 else 0.0
+                st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД ({dist:.0f} км)</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} л / 100 км</h3><small style="color: #aaa;">От {s_km:.0f} до {e_km:.0f} км</small></div>', unsafe_allow_html=True)
+            else:
+                if st.button("📝 Въведи / Промени км", use_container_width=True): km_modal(s_km, e_km)
 
     st.markdown("---"); col_st1, col_st2 = st.columns(2)
     with col_st1: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
