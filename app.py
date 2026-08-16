@@ -40,7 +40,10 @@ def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
         new_row = pd.DataFrame([{"trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f), "start_date": str(s_d), "end_date": str(e_d)}])
         df = pd.concat([df, new_row], ignore_index=True)
         df.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+        # КОРЕКЦИЯ: Изчистваме кеша на браузъра, за да прочете новите км веднага
+        st.cache_data.clear()
     except: pass
+
 
 def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
