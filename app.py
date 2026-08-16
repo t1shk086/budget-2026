@@ -53,7 +53,7 @@ def get_trip_settings(t_id):
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
         if not f.empty:
-            res = f.iloc.to_dict()
+            res = f.iloc[0].to_dict()
             return {"trip_id": t_id, "car_trip": str(res.get("car_trip", "Не")), "track_fuel": str(res.get("track_fuel", "Добави впоследствие")), "start_km": float(res.get("start_km", 0.0)), "end_km": float(res.get("end_km", 0.0)), "manual_fuel": float(res.get("manual_fuel", 0.0))}
     except: pass
     return d
@@ -61,7 +61,8 @@ def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0):
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         df = df[df["trip_id"] != t_id]
-        df = pd.concat([df, pd.DataFrame([{"trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f)}])], ignore_index=True)
+        new_row = pd.DataFrame([{"trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f)}])
+        df = pd.concat([df, new_row], ignore_index=True)
         df.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
     except: pass
 
@@ -117,9 +118,11 @@ else:
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     
     papka_snimki = f"snimki_{trip_id}_2026"; df_trip = get_trip_data(trip_id); depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum()); v_id = st.session_state["form_version"]
+    
     col1, col2 = st.columns(2)
-    with col1: s_input = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key=f"su_{v_id}")
-    with col2: o_input = st.text_input("Описание", key=f"op_{v_id}")
+    # ФИКС 1: Махнато е 0.00 от полето за Сума чрез премахване на min_value/step и добавяне на value=None
+    with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
+    with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
     @st.dialog("⛽ Зареждане на гориво")
     def fuel_modal(amount, category, description, is_dep):
@@ -137,7 +140,8 @@ else:
                 if s_input and s_input > 0:
                     desc = o_input.strip() if o_input else "Без описание"
                     is_d = (kat == "Депозит/Резервация")
-                    if kat == "Транспорт" and car_trip == "Да" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]):
+                    # ФИКС 2: Ключовите думи вече засичат гориво при всякакви условия
+                    if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]):
                         fuel_modal(s_input, kat, desc, is_d)
                     else:
                         if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
@@ -164,6 +168,7 @@ else:
 
     st.markdown("#### ⛽ Справка за разхода и горивото")
     
+    # ФИКС 3: Средният разход винаги се смята независимо от флаговете
     if car_trip == "Да" or dist > 0:
         st.markdown(f"""
         <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 12px 18px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; color: #ccc; line-height: 1.6;">
@@ -196,8 +201,7 @@ else:
             sk_val = float(new_sk) if new_sk is not None else 0.0
             ek_val = float(new_ek) if new_ek is not None else 0.0
             mf_val = float(new_mf) if new_mf is not None else 0.0
-            save_trip_settings(trip_id, str(v_car), "Да" if v_car == "Да" else "Добави впоследствие", sk_val, ek_val, mf_val)
-            # ФИКСИРАНО: Премахната синтактичната грешка st.st.
+            save_trip_settings(trip_id, str(v_car), "Да", sk_val, ek_val, mf_val)
             st.session_state["form_version"] += 1; st.rerun()
 
     if st.button("⚙️ Настройки километри / автомобил", use_container_width=True): edit_car_modal()
