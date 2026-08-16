@@ -164,7 +164,6 @@ else:
 
     st.markdown("#### ⛽ Справка за разхода и горивото")
     
-    # ТУК Е ЕЛЕГАНТНОТО ПРЕНАЙДАНЕ НА ЕЛЕМЕНТИТЕ ЕДНО ПОД ДРУГО
     if car_trip == "Да" or dist > 0:
         st.markdown(f"""
         <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 12px 18px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; color: #ccc; line-height: 1.6;">
@@ -174,7 +173,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
     else:
-        st.markdown('<div style="text-align: center; margin-bottom: 15px; color: #888; font-size: 13px;">⚠️ Няма въведени километри / данни за автомобила</div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align: center; margin-bottom: 15px; color: #888; font-size: 13px;">⚠️ Няма въведен автомобил или изминати км.</div>', unsafe_allow_html=True)
 
     col_fuel1, col_fuel2 = st.columns(2)
     with col_fuel1: st.markdown(f'<div style="background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #ffa500; font-weight: bold;">⛽ ОБЩО ЗА ГОРИВО</small><h3 style="color: white; margin: 5px 0;">{auto_fuel_money:.2f} <span style="font-size:14px; color:#aaa;">EUR</span></h3></div>', unsafe_allow_html=True)
@@ -198,6 +197,7 @@ else:
             ek_val = float(new_ek) if new_ek is not None else 0.0
             mf_val = float(new_mf) if new_mf is not None else 0.0
             save_trip_settings(trip_id, str(v_car), "Да" if v_car == "Да" else "Добави впоследствие", sk_val, ek_val, mf_val)
+            # ФИКСИРАНО: Премахната синтактичната грешка st.st.
             st.session_state["form_version"] += 1; st.rerun()
 
     if st.button("⚙️ Настройки километри / автомобил", use_container_width=True): edit_car_modal()
