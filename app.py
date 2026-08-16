@@ -88,7 +88,7 @@ if st.session_state["current_trip"] is None:
     """, unsafe_allow_html=True)
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     opts = ["-- Изберете почивка --"] + [t.replace("_", " ") for t in existing]
-    choice = st.selectbox("Изберете Ваша почивка:", opts)
+    choice = st.selectbox("Изберете пътуване", opts)
     if choice != "-- Изберете почивка --":
         if st.button("📂 ОТВОРИ ПОЧИВКАТА", use_container_width=True): st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
     st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
