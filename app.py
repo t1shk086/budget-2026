@@ -379,10 +379,9 @@ else:
             </div>
             """, unsafe_allow_html=True)
 
-            # Мобилно подравнен Flexbox контейнер с ресетирани вътрешни отстъпи (margins)
+            # Напълно изчистен и работещ Flexbox без HTML коментари
             st.markdown(f"""
             <div style="display: flex; flex-wrap: wrap; gap: 15px; width: 100%;">
-                <!-- БЛОК 1: ПЕРФЕКТНО ЦЕНТРИРАН КРЪГ ЗА РАЗХОД -->
                 <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);">
                     <div style="color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 15px; margin-top: 0;">{lbl_gauge}</div>
                     <div style="width: 110px; height: 110px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px; box-sizing: border-box; padding: 0;">
@@ -391,15 +390,13 @@ else:
                     </div>
                     <div style="color: #666; font-size: 11px; margin: 0;">{sub_lbl_gauge}</div>
                 </div>
-                
-                <!-- БЛОК 2: НАПЪЛНО ВИДИМА ГОРИВНА КАПСУЛА -->
-                <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 22px 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); box-sizing: border-box;">
-                    <div style="margin-bottom: 20px; text-align: left;">
-                        <div style="color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 5px 0;">💧 ИЗРАЗХОДВАНО ГОРИВО</div>
+                <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 25px 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); box-sizing: border-box;">
+                    <div style="margin-bottom: 25px; text-align: left;">
+                        <div style="color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0;">💧 ИЗРАЗХОДВАНО ГОРИВО</div>
                         <div style="color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2;">{total_liters_calculated:.1f} <span style="font-size: 14px; color: #666; font-weight: normal;">литра</span></div>
                     </div>
-                    <div style="padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.06); text-align: left;">
-                        <div style="color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 5px 0;">💰 ОБЩА ФИНАНСОВА СТОЙНОСТ</div>
+                    <div style="padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); text-align: left;">
+                        <div style="color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0;">💰 ОБЩА ФИНАНСОВА СТОЙНОСТ</div>
                         <div style="color: #ffa500; margin: 0; font-size: 20px; font-weight: 700; line-height: 1.2;">{auto_fuel_money:.2f} <span style="font-size: 12px; color: #666; font-weight: normal;">EUR</span></div>
                     </div>
                 </div>
