@@ -129,7 +129,14 @@ else:
     if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True):
         st.session_state["current_trip"] = None; st.rerun()
         
-    st.markdown(f"<h2 style='text-align: center; color: #00f2fe;'>🌴 Дестинация: {trip_id.upper().replace('_', ' ')}</h2>", unsafe_allow_html=True)
+    # ПРОМЯНА: Дестинацията вече има същия преливащ неонов ефект като логото, но е по-фина
+    st.markdown(f"""
+    <div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'>
+        <h2 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 8px rgba(0, 242, 254, 0.1); margin-bottom: 0px;'>
+            🌴 Дестинация: {trip_id.upper().replace('_', ' ')}
+        </h2>
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown("---")
     
     c_s = get_trip_settings(trip_id)
@@ -161,6 +168,7 @@ else:
                         fuel_modal(s_input, kat, desc, is_d)
                     else:
                         if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
+
             df_expenses = df_trip[df_trip["type"] == "expense"]; total_on_site = float(df_expenses["amount"].sum()); categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}; total_liters_sum, auto_fuel_money = 0.0, 0.0
     for _, row in df_expenses.iterrows():
         if row["category"] in categories_totals: categories_totals[row["category"]] += float(row["amount"])
