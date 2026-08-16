@@ -381,7 +381,7 @@ else:
             finish_icon_html = f"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; {car_left_css} top: -12px; font-size: 16px;'>🚗</div>"
             
             start_km_txt = f"{s_km:.0f} км"
-            current_km_txt = f"{e_km:.0f} км" if e_km > 0 else "—"
+            current_km_txt = f"{eff_end_km:.0f} км" if eff_end_km > 0 else "—"
             dist_km_txt = f"{dist:.0f} км" if dist > 0 else "0 км"
             
             html_probel_box = (
