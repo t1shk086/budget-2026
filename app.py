@@ -275,7 +275,7 @@ else:
                         st.rerun()
             with col_m2:
                 if st.button("❌ НЕ", use_container_width=True): st.rerun()
-            if not df_trip.empty:
+        if not df_trip.empty:
             st.markdown("---"); st.subheader("📋 Хронология на плащанията")
             try:
                 df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
