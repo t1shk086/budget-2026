@@ -122,7 +122,7 @@ if st.session_state["current_trip"] is None:
         txt = st.text_input("Име на дестинацията:").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
         st.write("---")
-        st.write("🚗 Пътувате ли със собствен автомобил?")
+        st.write("🚗 Пътувате ли со собствен автомобил?")
         viber_car = st.radio("Изберете вариант:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
@@ -130,7 +130,7 @@ if st.session_state["current_trip"] is None:
             
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
-                s_d_str = d_range[0].strftime("%d.%m.%Y")
+                s_d_str = d_range.strftime("%d.%m.%Y")
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
             elif hasattr(d_range, "strftime"):
                 s_d_str = d_range.strftime("%d.%m.%Y")
@@ -143,7 +143,7 @@ if st.session_state["current_trip"] is None:
             save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
             st.session_state["current_trip"] = target_id; st.rerun()
             
-    if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
+    if st.button("➕ Novo пътуване", use_container_width=True): create_trip_modal()
 
 else:
     trip_id = st.session_state["current_trip"]
@@ -151,6 +151,32 @@ else:
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
+
+    # Глобален стабилен диалог за сигурно триене
+    @st.dialog("🗑️ Потвърждение за изтриване")
+    def confirm_delete_dialog():
+        if "delete_idx" in st.session_state and st.session_state["delete_idx"] is not None:
+            st.write("Сигурни ли сте, че искате да изтриете този разход?")
+            idx = st.session_state["delete_idx"]
+            try:
+                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                r = df_all.loc[idx]
+                st.markdown(f"**{get_emoji(r['category'])} {r['category']}** — <span style='color:#ff4b4b; font-weight:bold;'>{r['amount']:.2f} EUR</span><br><small>{r['description']}</small>", unsafe_allow_html=True)
+            except: pass
+            st.write("")
+            c_del1, c_del2 = st.columns(2)
+            with c_del1:
+                if st.button("👍 ДА, ИЗТРИЙ", use_container_width=True, type="primary"):
+                    try:
+                        df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                        df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
+                    except: pass
+                    st.session_state["delete_idx"] = None
+                    st.rerun()
+            with c_del2:
+                if st.button("🛟 ОТКАЗ", use_container_width=True):
+                    st.session_state["delete_idx"] = None
+                    st.rerun()
 
     date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
     st.markdown(f"""
@@ -192,6 +218,7 @@ else:
                 progressive_avg_con = (progressive_liters / progressive_dist * 100)
                 has_progressive_data = True
     except: pass
+
 # === КРАЙ НА ЧАСТ 4 ===
     if st.session_state["view_photos"]:
         if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True):
@@ -370,25 +397,6 @@ else:
 # === КРАЙ НА ЧАСТ 7 ===
         if not df_trip.empty:
             st.markdown("---"); st.subheader("📋 Хронология на плащанията")
-            
-            # Модален прозорец за сигурно изтриване на конкретен разход
-            @st.dialog("🗑️ Потвърждение за изтриване")
-            def delete_expense_modal(row_idx, cat, amt, desc):
-                st.write(f"Сигурни ли сте, че искате да изтриете този разход?")
-                st.markdown(f"**{get_emoji(cat)} {cat}** — <span style='color:#ff4b4b; font-weight:bold;'>{amt:.2f} EUR</span><br><small>{desc}</small>", unsafe_allow_html=True)
-                st.write("")
-                c_del1, c_del2 = st.columns(2)
-                with c_del1:
-                    if st.button("👍 ДА, ИЗТРИЙ", use_container_width=True, type="primary"):
-                        try:
-                            df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                            df_all.drop(row_idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
-                            st.rerun()
-                        except: pass
-                with c_del2:
-                    if st.button("🛟 ОТКАЗ", use_container_width=True):
-                        st.rerun()
-
             try:
                 df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
                 for idx in reversed(df_all[df_all["trip_id"] == trip_id].index.tolist()):
@@ -397,7 +405,8 @@ else:
                     with col_rec: st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); height: 75px;"><span style="font-size:16px;">{get_emoji(r["category"])}</span> <b>{r["category"]}</b> — <span style="color:#ff4b4b; font-weight:bold;">{r["amount"]:.2f} EUR</span><br><small style="color:#aaa;">📅 {r["date"]} — {r["description"]}{l_txt}</small></div>', unsafe_allow_html=True)
                     with col_del:
                         if st.button("❌", key=f"dl_{idx}", use_container_width=True):
-                            delete_expense_modal(idx, r["category"], r["amount"], r["description"])
+                            st.session_state["delete_idx"] = idx
+                            confirm_delete_dialog()
             except: pass
 
         st.markdown("---")
@@ -417,8 +426,8 @@ else:
             
             if "Моментен разход:" in desc_val:
                 parts = desc_val.split("Моментен разход:")
-                before = parts
-                after = parts if len(parts) > 1 else ""
+                before = parts[0]
+                after = parts[1] if len(parts) > 1 else ""
                 desc_val = f"{before} <span class='fuel-highlight'>Моментен разход:{after}</span>"
             
             pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
