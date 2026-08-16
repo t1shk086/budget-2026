@@ -51,10 +51,48 @@ if "current_trip" not in st.session_state: st.session_state["current_trip"] = No
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 if "view_photos" not in st.session_state: st.session_state["view_photos"] = False
 
+# СТИЛИЗИРАНЕ: Връщаме бруталния 3D ефект, сенките и заоблянето на абсолютно всички бутони
+st.markdown("""
+<style>
+    div.stButton > button {
+        background: linear-gradient(135deg, #1e293b, #0f172a) !important;
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 12px !important;
+        padding: 10px 20px !important;
+        font-weight: bold !important;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.4), inset 0px 1px 1px rgba(255, 255, 255, 0.1) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+    div.stButton > button:hover {
+        background: linear-gradient(135deg, #4facfe, #00f2fe) !important;
+        color: white !important;
+        border-color: #00f2fe !important;
+        box-shadow: 0px 6px 15px rgba(0, 242, 254, 0.35), inset 0px 1px 1px rgba(255, 255, 255, 0.2) !important;
+        transform: translateY(-2px) !important;
+    }
+    div.stButton > button:active {
+        transform: translateY(1px) !important;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.4) !important;
+    }
+    /* Специфичен стил за бутона за изтриване на цяло пътуване (primary) */
+    div.stButton > button[data-testid="stBaseButton-primary"] {
+        background: linear-gradient(135deg, #991b1b, #7f1d1d) !important;
+        border: 1px solid rgba(255, 75, 75, 0.2) !important;
+        box-shadow: 0px 4px 8px rgba(255, 75, 75, 0.15) !important;
+    }
+    div.stButton > button[data-testid="stBaseButton-primary"]:hover {
+        background: linear-gradient(135deg, #ff4b4b, #dc2626) !important;
+        box-shadow: 0px 6px 15px rgba(255, 75, 75, 0.4) !important;
+        border-color: #ff4b4b !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 if st.session_state["current_trip"] is None:
     st.markdown("""
     <div style='text-align: center; margin-bottom: 5px;'>
-        <h1 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0px;'>🐾 PixelApp</h1>
+        <h1 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1>
         <p style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: 4px; margin-bottom: 30px;'>Travel Manager</p>
     </div>
     """, unsafe_allow_html=True)
@@ -78,7 +116,7 @@ if st.session_state["current_trip"] is None:
             
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
-                s_d_str = d_range[0].strftime("%d.%m.%Y")
+                s_d_str = d_range.strftime("%d.%m.%Y")
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
             elif hasattr(d_range, "strftime"): s_d_str = d_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
             else: s_d_str, e_d_str = "", ""
@@ -89,6 +127,7 @@ if st.session_state["current_trip"] is None:
             st.session_state["current_trip"] = target_id; st.rerun()
             
     if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
+
 else:
     trip_id = st.session_state["current_trip"]
     papka_snimki = f"snimki_{trip_id}_2026"
