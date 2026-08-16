@@ -215,7 +215,7 @@ else:
                 avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
                 st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
             else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете моментни километри при горивото.</small></div>', unsafe_allow_html=True)
-                st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
             v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1)
