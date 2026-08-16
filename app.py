@@ -340,19 +340,82 @@ else:
                 st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid {b_c}; padding: 12px 15px; border-radius: 14px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3); margin-bottom: 12px; height: 120px; display: flex; flex-direction: column; justify-content: space-between;"><div style="display: flex; justify-content: space-between; align-items: center;"><span>{get_emoji(kat)} {kat}</span><span style="background:{b_g}; color:{b_t}; font-size:11px; padding:2px 7px; border-radius:20px; font-weight:bold;">{pct:.1f}%</span></div><h3 style="margin:0; color:white; font-size:20px; font-weight:800;">{s_value:.2f} <span style="font-size:11px; color:#aaa;">EUR</span></h3><div style="background: rgba(255,255,255,0.05); width: 100%; height: 6px; border-radius: 10px; overflow: hidden;"><div style="background: {b_t}; width: {pct}%; height: 100%; border-radius: 10px;"></div></div></div>', unsafe_allow_html=True)
 
         if car_trip == "Да":
-            st.markdown("#### ⛽ Справка за разхода и горивото")
-            status_lbl = " [🔒 ЗАКЛЮЧЕНО]" if is_trip_finished else ""
-            st.markdown(f"""<div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 12px 18px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; color: #ccc; line-height: 1.6;">📍 <b>Начални километри:</b> {s_km:.0f} км<br>🏁 <b>Крайни километри:</b> {e_km:.0f} км {"(Общо: " + str(int(dist)) + " км)" if dist > 0 else ""}<br>💧 <b>Общо гориво:</b> {total_liters_calculated:.1f} л <b style='color:#ff4b4b;'>{status_lbl}</b></div>""", unsafe_allow_html=True)
-            col_fuel1, col_fuel2 = st.columns(2)
-            with col_fuel1: st.markdown(f'<div style="background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display:flex; flex-direction:column; justify-content:center; margin-bottom: 12px;"><small style="color: #ffa500; font-weight: bold;">⛽ ОБЩО ЗА ГОРИВО</small><h3 style="color: white; margin: 5px 0;">{auto_fuel_money:.2f} <span style="font-size:14px; color:#aaa;">EUR</span></h3></div>', unsafe_allow_html=True)
-            with col_fuel2:
-                if dist > 0:
-                    avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
-                    st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 ФИНАЛЕН СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3><small style="color:#666; font-size:10px;">🔒 Общ пробег</small></div>', unsafe_allow_html=True)
-                elif has_progressive_data:
-                    st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД (ОТ СТАРТА)</small><h3 style="color: white; margin: 5px 0;">{progressive_avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
-                else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете пробег или зареждане за разход.</small></div>', unsafe_allow_html=True)
+            st.markdown("#### ⛽ Автомобилно табло")
+            status_lbl = " LOCKED" if is_trip_finished else ""
+            
+            # Изчисляване на стойностите за визуалния разход
+            val_to_show = 0.0
+            is_final_status = False
+            if dist > 0:
+                val_to_show = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
+                is_final_status = True
+            elif has_progressive_data:
+                val_to_show = progressive_avg_con
+
+            # Динамичен цвят според икономичността на разхода
+            if val_to_show == 0.0: color_gauge = "#666"
+            elif val_to_show <= 5.5: color_gauge = "#00ffcc" # Еко
+            elif val_to_show <= 8.0: color_gauge = "#00f2fe" # Нормален
+            elif val_to_show <= 11.0: color_gauge = "#ffa500" # Висок
+            else: color_gauge = "#ff4b4b" # Екстремен
+
+            lbl_gauge = "ФИНАЛЕН РАЗХОД" if is_final_status else "ТЕКУЩ РАЗХОД"
+            sub_lbl_gauge = "за целия пробег" if is_final_status else "изчислен от старта"
+
+            # Стилна 3D Линия на Маршрута (Timeline пробег)
+            km_progress_pct = 100 if is_final_status else min(100, max(15, (dist / 1000 * 100))) if dist > 0 else 0
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <span style="font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;">📍 СЛЕДЕНЕ НА ПРОБЕГА</span>
+                    {"<span style='background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;'>🔒 ЗАКЛЮЧЕН</span>" if is_trip_finished else ""}
+                </div>
+                <div style="position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 0 15px 0;">
+                    <div style="position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;"></div>
+                    <div style="position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;">S</div>
+                    {"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; left: calc({km_progress_pct}% - 10px); top: -12px; font-size: 16px;'>🚗</div>"}
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <div><span style="color: #666;">Старт:</span> <b style="color: white;">{s_km:.0f} км</b></div>
+                    {f"<div><span style='color: #666;'>Общо изминати:</span> <b style='color: #00f2fe;'>{dist:.0f} км</b></div>" if dist > 0 else ""}
+                    <div><span style="color: #666;">Текущи:</span> <b style="color: white;">{e_km if e_km > 0 else "—":.0f} км</b></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Две колони за 3D Спидометъра и Горивната Капсула
+            col_dash1, col_dash2 = st.columns(2)
+            
+            with col_dash1:
+                # Кръгов виртуален 3D Ограничител/Gauge за средния разход
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 16px; text-align: center; height: 160px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);">
+                    <small style="color: #888; font-weight: bold; font-size: 10px; letter-spacing: 0.5px;">{lbl_gauge}</small>
+                    <div style="margin: 10px 0; width: 85px; height: 85px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
+                        <h2 style="margin: 0; color: white; font-size: 22px; font-weight: 900;">{val_to_show:.1f}</h2>
+                        <small style="color: #666; font-size: 9px; font-weight: bold; margin-top: -2px;">л/100км</small>
+                    </div>
+                    <small style="color: #555; font-size: 10px;">{sub_lbl_gauge}</small>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            with col_dash2:
+                # Модерна Хоризонтална Горивна Капсула (Резервоар)
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 16px; height: 160px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);">
+                    <div>
+                        <small style="color: #ffa500; font-weight: bold; font-size: 10px; letter-spacing: 0.5px;">💧 ИЗРАЗХОДВАНО ГОРИВО</small>
+                        <h3 style="color: white; margin: 8px 0 0 0; font-size: 26px; font-weight: 800;">{total_liters_calculated:.1f} <span style="font-size: 14px; color: #666; font-weight: normal;">литра</span></h3>
+                    </div>
+                    <div>
+                        <small style="color: #888; font-weight: bold; font-size: 10px; letter-spacing: 0.5px;">💰 ОБЩА ФИНАНСОВА СТОЙНОСТ</small>
+                        <h4 style="color: #ffa500; margin: 2px 0 0 0; font-size: 18px; font-weight: 700;">{auto_fuel_money:.2f} <span style="font-size: 11px; color: #666; font-weight: normal;">EUR</span></h4>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 # === КРАЙ НА ЧАСТ 6 ===
+
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
