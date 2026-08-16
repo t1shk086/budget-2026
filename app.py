@@ -51,40 +51,41 @@ if "current_trip" not in st.session_state: st.session_state["current_trip"] = No
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 if "view_photos" not in st.session_state: st.session_state["view_photos"] = False
 
-# СТИЛИЗИРАНЕ: Връщаме бруталния 3D ефект, сенките и заоблянето на абсолютно всички бутони
+# СТИЛИЗИРАНЕ: Връщаме оригиналния сив/графитен премиум стил с меко 3D заобляне
 st.markdown("""
 <style>
     div.stButton > button {
-        background: linear-gradient(135deg, #1e293b, #0f172a) !important;
-        color: white !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        border-radius: 12px !important;
-        padding: 10px 20px !important;
-        font-weight: bold !important;
-        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.4), inset 0px 1px 1px rgba(255, 255, 255, 0.1) !important;
-        transition: all 0.2s ease-in-out !important;
+        background: linear-gradient(135deg, #262730, #1c1d24) !important;
+        color: #f0f2f6 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 10px !important;
+        padding: 8px 16px !important;
+        font-weight: 500 !important;
+        box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3), inset 0px 1px 0px rgba(255, 255, 255, 0.05) !important;
+        transition: all 0.15s ease-in-out !important;
     }
     div.stButton > button:hover {
-        background: linear-gradient(135deg, #4facfe, #00f2fe) !important;
-        color: white !important;
-        border-color: #00f2fe !important;
-        box-shadow: 0px 6px 15px rgba(0, 242, 254, 0.35), inset 0px 1px 1px rgba(255, 255, 255, 0.2) !important;
-        transform: translateY(-2px) !important;
+        background: linear-gradient(135deg, #31333f, #262730) !important;
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.4), inset 0px 1px 0px rgba(255, 255, 255, 0.1) !important;
+        transform: translateY(-1px) !important;
     }
     div.stButton > button:active {
         transform: translateY(1px) !important;
-        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.4) !important;
+        box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.5) !important;
     }
-    /* Специфичен стил за бутона за изтриване на цяло пътуване (primary) */
+    /* Сигурен стил за бутона за изтриване на цяло пътуване (primary) */
     div.stButton > button[data-testid="stBaseButton-primary"] {
-        background: linear-gradient(135deg, #991b1b, #7f1d1d) !important;
-        border: 1px solid rgba(255, 75, 75, 0.2) !important;
-        box-shadow: 0px 4px 8px rgba(255, 75, 75, 0.15) !important;
+        background: linear-gradient(135deg, #421c1c, #2d1313) !important;
+        border: 1px solid rgba(255, 75, 75, 0.15) !important;
+        box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3) !important;
+        color: #ff8c8c !important;
     }
     div.stButton > button[data-testid="stBaseButton-primary"]:hover {
-        background: linear-gradient(135deg, #ff4b4b, #dc2626) !important;
-        box-shadow: 0px 6px 15px rgba(255, 75, 75, 0.4) !important;
-        border-color: #ff4b4b !important;
+        background: linear-gradient(135deg, #612424, #421c1c) !important;
+        border-color: rgba(255, 75, 75, 0.3) !important;
+        color: #ff9b9b !important;
     }
 </style>
 """, unsafe_allow_html=True)
