@@ -48,13 +48,13 @@ def get_trip_data(t_id):
     except: return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters"])
 
 def get_trip_settings(t_id):
-    d = {"car_trip": "Не знам", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0}
+    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0}
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
         if not f.empty:
             res = f.iloc[0].to_dict()
-            return {"car_trip": str(res.get("car_trip", "Не знам")), "track_fuel": str(res.get("track_fuel", "Добави впоследствие")), "start_km": float(res.get("start_km", 0.0)), "end_km": float(res.get("end_km", 0.0)), "manual_fuel": float(res.get("manual_fuel", 0.0))}
+            return {"trip_id": t_id, "car_trip": str(res.get("car_trip", "Не")), "track_fuel": str(res.get("track_fuel", "Добави впоследствие")), "start_km": float(res.get("start_km", 0.0)), "end_km": float(res.get("end_km", 0.0)), "manual_fuel": float(res.get("manual_fuel", 0.0))}
     except: pass
     return d
 def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0):
@@ -73,22 +73,34 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0):
         return True
     except: return False
 
-def generate_html_pdf(trip_name, total_site, deposit, categories_totals, rows_data, fuel_info=None):
-    html_content = f"<html><body><h1>Финансов отчет: {trip_name.upper()}</h1><p><b>ОБЩО:</b> {deposit + total_site:.2f} EUR</p></body></html>"
-    return html_content.encode('utf-8')
-
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
+# ЕКРАН 1: НАЧАЛЕН ЕКРАН + ДИАЛОГ ПРИ СЪЗДАВАНЕ
 if st.session_state["current_trip"] is None:
     st.markdown("<h1 style='text-align: center;'>💰 Бюджет 2026</h1>", unsafe_allow_html=True)
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     opts = ["-- Изберете почивка --"] + [t.replace("_", " ") for t in existing] + ["➕ СЪЗДАЙ НОВО ПЪТУВАНЕ"]
     choice = st.selectbox("Изберете или създайте почивка:", opts)
+    
+    @st.dialog("🚗 Първоначална настройка за автомобил")
+    def create_car_modal(target_id):
+        st.write(f"Пътувате ли със собствен автомобил за **{target_id.replace('_', ' ').upper()}**?")
+        viber_car = st.radio("Изберете вариант:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
+        new_skm, new_ekm, track_option = 0.0, 0.0, "Добави впоследствие"
+        if viber_car == "Да, със собствен автомобил":
+            track_option = "Да"
+            st.write("📐 Въведете километри за изчисляване на разхода:")
+            new_skm = st.number_input("Начални километри (км)", value=0.0, step=1.0)
+            new_ekm = st.number_input("Крайни километри (км)", value=0.0, step=1.0)
+        if st.button("🚀 ОТВОРИ ПЪТУВАНЕТО", use_container_width=True, type="primary"):
+            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", track_option, new_skm, new_ekm, 0.0)
+            st.session_state["current_trip"] = target_id; st.rerun()
+
     if choice == "➕ СЪЗДАЙ НОВО ПЪТУВАНЕ":
         txt = st.text_input("Име на новата дестинация:").strip()
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True) and txt:
-            st.session_state["current_trip"] = txt.replace(" ", "_"); st.rerun()
+            create_car_modal(txt.replace(" ", "_"))
     elif choice != "-- Изберете почивка --":
         if st.button("📂 ОТВОРИ ПОЧИВКАТА", use_container_width=True):
             st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
@@ -103,30 +115,6 @@ else:
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     
-    @st.dialog("🚗 Първоначална настройка за автомобил")
-    def initial_car_modal():
-        st.write("Пътувате ли със собствен автомобил за тази почивка?")
-        viber_car = st.radio("Изберете вариант:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
-        
-        new_skm, new_ekm = 0.0, 0.0
-        track_option = "Добави впоследствие"
-        
-        if viber_car == "Да, със собствен автомобил":
-            track_option = "Да"
-            st.write("---")
-            st.write("📐 Въведете километри за изчисляване на разхода:")
-            new_skm = st.number_input("Начални километри (км)", value=0.0, step=1.0)
-            new_ekm = st.number_input("Крайни километри (км)", value=0.0, step=1.0)
-            
-        if st.button("💾 Запази настройките", use_container_width=True, type="primary"):
-            final_car = "Да" if viber_car == "Да, със собствен автомобил" else "Не"
-            save_trip_settings(trip_id, final_car, track_option, new_skm, new_ekm, m_fuel)
-            st.rerun()
-
-    # ЛОГИКА: АКО ЗА ПЪРВИ ПЪТ СЕ СЪЗДАВА ПЪТУВАНЕТО, КУТИЯТА СЪДЪРЖА "Не знам" И ИЗСКАЧА ПРОЗОРЕЦА
-    if car_trip == "Не знам":
-        initial_car_modal()
-
     papka_snimki = f"snimki_{trip_id}_2026"; df_trip = get_trip_data(trip_id); depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum()); v_id = st.session_state["form_version"]
     col1, col2 = st.columns(2)
     with col1: s_input = st.number_input("СУМА (EUR)", min_value=0.0, step=1.0, format="%.2f", key=f"su_{v_id}")
@@ -168,7 +156,7 @@ else:
         b_g = "rgba(255,75,75,0.2)" if pct > 40 else "rgba(255,165,0,0.2)" if pct > 20 else "rgba(0,242,254,0.15)" if pct > 0 else "rgba(255,255,255,0.1)"
         b_t = "#ff4b4b" if pct > 40 else "#ffa500" if pct > 20 else "#00f2fe" if pct > 0 else "#aaa"
         with stat_grid[idx % 2]:
-            st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid {b_c}; padding: 12px 15px; border-radius: 14px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3); margin-bottom: 12px; height: 120px; display: flex; flex-direction: column; justify-content: space-between;"><div style="display: flex; justify-content: space-between; align-items: center;"><span>{get_emoji(kat)} {kat}</span><span style="background:{b_g}; color:{b_t}; font-size:11px; padding:2px 7px; border-radius:20px; font-weight:bold;">{pct:.1f}%</span></div><h3 style="margin:0; color:white; font-size:20px; font-weight:800;">{s_value:.2f} <span style="font-size:11px; color:#aaa;">EUR</span></h3><div style="background:rgba(255,255,255,0.05); width:100%; height:6px; border-radius:10px; overflow:hidden;"><div style="background:{b_t}; width:{pct}%; height:100%; border-radius:10px;"></div></div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid {b_c}; padding: 12px 15px; border-radius: 14px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3); margin-bottom: 12px; height: 120px; display: flex; flex-direction: column; justify-content: space-between;"><div style="display: flex; justify-content: space-between; align-items: center;"><span>{get_emoji(kat)} {kat}</span><span style="background:{b_g}; color:{b_t}; font-size:11px; padding:2px 7px; border-radius:20px; font-weight:bold;">{pct:.1f}%</span></div><h3 style="margin:0; color:white; font-size:20px; font-weight:800;">{s_value:.2f} <span style="font-size:11px; color:#aaa;">EUR</span></h3><div style="background: rgba(255,255,255,0.05); width: 100%; height: 6px; border-radius: 10px; overflow: hidden;"><div style="background: {b_t}; width: {pct}%; height: 100%; border-radius: 10px;"></div></div></div>', unsafe_allow_html=True)
 
     st.markdown("#### ⛽ Справка за разхода и горивото")
     col_fuel1, col_fuel2 = st.columns(2)
@@ -178,13 +166,21 @@ else:
         if car_trip == "Да" and dist > 0:
             avg_con = (total_liters_sum / dist * 100) if total_liters_sum > 0 else 0.0
             st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД ({dist:.0f} км)</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} л / 100 км</h3><small style="color: #aaa;">От {s_km:.0f} до {e_km:.0f} км</small></div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Няма въведен автомобил или изминати км.</small></div>', unsafe_allow_html=True)
+        else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Няма въведен автомобил или изминати км.</small></div>', unsafe_allow_html=True)
 
-    # РЪЧНОТО УПРАВЛЕНИЕ СЕ НАМИРА ТУК ДОЛУ
+    @st.dialog("⚙️ Корекция на данни")
+    def edit_car_modal():
+        st.write("Променете настройките на превозното средство:")
+        v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=1 if car_trip == "Да" else 0)
+        new_sk = st.number_input("Начални км:", value=s_km)
+        new_ek = st.number_input("Крайни км:", value=e_km)
+        new_mf = st.number_input("Допълнително / Ръчно гориво (EUR):", value=m_fuel)
+        if st.button("💾 Обнови", use_container_width=True, type="primary"):
+            save_trip_settings(trip_id, v_car, "Да" if v_car == "Да" else "Добави впоследствие", new_sk, new_ek, new_mf)
+            st.rerun()
+
     if st.button("⚙️ Настройки километри / автомобил", use_container_width=True):
-        save_trip_settings(trip_id, "Не знам", "Добави впоследствие", s_km, e_km, m_fuel)
-        st.rerun()
+        edit_car_modal()
 
     st.markdown("---"); col_st1, col_st2 = st.columns(2)
     with col_st1: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
