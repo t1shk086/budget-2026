@@ -370,6 +370,25 @@ else:
 # === КРАЙ НА ЧАСТ 7 ===
         if not df_trip.empty:
             st.markdown("---"); st.subheader("📋 Хронология на плащанията")
+            
+            # Модален прозорец за сигурно изтриване на конкретен разход
+            @st.dialog("🗑️ Потвърждение за изтриване")
+            def delete_expense_modal(row_idx, cat, amt, desc):
+                st.write(f"Сигурни ли сте, че искате да изтриете този разход?")
+                st.markdown(f"**{get_emoji(cat)} {cat}** — <span style='color:#ff4b4b; font-weight:bold;'>{amt:.2f} EUR</span><br><small>{desc}</small>", unsafe_allow_html=True)
+                st.write("")
+                c_del1, c_del2 = st.columns(2)
+                with c_del1:
+                    if st.button("👍 ДА, ИЗТРИЙ", use_container_width=True, type="primary"):
+                        try:
+                            df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                            df_all.drop(row_idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
+                            st.rerun()
+                        except: pass
+                with c_del2:
+                    if st.button("🛟 ОТКАЗ", use_container_width=True):
+                        st.rerun()
+
             try:
                 df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
                 for idx in reversed(df_all[df_all["trip_id"] == trip_id].index.tolist()):
@@ -377,7 +396,8 @@ else:
                     col_rec, col_del = st.columns([0.88, 0.12])
                     with col_rec: st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); height: 75px;"><span style="font-size:16px;">{get_emoji(r["category"])}</span> <b>{r["category"]}</b> — <span style="color:#ff4b4b; font-weight:bold;">{r["amount"]:.2f} EUR</span><br><small style="color:#aaa;">📅 {r["date"]} — {r["description"]}{l_txt}</small></div>', unsafe_allow_html=True)
                     with col_del:
-                        if st.button("❌", key=f"dl_{idx}", use_container_width=True): df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8"); st.rerun()
+                        if st.button("❌", key=f"dl_{idx}", use_container_width=True):
+                            delete_expense_modal(idx, r["category"], r["amount"], r["description"])
             except: pass
 
         st.markdown("---")
@@ -388,7 +408,6 @@ else:
         grand_total = depozit_hotel + total_on_site
         date_pdf_txt = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
         
-        # Стилизиране на HTML/PDF отчета с новите изисквания за цветове
         pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{date_pdf_txt}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА НА ПОЧИВКАТА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайни:</b> {e_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход на почивката:</b> <span style='color:#00f2fe;font-weight:bold;'>{avg_con_txt}</span></li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
         
         for _, row in df_trip.iterrows():
@@ -396,11 +415,10 @@ else:
             km_val = float(row.get('current_km', 0.0))
             km_td = f"<span class='badge-km'>{km_val:.0f} км</span>" if km_val > 0 else "<span style='color:#ccc;'>—</span>"
             
-            # Стилизиране и оцветяване на разхода в описанието, ако записът съдържа моментен разход
             if "Моментен разход:" in desc_val:
                 parts = desc_val.split("Моментен разход:")
-                before = parts[0]
-                after = parts[1] if len(parts) > 1 else ""
+                before = parts
+                after = parts if len(parts) > 1 else ""
                 desc_val = f"{before} <span class='fuel-highlight'>Моментен разход:{after}</span>"
             
             pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
