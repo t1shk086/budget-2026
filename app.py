@@ -216,7 +216,8 @@ else:
         else:
             st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма качени снимки в този албум.</div>", unsafe_allow_html=True)
 # === КРАЙ НА ЧАСТ 5 ===
-            else:
+
+                else:
         if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True):
             st.session_state["current_trip"] = None; st.rerun()
             
@@ -225,7 +226,6 @@ else:
         with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
         with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
-        # Проверяваме дали пътуването е приключило (дали има въведени крайни километри)
         is_trip_finished = (e_km > 0.0)
 
         @st.dialog("⛽ Зареждане на гориво")
@@ -266,7 +266,6 @@ else:
         grid = st.columns(3)
         for i, kat in enumerate(KATEGORII):
             with grid[i % 3]:
-                # Ако пътуването е приключило, блокираме бутона "Транспорт" изцяло
                 is_disabled = is_trip_finished and (kat == "Транспорт")
                 btn_label = f"🔒 {kat}" if is_disabled else kat
                 
