@@ -46,7 +46,8 @@ def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
 
-for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters"]), (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel"])]:
+# ПРОМЯНА: Добавени са колони за дати в SETTINGS_FILE (start_date, end_date)
+for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters"]), (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date"])]:
     if not os.path.exists(f): pd.DataFrame(columns=cols).to_csv(f, index=False, encoding="utf-8")
 
 def get_trip_data(t_id):
@@ -58,20 +59,21 @@ def get_trip_data(t_id):
     except: return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters"])
 
 def get_trip_settings(t_id):
-    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0}
+    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
         if not f.empty:
             res = f.iloc[0].to_dict()
-            return {"trip_id": t_id, "car_trip": str(res.get("car_trip", "Не")), "track_fuel": str(res.get("track_fuel", "Добави впоследствие")), "start_km": float(res.get("start_km", 0.0)), "end_km": float(res.get("end_km", 0.0)), "manual_fuel": float(res.get("manual_fuel", 0.0))}
+            return {"trip_id": t_id, "car_trip": str(res.get("car_trip", "Не")), "track_fuel": str(res.get("track_fuel", "Добави впоследствие")), "start_km": float(res.get("start_km", 0.0)), "end_km": float(res.get("end_km", 0.0)), "manual_fuel": float(res.get("manual_fuel", 0.0)), "start_date": str(res.get("start_date", "")), "end_date": str(res.get("end_date", ""))}
     except: pass
     return d
-def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0):
+
+def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         df = df[df["trip_id"] != t_id]
-        new_row = pd.DataFrame([{"trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f)}])
+        new_row = pd.DataFrame([{"trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f), "start_date": str(s_d), "end_date": str(e_d)}])
         df = pd.concat([df, new_row], ignore_index=True)
         df.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
     except: pass
@@ -88,13 +90,12 @@ if "current_trip" not in st.session_state: st.session_state["current_trip"] = No
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
 if st.session_state["current_trip"] is None:
-    # ОФОРМЛЕНИЕ: СЪЩИЯ ШРИФТ, СТАНДАРТНИ БУКВИ, БЕЗ РАЗСТОЯНИЯ, В ЖЪЛТО
     st.markdown("""
     <div style='text-align: center; margin-bottom: 5px;'>
         <h1 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>
             🐾 PixelApp
         </h1>
-        <p style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: #ffd700; font-weight: 800; letter-spacing: normal; text-transform: none; margin-top: 4px; margin-bottom: 30px; text-shadow: 1px 1px 6px rgba(255, 215, 0, 0.15);'>
+        <p style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; letter-spacing: normal; text-transform: none; margin-top: 4px; margin-bottom: 30px; text-shadow: 1px 1px 6px rgba(255, 215, 0, 0.15);'>
             Travel Manager
         </p>
     </div>
@@ -105,8 +106,8 @@ if st.session_state["current_trip"] is None:
     choice = st.selectbox("Изберете или създайте почивка:", opts)
     
     @st.dialog("🚗 Първоначална настройка за автомобил")
-    def create_car_modal(target_id):
-        st.write(f"Пътувате ли със собствен автомобил за **{target_id.replace('_', ' ').upper()}**?")
+    def create_car_modal(target_id, s_date, e_date):
+        st.write(f"Пътувате ли със собствен автомобил за **{target_id.replace('_', ' ')}**?")
         viber_car = st.radio("Изберете вариант:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
@@ -114,33 +115,41 @@ if st.session_state["current_trip"] is None:
             new_skm = st.number_input("Начални километри (км)", value=None, placeholder="Въведете км на тръгване...", step=1.0)
         if st.button("🚀 ОТВОРИ ПЪТУВАНЕТО", use_container_width=True, type="primary"):
             sk = float(new_skm) if new_skm is not None else 0.0
-            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0)
+            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_date, e_date)
             st.session_state["current_trip"] = target_id; st.rerun()
 
     if choice == "➕ СЪЗДАЙ НОВО ПЪТУВАНЕ":
         txt = st.text_input("Име на новата дестинация:").strip()
-        if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True) and txt: create_car_modal(txt.replace(" ", "_"))
+        # ПРОМЯНА: Добавен е календар за избор на дати при създаването
+        d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today() + datetime.timedelta(days=5)])
+        if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True) and txt:
+            s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
+            e_d_str = d_range[1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
+            create_car_modal(txt.replace(" ", "_"), s_d_str, e_d_str)
     elif choice != "-- Изберете почивка --":
         if st.button("📂 ОТВОРИ ПОЧИВКАТА", use_container_width=True): st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
-
 
 else:
     trip_id = st.session_state["current_trip"]
     if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True):
         st.session_state["current_trip"] = None; st.rerun()
         
-    # ПРОМЯНА: trip_id вече се показва в оригинален вид без .upper(), само сменени долни черти
+    c_s = get_trip_settings(trip_id)
+    car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
+    st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
+    
+    # ПРОМЯНА: Текстът на датите се изписва под неоновото заглавие, ако съществуват
+    date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>📅 {st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+    
     st.markdown(f"""
     <div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'>
         <h2 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 8px rgba(0, 242, 254, 0.1); margin-bottom: 0px;'>
             🌴 Дестинация: {trip_id.replace('_', ' ')}
         </h2>
+        {date_html}
     </div>
     """, unsafe_allow_html=True)
     st.markdown("---")
-    
-    c_s = get_trip_settings(trip_id)
-    car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     
     papka_snimki = f"snimki_{trip_id}_2026"; df_trip = get_trip_data(trip_id); depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum()); v_id = st.session_state["form_version"]
     
