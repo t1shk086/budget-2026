@@ -78,7 +78,18 @@ if "current_trip" not in st.session_state: st.session_state["current_trip"] = No
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
 if st.session_state["current_trip"] is None:
-    st.markdown("<h1 style='text-align: center;'>💰 Бюджет 2026</h1>", unsafe_allow_html=True)
+    # ОФОРМЛЕНИЕ НА МОДЕРНОТО И ПРЕЛИВАЩО ЛОГО "PixelApp"
+    st.markdown("""
+    <div style='text-align: center; margin-bottom: 5px;'>
+        <h1 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 900; font-size: 45px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.15); margin-bottom: 0px;'>
+            🐾 PixelApp
+        </h1>
+        <p style='font-size: 15px; color: #888; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-top: -5px; margin-bottom: 25px;'>
+            Трип Мениджър
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     opts = ["-- Изберете почивка --"] + [t.replace("_", " ") for t in existing] + ["➕ СЪЗДАЙ НОВО ПЪТУВАНЕ"]
     choice = st.selectbox("Изберете или създайте почивка:", opts)
@@ -101,6 +112,7 @@ if st.session_state["current_trip"] is None:
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True) and txt: create_car_modal(txt.replace(" ", "_"))
     elif choice != "-- Изберете почивка --":
         if st.button("📂 ОТВОРИ ПОЧИВКАТА", use_container_width=True): st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
+
 else:
     trip_id = st.session_state["current_trip"]
     if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True):
