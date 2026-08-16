@@ -172,7 +172,7 @@ else:
             avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
             st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
         else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете краен пробег за разход.</small></div>', unsafe_allow_html=True)
-        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+            st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
 
     @st.dialog("⚙️ Корекция на данни")
     def edit_car_modal():
@@ -191,7 +191,7 @@ else:
     if st.button("⚙️ Настройки километри / автомобил", use_container_width=True): edit_car_modal()
 
     st.markdown("---"); col_st1, col_st2 = st.columns(2)
-    with col_st1: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
+    with col_st1: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
     with col_st2: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>💰 НА МЯСТО</small><h2 style='color:#00f2fe; margin:5px 0;'>{total_on_site:.2f} EUR</h2></div>", unsafe_allow_html=True)
 
     if not df_trip.empty:
@@ -200,8 +200,13 @@ else:
             df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
             for idx in reversed(df_all[df_all["trip_id"] == trip_id].index.tolist()):
                 r = df_all.loc[idx]; l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
-                st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 12px; border-radius: 10px; margin-bottom: 2px; border: 1px solid rgba(255,255,255,0.08);"><span style="font-size:18px;">{get_emoji(r["category"])}</span> <b>{r["category"]}</b> — <span style="color:#ff4b4b; font-weight:bold;">{r["amount"]:.2f} EUR</span><br><small style="color:#aaa;">📅 {r["date"]} — {r["description"]}{l_txt}</small></div>', unsafe_allow_html=True)
-                if st.button("❌ Изтрий разход", key=f"dl_{idx}", use_container_width=True): df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8"); st.rerun()
+                col_rec, col_del = st.columns([0.88, 0.12])
+                with col_rec:
+                    st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); height: 75px;"><span style="font-size:16px;">{get_emoji(r["category"])}</span> <b>{r["category"]}</b> — <span style="color:#ff4b4b; font-weight:bold;">{r["amount"]:.2f} EUR</span><br><small style="color:#aaa;">📅 {r["date"]} — {r["description"]}{l_txt}</small></div>', unsafe_allow_html=True)
+                with col_del:
+                    # ПРОМЯНА: Компактно червено хиксче за изтриване на разход
+                    if st.button("❌", key=f"dl_{idx}", use_container_width=True):
+                        df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8"); st.rerun()
         except: pass
 
     st.markdown("---")
@@ -219,9 +224,9 @@ else:
             for idx, p in enumerate(saved):
                 with img_grid[idx % 3]:
                     st.image(p, use_container_width=True)
-                    if st.button("🗑️ Трий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
+                    # ПРОМЯНА: Компактно червено хиксче под всяка снимка
+                    if st.button("❌", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
 
-    # ПРОМЯНА: Подреждане на колоните в таблицата на PDF отчета
     st.markdown("---")
     pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR</p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайни:</b> {e_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li></ul><h3>📋 Разходи:</h3><table><tr><th>Описание</th><th>Сума</th><th>Категория</th></tr>"
     for _, row in df_trip.iterrows(): pdf_html += f"<tr><td>{row['description']}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
@@ -238,6 +243,3 @@ else:
                 os.rmdir(papka_snimki)
             st.session_state["current_trip"] = None; st.rerun()
         except: pass
-
-
-   
