@@ -126,7 +126,7 @@ else:
     depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum())
     df_expenses = df_trip[df_trip["type"] == "expense"]
     total_on_site = float(df_expenses["amount"].sum())
-        categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
+    categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
     total_liters_sum, auto_fuel_money = 0.0, 0.0
     for _, row in df_expenses.iterrows():
         if row["category"] in categories_totals: categories_totals[row["category"]] += float(row["amount"])
