@@ -330,5 +330,29 @@ else:
         st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer;">📄 СВАЛИ ПЪЛЕН ОТЧЕТ</button></a>', unsafe_allow_html=True)
 
         st.markdown("---")
-        if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True):
-            delete_entire_trip_modal(trip_id, papka_snimki)
+                st.markdown("---")
+        st.markdown("<b style='color:#ff4b4b;'>🚨 ЗОНА ЗА ИЗТРИВАНЕ</b>", unsafe_allow_html=True)
+        
+        suglasen_del = st.checkbox("Потвърждавам, че искам да изтрия това пътуване завинаги!", key=f"chk_del_{trip_id}")
+        
+        if suglasen_del:
+            try:
+                if os.path.exists(DATA_FILE):
+                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                    df_all[df_all["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
+                if os.path.exists(SETTINGS_FILE):
+                    df_set = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                    df_set[df_set["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+                if os.path.exists(papka_snimki):
+                    for p in glob.glob(os.path.join(papka_snimki, "*")):
+                        try: os.remove(p)
+                        except: pass
+                    try: os.rmdir(papka_snimki)
+                    except: pass
+                
+                st.session_state["current_trip"] = None
+                st.cache_data.clear()
+                st.rerun()
+            except:
+                pass
+
