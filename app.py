@@ -18,7 +18,7 @@ st.markdown("""
         box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4), -2px -2px 8px rgba(255, 255, 255, 0.02) !important;
         margin-bottom: 15px !important;
     }
-    /* Нов селектор за ПРЕМИУМ 3D БУТОНИ (Всички бутони в приложението) */
+    /* Нов селектор за ПРЕМИУМ 3D БУТОНИ */
     button[data-testid="stBaseButton-secondary"], 
     button[data-testid="stBaseButton-primary"],
     [data-testid="stFileUploaderDropzone"] button {
@@ -31,7 +31,7 @@ st.markdown("""
         font-weight: bold !important;
         width: 100% !important;
     }
-    /* Ефект при посочване с мишката (Hover) */
+    /* Ефект при посочване с мишката */
     button[data-testid="stBaseButton-secondary"]:hover, 
     button[data-testid="stBaseButton-primary"]:hover,
     [data-testid="stFileUploaderDropzone"] button:hover {
@@ -46,6 +46,7 @@ st.markdown("""
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 # === КРАЙ НА ЧАСТ 1 ===
+# === НАЧАЛО НА ЧАСТ 2 ===
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
@@ -73,6 +74,7 @@ def get_trip_settings(t_id):
     except: pass
     return d
 # === КРАЙ НА ЧАСТ 2 ===
+# === НАЧАЛО НА ЧАСТ 3 ===
 def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
@@ -115,6 +117,7 @@ if st.session_state["current_trip"] is None:
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Все още нямате записани почивки. Създайте първото си приключение по-долу!</div>", unsafe_allow_html=True)
 # === КРАЙ НА ЧАСТ 3 ===
+# === НАЧАЛО НА ЧАСТ 4 ===
     st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
     
     @st.dialog("➕ Създаване на ново приключение")
@@ -143,7 +146,7 @@ if st.session_state["current_trip"] is None:
             save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
             st.session_state["current_trip"] = target_id; st.rerun()
             
-    if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
+    if st.button("➕ Novo пътуване", use_container_width=True): create_trip_modal()
 
 else:
     trip_id = st.session_state["current_trip"]
@@ -203,7 +206,8 @@ else:
         with c_tr2:
             if st.button("🛟 ОТКАЗ", use_container_width=True):
                 st.rerun()
-
+# === КРАЙ НА ЧАСТ 4 ===
+# === НАЧАЛО НА ЧАСТ 5 ===
     date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
     st.markdown(f"""
     <div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'>
@@ -244,14 +248,13 @@ else:
                 progressive_avg_con = (progressive_liters / progressive_dist * 100)
                 has_progressive_data = True
     except: pass
-# === КРАЙ НА ЧАСТ 4 ===
 
     if st.session_state["view_photos"]:
         if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True):
             st.session_state["view_photos"] = False; st.rerun()
             
         if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
-        up = st.file_uploader("Добавете нови спомени в албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}")
+        up = st.file_uploader("Добавете нови спомени in албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}")
         if up:
             for f in up:
                 if not os.path.exists(os.path.join(papka_snimki, f.name)):
@@ -268,7 +271,8 @@ else:
                     if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
         else:
             st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма качени снимки в този албум.</div>", unsafe_allow_html=True)
-
+# === КРАЙ НА ЧАСТ 5 ===
+# === НАЧАЛО НА ЧАСТ 6 ===
     else:
         if st.button("⬅️ НАЗАД ", use_container_width=True):
             st.session_state["current_trip"] = None; st.rerun()
@@ -278,6 +282,7 @@ else:
         with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
         with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
+        # 🌟 ЕТО ТУК ДЕФИНИРАМЕ СТАТУСА ПРАВИЛНО, ЗА ДА НЯМА NAMEERROR 🌟
         is_trip_finished = (e_km > 0.0)
 
         @st.dialog("⛽ Зареждане на гориво")
@@ -314,7 +319,7 @@ else:
                 
                 if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm):
                     st.session_state["form_version"] += 1; st.rerun()
-# === КРАЙ НА ЧАСТ 5 ===
+
         grid = st.columns(3)
         for i, kat in enumerate(KATEGORII):
             with grid[i % 3]:
@@ -328,7 +333,8 @@ else:
                             fuel_modal(s_input, kat, desc, is_d)
                         else:
                             if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
-                            
+# === КРАЙ НА ЧАСТ 6 ===
+# === НАЧАЛО НА ЧАСТ 7 ===
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
@@ -352,7 +358,7 @@ else:
                 elif has_progressive_data:
                     st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД (ОТ СТАРТА)</small><h3 style="color: white; margin: 5px 0;">{progressive_avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
                 else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете пробег или зареждане за разход.</small></div>', unsafe_allow_html=True)
-# === КРАЙ НА ЧАСТ 6 ===
+
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
@@ -421,6 +427,7 @@ else:
         with col_st1: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
         with col_st2: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>💰 НА МЯСТО</small><h2 style='color:#00f2fe; margin:5px 0;'>{total_on_site:.2f} EUR</h2></div>", unsafe_allow_html=True)
 # === КРАЙ НА ЧАСТ 7 ===
+# === НАЧАЛО НА ЧАСТ 8 ===
         if not df_trip.empty:
             st.markdown("---"); st.subheader("📋 Хронология на плащанията")
             try:
@@ -464,7 +471,6 @@ else:
         st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
         st.markdown("---")
         
-        # Премахнат стария чекбокс, бутонът директно извиква новия стабилен диалог
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True):
             confirm_delete_trip_dialog()
 # === КРАЙ НА КОДА ===
