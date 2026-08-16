@@ -96,7 +96,10 @@ if st.session_state["current_trip"] is None:
     @st.dialog("➕ Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:").strip()
-        d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today() + datetime.timedelta(days=5)])
+        
+        # ПОПРАВКА: Задаваме начална и крайна дата да съвпадат с днешния ден [днес, днес]
+        d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
+        
         st.write("---")
         st.write("🚗 Пътувате ли със собствен автомобил?")
         viber_car = st.radio("Изберете вариант:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
@@ -105,10 +108,9 @@ if st.session_state["current_trip"] is None:
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
             
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
-            # ПОПРАВКА: Безопасно извличане на датите при първоначално създаване
             if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
-                s_d_str = d_range[0].strftime("%d.%m.%Y")
-                e_d_str = d_range[1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
+                s_d_str = d_range.strftime("%d.%m.%Y")
+                e_d_str = d_range.strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
             elif hasattr(d_range, "strftime"):
                 s_d_str = d_range.strftime("%d.%m.%Y")
                 e_d_str = s_d_str
