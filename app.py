@@ -138,7 +138,7 @@ else:
                         fuel_modal(s_input, kat, desc, is_d)
                     else:
                         if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
-    df_expenses = df_trip[df_trip["type"] == "expense"]; total_on_site = float(df_expenses["amount"].sum()); categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}; total_liters_sum, auto_fuel_money = 0.0, 0.0
+        df_expenses = df_trip[df_trip["type"] == "expense"]; total_on_site = float(df_expenses["amount"].sum()); categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}; total_liters_sum, auto_fuel_money = 0.0, 0.0
     for _, row in df_expenses.iterrows():
         if row["category"] in categories_totals: categories_totals[row["category"]] += float(row["amount"])
         if row["category"] == "Транспорт":
@@ -165,7 +165,8 @@ else:
         st.markdown('<div style="text-align: center; margin-bottom: 15px; color: #888; font-size: 13px;">⚠️ Няма въведен автомобил или изминати км.</div>', unsafe_allow_html=True)
 
     col_fuel1, col_fuel2 = st.columns(2)
-    with col_fuel1: st.markdown(f'<div style="background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #ffa500; font-weight: bold;">⛽ ОБЩО ЗА ГОРИВО</small><h3 style="color: white; margin: 5px 0;">{auto_fuel_money:.2f} <span style="font-size:14px; color:#aaa;">EUR</span></h3></div>', unsafe_allow_html=True)
+    # ПРОМЯНА: Добавен margin-bottom за отстояние при пренареждане на телефон един под друг
+    with col_fuel1: st.markdown(f'<div style="background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center; margin-bottom: 12px;"><small style="color: #ffa500; font-weight: bold;">⛽ ОБЩО ЗА ГОРИВО</small><h3 style="color: white; margin: 5px 0;">{auto_fuel_money:.2f} <span style="font-size:14px; color:#aaa;">EUR</span></h3></div>', unsafe_allow_html=True)
     with col_fuel2:
         if dist > 0:
             avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
