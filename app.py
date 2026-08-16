@@ -364,7 +364,7 @@ else:
             has_cash_expense = False
             manual_cash_amt = 0.0
             if new_mf and new_mf > 0 and not is_trip_finished:
-                has_cash_expense = st.checkbox("💵 Има ли финансов разход (плащане) за тези ръчно добавени литри?")
+                has_cash_expense = st.checkbox("💵 Има ли финансов разход (плащане) за добавеното гориво?")
                 if has_cash_expense:
                     manual_cash_amt = st.number_input("Въведете платена сума (EUR):", value=None, placeholder="Сума в EUR...", format="%.2f")
 
