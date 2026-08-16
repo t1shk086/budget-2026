@@ -151,11 +151,6 @@ else:
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
-    
-    # 🌟 ЕТО ТУК ЗАЛЕПВАШ НОВИЯ РЕД:
-    is_trip_finished = (e_km > 0)
-
-   
 
     # Глобален стабилен диалог за сигурно триене на разход
     @st.dialog("🗑️ Потвърждение за изтриване")
@@ -296,7 +291,6 @@ else:
         o_input = st.text_input("Описание на разхода:", placeholder="Напр. Вечеря, Хотел, Гориво...", key=f"o_in_{st.session_state['form_version']}")
 # === КРАЙ НА ЧАСТ 5 ===
 
-   
     # === НАЧАЛО НА ЧАСТ 6 (ПОЛОВИНА 1) ===
     if not is_trip_finished:
         st.markdown("<p style='font-size:12px; color:#888; margin-bottom:5px; font-weight:bold;'>БЪРЗО ДОБАВЯНЕ В КАТЕГОРИЯ:</p>", unsafe_allow_html=True)
@@ -404,7 +398,7 @@ else:
 
     # === НАЧАЛО НА ЧАСТ 7 ===
     st.markdown("### 📜 История на разходите")
-    if not df_trip.empty:
+    if not current_expenses.empty:
         for idx, row in current_expenses.sort_values(by="id", ascending=False).iterrows():
             with st.expander(f"{get_emoji(row['category'])} {row['amount']:.2f} EUR — {row['category']}"):
                 st.write(f"📝 **Описание:** {row['description']}")
