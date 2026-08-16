@@ -3,3 +3,4 @@ pandas
 reportlab
 folium
 streamlit-folium
+geopy
