@@ -245,7 +245,7 @@ else:
             v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1)
             new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, placeholder="Напишете км...")
             new_ek = st.number_input("Крайни км:", value=None if e_km == 0.0 else e_km, placeholder="Напишете км...")
-            new_mf = st.number_input("Допълнителни ръчни литри (л):", value=None if m_fuel == 0.0 else m_fuel, placeholder="Напишете литри...")
+            new_mf = st.number_input("Ръчно добавено гориво (л):", value=None if m_fuel == 0.0 else m_fuel, placeholder="Напишете литри...")
             st.write("📅 Промяна на датите на почивката:")
             try:
                 current_start = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else datetime.date.today()
