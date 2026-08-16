@@ -85,7 +85,7 @@ if st.session_state["current_trip"] is None:
             🐾 PixelApp
         </h1>
         <p style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: #ffd700; font-weight: 800; letter-spacing: normal; text-transform: none; margin-top: 4px; margin-bottom: 30px; text-shadow: 1px 1px 6px rgba(255, 215, 0, 0.15);'>
-            Trip Manager
+            Travel Manager
         </p>
     </div>
     """, unsafe_allow_html=True)
