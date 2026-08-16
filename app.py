@@ -359,13 +359,17 @@ else:
             lbl_gauge = "ФИНАЛЕН РАЗХОД" if is_final_status else "ТЕКУЩ РАЗХОД"
             sub_lbl_gauge = "за целия пробег" if is_final_status else "изчислен от старта"
 
-            # Безопасно изчисляване на прогреса без чупене при 0 км
+            # Стабилно изчисляване на процента
             km_progress_pct = 100 if is_final_status else min(100, max(0, (dist / 1000 * 100))) if dist > 0 else 0
+            
+            # Динамична позиция на иконата на колата, за да не се чупи при 0%
+            car_left_css = "left: 0px;" if km_progress_pct == 0 else f"left: calc({km_progress_pct}% - 10px);"
             
             start_km_txt = f"{s_km:.0f} км"
             current_km_txt = f"{e_km:.0f} км" if e_km > 0 else "—"
             dist_km_txt = f"{dist:.0f} км" if dist > 0 else "0 км"
             
+            # Премахнати излишни кавички и уеднаквен стил
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); margin-bottom: 20px; text-align: center;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;">
@@ -375,7 +379,7 @@ else:
                 <div style="position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;">
                     <div style="position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;"></div>
                     <div style="position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;">S</div>
-                    {"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; left: calc({km_progress_pct}% - 10px); top: -12px; font-size: 16px;'>🚗</div>"}
+                    {"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; {car_left_css} top: -12px; font-size: 16px;'>🚗</div>"}
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;">
                     <div style="flex: 1; text-align: left;"><span style="color: #666; display: block; font-size: 11px;">Старт</span><b style="color: white; font-size: 14px;">{start_km_txt}</b></div>
@@ -409,6 +413,7 @@ else:
             <br>
             """, unsafe_allow_html=True)
 # === КРАЙ НА ЧАСТ 6 ===
+
 
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
