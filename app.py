@@ -389,7 +389,7 @@ else:
                 else: s_d_str, e_d_str = st_date, en_date
                     
                 if has_cash_expense and manual_cash_amt and manual_cash_amt > 0:
-                    add_expense(trip_id, manual_cash_amt, "Транспорт", f"[РЪЧНО ГОРИВО] Добавени {mf_val:.1f} литра", False, 0.0, 0.0)
+                    add_expense(trip_id, manual_cash_amt, "Транспорт", f"[ПРОПУСНАТО ГОРИВО] Добавени {mf_val:.1f} литра", False, 0.0, 0.0)
 
                 save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, s_d_str, e_d_str)
                 st.session_state["form_version"] += 1; st.rerun()
