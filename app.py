@@ -404,7 +404,7 @@ else:
 
     # === НАЧАЛО НА ЧАСТ 7 ===
     st.markdown("### 📜 История на разходите")
-    if not current_expenses.empty:
+    if not df_trip.empty:
         for idx, row in current_expenses.sort_values(by="id", ascending=False).iterrows():
             with st.expander(f"{get_emoji(row['category'])} {row['amount']:.2f} EUR — {row['category']}"):
                 st.write(f"📝 **Описание:** {row['description']}")
