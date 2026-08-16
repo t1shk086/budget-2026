@@ -124,7 +124,6 @@ else:
         st.markdown("---")
         if st.button("📸 Снимки и спомени", use_container_width=True): st.session_state["view_photos"] = True; st.rerun()
         if not is_finished:
-        if not is_finished:
             if st.button("🏁 Приключи Пътуването", use_container_width=True):
                 finish_modal(trip_id, car_trip, s_km, e_km, m_fuel, st_date, en_date)
 
