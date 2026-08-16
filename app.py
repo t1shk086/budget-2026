@@ -18,7 +18,7 @@ def get_trip_settings(t_id):
         try:
             df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
             res = df[df["trip_id"] == t_id]
-            if not res.empty: return res.iloc[0].to_dict()
+            if not res.empty: return res.iloc.to_dict()
         except: pass
     return {"trip_id": t_id, "car_trip": "Не", "track_fuel": "Не", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
 
@@ -51,7 +51,6 @@ if "current_trip" not in st.session_state: st.session_state["current_trip"] = No
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 if "view_photos" not in st.session_state: st.session_state["view_photos"] = False
 
-# СТИЛИЗИРАНЕ: Оригиналният сив/графитен премиум стил с меко 3D заобляне
 st.markdown("""
 <style>
     div.stButton > button {
@@ -75,7 +74,6 @@ st.markdown("""
         transform: translateY(1px) !important;
         box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.5) !important;
     }
-    /* Сигурен стил за бутона за изтриване на цяло пътуване (primary) */
     div.stButton > button[data-testid="stBaseButton-primary"] {
         background: linear-gradient(135deg, #421c1c, #2d1313) !important;
         border: 1px solid rgba(255, 75, 75, 0.15) !important;
@@ -116,15 +114,11 @@ if st.session_state["current_trip"] is None:
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
             
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
-            # КОРЕКЦИЯ: Сигурно извличане от списъка с дати без извикване на strftime върху целия списък
             if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
                 s_d_str = d_range[0].strftime("%d.%m.%Y")
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
-            elif hasattr(d_range, "strftime"):
-                s_d_str = d_range.strftime("%d.%m.%Y")
-                e_d_str = s_d_str
-            else:
-                s_d_str, e_d_str = "", ""
+            elif hasattr(d_range, "strftime"): s_d_str = d_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
+            else: s_d_str, e_d_str = "", ""
                 
             sk = float(new_skm) if new_skm is not None else 0.0
             target_id = txt.replace(" ", "_")
@@ -132,7 +126,6 @@ if st.session_state["current_trip"] is None:
             st.session_state["current_trip"] = target_id; st.rerun()
             
     if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
-
 else:
     trip_id = st.session_state["current_trip"]
     papka_snimki = f"snimki_{trip_id}_2026"
@@ -228,7 +221,7 @@ else:
                                 fuel_modal(s_input, kat, desc, is_d)
                             else:
                                 if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
-                        st.markdown("### 📊 Анализ на разходите")
+        st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
@@ -238,7 +231,6 @@ else:
             with stat_grid[idx % 2]:
                 st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid {b_c}; padding: 12px 15px; border-radius: 14px; margin-bottom: 12px; height: 120px; display: flex; flex-direction: column; justify-content: space-between;"><div style="display: flex; justify-content: space-between; align-items: center;"><span>{get_emoji(kat)} {kat}</span><span style="background:{b_g}; color:{b_t}; font-size:11px; padding:2px 7px; border-radius:20px; font-weight:bold;">{pct:.1f}%</span></div><h3 style="margin:0; color:white; font-size:20px; font-weight:800;">{s_value:.2f} <span style="font-size:11px; color:#aaa;">EUR</span></h3><div style="background: rgba(255,255,255,0.05); width: 100%; height: 6px; border-radius: 10px; overflow: hidden;"><div style="background: {b_t}; width: {pct}%; height: 100%; border-radius: 10px;"></div></div></div>', unsafe_allow_html=True)
 
-        # КОРЕКЦИЯ: Този блок вече е извън цикъла и се показва само по един път!
         if car_trip == "Да":
             st.markdown("#### ⛽ Бордов компютър (Автомобил)")
             lbl_km = "🏁 <b>Крайни километри:</b>" if is_finished else "📍 <b>Последно засечени км:</b>"
@@ -253,42 +245,33 @@ else:
                     avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
                     st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
                 else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете моментни километри при горивото.</small></div>', unsafe_allow_html=True)
-
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
             v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1)
             new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km)
             new_ek = st.number_input("Финални (Крайни) км:", value=None if e_km == 0.0 else e_km)
-            
             st.markdown("---")
             new_mf = st.number_input("Допълнителни ръчни литри (л):", value=None if m_fuel == 0.0 else m_fuel, placeholder="Сипете ръчно количество...")
             has_money_cost = st.radio("Има ли паричен разход за това ръчно зареждане?", ["Не, само литри", "Да, добави и разход"], index=0)
-            
             manual_cash = 0.0
             if has_money_cost == "Да, добави и разход":
                 manual_cash = st.number_input("Цена на ръчното зареждане (EUR):", value=None, placeholder="Въведете сума в EUR...")
-            
             try:
                 current_start = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else datetime.date.today()
                 current_end = datetime.datetime.strptime(en_date, "%d.%m.%Y").date() if en_date and en_date != "nan" else datetime.date.today()
             except: current_start, current_end = datetime.date.today(), datetime.date.today()
-            
             st.markdown("---")
             edit_range = st.date_input("Дати на почивката:", value=[current_start, current_end])
-            
             if st.button("💾 Запази промените", use_container_width=True, type="primary"):
                 sk_val, ek_val, mf_val = float(new_sk) if new_sk is not None else 0.0, float(new_ek) if new_ek is not None else 0.0, float(new_mf) if new_mf is not None else 0.0
                 if isinstance(edit_range, (list, tuple)) and len(edit_range) > 0:
-                    s_d_str = edit_range.strftime("%d.%m.%Y")
+                    s_d_str = edit_range[0].strftime("%d.%m.%Y")
                     e_d_str = edit_range[-1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
                 elif hasattr(edit_range, "strftime"): s_d_str = edit_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
                 else: s_d_str, e_d_str = st_date, en_date
-                
-                # Ако потребителят е избрал, че има разход, го добавяме автоматично в хронологията
                 if mf_val > 0 and has_money_cost == "Да, добави и разход" and manual_cash and manual_cash > 0:
                     add_expense(trip_id, manual_cash, "Транспорт", f"[РЪЧНО ГОРИВО] Добавено количество", False, 0.0, ek_val if ek_val > 0 else e_km)
-                
                 save_trip_settings(trip_id, str(v_car), t_fuel, sk_val, ek_val, mf_val, s_d_str, e_d_str)
                 st.session_state["form_version"] += 1; st.rerun()
 
@@ -343,4 +326,3 @@ else:
                     os.rmdir(papka_snimki)
                 st.session_state["current_trip"] = None; st.rerun()
             except: pass
-
