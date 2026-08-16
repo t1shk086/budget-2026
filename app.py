@@ -144,7 +144,8 @@ def delete_entire_trip_modal(trip_id, papka_snimki):
     st.error("⚠️ ВНИМАНИЕ! Изтриване на всичко завинаги?")
     col_t1, col_t2 = st.columns(2)
     with col_t1:
-        if st.button("🚨 ДА, ИЗТРИЙ", use_container_width=True, type="primary"):
+        # Добавихме уникален dynamic key, базиран на времето, за да не забива бутона в кеша
+        if st.button("🚨 ДА, ИЗТРИЙ", use_container_width=True, type="primary", key=f"del_trip_btn_{datetime.datetime.now().timestamp()}"):
             try:
                 if os.path.exists(DATA_FILE):
                     df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
@@ -158,12 +159,16 @@ def delete_entire_trip_modal(trip_id, papka_snimki):
                         except: pass
                     try: os.rmdir(papka_snimki)
                     except: pass
+                
+                # Почистваме състоянието, за да върне потребителя на начален екран
                 st.session_state["current_trip"] = None
                 st.cache_data.clear()
                 st.rerun()
             except: pass
     with col_t2:
-        if st.button("❌ ОТКАЗ", use_container_width=True): st.rerun()
+        if st.button("❌ ОТКАЗ", use_container_width=True, key="cancel_trip_btn"): 
+            st.rerun()
+
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 if "view_photos" not in st.session_state: st.session_state["view_photos"] = False
