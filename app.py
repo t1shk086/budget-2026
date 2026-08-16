@@ -111,7 +111,7 @@ if st.session_state["current_trip"] is None:
             
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
-                s_d_str = d_range[0].strftime("%d.%m.%Y")
+                s_d_str = d_range.strftime("%d.%m.%Y")
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
             elif hasattr(d_range, "strftime"): s_d_str = d_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
             else: s_d_str, e_d_str = "", ""
@@ -125,8 +125,13 @@ else:
     trip_id = st.session_state["current_trip"]
     papka_snimki = f"snimki_{trip_id}_2026"
     c_s = get_trip_settings(trip_id)
-    car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s.get("car_trip", "Не")), str(c_s.get("track_fuel", "Не")), float(c_s.get("start_km", 0.0)), float(c_s.get("end_km", 0.0)), float(c_s.get("manual_fuel", 0.0))
-    st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
+    car_trip = str(c_s.get("car_trip", "Не"))
+    t_fuel = str(c_s.get("track_fuel", "Не"))
+    s_km = float(c_s.get("start_km", 0.0))
+    e_km = float(c_s.get("end_km", 0.0))
+    m_fuel = float(c_s.get("manual_fuel", 0.0))
+    st_date = str(c_s.get("start_date", ""))
+    en_date = str(c_s.get("end_date", ""))
 
     date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
     st.markdown(f"<div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
@@ -167,7 +172,7 @@ else:
                     st.image(p, use_container_width=True)
                     if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
         else: st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Няма качени снимки.</div>", unsafe_allow_html=True)
-    elif not st.session_state["view_photos"]:
+    if not st.session_state["view_photos"]:
         if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
         
         if is_finished:
@@ -185,8 +190,7 @@ else:
                 with col_modal1: liters = st.number_input("Литри (л):", value=None, placeholder="Литри...", step=0.1)
                 with col_modal2: mom_km = st.number_input("Моментни км:", value=None, placeholder="Километри...", step=1.0)
                 if liters and mom_km and s_km > 0 and mom_km > s_km:
-                    m_diff = mom_km - s_km
-                    st.info(f"📊 Текущ разход: **{(liters / m_diff * 100):.1f} л / 100 км** ({int(m_diff)} км)")
+                    st.info(f"📊 Текущ разход: **{(liters / (mom_km - s_km) * 100):.1f} л / 100 км**")
                 if st.button("💾 Запиши зареждането", use_container_width=True, type="primary"):
                     lit, k_val = float(liters) if liters is not None else 0.0, float(mom_km) if mom_km is not None else 0.0
                     if add_expense(trip_id, amount, category, f"[ГОРИВО] {description}", is_dep, lit, k_val):
@@ -203,6 +207,7 @@ else:
                             if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): fuel_modal(s_input, kat, desc, is_d)
                             else:
                                 if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
+    if not st.session_state["view_photos"]:
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
@@ -226,6 +231,7 @@ else:
                     avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
                     st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
                 else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете моментни километри при горивото.</small></div>', unsafe_allow_html=True)
+    if not st.session_state["view_photos"]:
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
@@ -246,7 +252,7 @@ else:
             if st.button("💾 Запази промените", use_container_width=True, type="primary"):
                 sk_val, ek_val, mf_val = float(new_sk) if new_sk is not None else 0.0, float(new_ek) if new_ek is not None else 0.0, float(new_mf) if new_mf is not None else 0.0
                 if isinstance(edit_range, (list, tuple)) and len(edit_range) > 0:
-                    s_d_str = edit_range[0].strftime("%d.%m.%Y")
+                    s_d_str = edit_range.strftime("%d.%m.%Y")
                     e_d_str = edit_range[-1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
                 elif hasattr(edit_range, "strftime"): s_d_str = edit_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
                 else: s_d_str, e_d_str = st_date, en_date
