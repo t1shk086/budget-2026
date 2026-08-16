@@ -185,7 +185,7 @@ else:
                         else:
                             if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
 
-                if not st.session_state["view_photos"]:
+        if not st.session_state["view_photos"]:
             st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
             @st.dialog("⚙️ Настройки на превозно средство и период")
             def edit_car_modal():
