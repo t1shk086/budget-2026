@@ -53,7 +53,7 @@ def get_trip_settings(t_id):
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
         if not f.empty:
-            res = f.iloc.to_dict()
+            res = f.iloc[0].to_dict()
             return {"trip_id": t_id, "car_trip": str(res.get("car_trip", "Не")), "track_fuel": str(res.get("track_fuel", "Добави впоследствие")), "start_km": float(res.get("start_km", 0.0)), "end_km": float(res.get("end_km", 0.0)), "manual_fuel": float(res.get("manual_fuel", 0.0))}
     except: pass
     return d
@@ -146,7 +146,6 @@ else:
             if float(row.get("liters", 0)) > 0: total_liters_sum += float(row["liters"]); auto_fuel_money += float(row["amount"])
             elif any(k in str(row["description"]).lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): auto_fuel_money += float(row["amount"])
     
-    # ТУК Е ПРОМЯНАТА: РЪЧНОТО УВЕЛИЧАВАНЕ ВЕЧЕ Е В ЛИТРИ
     total_liters_calculated = total_liters_sum + m_fuel
 
     st.markdown("### 📊 Анализ на разходите")
@@ -164,6 +163,7 @@ else:
     with col_fuel1: st.markdown(f'<div style="background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #ffa500; font-weight: bold;">⛽ ОБЩО ЗА ГОРИВО</small><h3 style="color: white; margin: 5px 0;">{auto_fuel_money:.2f} EUR</h3><small style="color: #aaa;">Общо: {total_liters_calculated:.1f} л</small></div>', unsafe_allow_html=True)
     with col_fuel2:
         dist = e_km - s_km
+        # ТУК Е ПОПРАВКАТА: КОРЕКТНО ЗАСИЧАНЕ НА СЪСТОЯНИЕТО ЗА КОЛА СЛЕД ОБНОВЯВАНЕ
         if car_trip == "Да" and dist > 0:
             avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
             st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД ({dist:.0f} км)</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} л / 100 км</h3><small style="color: #aaa;">От {s_km:.0f} до {e_km:.0f} км</small></div>', unsafe_allow_html=True)
@@ -177,7 +177,9 @@ else:
         new_ek = st.number_input("Крайни км:", value=e_km)
         new_mf = st.number_input("Допълнителни ръчни литри (л):", value=m_fuel)
         if st.button("💾 Обнови", use_container_width=True, type="primary"):
-            save_trip_settings(trip_id, v_car, "Да" if v_car == "Да" else "Добави впоследствие", new_sk, new_ek, new_mf)
+            # СИНХРОНИЗАЦИЯ НА ТЕКСТА КЪМ БАЗАТА ДАННИ
+            final_car_status = "Да" if v_car == "Да" else "Не"
+            save_trip_settings(trip_id, final_car_status, "Да" if final_car_status == "Да" else "Добави впоследствие", new_sk, new_ek, new_mf)
             st.rerun()
 
     if st.button("⚙️ Настройки километри / автомобил", use_container_width=True): edit_car_modal()
