@@ -368,7 +368,7 @@ else:
         with col_st1: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
         with col_st2: st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>💰 НА МЯСТО</small><h2 style='color:#00f2fe; margin:5px 0;'>{total_on_site:.2f} EUR</h2></div>", unsafe_allow_html=True)
 # === КРАЙ НА ЧАСТ 7 ===
-                if not df_trip.empty:
+        if not df_trip.empty:
             st.markdown("---"); st.subheader("📋 Хронология на плащанията")
             try:
                 df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
@@ -400,7 +400,7 @@ else:
             if "Моментен разход:" in desc_val:
                 parts = desc_val.split("Моментен разход:")
                 before = parts[0]
-                after = parts[1]
+                after = parts[1] if len(parts) > 1 else ""
                 desc_val = f"{before} <span class='fuel-highlight'>Моментен разход:{after}</span>"
             
             pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
@@ -419,4 +419,3 @@ else:
                 st.session_state["current_trip"] = None; st.rerun()
             except: pass
 # === КРАЙ НА КОДА ===
-
