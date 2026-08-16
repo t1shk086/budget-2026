@@ -293,7 +293,7 @@ else:
             except: pass
 
         st.markdown("---")
-        if st.button("📸 Снимки и спомени от почивката", use_container_width=True): st.session_state["view_photos"] = True; st.rerun()
+        if st.button("📸 Снимки и спомени", use_container_width=True): st.session_state["view_photos"] = True; st.rerun()
         st.markdown("---")
         
         if dist > 0:
