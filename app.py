@@ -49,28 +49,36 @@ def get_trip_data(t_id):
     except: return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters"])
 
 def get_trip_settings(t_id):
-    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
-    try:
-        df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-        f = df[df["trip_id"] == t_id]
-        if not f.empty:
-            res = f.iloc[0].to_dict()
-            return {"trip_id": t_id, "car_trip": str(res.get("car_trip", "Не")), "track_fuel": str(res.get("track_fuel", "Добави впоследствие")), "start_km": float(res.get("start_km", 0.0)), "end_km": float(res.get("end_km", 0.0)), "manual_fuel": float(res.get("manual_fuel", 0.0)), "start_date": str(res.get("start_date", "")), "end_date": str(res.get("end_date", ""))}
-    except: pass
-    return d
-def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
-    try:
-        df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-        df = df[df["trip_id"] != t_id]
-        new_row = pd.DataFrame([{"trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f), "start_date": str(s_d), "end_date": str(e_d)}])
-        df = pd.concat([df, new_row], ignore_index=True)
-        df.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
-    except: pass
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+            res = df[df["trip_id"] == t_id]
+            if not res.empty: return res.iloc[0].to_dict()
+        except: pass
+    return {"trip_id": t_id, "car_trip": "Не", "track_fuel": "Не", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
 
-def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0):
+def get_trip_data(t_id):
+    if os.path.exists(DATA_FILE):
+        try:
+            df = pd.read_csv(DATA_FILE, encoding="utf-8")
+            return df[df["trip_id"] == t_id].copy()
+        except: pass
+    return pd.DataFrame(columns=["trip_id", "date", "amount", "category", "description", "type", "liters", "current_km"])
+
+# ПОПРАВКА: Добавяме поддръжка на текущи километри (current_km) при запис на разход
+def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
-        df = pd.read_csv(DATA_FILE, encoding="utf-8")
-        row = {"trip_id": t_id, "date": datetime.datetime.now().strftime("%d.%m %H:%M"), "amount": float(amt), "category": cat, "description": desc if desc else "Без описание", "type": "deposit" if is_dep else "expense", "liters": float(lit)}
+        df = pd.read_csv(DATA_FILE, encoding="utf-8") if os.path.exists(DATA_FILE) else pd.DataFrame(columns=["trip_id", "date", "amount", "category", "description", "type", "liters", "current_km"])
+        row = {
+            "trip_id": t_id, 
+            "date": datetime.datetime.now().strftime("%d.%m %H:%M"), 
+            "amount": float(amt), 
+            "category": cat, 
+            "description": desc if desc else "Без описание", 
+            "type": "deposit" if is_dep else "expense", 
+            "liters": float(lit),
+            "current_km": float(c_km)
+        }
         pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(DATA_FILE, index=False, encoding="utf-8")
         return True
     except: return False
