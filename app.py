@@ -233,7 +233,16 @@ else:
             elif any(k in str(row["description"]).lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): auto_fuel_money += float(row["amount"])
     
     total_liters_calculated = total_liters_sum + m_fuel
-    dist = e_km - s_km
+    
+    # Автоматично намиране на най-високия текущ километраж от зарежданията
+    max_current_km = 0.0
+    if not df_expenses.empty and "current_km" in df_expenses.columns:
+        max_current_km = float(df_expenses["current_km"].max())
+        
+    # Ако пътуването е приключило, гледаме финалните км (e_km), иначе гледаме последното зареждане
+    eff_end_km = e_km if e_km > 0 else max_current_km
+    dist = eff_end_km - s_km if eff_end_km > s_km else 0.0
+
 
     progressive_avg_con = 0.0
     has_progressive_data = False
