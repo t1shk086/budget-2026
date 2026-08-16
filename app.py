@@ -172,7 +172,7 @@ if st.session_state["current_trip"] is None:
             # 🌐 АВТОМАТИЧНО НАМИРАНЕ НА КООРДИНАТИ ПО ИМЕТО
             try:
                 geolocator = Nominatim(user_agent="pixelapp_travel_manager_2026")
-                location = geolocator.geocode(txt)
+                location = geolocator.geocode(f"{txt}, Europe", language="bg,en"))
                 if location:
                     add_map_point(target_id, location.latitude, location.longitude, f"🏁 Център: {txt}", "red")
             except:
@@ -597,7 +597,14 @@ else:
             center_lat, center_lon, zoom_lvl = 42.7339, 25.4858, 5 # Център България
 
         # Създаваме фолиум обекта
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_lvl, tiles="OpenStreetMap")
+m = folium.Map(
+    location=[center_lat, center_lon], 
+    zoom_start=zoom_lvl, 
+    tiles="https://arcgisonline.com{z}/{y}/{x}",
+    attr="Esri World Street Map"
+)
+
+
         
         # Рисуваме пинчетата на картата
         for _, pt in df_points.iterrows():
