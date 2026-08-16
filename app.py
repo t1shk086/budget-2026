@@ -5,7 +5,7 @@ import os
 import glob
 import base64
 
-# 1. СТРАНИЦА И ОРИГИНАЛЕН ПРЕМIУМ 3Д CSS ДИЗАЙН (ОБНОВЕНИ ЗАГЛАВИЕ И ИКОНКА)
+# 1. СТРАНИЦА И ОРИГИНАЛЕН ПРЕМIУМ 3Д CSS ДИЗАЙН (ОБНОВЕН ЗА СНИМКИТЕ)
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 st.markdown("""
@@ -17,15 +17,20 @@ st.markdown("""
         box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4), -2px -2px 8px rgba(255, 255, 255, 0.02) !important;
         margin-bottom: 15px !important;
     }
-    div.stButton > button {
+    /* Стилизация на бутоните за категории и бутона за качване на снимки */
+    div.stButton > button, data-testid="stFileUploaderDropzone" button {
         background: linear-gradient(135deg, #2e2e2e, #1c1c1c) !important; color: white !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 10px !important;
         box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), -1px -1px 4px rgba(255, 255, 255, 0.05) !important;
         transition: all 0.2s ease !important; font-weight: bold !important;
     }
-    div.stButton > button:hover {
+    div.stButton > button:hover, data-testid="stFileUploaderDropzone" button:hover {
         background: linear-gradient(135deg, #3d3d3d, #252525) !important;
         transform: translateY(-2px) !important; box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.6) !important;
+    }
+    /* Скриване на излишните системни текстове под полето за снимки за по-изчистен дизайн */
+    small {
+        color: #888 !important;
     }
 </style>
 """, unsafe_allow_html=True)
