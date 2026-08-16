@@ -102,32 +102,41 @@ if st.session_state["current_trip"] is None:
     """, unsafe_allow_html=True)
     
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
-    opts = ["-- Изберете почивка --"] + [t.replace("_", " ") for t in existing] + ["➕ СЪЗДАЙ НОВО ПЪТУВАНЕ"]
-    choice = st.selectbox("Изберете или създайте почивка:", opts)
+    # ПРОМЯНА: Падащото меню съдържа САМО съществуващи пътувания
+    opts = ["-- Изберете почивка --"] + [t.replace("_", " ") for t in existing]
+    choice = st.selectbox("Изберете Ваша почивка:", opts)
     
-    @st.dialog("🚗 Първоначална настройка за автомобил")
-    def create_car_modal(target_id, s_date, e_date):
-        st.write(f"Пътувате ли със собствен автомобил за **{target_id.replace('_', ' ')}**?")
+    if choice != "-- Изберете почивка --":
+        if st.button("📂 ОТВОРИ ПОЧИВКАТА", use_container_width=True): 
+            st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
+
+    st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
+
+    # ПРОМЯНА: Изнесен диалогов прозорец за създаване на НОВО пътуване през модерен 3D бутон
+    @st.dialog("➕ Създаване на ново приключение")
+    def create_trip_modal():
+        txt = st.text_input("Име на дестинацията:").strip()
+        d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today() + datetime.timedelta(days=5)])
+        st.write("---")
+        st.write("🚗 Пътувате ли със собствен автомобил?")
         viber_car = st.radio("Изберете вариант:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
-            st.write("📐 Въведете текущи километри на тръгване:")
-            new_skm = st.number_input("Начални километри (км)", value=None, placeholder="Въведете км на тръгване...", step=1.0)
-        if st.button("🚀 ОТВОРИ ПЪТУВАНЕТО", use_container_width=True, type="primary"):
+            new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
+            
+        if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
+            s_d_str = d_range.strftime("%d.%m.%Y") if len(d_range) > 0 else ""
+            e_d_str = d_range.strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
             sk = float(new_skm) if new_skm is not None else 0.0
-            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_date, e_date)
+            target_id = txt.replace(" ", "_")
+            
+            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
             st.session_state["current_trip"] = target_id; st.rerun()
 
-    if choice == "➕ СЪЗДАЙ НОВО ПЪТУВАНЕ":
-        txt = st.text_input("Име на новата дестинация:").strip()
-        # ПРОМЯНА: Добавен е календар за избор на дати при създаването
-        d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today() + datetime.timedelta(days=5)])
-        if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True) and txt:
-            s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
-            e_d_str = d_range[1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
-            create_car_modal(txt.replace(" ", "_"), s_d_str, e_d_str)
-    elif choice != "-- Изберете почивка --":
-        if st.button("📂 ОТВОРИ ПОЧИВКАТА", use_container_width=True): st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
+    # ПРОМЯНА: Самостоятелен голям 3D бутон за създаване
+    if st.button("➕ Ново пътуване", use_container_width=True): 
+        create_trip_modal()
+
 
 else:
     trip_id = st.session_state["current_trip"]
