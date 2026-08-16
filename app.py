@@ -221,7 +221,7 @@ else:
                                 fuel_modal(s_input, kat, desc, is_d)
                             else:
                                 if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
-        st.markdown("### 📊 Анализ на разходите")
+                st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
@@ -231,7 +231,8 @@ else:
             with stat_grid[idx % 2]:
                 st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid {b_c}; padding: 12px 15px; border-radius: 14px; margin-bottom: 12px; height: 120px; display: flex; flex-direction: column; justify-content: space-between;"><div style="display: flex; justify-content: space-between; align-items: center;"><span>{get_emoji(kat)} {kat}</span><span style="background:{b_g}; color:{b_t}; font-size:11px; padding:2px 7px; border-radius:20px; font-weight:bold;">{pct:.1f}%</span></div><h3 style="margin:0; color:white; font-size:20px; font-weight:800;">{s_value:.2f} <span style="font-size:11px; color:#aaa;">EUR</span></h3><div style="background: rgba(255,255,255,0.05); width: 100%; height: 6px; border-radius: 10px; overflow: hidden;"><div style="background: {b_t}; width: {pct}%; height: 100%; border-radius: 10px;"></div></div></div>', unsafe_allow_html=True)
 
-        if car_trip == "Да":
+        # СИГУРНА ПРОВЕРКА: Показва компютъра, ако е избрана кола ИЛИ ако има въведени километри/гориво
+        if car_trip == "Да" or "автомобил" in car_trip.lower() or s_km > 0 or e_km > 0 or m_fuel > 0:
             st.markdown("#### ⛽ Бордов компютър (Автомобил)")
             lbl_km = "🏁 <b>Крайни километри:</b>" if is_finished else "📍 <b>Последно засечени км:</b>"
             lbl_prob = "Окончателен пробег" if is_finished else "Пробег до момента"
@@ -245,6 +246,7 @@ else:
                     avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
                     st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
                 else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете моментни километри при горивото.</small></div>', unsafe_allow_html=True)
+
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
