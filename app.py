@@ -54,7 +54,7 @@ if "view_photos" not in st.session_state: st.session_state["view_photos"] = Fals
 if st.session_state["current_trip"] is None:
     st.markdown("""
     <div style='text-align: center; margin-bottom: 5px;'>
-        <h1 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1>
+        <h1 style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0px;'>🐾 PixelApp</h1>
         <p style='font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: 4px; margin-bottom: 30px;'>Travel Manager</p>
     </div>
     """, unsafe_allow_html=True)
@@ -80,9 +80,7 @@ if st.session_state["current_trip"] is None:
             if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
                 s_d_str = d_range[0].strftime("%d.%m.%Y")
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
-            elif hasattr(d_range, "strftime"):
-                s_d_str = d_range.strftime("%d.%m.%Y")
-                e_d_str = s_d_str
+            elif hasattr(d_range, "strftime"): s_d_str = d_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
             else: s_d_str, e_d_str = "", ""
                 
             sk = float(new_skm) if new_skm is not None else 0.0
@@ -124,6 +122,7 @@ else:
             
     total_liters_calculated = total_liters_sum + m_fuel
     dist = e_km - s_km
+    is_finished = (t_fuel == "Приключило")
 
     if st.session_state["view_photos"]:
         if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True): st.session_state["view_photos"] = False; st.rerun()
@@ -143,11 +142,8 @@ else:
                     st.image(p, use_container_width=True)
                     if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
         else: st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Няма качени снимки.</div>", unsafe_allow_html=True)
-        else:
+    else:
         if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
-        
-        # ПРОВЕРКА ЗА СТАТУС: Ако пътуването е приключено, скриваме полетата за въвеждане
-        is_finished = (str(c_s.get("track_fuel", "")) == "Приключило")
         
         if is_finished:
             st.warning("🔒 Това пътуване е приключено и заключено за промени. Всички анализи и отчети са финални.")
@@ -200,7 +196,6 @@ else:
 
         if car_trip == "Да":
             st.markdown("#### ⛽ Бордов компютър (Автомобил)")
-            # ДИНАМИЧЕН ТЕКСТ: Променя се от "Последно засечени" на "Крайни километри"
             lbl_km = "🏁 <b>Крайни километри:</b>" if is_finished else "📍 <b>Последно засечени км:</b>"
             lbl_prob = "Окончателен пробег" if is_finished else "Пробег до момента"
             
@@ -227,14 +222,13 @@ else:
             if st.button("💾 Запази промените", use_container_width=True, type="primary"):
                 sk_val, ek_val, mf_val = float(new_sk) if new_sk is not None else 0.0, float(new_ek) if new_ek is not None else 0.0, float(new_mf) if new_mf is not None else 0.0
                 if isinstance(edit_range, (list, tuple)) and len(edit_range) > 0:
-                    s_d_str = edit_range.strftime("%d.%m.%Y")
+                    s_d_str = edit_range[0].strftime("%d.%m.%Y")
                     e_d_str = edit_range[-1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
                 elif hasattr(edit_range, "strftime"): s_d_str = edit_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
                 else: s_d_str, e_d_str = st_date, en_date
                 save_trip_settings(trip_id, str(v_car), t_fuel, sk_val, ek_val, mf_val, s_d_str, e_d_str)
                 st.session_state["form_version"] += 1; st.rerun()
 
-        # Разрешаваме редакция само ако не е заключено
         if not is_finished:
             if st.button("⚙️ Настройки километри / период на пътуването", use_container_width=True): edit_car_modal()
 
@@ -251,7 +245,6 @@ else:
                     col_rec, col_del = st.columns([0.85, 0.15], vertical_alignment="center")
                     with col_rec: st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); min-height: 70px; display: flex; flex-direction: column; justify-content: center;"><div style="font-size:14px; color:white;"><span style="font-size:16px;">{get_emoji(r["category"])}</span> <b>{r["category"]}</b> — <span style="color:#ff4b4b; font-weight:bold;">{r["amount"]:.2f} EUR</span></div><div style="margin-top:4px;"><small style="color:#aaa;">📅 {r["date"]} — {r["description"]}{l_txt}</small></div></div>', unsafe_allow_html=True)
                     with col_del:
-                        # Забраняваме триене на отделни разходи, ако е приключено
                         if st.button("❌", key=f"dl_{idx}", use_container_width=True, disabled=is_finished): df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8"); st.rerun()
             except: pass
 
@@ -268,7 +261,6 @@ else:
                 save_trip_settings(trip_id, car_trip, "Приключило", s_km, f_val, m_fuel, st_date, en_date)
                 st.rerun()
 
-        # ПОДРЕЖДАНЕ ПРИ БУТОНА ЗА ПДФ
         if not is_finished:
             if st.button("🏁 Приключи Пътуването", use_container_width=True): finish_modal()
             st.markdown('<div style="margin-top: 8px;"></div>', unsafe_allow_html=True)
