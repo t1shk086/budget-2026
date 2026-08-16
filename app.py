@@ -126,7 +126,7 @@ else:
     depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum())
     df_expenses = df_trip[df_trip["type"] == "expense"]
     total_on_site = float(df_expenses["amount"].sum())
-    categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
+        categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
     total_liters_sum, auto_fuel_money = 0.0, 0.0
     for _, row in df_expenses.iterrows():
         if row["category"] in categories_totals: categories_totals[row["category"]] += float(row["amount"])
@@ -199,18 +199,19 @@ else:
             with stat_grid[idx % 2]:
                 st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid {b_c}; padding: 12px 15px; border-radius: 14px; margin-bottom: 12px; height: 120px; display: flex; flex-direction: column; justify-content: space-between;"><div style="display: flex; justify-content: space-between; align-items: center;"><span>{get_emoji(kat)} {kat}</span><span style="background:{b_g}; color:{b_t}; font-size:11px; padding:2px 7px; border-radius:20px; font-weight:bold;">{pct:.1f}%</span></div><h3 style="margin:0; color:white; font-size:20px; font-weight:800;">{s_value:.2f} <span style="font-size:11px; color:#aaa;">EUR</span></h3><div style="background: rgba(255,255,255,0.05); width: 100%; height: 6px; border-radius: 10px; overflow: hidden;"><div style="background: {b_t}; width: {pct}%; height: 100%; border-radius: 10px;"></div></div></div>', unsafe_allow_html=True)
 
-        if car_trip == "Да" or "автомобил" in car_trip.lower() or s_km > 0 or e_km > 0 or m_fuel > 0:
-            st.markdown("#### ⛽ Бордов компютър")
-            lbl_km = "🏁 <b>Крайни километри:</b>" if is_finished else "📍 <b>Последно засечени км:</b>"
-            manual_fuel_html = f"<br>➕ <b>Ръчно добавено гориво:</b> {m_fuel:.1f} л" if m_fuel > 0 else ""
-            st.markdown(f"""<div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 12px 18px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; color: #ccc; line-height: 1.6;">📍 <b>Начални километри:</b> {s_km:.0f} км<br>{lbl_km} {e_km:.0f} км {"(Пробег: " + str(int(dist)) + " км)" if dist > 0 else ""}<br>💧 <b>Общо заредено:</b> {total_liters_sum:.1f} л{manual_fuel_html}<br>📊 <b>Финално количество гориво:</b> {total_liters_calculated:.1f} л</div>""", unsafe_allow_html=True)
-            col_fuel1, col_fuel2 = st.columns(2)
-            with col_fuel1: st.markdown(f'<div style="background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center; margin-bottom: 12px;"><small style="color: #ffa500; font-weight: bold;">⛽ ОБЩО ЗА ГОРИВО</small><h3 style="color: white; margin: 5px 0;">{auto_fuel_money:.2f} <span style="font-size:14px; color:#aaa;">EUR</span></h3></div>', unsafe_allow_html=True)
-            with col_fuel2:
-                if dist > 0:
-                    avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
-                    st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
-                else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете моментни километри при горивото.</small></div>', unsafe_allow_html=True)
+        # ПОСТОЯНЕН БОРДОВ КОМПЮТЪР (Защитен от изчезване)
+        st.markdown("#### ⛽ Бордов компютър")
+        lbl_km = "🏁 <b>Крайни километри:</b>" if is_finished else "📍 <b>Последно засечени км:</b>"
+        manual_fuel_html = f"<br>➕ <b>Ръчно добавено гориво:</b> {m_fuel:.1f} л" if m_fuel > 0 else ""
+        st.markdown(f"""<div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 12px 18px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; color: #ccc; line-height: 1.6;">📍 <b>Начални километри:</b> {s_km:.0f} км<br>{lbl_km} {e_km:.0f} км {"(Пробег: " + str(int(dist)) + " км)" if dist > 0 else ""}<br>💧 <b>Общо заредено:</b> {total_liters_sum:.1f} л{manual_fuel_html}<br>📊 <b>Финално количество гориво:</b> {total_liters_calculated:.1f} л</div>""", unsafe_allow_html=True)
+        col_fuel1, col_fuel2 = st.columns(2)
+        with col_fuel1: st.markdown(f'<div style="background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center; margin-bottom: 12px;"><small style="color: #ffa500; font-weight: bold;">⛽ ОБЩО ЗА ГОРИВО</small><h3 style="color: white; margin: 5px 0;">{auto_fuel_money:.2f} <span style="font-size:14px; color:#aaa;">EUR</span></h3></div>', unsafe_allow_html=True)
+        with col_fuel2:
+            if dist > 0:
+                avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
+                st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
+            else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете моментни километри при горивото.</small></div>', unsafe_allow_html=True)
+
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
