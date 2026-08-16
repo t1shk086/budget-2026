@@ -105,7 +105,6 @@ if st.session_state["current_trip"] is None:
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
             
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
-            # СИГУРНА КОРЕКЦИЯ: Взимаме отделните елементи от списъка с дати
             if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
                 s_d_str = d_range[0].strftime("%d.%m.%Y")
                 e_d_str = d_range[1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
@@ -128,7 +127,6 @@ else:
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
 
-    # ФИКСИРАНО ЗАГЛАВИЕ
     date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
     st.markdown(f"""
     <div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'>
@@ -140,7 +138,6 @@ else:
     """, unsafe_allow_html=True)
     st.markdown("---")
 
-    # ВИНАГИ ИЗЧИСЛЯВАМЕ ДАННИТЕ ТУК, ЗА ДА НЯМА NameError В НИТО ЕДИН ЕКРАН
     df_trip = get_trip_data(trip_id)
     depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum())
     df_expenses = df_trip[df_trip["type"] == "expense"]
@@ -156,7 +153,7 @@ else:
     
     total_liters_calculated = total_liters_sum + m_fuel
     dist = e_km - s_km
-    # СЛУЧАЙ А: СЛЕДЕНЕ НА АЛБУМА СЪС СНИМКИ (ЦЯЛ ЕКРАН)
+    
     if st.session_state["view_photos"]:
         if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True):
             st.session_state["view_photos"] = False; st.rerun()
@@ -180,7 +177,6 @@ else:
         else:
             st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма качени снимки в този албум.</div>", unsafe_allow_html=True)
 
-    # СЛУЧАЙ Б: СТАНДАРТЕН ЕКРАН С РАЗХОДИ И СТАТИСТИКИ
     else:
         if st.button("⬅️ НАЗАД КЪМ ВСИЧКИ ПОЧИВКИ", use_container_width=True):
             st.session_state["current_trip"] = None; st.rerun()
@@ -210,8 +206,7 @@ else:
                             fuel_modal(s_input, kat, desc, is_d)
                         else:
                             if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
-        # ПОКАЗВАНЕ НА СТАТИСТИКИТЕ И АНАЛИЗА
-                # ПОКАЗВАНЕ НА СТАТИСТИКИТЕ И АНАЛИЗА
+                            
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
@@ -254,7 +249,6 @@ else:
                 ek_val = float(new_ek) if new_ek is not None else 0.0
                 mf_val = float(new_mf) if new_mf is not None else 0.0
                 
-                # СИГУРНО ИЗВЛИЧАНЕ: Предотвратява AttributeError при промяна на дати
                 if isinstance(edit_range, (list, tuple)) and len(edit_range) > 0:
                     s_d_str = edit_range[0].strftime("%d.%m.%Y")
                     e_d_str = edit_range[1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
@@ -291,10 +285,21 @@ else:
         st.markdown("---")
         if st.button("📸 Снимки и спомени от почивката", use_container_width=True): st.session_state["view_photos"] = True; st.rerun()
         st.markdown("---")
+        
+        if dist > 0:
+            avg_con_val = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
+            avg_con_txt = f"{avg_con_val:.1f} л / 100 км"
+        else:
+            avg_con_txt = "Няма данни (не са въведени крайни км)"
+            
+        grand_total = depozit_hotel + total_on_site
+        
         date_pdf_txt = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
-        pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{date_pdf_txt}</p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайни:</b> {e_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Сума</th><th>Категория</th></tr>"
+        pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{date_pdf_txt}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА НА ПОЧИВКАТА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайни:</b> {e_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Сума</th><th>Категория</th></tr>"
         for _, row in df_trip.iterrows(): pdf_html += f"<tr><td>{row['date']}</td><td>{row['description']}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
+        pdf_html += f"<tr><td colspan='2' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr>"
         pdf_html += "</table></body></html>"
+        
         b64_pdf = base64.b64encode(pdf_html.encode('utf-8')).decode('utf-8')
         st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
         st.markdown("---"); potv = st.checkbox("Потвърждавам изтриването на цялото пътуване")
@@ -306,6 +311,3 @@ else:
                     os.rmdir(papka_snimki)
                 st.session_state["current_trip"] = None; st.rerun()
             except: pass
-
-
-
