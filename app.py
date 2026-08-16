@@ -50,7 +50,7 @@ def get_emoji(cat):
     return m.get(cat, "💳")
 
     
-for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters"]), (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date"])]:
+for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters","current_km"]), (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date"])]:
     if not os.path.exists(f): pd.DataFrame(columns=cols).to_csv(f, index=False, encoding="utf-8")
 
 def get_trip_data(t_id):
@@ -58,8 +58,9 @@ def get_trip_data(t_id):
         df = pd.read_csv(DATA_FILE, encoding="utf-8")
         r = df[df["trip_id"] == t_id].copy()
         if "liters" not in r.columns: r["liters"] = 0.0
+        if "current_km" not in r.columns: r["current_km"] = 0.0
         return r
-    except: return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters"])
+    except: return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters","current_km"])
 
 def get_trip_settings(t_id):
     d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
@@ -81,13 +82,15 @@ def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
         df.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
     except: pass
 
-def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0):
+def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
         df = pd.read_csv(DATA_FILE, encoding="utf-8")
-        row = {"trip_id": t_id, "date": datetime.datetime.now().strftime("%d.%m %H:%M"), "amount": float(amt), "category": cat, "description": desc if desc else "Без описание", "type": "deposit" if is_dep else "expense", "liters": float(lit)}
+        if "current_km" not in df.columns: df["current_km"] = 0.0
+        row = {"trip_id": t_id, "date": datetime.datetime.now().strftime("%d.%m %H:%M"), "amount": float(amt), "category": cat, "description": desc if desc else "Без описание", "type": "deposit" if is_dep else "expense", "liters": float(lit), "current_km": float(c_km)}
         pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(DATA_FILE, index=False, encoding="utf-8")
         return True
     except: return False
+
 # === КРАЙ НА ЧАСТ 2 ===
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
@@ -209,13 +212,39 @@ else:
         with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
         with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
-        @st.dialog("⛽ Зареждане на гориво")
+                @st.dialog("⛽ Зареждане на гориво")
         def fuel_modal(amount, category, description, is_dep):
             st.write(f"Засякохме гориво за **{amount:.2f} EUR**.")
             liters = st.number_input("Литри:", value=None, placeholder="Напишете литри...", step=0.1)
-            if st.button("💾 Запиши", use_container_width=True, type="primary"):
+            
+            # Намиране на последно въведените километри за сравнение
+            df_e = get_trip_data(trip_id)
+            df_f = df_e[(df_e["category"] == "Транспорт") & (df_e["current_km"] > 0)]
+            last_km = float(df_f["current_km"].max()) if not df_f.empty else s_km
+            
+            st.markdown(f"<small>ℹ️ Километри при последното зареждане (или старт): <b>{last_km:.0f} км</b></small>", unsafe_allow_html=True)
+            km_input = st.number_input("Текущи километри на таблото (км):", value=None, placeholder="Въведете км от таблото в момента...", step=1.0)
+            
+            if liters and km_input:
+                if km_input > last_km:
+                    m_dist = km_input - last_km
+                    m_avg = (liters / m_dist * 100)
+                    st.success(f"📊 Моментен разход за този етап: **{m_avg:.1f} л / 100 км** (Изминати: {m_dist:.0f} км)")
+                else:
+                    st.warning("⚠️ Въведените километри трябва да са повече от предходните!")
+
+            if st.button("💾 Запиши зареждането", use_container_width=True, type="primary"):
                 lit = float(liters) if liters is not None else 0.0
-                if add_expense(trip_id, amount, category, f"[ГОРИВО] {description}", is_dep, lit):
+                ckm = float(km_input) if km_input is not None else 0.0
+                
+                # Добавяме моментния разход в описанието за хронологията и отчета
+                full_desc = f"[ГОРИВО] {description}"
+                if ckm > last_km and lit > 0:
+                    m_dist = ckm - last_km
+                    m_avg = (lit / m_dist * 100)
+                    full_desc += f" (Моментен разход: {m_avg:.1f}л/100км, Етап: {m_dist:.0f}км)"
+                
+                if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm):
                     st.session_state["form_version"] += 1; st.rerun()
 
         grid = st.columns(3)
