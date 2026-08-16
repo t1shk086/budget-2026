@@ -210,23 +210,37 @@ else:
                 avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
                 st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
             else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете краен пробег за разход.</small></div>', unsafe_allow_html=True)
-    st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
 
-    @st.dialog("⚙️ Настройки на превозно средство")
+    @st.dialog("⚙️ Настройки на превозно средство и период")
     def edit_car_modal():
-        st.write("Променете настройките на превозното средство:")
+        st.write("Променете настройките на почивката:")
         v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1)
         new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, placeholder="Напишете км...")
         new_ek = st.number_input("Крайни км:", value=None if e_km == 0.0 else e_km, placeholder="Напишете км...")
         new_mf = st.number_input("Допълнителни ръчни литри (л):", value=None if m_fuel == 0.0 else m_fuel, placeholder="Напишете литри...")
+        
+        # ПРОМЯНА: Добавено избиране на дати в настройките за за запълване на стари почивки
+        st.write("📅 Промяна на датите на почивката:")
+        try:
+            current_start = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else datetime.date.today()
+            current_end = datetime.datetime.strptime(en_date, "%d.%m.%Y").date() if en_date and en_date != "nan" else datetime.date.today() + datetime.timedelta(days=5)
+        except:
+            current_start, current_end = datetime.date.today(), datetime.date.today() + datetime.timedelta(days=5)
+            
+        edit_range = st.date_input("Изберете нови дати:", value=[current_start, current_end], key="edit_dates_cal")
+        
         if st.button("💾 Обнови", use_container_width=True, type="primary"):
             sk_val = float(new_sk) if new_sk is not None else 0.0
             ek_val = float(new_ek) if new_ek is not None else 0.0
             mf_val = float(new_mf) if new_mf is not None else 0.0
-            save_trip_settings(trip_id, str(v_car), "Да", sk_val, ek_val, mf_val)
+            
+            s_d_str = edit_range[0].strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
+            e_d_str = edit_range[1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
+            
+            save_trip_settings(trip_id, str(v_car), "Да", sk_val, ek_val, mf_val, s_d_str, e_d_str)
             st.session_state["form_version"] += 1; st.rerun()
 
-    # ПОПРАВКА: Динамичен текст на бутона според това дали колата е активирана
     if car_trip == "Да":
         if st.button("⚙️ Настройки километри / автомобил", use_container_width=True): edit_car_modal()
     else:
@@ -281,4 +295,3 @@ else:
                 os.rmdir(papka_snimki)
             st.session_state["current_trip"] = None; st.rerun()
         except: pass
-
