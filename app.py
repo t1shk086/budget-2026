@@ -143,7 +143,7 @@ if st.session_state["current_trip"] is None:
             save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
             st.session_state["current_trip"] = target_id; st.rerun()
             
-    if st.button("➕ Novo пътуване", use_container_width=True): create_trip_modal()
+    if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
 
 else:
     trip_id = st.session_state["current_trip"]
