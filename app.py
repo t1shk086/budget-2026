@@ -53,7 +53,7 @@ def get_trip_settings(t_id):
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
         if not f.empty:
-            res = f.iloc[0].to_dict()
+            res = f.iloc.to_dict()
             return {"trip_id": t_id, "car_trip": str(res.get("car_trip", "Не")), "track_fuel": str(res.get("track_fuel", "Добави впоследствие")), "start_km": float(res.get("start_km", 0.0)), "end_km": float(res.get("end_km", 0.0)), "manual_fuel": float(res.get("manual_fuel", 0.0))}
     except: pass
     return d
@@ -146,8 +146,8 @@ else:
             if float(row.get("liters", 0)) > 0: total_liters_sum += float(row["liters"]); auto_fuel_money += float(row["amount"])
             elif any(k in str(row["description"]).lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): auto_fuel_money += float(row["amount"])
     
-    # СУМИРАНЕ НА ОФИЦИАЛНИТЕ И РЪЧНИТЕ ЛИТРИ
     total_liters_calculated = total_liters_sum + m_fuel
+    dist = e_km - s_km
 
     st.markdown("### 📊 Анализ на разходите")
     stat_grid = st.columns(2)
@@ -160,15 +160,18 @@ else:
             st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid {b_c}; padding: 12px 15px; border-radius: 14px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3); margin-bottom: 12px; height: 120px; display: flex; flex-direction: column; justify-content: space-between;"><div style="display: flex; justify-content: space-between; align-items: center;"><span>{get_emoji(kat)} {kat}</span><span style="background:{b_g}; color:{b_t}; font-size:11px; padding:2px 7px; border-radius:20px; font-weight:bold;">{pct:.1f}%</span></div><h3 style="margin:0; color:white; font-size:20px; font-weight:800;">{s_value:.2f} <span style="font-size:11px; color:#aaa;">EUR</span></h3><div style="background: rgba(255,255,255,0.05); width: 100%; height: 6px; border-radius: 10px; overflow: hidden;"><div style="background: {b_t}; width: {pct}%; height: 100%; border-radius: 10px;"></div></div></div>', unsafe_allow_html=True)
 
     st.markdown("#### ⛽ Справка за разхода и горивото")
+    
+    # ТУК Е ЕЛЕГАНТНИЯТ ТЕКСТ С КИЛОМЕТРИТЕ И ЛИТРИТЕ НАД ТРИДЕТАТА БЛОКОВЕ
+    if dist > 0: st.markdown(f'<div style="text-align: center; margin-bottom: 10px; color: #aaa; font-size: 13px;">📍 Километри: <b>{s_km:.0f}</b> до <b>{e_km:.0f}</b> ({dist:.0f} км) | 💧 Общо гориво: <b>{total_liters_calculated:.1f} л</b></div>', unsafe_allow_html=True)
+    else: st.markdown('<div style="text-align: center; margin-bottom: 10px; color: #888; font-size: 13px;">⚠️ Няма въведени километри / данни за автомобила</div>', unsafe_allow_html=True)
+
     col_fuel1, col_fuel2 = st.columns(2)
-    with col_fuel1: st.markdown(f'<div style="background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #ffa500; font-weight: bold;">⛽ ОБЩО ЗА ГОРИВО</small><h3 style="color: white; margin: 5px 0;">{auto_fuel_money:.2f} EUR</h3><small style="color: #aaa;">Общо: {total_liters_calculated:.1f} л</small></div>', unsafe_allow_html=True)
+    with col_fuel1: st.markdown(f'<div style="background: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #ffa500; font-weight: bold;">⛽ ОБЩО ЗА ГОРИВО</small><h3 style="color: white; margin: 5px 0;">{auto_fuel_money:.2f} <span style="font-size:14px; color:#aaa;">EUR</span></h3></div>', unsafe_allow_html=True)
     with col_fuel2:
-        dist = e_km - s_km
-        # ФИКС: РАЗХОДЪТ СЕ СМЯТА АКО ИМА КИЛОМЕТРИ, НЕЗАВИСИМО ОТ СТАРИЯ СТАТУС НА СЕЛЕКТБОКСА
-        if dist > 0 and (car_trip == "Да" or car_trip == "Да"):
+        if dist > 0:
             avg_con = (total_liters_calculated / dist * 100) if total_liters_calculated > 0 else 0.0
-            st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД ({dist:.0f} км)</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} л / 100 км</h3><small style="color: #aaa;">От {s_km:.0f} до {e_km:.0f} км</small></div>', unsafe_allow_html=True)
-        else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 110px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Няма въведен автомобил или изминати км.</small></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.2); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display:flex; flex-direction:column; justify-content:center;"><small style="color: #00f2fe; font-weight: bold;">📊 СРЕДЕН РАЗХОД</small><h3 style="color: white; margin: 5px 0;">{avg_con:.1f} <span style="font-size:14px; color:#aaa;">л / 100 км</span></h3></div>', unsafe_allow_html=True)
+        else: st.markdown('<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; text-align: center; height: 95px; display: flex; align-items: center; justify-content: center;"><small style="color: #aaa;">Въведете разстояние за среден разход.</small></div>', unsafe_allow_html=True)
 
     st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
 
@@ -181,7 +184,6 @@ else:
         new_mf = st.number_input("Допълнителни ръчни литри (л):", value=m_fuel)
         if st.button("💾 Обнови", use_container_width=True, type="primary"):
             final_car_status = "Да" if v_car == "Да" else "Не"
-            # ФИКС: АВТОМАТИЧНО СЕТВАМЕ TRACK_FUEL НА "Да" ПРИ ИЗБОР НА АВТОМОБИЛ
             save_trip_settings(trip_id, final_car_status, "Да" if final_car_status == "Да" else "Добави впоследствие", new_sk, new_ek, new_mf)
             st.rerun()
 
