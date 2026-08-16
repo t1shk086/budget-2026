@@ -246,75 +246,56 @@ else:
     except: pass
 # === КРАЙ НА ЧАСТ 4 ===
 
-    if st.session_state["view_photos"]:
-        if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True):
-            st.session_state["view_photos"] = False; st.rerun()
+    # === НАЧАЛО НА ЧАСТ 5 ===
+    @st.dialog("⛽ Добавяне на гориво")
+    def fuel_modal(amount, category, description, is_deposit):
+        st.markdown(f"### 📍 Детайли за зареждането")
+        st.write(f"Сума: **{amount:.2f} EUR**")
+        st.write("---")
+        
+        liters_input = st.number_input("Количество гориво (литри):", min_value=0.1, step=0.1, format="%.1f")
+        
+        last_km = float(s_km) if s_km else 0.0
+        if e_km > 0:
+            last_km = float(e_km)
             
-        if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
-        up = st.file_uploader("Добавете нови спомени в албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}")
-        if up:
-            for f in up:
-                if not os.path.exists(os.path.join(papka_snimki, f.name)):
-                    with open(os.path.join(papka_snimki, f.name), "wb") as out: out.write(f.getbuffer())
-            st.rerun()
-            
-        saved = glob.glob(os.path.join(papka_snimki, "*"))
-        if saved:
-            st.markdown("<br>", unsafe_allow_html=True)
-            img_grid = st.columns(2)
-            for idx, p in enumerate(saved):
-                with img_grid[idx % 2]:
-                    st.image(p, use_container_width=True)
-                    if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
-        else:
-            st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма качени снимки в този албум.</div>", unsafe_allow_html=True)
-
-    else:
-        if st.button("⬅️ НАЗАД ", use_container_width=True):
-            st.session_state["current_trip"] = None; st.rerun()
-            
-        v_id = st.session_state["form_version"]
-        col1, col2 = st.columns(2)
-        with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
-        with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
-
-        is_trip_finished = (e_km > 0.0)
-
-        @st.dialog("⛽ Зареждане на гориво")
-        def fuel_modal(amount, category, description, is_dep):
-            if is_trip_finished:
-                st.error("🔒 Пътуването е приключено! Настройките са заключени.")
+        km_input = st.number_input(
+            f"Текущ километраж на колата (трябва да е над {last_km:.0f} км):",
+            min_value=float(last_km),
+            value=float(last_km),
+            step=1.0
+        )
+        
+        st.write("")
+        if st.button("💾 ЗАПИШЕ СЕКРЕТНО", use_container_width=True, type="primary"):
+            if km_input <= s_km:
+                st.error(f"Километражът трябва да е по-голям от началния ({s_km:.0f} км)!")
                 return
-            st.write(f"Засякохме гориво за **{amount:.2f} EUR**.")
-            liters = st.number_input("Литри:", value=None, placeholder="Напишете литри...", step=0.1)
-            
-            df_e = get_trip_data(trip_id)
-            df_f = df_e[(df_e["category"] == "Транспорт") & (df_e["current_km"] > 0)]
-            last_km = float(df_f["current_km"].max()) if not df_f.empty else s_km
-            
-            st.markdown(f"<small>ℹ️ Километри при последното зареждане (или старт): <b>{last_km:.0f} км</b></small>", unsafe_allow_html=True)
-            km_input = st.number_input("Текущи километри на таблото (км):", value=None, placeholder="Въведете км от таблото в момента...", step=1.0)
-            
-            if liters and km_input:
-                if km_input > last_km:
-                    m_dist = km_input - last_km
-                    m_avg = (liters / m_dist * 100)
-                    st.success(f"📊 Моментен разход за този етап: **{m_avg:.1f} л / 100 км** (Изминати: {m_dist:.0f} км)")
-                else:
-                    st.warning("⚠️ Въведените километри трябва да са повече от предходните!")
-
-            if st.button("💾 Запиши зареждането", use_container_width=True, type="primary"):
-                lit = float(liters) if liters is not None else 0.0
-                ckm = float(km_input) if km_input is not None else 0.0
-                full_desc = f"[ГОРИВО] {description}"
-                if ckm > last_km and lit > 0:
-                    m_dist = ckm - last_km
-                    m_avg = (lit / m_dist * 100)
-                    full_desc += f" (Моментен разход: {m_avg:.1f}л/100км, Етап: {m_dist:.0f}км)"
                 
-                if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm):
-                    st.session_state["form_version"] += 1; st.rerun()
-# === КРАЙ НА ЧАСТ 5 ===
+            final_desc = f"{description} | ⛽ {liters_input:.1f} л"
+            try:
+                # Запис на текущите километри като крайни в настройките на пътуването
+                df_set = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                df_set.loc[df_set["trip_id"] == trip_id, "end_km"] = float(km_input)
+                df_set.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+                
+                # Добавяне на разхода в базата
+                add_expense(trip_id, amount, category, final_desc, is_deposit, float(liters_input), float(km_input))
+                st.session_state["form_version"] += 1
+                st.rerun()
+            except Exception as e:
+                st.error("Възникна грешка при запис.")
+
+    # Входна форма за сума и описание
+    col_v1, col_v2 = st.columns([0.35, 0.65])
+    with col_v1:
+        s_input = st.number_input("Сума (EUR):", min_value=0.01, step=0.01, format="%.2f", key=f"s_in_{st.session_state['form_version']}")
+    with col_v2:
+        o_input = st.text_input("Описание на разхода:", placeholder="Напр. Вечеря, Хотел, Гориво...", key=f"o_in_{st.session_state['form_version']}")
+
+    # === НАЧАЛО НА ЧАСТ 6 ===
+    if not is_trip_finished:
+        st.markdown("<p style='font-size:12px; color:#888; margin-bottom:5px; font-weight:bold;'>БЪРЗО ДОБАВЯНЕ В КАТЕГОРИЯ:</p>", unsafe_allow_html=True)
         grid = st.columns(3)
         for i, kat in enumerate(KATEGORII):
             with grid[i % 3]:
@@ -327,7 +308,9 @@ else:
                         if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]):
                             fuel_modal(s_input, kat, desc, is_d)
                         else:
-                            if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
+                            if add_expense(trip_id, s_input, kat, desc, is_d): 
+                                st.session_state["form_version"] += 1
+                                st.rerun()
                             
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
@@ -361,7 +344,6 @@ else:
 
             km_progress_pct = 100 if is_final_status else min(100, max(0, (dist / 1000 * 100))) if dist > 0 else 0
             
-            # Изнесени логически променливи за стабилен HTML без вложени кавички
             car_left_css = "left: 0px;" if km_progress_pct == 0 else f"left: calc({km_progress_pct}% - 10px);"
             lock_lbl_html = "<span style='background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;'>🔒 ЗАКЛЮЧЕН</span>" if is_trip_finished else ""
             finish_icon_html = "<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; {car_left_css} top: -12px; font-size: 16px;'>🚗</div>"
@@ -370,7 +352,7 @@ else:
             current_km_txt = f"{e_km:.0f} км" if e_km > 0 else "—"
             dist_km_txt = f"{dist:.0f} км" if dist > 0 else "0 км"
             
-            # Изцяло изчистен HTML блок с гарантирано зареждане
+            # Изцяло затворен и гарантиран HTML контейнер
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); margin-bottom: 20px; text-align: center;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;">
@@ -394,26 +376,7 @@ else:
             <div style="display: flex; flex-wrap: wrap; gap: 15px; width: 100%;">
                 <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);">
                     <div style="color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 15px; margin-top: 0;">{lbl_gauge}</div>
-                    <div style="width: 110px; height: 110px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px; box-sizing: border-box; padding: 0;">
-                        <div style="color: white; font-size: 28px; font-weight: 900; margin: 0; padding: 0; line-height: 1.1; text-align: center;">{val_to_show:.1f}</div>
-                        <div style="color: #666; font-size: 10px; font-weight: bold; margin-top: 2px; padding: 0; text-align: center;">л/100км</div>
-                    </div>
-                    <div style="color: #666; font-size: 11px; margin: 0;">{sub_lbl_gauge}</div>
-                </div>
-                <div style="flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 25px 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); box-sizing: border-box;">
-                    <div style="margin-bottom: 25px; width: 100%;">
-                        <div style="color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;">💧 ИЗРАЗХОДВАНО ГОРИВО</div>
-                        <div style="color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;">{total_liters_calculated:.1f} <span style="font-size: 14px; color: #666; font-weight: normal;">литра</span></div>
-                    </div>
-                    <div style="padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); width: 100%;">
-                        <div style="color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;">💰 ОБЩА ФИНАНСОВА СТОЙНОСТ</div>
-                        <div style="color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;">{auto_fuel_money:.2f} <span style="font-size: 14px; color: #666; font-weight: normal;">EUR</span></div>
-                    </div>
-                </div>
-            </div>
-            <br>
-            """, unsafe_allow_html=True)
-# === КРАЙ НА ЧАСТ 6 ===
+
 
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
