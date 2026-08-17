@@ -462,7 +462,7 @@ st.markdown(html_dashboard_boxes, unsafe_allow_html=True)
 
 # === КРАЙ НА ЧАСТ 7А ===
 # === НАЧАЛО НА ЧАСТ 7Б ===
-        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
             st.write("Променете настройките на почивката:")
