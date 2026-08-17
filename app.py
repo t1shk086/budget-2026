@@ -367,14 +367,16 @@ else:
             desc_val = str(row['description'])
             if "Моментен разход:" in desc_val: desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
             
-            # Почистване на синтаксиса за километрите в HTML таблицата
             cur_km_val = float(row.get('current_km', 0.0))
             km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
             
             pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
             
         pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
-        st.markdown(f'<a href="data:text/html;base64,{base64.b64encode(pdf_html.encode(\'utf-8\')).decode(\'utf-8\')}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
+        
+        # Сигурно изнасяне на Base64 кодирането извън f-string низа за спиране на синтактични грешки
+        b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
+        st.markdown(f'<a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
         st.markdown("---")
 
         st.subheader("🗺️ Карта на спирките и дестинациите")
