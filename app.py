@@ -1,5 +1,5 @@
 import streamlit as st, pandas as pd, datetime, os, glob, base64, folium
-from streamlit_folium import st_foliumф
+from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
