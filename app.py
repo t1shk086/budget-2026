@@ -642,17 +642,31 @@ else:
                 df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
                 current_trip_points = df_all_map[df_all_map["trip_id"] == trip_id]
                 
+                # Мапинг на цветовете към красиви емоджита за визуален маркер
+                color_emojis = {
+                    "blue": "🔵",
+                    "green": "🟢",
+                    "red": "🔴",
+                    "purple": "🟣",
+                    "orange": "🟠"
+                }
+                
                 for idx in current_trip_points.index.tolist():
                     pt_row = df_all_map.loc[idx]
                     col_p_txt, col_p_del = st.columns([0.85, 0.15])
+                    
+                    # Взимаме съответното емоджи за цвят (по подразбиране синьо, ако има разминаване)
+                    emoji_marker = color_emojis.get(pt_row['color'], "🔵")
+                    
                     with col_p_txt:
-                        st.markdown(f"🎨 `{pt_row['color']}` | **{pt_row['title']}** <small style='color:#666;'>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small>", unsafe_allow_html=True)
+                        st.markdown(f"{emoji_marker} **{pt_row['title']}** <small style='color:#666;'>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small>", unsafe_allow_html=True)
                     with col_p_del:
                         if st.button("🗑️", key=f"del_pin_{idx}", use_container_width=True, disabled=is_trip_finished):
                             df_all_map.drop(idx).to_csv(MAP_FILE, index=False, encoding="utf-8")
                             st.rerun()
             except Exception as e:
                 st.error(f"Грешка при зареждане на списъка: {e}")
+
 
         st.markdown("---")
 
