@@ -2,16 +2,18 @@ import streamlit as st
 import pandas as pd
 import datetime
 import os
+import glob
 import base64
 import folium
 from streamlit_folium import st_folium
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
-# Мобилно-оптимизиран 3D CSS дизайн без ограничения за височина
+# Връщане на оригиналния луксозен графитен дизайн с неонови акценти
 st.markdown("""
 <style>
-    div.stSelectbox, div.stNumberInput, div.stTextInput {
+    .stApp { background-color: #0e1117 !important; color: #ffffff !important; }
+    div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {
         background: rgba(255, 255, 255, 0.03) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 12px !important; padding: 10px 15px !important;
@@ -23,13 +25,13 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 10px !important;
         box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5) !important; font-weight: bold !important; width: 100% !important;
     }
+    h1, h2, h3, h4, h5, h6, label, p { color: #ffffff !important; }
     small { color: #888 !important; }
 </style>
 """, unsafe_allow_html=True)
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE, MAP_FILE = "budget_data_2026.csv", "trip_settings_2026.csv", "trip_map_points_2026.csv"
 
-# Автоматична защита и заключване на файловата структура
 for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters","current_km"]), 
                 (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date"]),
                 (MAP_FILE, ["trip_id", "lat", "lon", "title", "color"])]:
@@ -72,11 +74,8 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     except: return False
 
 def get_map_points(t_id):
-    try: 
-        df = pd.read_csv(MAP_FILE, encoding="utf-8")
-        return df[df["trip_id"] == t_id].copy()
-    except: 
-        return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
+    try: return pd.read_csv(MAP_FILE, encoding="utf-8")[lambda d: d["trip_id"] == t_id].copy()
+    except: return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
 
 def add_map_point(t_id, lat, lon, title, color="blue"):
     try:
@@ -87,10 +86,11 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
     except: return False
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
+if "view_photos" not in st.session_state: st.session_state["view_photos"] = False
 if "delete_idx" not in st.session_state: st.session_state["delete_idx"] = None
 
 if st.session_state["current_trip"] is None:
-    st.markdown("<div style='text-align: center;'><h1>🐾 PixelApp</h1><p style='color: #ffd700;'>Travel Manager</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center;'><h1>🐾 PixelApp</h1><p style='color: #ffd700;'>Premium Travel Manager</p></div>", unsafe_allow_html=True)
     try:
         existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique())
         existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
@@ -102,7 +102,7 @@ if st.session_state["current_trip"] is None:
         if st.button("📂 ОТВОРИ ПЪТУВАНЕ", use_container_width=True):
             st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
     else:
-        st.markdown("<div style='text-align:center; padding:20px; color:#aaa;'>Няма открити активни почивки. Създайте новото си приключение от бутона по-долу.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center; padding:20px; color:#aaa;'>Няма открити активни почивки.</div>", unsafe_allow_html=True)
     
     @st.dialog("➕ Създаване на ново приключение")
     def create_trip_modal():
@@ -120,6 +120,9 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
 else:
     trip_id = st.session_state["current_trip"]
+    papka_snimki = f"snimki_{trip_id}_2026"
+    if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
+    
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
@@ -127,7 +130,6 @@ else:
     @st.dialog("🗑️ Потвърждение за изтриване")
     def confirm_delete_dialog():
         if st.session_state["delete_idx"] is not None:
-            st.write("Сигурни ли сте, че искате да изтриете този разход?")
             if st.button("👍 ДА, ИЗТРИЙ", use_container_width=True, type="primary"):
                 try:
                     df = pd.read_csv(DATA_FILE, encoding="utf-8")
@@ -136,126 +138,111 @@ else:
                 except: pass
                 st.session_state["delete_idx"] = None; st.rerun()
 
-    @st.dialog("🚨 Изтриване на цялото пътуване")
-    def confirm_delete_trip_dialog():
-        if st.button("💥 ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
-            try:
-                df = pd.read_csv(DATA_FILE, encoding="utf-8")
-                df[df["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
-                dfs = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-                dfs[dfs["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
-            except: pass
-            st.session_state["current_trip"] = None; st.rerun()
-
     st.markdown(f"<div style='text-align: center;'><h2>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2><p>{st_date} - {en_date}</p></div>", unsafe_allow_html=True)
     
+    if st.button("📸 ГАЛЕРИЯ СЪС СНИМКИ" if not st.session_state["view_photos"] else "⬅️ ОБРАТНО КЪМ РАЗХОДИТЕ", use_container_width=True):
+        st.session_state["view_photos"] = not st.session_state["view_photos"]; st.rerun()
+
     df_trip = get_trip_data(trip_id)
     depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum())
     df_expenses = df_trip[df_trip["type"] == "expense"]
     total_on_site = float(df_expenses["amount"].sum())
 
     categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
-    total_liters_sum, auto_fuel_money = 0.0, 0.0
     for _, row in df_expenses.iterrows():
         if row["category"] in categories_totals: categories_totals[row["category"]] += float(row["amount"])
-        if row["category"] == "Транспорт":
-            if "гориво" in str(row["description"]).lower() or "зареждане" in str(row["description"]).lower():
-                auto_fuel_money += float(row["amount"])
-            if float(row.get("liters", 0)) > 0 and float(row.get("current_km", 0)) > s_km:
-                total_liters_sum += float(row["liters"])
-    
-    dist = e_km - s_km if e_km > s_km else 0.0
-    if st.button("⬅️ НАЗАД КЪМ ИЗБОР", use_container_width=True): 
-        st.session_state["current_trip"] = None; st.rerun()
-    
-    v_id = st.session_state["form_version"]
-    col1, col2 = st.columns(2)
-    with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Сума...", key=f"su_{v_id}")
-    with col2: o_input = st.text_input("Описание", placeholder="Описание...", key=f"op_{v_id}")
+    if st.session_state["view_photos"]:
+        st.subheader("🖼️ Галерия на приключението")
+        kacheni = st.file_uploader("Качете снимка:", type=["jpg","png","jpeg"], accept_multiple_files=True)
+        if kacheni:
+            for sn in kacheni:
+                with open(os.path.exists(os.path.join(papka_snimki, sn.name)), "wb") as f: f.write(sn.getbuffer())
+            st.success("Снимките са запазени!"); st.rerun()
+        f_snimki = glob.glob(os.path.join(papka_snimki, "*"))
+        if f_snimki:
+            for s_path in f_snimki: st.image(s_path, use_container_width=True)
+        else: st.info("Все още няма качени снимки.")
+    else:
+        if st.button("⬅️ НАЗАД КЪМ ИЗБОР", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
+        
+        v_id = st.session_state["form_version"]
+        col1, col2 = st.columns(2)
+        with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Сума...", key=f"su_{v_id}")
+        with col2: o_input = st.text_input("Описание", placeholder="Описание...", key=f"op_{v_id}")
 
-    @st.dialog("⛽ Зареждане на гориво")
-    def fuel_modal(amount, category, description):
-        liters = st.number_input("Литри:", value=0.0)
-        fuel_type = st.radio("Тип:", ["Да, до горе (Пълен резервоар)", "Не, частично"])
-        km_input = st.number_input("Текущи километри:", value=s_km)
-        if st.button("💾 Запиши", use_container_width=True, type="primary"):
-            is_full = "ПЪЛЕН" if "до горе" in fuel_type.lower() else "ЧАСТИЧЕН"
-            if add_expense(trip_id, amount, category, f"[{is_full} ГОРИВО] {description}", False, liters, km_input):
-                st.session_state["form_version"] += 1; st.rerun()
+        @st.dialog("⛽ Зареждане на гориво")
+        def fuel_modal(amount, category, description):
+            liters = st.number_input("Литри:", value=0.0)
+            fuel_type = st.radio("Тип:", ["Да, до горе (Пълен резервоар)", "Не, частично"])
+            km_input = st.number_input("Текущи километри:", value=s_km)
+            if st.button("💾 Запиши", use_container_width=True, type="primary"):
+                is_full = "ПЪЛЕН" if "до горе" in fuel_type.lower() else "ЧАСТИЧЕН"
+                if add_expense(trip_id, amount, category, f"[{is_full} ГОРИВО] {description}", False, liters, km_input):
+                    if is_full == "ПЪЛЕН": save_trip_settings(trip_id, car_trip, t_fuel, s_km, km_input, m_fuel, st_date, en_date)
+                    st.session_state["form_version"] += 1; st.rerun()
 
-    grid = st.columns(3)
-    for i, kat in enumerate(KATEGORII):
-        with grid[i % 3]:
-            if st.button(kat, use_container_width=True, key=f"bt_{i}"):
-                if s_input and s_input > 0:
-                    desc = o_input.strip() if o_input else "Без описание"
-                    if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане"]):
-                        fuel_modal(s_input, kat, desc)
-                    else:
-                        if add_expense(trip_id, s_input, kat, desc, (kat == "Депозит/Резервация")):
-                            st.session_state["form_version"] += 1; st.rerun()
+        grid = st.columns(3)
+        for i, kat in enumerate(KATEGORII):
+            with grid[i % 3]:
+                if st.button(kat, use_container_width=True, key=f"bt_{i}"):
+                    if s_input and s_input > 0:
+                        desc = o_input.strip() if o_input else "Без описание"
+                        if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане"]): fuel_modal(s_input, kat, desc)
+                        else:
+                            if add_expense(trip_id, s_input, kat, desc, (kat == "Депозит/Резервация")):
+                                st.session_state["form_version"] += 1; st.rerun()
 
-    st.markdown("### 📊 Анализ на разходите")
-    stat_grid = st.columns(2)
-    for idx, (kat, s_value) in enumerate(categories_totals.items()):
-        with stat_grid[idx % 2]:
-            st.markdown(f'<div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 14px; margin-bottom: 12px; height: 110px; display: flex; flex-direction: column; justify-content: space-between;"><div>{get_emoji(kat)} {kat}</div><h3 style="margin:0;">{s_value:.2f} EUR</h3></div>', unsafe_allow_html=True)
+        st.markdown("### 📊 Анализ на разходите")
+        stat_grid = st.columns(2)
+        for idx, (kat, s_value) in enumerate(categories_totals.items()):
+            with stat_grid[idx % 2]:
+                st.markdown(f'<div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 14px; margin-bottom: 12px; height: 110px; display: flex; flex-direction: column; justify-content: space-between;"><div>{get_emoji(kat)} {kat}</div><h3 style="margin:0;">{s_value:.2f} EUR</h3></div>', unsafe_allow_html=True)
 
-    if car_trip == "Да":
-        st.markdown("#### ⛽ Автомобилно табло")
-        val_to_show = 0.0
-        try:
-            df_trans = df_expenses[df_expenses["category"] == "Транспорт"].copy()
-            df_fuel = df_trans.sort_values(by="current_km")
-            total_valid_liters, total_valid_dist, prev_km, temp_liters = 0.0, 0.0, s_km, 0.0
-            for _, row in df_fuel.iterrows():
-                if "ПЪЛЕН" in str(row["description"]).upper() and float(row["current_km"]) > prev_km:
-                    total_valid_dist += (float(row["current_km"]) - prev_km)
-                    total_valid_liters += (temp_liters + float(row.get("liters", 0.0)))
-                    temp_liters = 0.0
-                    prev_km = float(row["current_km"])
-                else: temp_liters += float(row.get("liters", 0.0))
-            if total_valid_dist > 0: val_to_show = (total_valid_liters / total_valid_dist) * 100
-        except: pass
+        if car_trip == "Да":
+            st.markdown("#### ⛽ Автомобилно табло")
+            razhod_km = 0.0
+            try:
+                df_fuel = df_expenses[df_expenses["category"] == "Транспорт"].sort_values(by="current_km")
+                t_liters, t_dist, last_k = 0.0, 0.0, s_km
+                for _, r in df_fuel.iterrows():
+                    if "ПЪЛЕН" in str(r["description"]).upper() and float(r["current_km"]) > last_k:
+                        t_dist += (float(r["current_km"]) - last_k)
+                        t_liters += float(r.get("liters", 0.0))
+                        last_k = float(r["current_km"])
+                if t_dist > 0: razhod_km = (t_liters / t_dist) * 100
+            except: pass
+            
+            color_g = "#666" if razhod_km == 0.0 else "#00f2fe"
+            lbl_g = "⚠️ Изчислява се при зареждане до горе" if razhod_km == 0.0 else f"Среден разход: {razhod_km:.1f} л / 100 км"
+            st.markdown(f"<div style='background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; margin-bottom:15px;'>📍 Километри по табло: <b>{(e_km - s_km) if e_km > s_km else 0:.0f} км</b><br><small style='color:{color_g}; font-weight:bold;'>{lbl_g}</small></div>", unsafe_allow_html=True)
 
-        color_gauge = "#666" if val_to_show == 0.0 else "#00f2fe"
-        sub_lbl_gauge = "⚠️ Ще се изчисли при следващо зареждане до горе" if val_to_show == 0.0 else "за затворените етапи"
-        st.markdown(f"<div style='background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; margin-bottom:15px;'>📍 Изминати километри: <b>{dist:.0f} км</b></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='display: flex; gap: 15px; width: 100%; flex-wrap: wrap;'><div style='flex: 1; min-width: 200px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center;'><div style='width: 90px; height: 90px; border-radius: 50%; border: 4px dashed {color_gauge}; margin: 0 auto 10px auto; display: flex; flex-direction: column; justify-content: center;'><h2>{val_to_show:.1f}</h2></div><small style='color: {'#ffa500' if val_to_show == 0.0 else '#aaa'}; font-size:11px; line-height:1.4;'>{sub_lbl_gauge}</small></div></div><br>", unsafe_allow_html=True)
+        st.markdown("---")
+        col_st1, col_st2 = st.columns(2)
+        with col_st1: st.markdown(f"<div style='background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;'>🏨 ДЕПОЗИТ<br><h2>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
+        with col_st2: st.markdown(f"<div style='background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;'>💰 НА МЯСТО<br><h2>{total_on_site:.2f} EUR</h2></div>", unsafe_allow_html=True)
 
-    st.markdown("---")
-    col_st1, col_st2 = st.columns(2)
-    with col_st1: st.markdown(f"<div style='background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;'>🏨 ДЕПОЗИТ<br><h2>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
-    with col_st2: st.markdown(f"<div style='background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; text-align:center;'>💰 НА МЯСТО<br><h2>{total_on_site:.2f} EUR</h2></div>", unsafe_allow_html=True)
+        if not df_trip.empty:
+            st.markdown("---"); st.subheader("📋 Хронология на плащанията")
+            for idx in reversed(df_trip.index.tolist()):
+                r = df_trip.loc[idx]
+                col_rec, col_del = st.columns([0.85, 0.15])
+                with col_rec: 
+                    st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 15px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; justify-content: center;"><span style="font-size:15px; font-weight: bold;">{get_emoji(r["category"])} {r["category"]} — <span style="color:#ff4b4b;">{r["amount"]:.2f} EUR</span></span><small style="color:#aaa; margin-top: 6px;">📅 {r["date"]} — {r["description"]}</small></div>', unsafe_allow_html=True)
+                with col_del:
+                    if st.button("❌", key=f"dl_{idx}", use_container_width=True):
+                        st.session_state["delete_idx"] = idx; confirm_delete_dialog()
 
-    if not df_trip.empty:
-        st.markdown("---"); st.subheader("📋 Хронология на плащанията")
-        for idx in reversed(df_trip.index.tolist()):
-            r = df_trip.loc[idx]
-            col_rec, col_del = st.columns([0.85, 0.15])
-            with col_rec: 
-                st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 15px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); height: auto; min-height: 80px; display: flex; flex-direction: column; justify-content: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.2);"><span style="font-size:15px; line-height: 1.4; font-weight: bold; color: white;">{get_emoji(r["category"])} {r["category"]} — <span style="color:#ff4b4b;">{r["amount"]:.2f} EUR</span></span><small style="color:#aaa; margin-top: 6px; line-height: 1.4; display: block;">📅 {r["date"]} — {r["description"]}</small></div>', unsafe_allow_html=True)
-            with col_del:
-                if st.button("❌", key=f"dl_{idx}", use_container_width=True):
-                    st.session_state["delete_idx"] = idx; confirm_delete_dialog()
+        st.markdown("---")
+        df_points = get_map_points(trip_id)
+        c_lat, c_lon = (df_points["lat"].mean(), df_points["lon"].mean()) if not df_points.empty else (42.7339, 25.4858)
+        m = folium.Map(location=[c_lat, c_lon], zoom_start=6)
+        for _, pt in df_points.iterrows(): folium.Marker(location=[pt["lat"], pt["lon"]], popup=pt["title"]).add_to(m)
+        map_data = st_folium(m, width=700, height=300, key=f"map_{trip_id}")
+        if map_data and map_data.get("last_clicked"):
+            click_coords = map_data["last_clicked"]
+            if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], "Нова спирка"): st.rerun()
 
-    st.markdown("---")
-    st.subheader("🗺️ Карта")
-    df_points = get_map_points(trip_id)
-    c_lat, c_lon = (df_points["lat"].mean(), df_points["lon"].mean()) if not df_points.empty else (42.7339, 25.4858)
-    m = folium.Map(location=[c_lat, c_lon], zoom_start=6)
-    for _, pt in df_points.iterrows(): folium.Marker(location=[pt["lat"], pt["lon"]], popup=pt["title"]).add_to(m)
-    map_data = st_folium(m, width=700, height=300, key=f"map_{trip_id}")
-    
-    if map_data and map_data.get("last_clicked"):
-        click_coords = map_data["last_clicked"]
-        if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], "Нова спирка"): st.rerun()
-
-    grand_total = depozit_hotel + total_on_site
-    pdf_html = f"<html><body><h2>ОТЧЕТ: {trip_id.upper()}</h2><p><b>💰 ОБЩО: {grand_total:.2f} EUR</b></p></body></html>"
-    b64_pdf = base64.b64encode(pdf_html.encode('utf-8')).decode('utf-8')
-    st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}.html"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px;">📄 СВАЛИ ПЪЛЕН ОТЧЕТ</button></a>', unsafe_allow_html=True)
-
-    st.markdown("---")
-    if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True): 
-        confirm_delete_trip_dialog()
+        grand_total = depozit_hotel + total_on_site
+        pdf_html = f"<html><body><h2>ОТЧЕТ: {trip_id.upper()}</h2><p><b>💰 ОБЩО: {grand_total:.2f} EUR</b></p></body></html>"
+        b64_pdf = base64.b64encode(pdf_html.encode('utf-8')).decode('utf-8')
+        st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}.html"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px;">📄 СВАЛИ ПЪЛЕН ОТЧЕТ</button></a>', unsafe_allow_html=True)
