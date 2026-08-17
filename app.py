@@ -458,7 +458,7 @@ else:
                 f"<div style='color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;'>{total_liters_calculated:.1f} <span style='font-size: 14px; color: #666; font-weight: normal;'>литра</span></div>"
                 f"</div>"
                 f"<div style='padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); width: 100%;'>"
-                f"<div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;'>💰 ОБЩА ФИНАНСОВА СТОЙНОСТ</div>"
+                f"<div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;'>💰 ОБЩА СТОЙНОСТ</div>"
                 f"<div style='color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;'>{auto_fuel_money:.2f} <span style='font-size: 14px; color: #666; font-weight: normal;'>EUR</span></div>"
                 f"</div>"
                 f"</div>"
