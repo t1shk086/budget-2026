@@ -345,37 +345,32 @@ else:
                 if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm):
                     st.session_state["form_version"] += 1
                     st.rerun()
-        @st.dialog("Изберете категория")
-        def clean_categories_popup_modal(amount, description):
-            if "show_fuel_fields" not in st.session_state:
-                st.session_state["show_fuel_fields"] = False
-
-            if st.session_state["show_fuel_fields"]:
-                fuel_modal_inline(amount, "Транспорт", description, False)
-                if st.button("⬅️ Назад към категориите", use_container_width=True):
-                    st.session_state["show_fuel_fields"] = False
-                    st.rerun()
-            else:
-                grid = st.columns(3)
-                for i, kat in enumerate(KATEGORII):
-                    with grid[i % 3]:
-                        is_disabled = is_trip_finished and (kat == "Транспорт")
-                        if st.button(f"🔒 {kat}" if is_disabled else kat, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
-                            if amount and amount > 0:
-                                desc = description
-                                is_d = (kat == "Депозит/Резервация")
-                                if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]):
-                                    st.session_state["show_fuel_fields"] = True
+        # ПОКАЗВА КАТЕГОРИИТЕ ДИРЕКТНО, КОГАТО ИМА ТЕКСТ В ОПИСАНИЕТО
+        if o_input.strip():
+            st.markdown("""
+            <div style='text-align: center; margin: 10px 0 15px 0; animation: fadeIn 0.4s ease-in-out;'>
+                <small style='color: #4facfe; font-weight: bold; letter-spacing: 0.5px;'>🎯 ИЗБЕРЕТЕ КАТЕГОРИЯ ЗА ЗАПИС:</small>
+            </div>
+            <style>
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            grid = st.columns(3)
+            for i, kat in enumerate(KATEGORII):
+                with grid[i % 3]:
+                    is_disabled = is_trip_finished and (kat == "Транспорт")
+                    if st.button(f"🔒 {kat}" if is_disabled else kat, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
+                        if s_input and s_input > 0:
+                            desc = o_input.strip()
+                            is_d = (kat == "Депозит/Резервация")
+                            if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]):
+                                fuel_modal(s_input, kat, desc, is_d)
+                            else:
+                                if add_expense(trip_id, s_input, kat, desc, is_d):
+                                    st.session_state["form_version"] += 1
                                     st.rerun()
-                                else:
-                                    if add_expense(trip_id, amount, kat, desc, is_d):
-                                        st.session_state["form_version"] += 1
-                                        st.rerun()
 
-        if o_input.strip() and s_input and s_input > 0:
-            if st.button("🎯 ИЗБЕРЕТЕ КАТЕГОРИЯ ЗА ЗАПИС", use_container_width=True, type="primary"):
-                st.session_state["show_fuel_fields"] = False
-                clean_categories_popup_modal(s_input, o_input.strip())
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
