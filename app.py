@@ -298,7 +298,7 @@ else:
             for idx, p in enumerate(saved):
                 with img_grid[idx % 2]:
                     st.image(p, use_container_width=True)
-                    if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
+                    if st.button("❌", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
         else:
             st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма качени снимки в този албум.</div>", unsafe_allow_html=True)
 
@@ -368,7 +368,6 @@ else:
                         else:
                             if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
 
-        # === АНАЛИЗ НА РАЗХОДИТЕ ===
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
@@ -432,7 +431,7 @@ else:
 
             lbl_gauge = "ФИНАЛЕН РАЗХОД" if is_final_status else "ТЕКУЩ РАЗХОД"
             
-            # ДИНАМИЧЕН СУБТИТЪЛ С ИНСТРУКЦИЯ ЗА 0.0 РАЗХОД
+            # Динамична подсказка за 0.0 разход спрямо алгоритъма Пълен-Пълен
             if val_to_show == 0.0:
                 sub_lbl_gauge = "⚠️ Ще се изчисли при следващо зареждане до горе"
             else:
@@ -452,7 +451,7 @@ else:
             st.markdown(html_probel_box, unsafe_allow_html=True)
 
             total_liters_all = float(df_trans["liters"].sum()) + m_fuel
-            html_dashboard_boxes = f"<div style='display: flex; flex-wrap: wrap; gap: 15px; width: 100%;'><div style='flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);'><div style='color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 15px; margin-top: 0;'>{lbl_gauge}</div><div style='width: 110px; height: 110px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px; box-sizing: border-box; padding: 0;'><div style='color: white; font-size: 28px; font-weight: 900; margin: 0; padding: 0; line-height: 1.1; text-align: center;'>{val_to_show:.1f}</div><div style='color: #666; font-size: 10px; font-weight: bold; margin-top: 2px; padding: 0; text-align: center;'>л/100км</div></div><div style='color: #666; font-size: 11px; margin: 0;'>{sub_lbl_gauge}</div></div><div style='flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 25px 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); box-sizing: border-box;'><div style='margin-bottom: 25px; width: 100%;'><div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;'>💧 ОБЩО ЗАРЕДЕНО ГОРИВО</div><div style='color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;'>{total_liters_all:.1f} <span style='font-size: 14px; color: #666; font-weight: normal;'>литра</span></div></div><div style='padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); width: 100%;'><div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;'>💰 ОБЩА СТОЙНОСТ ТРАНСПОРТ</div><div style='color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;'>{auto_fuel_money:.2f} <span style='font-size: 14px; color: #666; font-weight: normal;'>EUR</span></div></div></div></div><br>"
+            html_dashboard_boxes = f"<div style='display: flex; flex-wrap: wrap; gap: 15px; width: 100%;'><div style='flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);'><div style='color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 15px; margin-top: 0;'>{lbl_gauge}</div><div style='width: 110px; height: 110px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px; box-sizing: border-box; padding: 0;'><div style='color: white; font-size: 28px; font-weight: 900; margin: 0; padding: 0; line-height: 1.1; text-align: center;'>{val_to_show:.1f}</div><div style='color: #666; font-size: 10px; font-weight: bold; margin-top: 2px; padding: 0; text-align: center;'>л/100км</div></div><div style='color: #666; font-size: 11px; margin: 0; max-width: 230px;'>{sub_lbl_gauge}</div></div><div style='flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 25px 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); box-sizing: border-box;'><div style='margin-bottom: 25px; width: 100%;'><div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;'>💧 ОБЩО ЗАРЕДЕНО ГОРИВО</div><div style='color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;'>{total_liters_all:.1f} <span style='font-size: 14px; color: #666; font-weight: normal;'>литра</span></div></div><div style='padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); width: 100%;'><div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin: 0 0 8px 0; text-align: center;'>💰 ОБЩА СТОЙНОСТ ТРАНСПОРТ</div><div style='color: white; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.2; text-align: center;'>{auto_fuel_money:.2f} <span style='font-size: 14px; color: #666; font-weight: normal;'>EUR</span></div></div></div></div><br>"
             st.markdown(html_dashboard_boxes, unsafe_allow_html=True)
 
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
@@ -555,6 +554,13 @@ else:
             desc_val = str(row['description'])
             km_val = float(row.get('current_km', 0.0))
             km_td = f"<span class='badge-km'>{km_val:.0f} км</span>" if km_val > 0 else "<span style='color:#ccc;'>—</span>"
+            
+            if "Моментен разход:" in desc_val:
+                parts = desc_val.split("Моментен разход:")
+                before = parts[0]
+                after = parts[1] if len(parts) > 1 else ""
+                desc_val = f"{before} <span class='fuel-highlight'>Моментен разход:{after}</span>"
+            
             pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
             
         pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
@@ -563,7 +569,6 @@ else:
         st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
         st.markdown("---")
 
-        # === ИНТЕРАКТИВНА КАРТА НА ПЪТУВАНЕТО ===
         st.subheader("🗺️ Карта на спирките и дестинациите")
         st.markdown("<small style='color:#888;'>💡 Кликнете директно върху картата, за да добавите пинче на това място!</small>", unsafe_allow_html=True)
         
@@ -626,7 +631,7 @@ else:
                     with col_p_txt:
                         st.markdown(f"{emoji_marker} **{pt_row['title']}** <small style='color:#666;'>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small>", unsafe_allow_html=True)
                     with col_p_del:
-                        if st.button("🗑️", key=f"del_pin_{idx}", use_container_width=True, disabled=is_trip_finished):
+                        if st.button("❌", key=f"del_pin_{idx}", use_container_width=True, disabled=is_trip_finished):
                             df_all_map.drop(idx).to_csv(MAP_FILE, index=False, encoding="utf-8")
                             st.rerun()
             except Exception as e: st.error(f"Грешка при зареждане на списъка: {e}")
