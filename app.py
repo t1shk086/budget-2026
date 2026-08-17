@@ -10,18 +10,48 @@ from geopy.geocoders import Nominatim
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
-st.markdown("""
+def get_base64_bg(img_path):
+    if os.path.exists(img_path):
+        with open(img_path, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    return ""
+
+bg_base64 = get_base64_bg("logo.png")
+bg_css = ""
+
+if bg_base64:
+    bg_css = f"""
+    html, body, [data-testid="stAppViewContainer"] {{
+        background-image: url("data:image/png;base64,{bg_base64}") !important;
+        background-size: cover !important; /* Автоматично стречва логото според големината на екрана */
+        background-repeat: no-repeat !important; /* Спира повтарянето на картинката */
+        background-position: center center !important; /* Държи фона перфектно центриран */
+        background-attachment: fixed !important; /* Фонът остава статичен при скролване */
+    }}
+    /* Полупрозрачен предпазен слой (затъмняване), за да може белият текст и бутоните да се четат идеално */
+    [data-testid="stAppViewContainer"]::before {{
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(14, 17, 23, 0.88) !important; 
+        z-index: -1;
+    }}
+    """
+
+st.markdown(f"""
 <style>
-    div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {
+    {bg_css}
+    div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {{
         background: rgba(255, 255, 255, 0.03) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 12px !important; padding: 10px 15px !important;
         box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4), -2px -2px 8px rgba(255, 255, 255, 0.02) !important;
         margin-bottom: 15px !important;
-    }
+    }}
     button[data-testid="stBaseButton-secondary"], 
     button[data-testid="stBaseButton-primary"],
-    [data-testid="stFileUploaderDropzone"] button {
+    [data-testid="stFileUploaderDropzone"] button {{
         background: linear-gradient(135deg, #2e2e2e, #1c1c1c) !important; 
         color: white !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important; 
@@ -30,17 +60,18 @@ st.markdown("""
         transition: all 0.2s ease !important; 
         font-weight: bold !important;
         width: 100% !important;
-    }
+    }}
     button[data-testid="stBaseButton-secondary"]:hover, 
     button[data-testid="stBaseButton-primary"]:hover,
-    [data-testid="stFileUploaderDropzone"] button:hover {
+    [data-testid="stFileUploaderDropzone"] button:hover {{
         background: linear-gradient(135deg, #3d3d3d, #252525) !important;
         transform: translateY(-2px) !important; 
         box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.6) !important;
-    }
-    small { color: #888 !important; }
+    }}
+    small {{ color: #888 !important; }}
 </style>
 """, unsafe_allow_html=True)
+
 
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
