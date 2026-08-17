@@ -43,6 +43,143 @@ st.markdown(
         box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.6) !important;
     }
     small { color: #888 !important; }
+
+    /* --- НОВИ 3D МОБИЛНИ СТИЛОВЕ --- */
+    
+    /* 3D Грид за Анализ на разходите */
+    .cost-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-top: 15px;
+        margin-bottom: 25px;
+    }
+    .cost-card-3d {
+        background: linear-gradient(145deg, #252930, #1b1e23);
+        border-radius: 16px;
+        padding: 14px 12px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 6px 6px 14px rgba(0, 0, 0, 0.6), -3px -3px 10px rgba(255, 255, 255, 0.03), inset 1px 1px 1px rgba(255, 255, 255, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .cost-card-3d:active, .cost-card-3d:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 8px 8px 18px rgba(0, 0, 0, 0.8), -3px -3px 12px rgba(255, 255, 255, 0.05);
+    }
+    .cost-title {
+        font-size: 13px;
+        color: #aaa;
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    .cost-value {
+        font-size: 18px;
+        font-weight: 900;
+        color: #ffffff;
+        text-shadow: 0px 2px 4px rgba(0,0,0,0.8);
+    }
+
+    /* 🏎️ АВТОМОБИЛНО ТАБЛО 3D (Cockpit style) */
+    .dashboard-container {
+        background: linear-gradient(160deg, #181b20, #0d0f12);
+        border-radius: 20px;
+        padding: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 8px 8px 20px rgba(0,0,0,0.7), inset 1px 1px 2px rgba(255,255,255,0.08);
+        margin: 20px 0;
+    }
+    .dashboard-header {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 1.2px;
+        color: #00f2fe;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .km-display-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        background: #111317;
+        padding: 10px;
+        border-radius: 12px;
+        box-shadow: inset 2px 2px 6px rgba(0,0,0,0.8), inset -1px -1px 4px rgba(255,255,255,0.03);
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    .km-box-val {
+        font-size: 16px;
+        font-weight: bold;
+        color: #fff;
+    }
+    .km-box-lbl {
+        font-size: 10px;
+        color: #777;
+        text-transform: uppercase;
+    }
+    .progress-bar-bg {
+        background: #0a0b0d;
+        height: 10px;
+        border-radius: 5px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.05);
+        margin-bottom: 15px;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00f2fe, #4facfe);
+        border-radius: 5px;
+        box-shadow: 0 0 10px #00f2fe;
+    }
+    
+    /* 3D Скоростомер / Разход дисплей */
+    .gauge-card {
+        background: radial-gradient(circle at center, #232830 0%, #121418 100%);
+        border-radius: 50%;
+        width: 150px;
+        height: 150px;
+        margin: 0 auto 15px auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 4px solid #1a1d24;
+        box-shadow: 6px 6px 15px rgba(0,0,0,0.9), -4px -4px 10px rgba(255,255,255,0.03), inset 0 0 15px rgba(0,0,0,0.8);
+        position: relative;
+    }
+    .gauge-value {
+        font-size: 26px;
+        font-weight: 900;
+        line-height: 1;
+    }
+    .gauge-unit {
+        font-size: 10px;
+        color: #888;
+        margin-top: 4px;
+        font-weight: 600;
+    }
+    .dashboard-footer-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    .dash-subcard {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        padding: 10px;
+        text-align: center;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
 </style>
 """,
     unsafe_allow_html=True,
@@ -60,7 +197,6 @@ KATEGORII = [
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 
-# Автоматично създаване на файловете, ако не съществуват
 if not os.path.exists(MAP_FILE):
   pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"]).to_csv(
       MAP_FILE, index=False, encoding="utf-8"
@@ -236,7 +372,7 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
     return False
 
 
-# Инициализиране на сесийни променливи
+# Сесийни променливи
 if "current_trip" not in st.session_state:
   st.session_state["current_trip"] = None
 if "form_version" not in st.session_state:
@@ -244,7 +380,7 @@ if "form_version" not in st.session_state:
 if "view_photos" not in st.session_state:
   st.session_state["view_photos"] = False
 
-# 🏠 ЕКРАН 1: Главно меню (Когато няма избрано пътуване)
+# 🏠 ЕКРАН 1: Главно меню
 if st.session_state["current_trip"] is None:
   st.markdown(
       """<div style='text-align: center; margin-bottom: 5px;'>
@@ -357,7 +493,7 @@ if st.session_state["current_trip"] is None:
   if st.button("➕ Ново пътуване", use_container_width=True):
     create_trip_modal()
 
-# 🌴 ЕКРАН 2: Контролен панел на избраното пътуване
+# 🌴 ЕКРАН 2: Контролен панел
 else:
   trip_id = st.session_state["current_trip"]
   papka_snimki = f"snimki_{trip_id}_2026"
@@ -438,7 +574,6 @@ else:
       if st.button("🛟 ОТКАЗ", use_container_width=True):
         st.rerun()
 
-  # Изчисляване на глобални бюджети
   df_trip = get_trip_data(trip_id)
   depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum())
   df_expenses = df_trip[df_trip["type"] == "expense"]
@@ -485,7 +620,7 @@ else:
   except Exception:
     pass
 
-  # 🖼️ ПОД-ЕКРАН: Галерия със снимки
+  # 🖼️ ПОД-ЕКРАН: Галерия
   if st.session_state["view_photos"]:
     if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True):
       st.session_state["view_photos"] = False
@@ -521,7 +656,7 @@ else:
     else:
       st.info("Все още няма качени снимки.")
 
-  # 💰 ПОД-ЕКРАН: Главно оперативно табло с разходи
+  # 💰 ПОД-ЕКРАН: Главно оперативно табло
   else:
     date_html = (
         f" ({st_date} - {en_date})" if st_date and st_date != "nan" else ""
@@ -602,7 +737,7 @@ else:
           st.session_state["form_version"] += 1
           st.rerun()
 
-    # Решетка с бутони за категории
+    # Бутони за категории
     grid = st.columns(3)
     for i, kat in enumerate(KATEGORII):
       with grid[i % 3]:
@@ -626,14 +761,21 @@ else:
                 st.session_state["form_version"] += 1
                 st.rerun()
 
-    # 📊 СЕКЦИЯ: Анализ на разходите по категории
+    # 📊 СЕКЦИЯ: Анализ на разходите (3D МОБИЛЕН ДИЗАЙН)
     st.markdown("### 📊 Анализ на разходите")
-    stat_grid = st.columns(2)
-    for idx, (kat, s_value) in enumerate(categories_totals.items()):
-      with stat_grid[idx % 2]:
-        st.metric(label=f"{get_emoji(kat)} {kat}", value=f"{s_value:.2f} EUR")
 
-    # 🚗 СЕКЦИЯ: Автомобилно табло
+    cost_cards_html = "<div class='cost-grid'>"
+    for kat, s_value in categories_totals.items():
+      cost_cards_html += f"""
+        <div class='cost-card-3d'>
+            <div class='cost-title'>{get_emoji(kat)} {kat}</div>
+            <div class='cost-value'>{s_value:.2f} <span style="font-size:12px; color:#aaa;">EUR</span></div>
+        </div>
+        """
+    cost_cards_html += "</div>"
+    st.markdown(cost_cards_html, unsafe_allow_html=True)
+
+    # 🚗 СЕКЦИЯ: Автомобилно табло (COCKPIT STYLE 3D)
     if car_trip == "Да":
       val_to_show, is_final_status = 0.0, False
       try:
@@ -671,21 +813,73 @@ else:
       except Exception:
         pass
 
-      st.markdown("---")
-      st.subheader("📍 Следене на пробега")
-      m1, m2, m3 = st.columns(3)
-      m1.metric("Старт", f"{s_km:.0f} км")
-      m2.metric("Изминати", f"{dist:.0f} км")
-      m3.metric(
-          "Крайни" if is_trip_finished else "Текущи",
-          f"{eff_end_km:.0f} км" if eff_end_km > 0 else "—",
+      # Динамичен цвят на дисплея според разхода
+      gauge_color = (
+          "#666"
+          if val_to_show == 0.0
+          else "#00ffcc"
+          if val_to_show <= 6.0
+          else "#00f2fe"
+          if val_to_show <= 8.5
+          else "#ffa500"
+          if val_to_show <= 11.0
+          else "#ff4b4b"
       )
 
-      st.metric(
-          label="СРЕДЕН РАЗХОД",
-          value=f"{val_to_show:.1f} л/100км",
-          delta="Финални данни" if is_final_status else "Затворени етапи",
+      # Изчисляване процент за прогрес лентата
+      progress_pct = (
+          100
+          if is_final_status
+          else min(100, max(5, int((dist / 1000) * 100)))
+          if dist > 0
+          else 0
       )
+
+      dashboard_html = f"""
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <span>🏎️ АВТОМОБИЛНО ТАБЛО</span>
+                <span>{ '<span style="color:#ff4b4b;">🔒 ЗАКЛЮЧЕНО</span>' if is_trip_finished else '<span style="color:#00ffcc;">🟢 АКТИВНО</span>' }</span>
+            </div>
+            
+            <div class="km-display-grid">
+                <div>
+                    <div class="km-box-lbl">СТАРТ</div>
+                    <div class="km-box-val">{s_km:.0f} <span style="font-size:10px;">км</span></div>
+                </div>
+                <div>
+                    <div class="km-box-lbl">ИЗМИНАТИ</div>
+                    <div class="km-box-val" style="color:#00f2fe;">{dist:.0f} <span style="font-size:10px;">км</span></div>
+                </div>
+                <div>
+                    <div class="km-box-lbl">{'КРАЙНИ' if is_trip_finished else 'ТЕКУЩИ'}</div>
+                    <div class="km-box-val">{eff_end_km:.0f} <span style="font-size:10px;">км</span></div>
+                </div>
+            </div>
+
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: {progress_pct}%;"></div>
+            </div>
+
+            <div class="gauge-card" style="box-shadow: 0 0 20px {gauge_color}22, inset 0 0 15px rgba(0,0,0,0.8);">
+                <div class="gauge-value" style="color: {gauge_color}; text-shadow: 0 0 10px {gauge_color};">{val_to_show:.1f}</div>
+                <div class="gauge-unit">л / 100 км</div>
+                <div style="font-size: 8px; color: #666; margin-top: 4px; text-transform:uppercase;">{'Финал' if is_final_status else 'Среден етап'}</div>
+            </div>
+
+            <div class="dashboard-footer-grid">
+                <div class="dash-subcard">
+                    <div style="font-size:10px; color:#aaa;">💧 ЗАРЕДЕНО ГОРИВО</div>
+                    <div style="font-size:14px; font-weight:bold; color:#fff;">{(float(df_expenses[df_expenses['category'] == 'Транспорт']['liters'].sum()) + m_fuel):.1f} л</div>
+                </div>
+                <div class="dash-subcard">
+                    <div style="font-size:10px; color:#aaa;">💰 ОБЩО ТРАНСПОРТ</div>
+                    <div style="font-size:14px; font-weight:bold; color:#00ffcc;">{auto_fuel_money:.2f} EUR</div>
+                </div>
+            </div>
+        </div>
+        """
+      st.markdown(dashboard_html, unsafe_allow_html=True)
 
     @st.dialog("⚙️ Настройки на превозно средство и период")
     def edit_car_modal():
@@ -837,7 +1031,7 @@ else:
       ):
         edit_car_modal()
 
-    # Показване на Основни финансови стълбове
+    # Финансови стълбове
     st.markdown("---")
     col_st1, col_st2 = st.columns(2)
     with col_st1:
@@ -845,7 +1039,7 @@ else:
     with col_st2:
       st.metric("💰 НА МЯСТО", f"{total_on_site:.2f} EUR")
 
-    # 📋 СЕКЦИЯ: Хронология на плащанията
+    # 📋 СЕКЦИЯ: Хронология
     if not df_trip.empty:
       st.markdown("---")
       st.subheader("📋 Хронология на плащанията")
@@ -875,7 +1069,7 @@ else:
       except Exception:
         pass
 
-    # Превключвател за влизане в албума
+    # Превключвател за снимки
     st.markdown("---")
     st.button(
         "📸 Снимки и спомени",
@@ -884,7 +1078,7 @@ else:
     )
     st.markdown("---")
 
-    # 📄 СЕКЦИЯ: Експорт на пълен цифров отчет (HTML)
+    # 📄 СЕКЦИЯ: Експорт
     avg_con_txt = (
         f"{(total_liters_calculated / dist * 100):.1f} л / 100 км"
         if dist > 0
@@ -939,7 +1133,7 @@ else:
 
     st.markdown("---")
 
-    # 🗺️ СЕКЦИЯ: Интерактивна карта с пинчета (Folium)
+    # 🗺️ СЕКЦИЯ: Интерактивна карта (Folium)
     st.subheader("🗺️ Карта на спирките и дестинациите")
     df_points = get_map_points(trip_id)
     c_lat, c_lon = (
@@ -1009,7 +1203,7 @@ else:
           st.session_state["active_click"] = None
           st.rerun()
 
-    # Списък и триене на запазени географски локации
+    # Списък на запазени локации
     if not df_points.empty:
       st.markdown("#### 📍 Списък на запазените локации")
       try:
