@@ -582,12 +582,13 @@ else:
         b64_pdf = base64.b64encode(pdf_html.encode('utf-8')).decode('utf-8')
         st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
         st.markdown("---")
-        # === ИНТЕРАКТИВНА КАРТА НА ПЪТУВАНЕТО ===
+        # === ИНТЕРАКТИВНА КАРТА НА ПЪТУВАНЕТО (ОПТИМИЗИРАНА) ===
         st.subheader("🗺️ Карта на спирките и дестинациите")
         st.markdown("<small style='color:#888;'>💡 Кликнете директно върху картата, за да добавите пинче на това място!</small>", unsafe_allow_html=True)
         
         df_points = get_map_points(trip_id)
         
+        # Определяне на центъра на картата
         if not df_points.empty:
             center_lat = df_points["lat"].mean()
             center_lon = df_points["lon"].mean()
@@ -595,12 +596,14 @@ else:
         else:
             center_lat, center_lon, zoom_lvl = 42.7339, 25.4858, 5
 
+        # Създаване на базовата Folium карта
         m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_lvl, tiles="OpenStreetMap")
         m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
         
-        # Добавяме опция за кликане върху картата
+        # Добавяне на изскачащ прозорец при клик (LatLngPopup)
         folium.LatLngPopup().add_to(m)
         
+        # Рендериране на съществуващите маркери
         for _, pt in df_points.iterrows():
             folium.Marker(
                 location=[pt["lat"], pt["lon"]],
@@ -608,27 +611,47 @@ else:
                 icon=folium.Icon(color=pt["color"], icon="info-sign")
             ).add_to(m)
             
-        # Улавяме данните от кликането върху картата
+        # Показване на картата в Streamlit
         map_data = st_folium(m, width=700, height=400, key=f"map_{trip_id}")
         
-        # Ако потребителят е кликнал на картата, излиза форма за заглавие под нея
-        if map_data and map_data.get("last_clicked") and not is_trip_finished:
-            click_coords = map_data["last_clicked"]
+        # Мениджмънт на състоянието на клика (Предотвратява бъгове при презареждане)
+        if map_data and map_data.get("last_clicked"):
+            st.session_state["active_click"] = map_data["last_clicked"]
+
+        # Показване на формата за добавяне само ако имаме валиден активен клик
+        if "active_click" in st.session_state and st.session_state["active_click"] is not None and not is_trip_finished:
+            click_coords = st.session_state["active_click"]
             c_lat, c_lon = click_coords["lat"], click_coords["lng"]
             
-            st.markdown(f"📌 **Избрано място:** Ширина: `{c_lat:.4f}`, Дължина: `{c_lon:.4f}`")
+            st.markdown(f"<div style='background:rgba(255,215,0,0.05); border:1px solid rgba(255,215,0,0.2); padding:15px; border-radius:12px; margin: 10px 0;'>📌 <b>Избрано място:</b> Ширина: <code>{c_lat:.4f}</code>, Дължина: <code>{c_lon:.4f}</code></div>", unsafe_allow_html=True)
             
             c_m1, c_m2 = st.columns([0.7, 0.3])
-            with c_m1: title_in = st.text_input("Име на новата спирка:", placeholder="напр. Хотел, Ресторант, Музей...", key="map_title_click")
-            with c_m2: color_in = st.selectbox("Цвят:", ["blue", "green", "red", "purple", "orange"], key="map_color_click")
+            with c_m1: 
+                title_in = st.text_input("Име на новата спирка:", placeholder="напр. Хотел, Ресторант, Забележителност...", key="map_title_click")
+            with c_m2: 
+                color_in = st.selectbox("Цвят на пинчето:", ["blue", "green", "red", "purple", "orange"], key="map_color_click")
             
-            if st.button("💾 ЗАПИШИ ПИНЧЕТО НА КАРТАТА", use_container_width=True):
-                if title_in:
-                    if add_map_point(trip_id, c_lat, c_lon, title_in, color_in):
-                        st.success(f"Локацията '{title_in}' е добавена!")
-                        st.rerun()
+            cb1, cb2 = st.columns([0.7, 0.3])
+            with cb1:
+                if st.button("💾 ЗАПИШИ ПИНЧЕТО НА КАРТАТА", use_container_width=True, type="primary"):
+                    if title_in.strip():
+                        if add_map_point(trip_id, c_lat, c_lon, title_in.strip(), color_in):
+                            st.success(f"Локацията '{title_in}' е добавена успешно!")
+                            # Изчистваме състоянието, за да затворим формата
+                            st.session_state["active_click"] = None
+                            st.rerun()
+                    else:
+                        st.error("Моля, въведете име на новата спирка преди запис!")
+            with cb2:
+                if st.button("❌ Отказ", use_container_width=True):
+                    st.session_state["active_click"] = None
+                    st.rerun()
                         
         st.markdown("---")
+
+        if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True):
+            confirm_delete_trip_dialog()
+
 
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True):
             confirm_delete_trip_dialog()
