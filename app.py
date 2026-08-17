@@ -285,7 +285,7 @@ else:
         else: st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма снимки.</div>", unsafe_allow_html=True)
     else:
         date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-        st.markdown(f"<div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         st.markdown("---")
 
         if st.button("⬅️ НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
@@ -313,16 +313,28 @@ else:
                 if ckm > last_km and lit > 0 and is_full == "ПЪЛЕН": full_desc += f" (Етап: {(ckm - last_km):.0f}км, Разход: {(lit / (ckm - last_km) * 100):.1f}л/100км)"
                 if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): st.session_state["form_version"] += 1; st.rerun()
 
-        grid = st.columns(3)
-        for i, kat in enumerate(KATEGORII):
-            with grid[i % 3]:
-                is_disabled = is_trip_finished and (kat == "Транспорт")
-                if st.button(f"🔒 {kat}" if is_disabled else kat, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
-                    if s_input and s_input > 0:
-                        desc, is_d = (o_input.strip() if o_input else "Без описание"), (kat == "Депозит/Резервация")
-                        if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): fuel_modal(s_input, kat, desc, is_d)
-                        else:
-                            if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
+        # Показва категориите САМО ако потребителят е почнал да пише в полето за Описание
+        if o_input.strip():
+            st.markdown("""
+            <div style='text-align: center; margin: 10px 0 15px 0; animation: fadeIn 0.4s ease-in-out;'>
+                <small style='color: #4facfe; font-weight: bold; letter-spacing: 0.5px;'>🎯 ИЗБЕРЕТЕ КАТЕГОРИЯ ЗА ЗАПИС:</small>
+            </div>
+            <style>
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            grid = st.columns(3)
+            for i, kat in enumerate(KATEGORII):
+                with grid[i % 3]:
+                    is_disabled = is_trip_finished and (kat == "Транспорт")
+                    if st.button(f"🔒 {kat}" if is_disabled else kat, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
+                        if s_input and s_input > 0:
+                            desc, is_d = o_input.strip(), (kat == "Депозит/Резервация")
+                            if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): fuel_modal(s_input, kat, desc, is_d)
+                            else:
+                                if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
+
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
