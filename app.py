@@ -172,7 +172,7 @@ if st.session_state["current_trip"] is None:
             # 🌐 АВТОМАТИЧНО НАМИРАНЕ НА КООРДИНАТИ ПО ИМЕТО
             try:
                 geolocator = Nominatim(user_agent="pixelapp_travel_manager_2026")
-                location = geolocator.geocode(f"{txt}, Europe", language="bg,en"))
+                location = geolocator.geocode(f"{txt}, Europe", language="bg,en")
                 if location:
                     add_map_point(target_id, location.latitude, location.longitude, f"🏁 Център: {txt}", "red")
             except:
