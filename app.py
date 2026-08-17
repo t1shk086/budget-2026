@@ -12,7 +12,8 @@ st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 def get_base64_bg(img_path):
     if os.path.exists(img_path):
-        with open(img_path, "bytes") as f:
+        # Коригирано от "bytes" на "rb" за правилно четене на изображението
+        with open(img_path, "rb") as f:
             data = f.read()
         return base64.b64encode(data).decode()
     return ""
@@ -67,6 +68,7 @@ st.markdown(f"""
     small {{ color: #888 !important; }}
 </style>
 """, unsafe_allow_html=True)
+
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
