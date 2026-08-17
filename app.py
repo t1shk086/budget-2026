@@ -597,15 +597,9 @@ else:
             center_lat, center_lon, zoom_lvl = 42.7339, 25.4858, 5 # Център България
 
         # Създаваме фолиум обекта
-        m = folium.Map(
-            location=[center_lat, center_lon], 
-            zoom_start=zoom_lvl, 
-            tiles="https://arcgisonline.com{z}/{y}/{x}",
-            attr="Esri World Street Map"
-        )
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_lvl, tiles="OpenStreetMap")
 
-
-        
+                
         # Рисуваме пинчетата на картата
         for _, pt in df_points.iterrows():
             folium.Marker(
