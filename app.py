@@ -177,7 +177,7 @@ else:
         with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
         is_trip_finished = (e_km > 0.0)
 
-        @st.dialog("⛽ Зареждане на гориво")
+        # Премахваме декоратора @st.dialog от тук, за да не е вгнезден прозорец
         def fuel_modal(amount, category, description, is_dep):
             if is_trip_finished: st.error("🔒 Пътуването е приключено!"); return
             liters = st.number_input("Литри:", value=None, placeholder="Напишете литри...", step=0.1)
@@ -185,34 +185,42 @@ else:
             df_f = get_trip_data(trip_id)[lambda d: (d["category"] == "Транспорт") & (d["current_km"] > 0)]
             last_km = float(df_f["current_km"].max()) if not df_f.empty else s_km
             km_input = st.number_input("Текущи километри на таблото (км):", value=None, placeholder="Въведете км...", step=1.0)
-            if liters and km_input and km_input > last_km and "до горе" in fuel_type.lower(): st.success(f"📊 Етапен разход: **{(liters / (km_input - last_km) * 100):.1f} л / 100 км**")
+            if liters and km_input and km_input > last_km and "до горе" in fuel_type.lower(): 
+                st.success(f"📊 Етапен разход: **{(liters / (km_input - last_km) * 100):.1f} л / 100 км**")
             if st.button("💾 Запиши зареждането", use_container_width=True, type="primary"):
-                lit, ckm = (float(liters) if liters is not None else 0.0), (float(km_input) if km_input is not None else 0.0); is_full = "ПЪЛЕН" if "до горе" in fuel_type.lower() else "ЧАСТИЧЕН"; full_desc = f"[{is_full} ГОРИВО] {description}"
-                if ckm > last_km and lit > 0 and is_full == "ПЪЛЕН": full_desc += f" (Етап: {(ckm - last_km):.0f}км, Разход: {(lit / (ckm - last_km) * 100):.1f}л/100км)"
-                if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): st.session_state["form_version"] += 1; st.rerun()
+                lit, ckm = (float(liters) if liters is not None else 0.0), (float(km_input) if km_input is not None else 0.0)
+                is_full = "ПЪЛЕН" if "до горе" in fuel_type.lower() else "ЧАСТИЧЕН"
+                full_desc = f"[{is_full} ГОРИВО] {description}"
+                if ckm > last_km and lit > 0 and is_full == "ПЪЛЕН": 
+                    full_desc += f" (Етап: {(ckm - last_km):.0f}км, Разход: {(lit / (ckm - last_km) * 100):.1f}л/100км)"
+                if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): 
+                    st.session_state["form_version"] += 1; st.rerun()
+
         @st.dialog("Изберете категория")
         def clean_categories_popup_modal(amount, description):
-            grid = st.columns(3)
-            for i, kat in enumerate(KATEGORII):
-                with grid[i % 3]:
-                    is_disabled = is_trip_finished and (kat == "Транспорт")
-                    if st.button(f"🔒 {kat}" if is_disabled else kat, use_container_width=True, key=f"popup_bt_{i}", disabled=is_disabled):
-                        is_d = (kat == "Депозит/Резервация")
-                        if kat == "Транспорт" and any(k in description.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): fuel_modal(amount, kat, description, is_d)
-                        else:
-                            if add_expense(trip_id, amount, kat, description, is_d): st.session_state["form_version"] += 1; st.rerun()
-        if s_input and s_input > 0 and o_input.strip(): clean_categories_popup_modal(s_input, o_input.strip())
+            # Използваме session_state, за да разберем дали потребителят е кликнал на Транспорт с гориво
+            if "show_fuel_form" not in st.session_state:
+                st.session_state["show_fuel_form"] = False
+                
+            if st.session_state["show_fuel_form"]:
+                fuel_modal(amount, "Транспорт", description, False)
+                if st.button("⬅️ Назад към категориите", use_container_width=True):
+                    st.session_state["show_fuel_form"] = False
+                    st.rerun()
+            else:
+                grid = st.columns(3)
+                for i, kat in enumerate(KATEGORII):
+                    with grid[i % 3]:
+                        is_disabled = is_trip_finished and (kat == "Транспорт")
+                        if st.button(f"🔒 {kat}" if is_disabled else kat, use_container_width=True, key=f"popup_bt_{i}", disabled=is_disabled):
+                            is_d = (kat == "Депозит/Резервация")
+                            if kat == "Транспорт" and any(k in description.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): 
+                                st.session_state["show_fuel_form"] = True
+                                st.rerun()
+                            else:
+                                if add_expense(trip_id, amount, kat, description, is_d): 
+                                    st.session_state["form_version"] += 1; st.rerun()
 
-        st.markdown("### 📊 Анализ на разходите")
-        stat_grid = st.columns(2)
-        for idx, (kat, s_value) in enumerate(categories_totals.items()):
-            with stat_grid[idx % 2]:
-                pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
-                st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
-                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
                     </div>
                     <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
                         <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
