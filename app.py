@@ -99,7 +99,7 @@ def get_trip_settings(t_id):
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
         if not f.empty:
-            res = f.iloc[0].to_dict()
+            res = f.iloc.to_dict()
             return {
                 "trip_id": t_id, 
                 "car_trip": str(res.get("car_trip", "Не")), 
@@ -178,7 +178,7 @@ if st.session_state["current_trip"] is None:
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)):
-                s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
+                s_d_str = d_range.strftime("%d.%m.%Y") if len(d_range) > 0 else ""
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
             elif hasattr(d_range, "strftime"): s_d_str = d_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
             else: s_d_str, e_d_str = "", ""
@@ -301,10 +301,10 @@ else:
                 if ckm > last_km and lit > 0 and is_full == "ПЪЛЕН": full_desc += f" (Етап: {(ckm - last_km):.0f}км, Разход: {(lit / (ckm - last_km) * 100):.1f}л/100км)"
                 if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): st.session_state["form_version"] += 1; st.rerun()
 
-        # Централен Pop-up, който се скрива автоматично след избор
+        # Абсолютен централен прозорец (Modal), който застава НАД всичко останало
         @st.dialog("🎯 Изберете категория за разхода")
         def categories_popup_modal(amount, description):
-            st.write("Изборът ще разпредели сумата в графиките:")
+            st.write("Изборът автоматично ще запише сумата и ще затвори този прозорец:")
             grid = st.columns(3)
             for i, kat in enumerate(KATEGORII):
                 with grid[i % 3]:
@@ -317,12 +317,12 @@ else:
                             if add_expense(trip_id, amount, kat, description, is_d):
                                 st.session_state["form_version"] += 1; st.rerun()
 
-        # Показване на активиращия бутон само при въведени данни
+        # Бутонът се показва само когато имаме въведени данни, отваряйки Pop-up-а ВЪРХУ всичко
         if s_input and s_input > 0 and o_input.strip():
             if st.button("🎯 ИЗБЕРИ КАТЕГОРИЯ И ЗАПИШИ", use_container_width=True, type="primary"):
                 categories_popup_modal(s_input, o_input.strip())
         else:
-            st.markdown("<div style='text-align:center; padding:12px; color:#555; background:rgba(255,255,255,0.01); border-radius:10px; font-size:13px;'>Въведете сума и описание по-горе, за да изберете категория...</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align:center; padding:12px; color:#555; background:rgba(255,255,255,0.01); border-radius:10px; font-size:13px;'>Въведете сума и описание по-горе, за да отворите централния избор...</div>", unsafe_allow_html=True)
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
