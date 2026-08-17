@@ -24,11 +24,12 @@ if bg_base64:
     bg_css = f"""
     html, body, [data-testid="stAppViewContainer"] {{
         background-image: url("data:image/png;base64,{bg_base64}") !important;
-        background-size: cover !important;
-        background-repeat: no-repeat !important;
-        background-position: center center !important;
-        background-attachment: fixed !important;
+        background-size: cover !important; /* Автоматично стречва логото според големината на екрана */
+        background-repeat: no-repeat !important; /* Спира повтарянето на картинката */
+        background-position: center center !important; /* Държи фона перфектно центриран */
+        background-attachment: fixed !important; /* Фонът остава статичен при скролване */
     }}
+    /* Полупрозрачен предпазен слой (затъмняване), за да може белият текст и бутоните да се четат идеално */
     [data-testid="stAppViewContainer"]::before {{
         content: "";
         position: fixed;
@@ -70,6 +71,9 @@ st.markdown(f"""
     small {{ color: #888 !important; }}
 </style>
 """, unsafe_allow_html=True)
+
+
+
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
@@ -156,14 +160,13 @@ if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 if "view_photos" not in st.session_state: st.session_state["view_photos"] = False
 
 if st.session_state["current_trip"] is None:
-    # Премахнат е целият голям блок със заглавието PixelApp и лапичките, оставяме само малко празно пространство
-    st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: 4px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
     
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
     if existing:
         opts = [t.replace("_", " ") for t in existing]
-        choice = st.selectbox("Изберете дестинация за отваряне:", opts)
+        choice = st.selectbox("Изберете пътуване до:", opts)
         if st.button("📂 ОТВОРИ ПЪТУВАНЕ", use_container_width=True):
             st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
     else:
@@ -176,13 +179,13 @@ if st.session_state["current_trip"] is None:
         txt = st.text_input("Име на дестинацията:").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
         st.write("---"); st.write("🚗 Пътувате ли със собствен автомобил?")
-        viber_car = st.radio("Изберете вариант:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
+        viber_car = st.radio("Изберете variant:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)):
-                s_d_str = d_range.strftime("%d.%m.%Y") if len(d_range) > 0 else ""
+                s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
             elif hasattr(d_range, "strftime"): s_d_str = d_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
             else: s_d_str, e_d_str = "", ""
@@ -286,9 +289,8 @@ else:
                     if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
         else: st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма снимки.</div>", unsafe_allow_html=True)
     else:
-        # Име на дестинацията е направено малко, дискретно и елегантно с малък сив шрифт за датите
-        date_html = f" &nbsp;|&nbsp; <span style='font-size: 13px; color: #666; font-weight: normal;'>{st_date} - {en_date}</span>" if st_date and st_date != "nan" else ""
-        st.markdown(f"<div style='text-align: left; margin-top: 5px; margin-bottom: 5px;'><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 600; font-size: 16px; color: #aaa; margin: 0;'>📍 {trip_id.replace('_', ' ')}{date_html}</p></div>", unsafe_allow_html=True)
+        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+        st.markdown(f"<div style='text-align: center; margin-top: 10px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         st.markdown("---")
 
         if st.button("⬅️ НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
