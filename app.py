@@ -20,22 +20,21 @@ def get_base64_bg(img_path):
 bg_base64 = get_base64_bg("logo.png")
 bg_css = ""
 
-# Прилагане на логото директно върху HTML тапета на браузъра за 100% съвместимост в облака
 if bg_base64:
     bg_css = f"""
     html, body, [data-testid="stAppViewContainer"] {{
         background-image: url("data:image/png;base64,{bg_base64}") !important;
-        background-size: min(75vw, 550px) !important;
-        background-repeat: no-repeat !important;
-        background-position: center 38% !important;
-        background-attachment: fixed !important;
+        background-size: cover !important; /* Автоматично стречва логото според големината на екрана */
+        background-repeat: no-repeat !important; /* Спира повтарянето на картинката */
+        background-position: center center !important; /* Държи фона перфектно центриран */
+        background-attachment: fixed !important; /* Фонът остава статичен при скролване */
     }}
-    /* Застъпващ слой, който прави логото полупрозрачно (opacity 0.06), за да се чете лесно текстът */
+    /* Полупрозрачен предпазен слой (затъмняване), за да може белият текст и бутоните да се четат идеално */
     [data-testid="stAppViewContainer"]::before {{
         content: "";
         position: fixed;
         top: 0; left: 0; width: 100vw; height: 100vh;
-        background: rgba(14, 17, 23, 0.94) !important; /* Напасва се с тъмната тема на Streamlit */
+        background: rgba(14, 17, 23, 0.88) !important; 
         z-index: -1;
     }}
     """
@@ -72,6 +71,7 @@ st.markdown(f"""
     small {{ color: #888 !important; }}
 </style>
 """, unsafe_allow_html=True)
+
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
