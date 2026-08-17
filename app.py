@@ -597,7 +597,13 @@ else:
             center_lat, center_lon, zoom_lvl = 42.7339, 25.4858, 5 # Център България
 
         # Създаваме фолиум обекта
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_lvl, tiles="OpenStreetMap")
+        m = folium.Map(
+            location=[center_lat, center_lon], 
+            zoom_start=zoom_lvl, 
+            tiles="https://openstreetmap.org{z}/{x}/{y}.png",
+            attr='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
+        )
+
 
                 
         # Рисуваме пинчетата на картата
