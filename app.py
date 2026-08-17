@@ -392,48 +392,49 @@ else:
                             if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
 # === КРАЙ НА ЧАСТ 6 ===
 # === НАЧАЛО НА ЧАСТ 7А ===
-# --- ЧАСТ 7А: САМО МАТЕМАТИКА ---
-val_to_show = 0.0
-is_final_status = False
+            # --- ЧАСТ 7А: САМО МАТЕМАТИКА (ТОЧНИ 12 ИНТЕРВАЛА) ---
+            val_to_show = 0.0
+            is_final_status = False
 
-try:
-    df_trans = df_expenses[df_expenses["category"] == "Транспорт"].copy()
-    df_fuel = df_trans[df_trans["current_km"] >= s_km].sort_values(by="current_km")
-    
-    total_valid_liters = 0.0
-    total_valid_dist = 0.0
-    prev_km = s_km
-    temp_liters = 0.0
-    
-    for _, row in df_fuel.iterrows():
-        desc_upper = str(row["description"]).upper()
-        current_entry_km = float(row["current_km"])
-        entry_liters = float(row.get("liters", 0.0))
-        
-        if current_entry_km == s_km:
-            prev_km = current_entry_km
-            continue
-            
-        stage_dist = current_entry_km - prev_km
-        if stage_dist > 0:
-            temp_liters += entry_liters
-            if "ПЪЛЕН" in desc_upper:
-                total_valid_dist += stage_dist
-                total_valid_liters += temp_liters
-                temp_liters = 0.0 
-                prev_km = current_entry_km
+            try:
+                df_trans = df_expenses[df_expenses["category"] == "Транспорт"].copy()
+                df_fuel = df_trans[df_trans["current_km"] >= s_km].sort_values(by="current_km")
+                
+                total_valid_liters = 0.0
+                total_valid_dist = 0.0
+                prev_km = s_km
+                temp_liters = 0.0
+                
+                for _, row in df_fuel.iterrows():
+                    desc_upper = str(row["description"]).upper()
+                    current_entry_km = float(row["current_km"])
+                    entry_liters = float(row.get("liters", 0.0))
+                    
+                    if current_entry_km == s_km:
+                        prev_km = current_entry_km
+                        continue
+                        
+                    stage_dist = current_entry_km - prev_km
+                    if stage_dist > 0:
+                        temp_liters += entry_liters
+                        if "ПЪЛЕН" in desc_upper:
+                            total_valid_dist += stage_dist
+                            total_valid_liters += temp_liters
+                            temp_liters = 0.0 
+                            prev_km = current_entry_km
 
-    total_valid_liters += m_fuel
-    if total_valid_dist > 0 and total_valid_liters > 0:
-        val_to_show = (total_valid_liters / total_valid_dist) * 100
-    
-    if e_km > s_km:
-        is_final_status = True
-        if val_to_show == 0.0 and total_liters_calculated > 0:
-            val_to_show = (total_liters_calculated / dist) * 100
-            
-except Exception as e:
-    st.error(f"Грешка: {e}")
+                total_valid_liters += m_fuel
+                if total_valid_dist > 0 and total_valid_liters > 0:
+                    val_to_show = (total_valid_liters / total_valid_dist) * 100
+                
+                if e_km > s_km:
+                    is_final_status = True
+                    if val_to_show == 0.0 and total_liters_calculated > 0:
+                        val_to_show = (total_liters_calculated / dist) * 100
+                        
+            except Exception as e:
+                st.error(f"Грешка при изчисление: {e}")
+
             # --- ЧАСТ 7А: САМО ВИЗУАЛИЗАЦИЯ (ТОЧНИ ОТСТОЯНИЯ) ---
             if val_to_show == 0.0: color_gauge = "#666"
             elif val_to_show <= 5.5: color_gauge = "#00ffcc"
