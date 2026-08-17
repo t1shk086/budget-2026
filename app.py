@@ -333,8 +333,8 @@ else:
             if st.button("🎯 ИЗБЕРИ КАТЕГОРИЯ И ЗАПИШИ", use_container_width=True, type="primary"):
                 categories_popup_modal(s_input, o_input.strip())
         else:
-st.markdown("Въведете сума и описание по-горе, за да изберете категория...", unsafe_allow_html=True)
-st.markdown("### 📊 Анализ на разходите")
+                st.markdown("Въведете сума и описание по-горе, за да изберете категория...", unsafe_allow_html=True)
+                st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
             with stat_grid[idx % 2]:
