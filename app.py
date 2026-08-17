@@ -18,36 +18,41 @@ def get_base64_bg(img_path):
     return ""
 
 bg_base64 = get_base64_bg("logo.png")
+bg_css = ""
 
-# Инжектиране на логото като фонов слой директно в HTML структурата
+# Прилагане на логото директно върху HTML тапета на браузъра за 100% съвместимост в облака
 if bg_base64:
-    st.markdown(f"""
-    <div style="
+    bg_css = f"""
+    html, body, [data-testid="stAppViewContainer"] {{
+        background-image: url("data:image/png;base64,{bg_base64}") !important;
+        background-size: min(75vw, 550px) !important;
+        background-repeat: no-repeat !important;
+        background-position: center 38% !important;
+        background-attachment: fixed !important;
+    }}
+    /* Застъпващ слой, който прави логото полупрозрачно (opacity 0.06), за да се чете лесно текстът */
+    [data-testid="stAppViewContainer"]::before {{
+        content: "";
         position: fixed;
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        background-image: url('data:image/png;base64,{bg_base64}');
-        background-size: min(70vw, 500px);
-        background-repeat: no-repeat;
-        background-position: center 40%;
-        opacity: 0.08;
-        z-index: -9999;
-        pointer-events: none;
-    "></div>
-    """, unsafe_allow_html=True)
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(14, 17, 23, 0.94) !important; /* Напасва се с тъмната тема на Streamlit */
+        z-index: -1;
+    }}
+    """
 
-st.markdown("""
+st.markdown(f"""
 <style>
-    div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {
+    {bg_css}
+    div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {{
         background: rgba(255, 255, 255, 0.03) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 12px !important; padding: 10px 15px !important;
         box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4), -2px -2px 8px rgba(255, 255, 255, 0.02) !important;
         margin-bottom: 15px !important;
-    }
+    }}
     button[data-testid="stBaseButton-secondary"], 
     button[data-testid="stBaseButton-primary"],
-    [data-testid="stFileUploaderDropzone"] button {
+    [data-testid="stFileUploaderDropzone"] button {{
         background: linear-gradient(135deg, #2e2e2e, #1c1c1c) !important; 
         color: white !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important; 
@@ -56,15 +61,15 @@ st.markdown("""
         transition: all 0.2s ease !important; 
         font-weight: bold !important;
         width: 100% !important;
-    }
+    }}
     button[data-testid="stBaseButton-secondary"]:hover, 
     button[data-testid="stBaseButton-primary"]:hover,
-    [data-testid="stFileUploaderDropzone"] button:hover {
+    [data-testid="stFileUploaderDropzone"] button:hover {{
         background: linear-gradient(135deg, #3d3d3d, #252525) !important;
         transform: translateY(-2px) !important; 
         box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.6) !important;
-    }
-    small { color: #888 !important; }
+    }}
+    small {{ color: #888 !important; }}
 </style>
 """, unsafe_allow_html=True)
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
@@ -172,13 +177,13 @@ if st.session_state["current_trip"] is None:
         txt = st.text_input("Име на дестинацията:").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
         st.write("---"); st.write("🚗 Пътувате ли със собствен автомобил?")
-        viber_car = st.radio("Изберете вариант:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
+        viber_car = st.radio("Изберете variant:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)):
-                s_d_str = d_range.strftime("%d.%m.%Y") if len(d_range) > 0 else ""
+                s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
             elif hasattr(d_range, "strftime"): s_d_str = d_range.strftime("%d.%m.%Y"); e_d_str = s_d_str
             else: s_d_str, e_d_str = "", ""
@@ -383,7 +388,7 @@ else:
             edit_range = st.date_input("Изберете нови дати:", value=[current_start, current_end], key="edit_dates_cal")
             if st.button("💾 Обнови", use_container_width=True, type="primary", disabled=is_trip_finished):
                 sk_val, mf_val = (float(new_sk) if new_sk is not None else 0.0), (float(new_mf) if new_mf is not None else 0.0)
-                s_d_str = edit_range.strftime("%d.%m.%Y") if (isinstance(edit_range, (list, tuple)) and len(edit_range) > 0) else st_date
+                s_d_str = edit_range[0].strftime("%d.%m.%Y") if (isinstance(edit_range, (list, tuple)) and len(edit_range) > 0) else st_date
                 e_d_str = edit_range[-1].strftime("%d.%m.%Y") if (isinstance(edit_range, (list, tuple)) and len(edit_range) > 1) else s_d_str
                 if has_cash_expense and manual_cash_amt and manual_cash_amt > 0: add_expense(trip_id, manual_cash_amt, "Транспорт", f"[ПРОПУСНАТО ГОРИВО] Добавени {mf_val:.1f} литра", False, 0.0, 0.0)
                 save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, s_d_str, e_d_str); st.session_state["form_version"] += 1; st.rerun()
@@ -431,7 +436,7 @@ else:
         st.markdown("---")
         avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
         grand_total = depozit_hotel + total_on_site
-        pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{f' | <b>Период:</b> {st_date} - {en_date}' if st_date and st_date != 'nan' else ''}{f' | <b>Общо изминати км. :</b> {dist:.0f} км' if dist > 0 else ''}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайни:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
+        pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{f' | <b>Период:</b> {st_date} - {en_date}' if st_date and st_date != 'nan' else ''}{f' | <b>Общо изминати км. :</b> {dist:.0f} км' if dist > 0 else ''}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
         
         for _, row in df_trip.iterrows():
             desc_val = str(row['description'])
