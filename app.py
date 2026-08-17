@@ -10,69 +10,64 @@ from geopy.geocoders import Nominatim
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
-def get_base64_bg(img_path):
-    if os.path.exists(img_path):
-        with open(img_path, "rb") as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    return ""
-
-bg_base64 = get_base64_bg("logo.png")
-bg_css = ""
-
-if bg_base64:
-    bg_css = f"""
-    html, body, [data-testid="stAppViewContainer"] {{
-        background-image: url("data:image/png;base64,{bg_base64}") !important;
-        background-size: cover !important; /* Автоматично стречва логото според големината на екрана */
-        background-repeat: no-repeat !important; /* Спира повтарянето на картинката */
-        background-position: center center !important; /* Държи фона перфектно центриран */
-        background-attachment: fixed !important; /* Фонът остава статичен при скролване */
-    }}
-    /* Полупрозрачен предпазен слой (затъмняване), за да може белият текст и бутоните да се четат идеално */
-    [data-testid="stAppViewContainer"]::before {{
+st.markdown("""
+<style>
+    /* Луксозен, дълбок уеб градиент, който прелива плавно по целия екран */
+    html, body, [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #090b0e 0%, #11151c 50%, #0d1117 100%) !important;
+        background-attachment: fixed !important;
+    }
+    
+    /* Фин предпазен слой за перфектен контраст на белия текст */
+    [data-testid="stAppViewContainer"]::before {
         content: "";
         position: fixed;
         top: 0; left: 0; width: 100vw; height: 100vh;
-        background: rgba(14, 17, 23, 0.88) !important; 
+        background: rgba(0, 0, 0, 0.15) !important;
         z-index: -1;
-    }}
-    """
+        pointer-events: none;
+    }
 
-st.markdown(f"""
-<style>
-    {bg_css}
-    div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {{
-        background: rgba(255, 255, 255, 0.03) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 12px !important; padding: 10px 15px !important;
-        box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4), -2px -2px 8px rgba(255, 255, 255, 0.02) !important;
+    /* Модерни полупрозрачни полета (Glassmorphism ефект) */
+    div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 14px !important; 
+        padding: 10px 15px !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+        backdrop-filter: blur(4px) !important;
+        -webkit-backdrop-filter: blur(4px) !important;
         margin-bottom: 15px !important;
-    }}
+    }
+
+    /* Професионални тъмни бутони с дълбока сянка */
     button[data-testid="stBaseButton-secondary"], 
     button[data-testid="stBaseButton-primary"],
-    [data-testid="stFileUploaderDropzone"] button {{
-        background: linear-gradient(135deg, #2e2e2e, #1c1c1c) !important; 
-        color: white !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important; 
-        border-radius: 10px !important;
-        box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), -1px -1px 4px rgba(255, 255, 255, 0.05) !important;
-        transition: all 0.2s ease !important; 
-        font-weight: bold !important;
+    [data-testid="stFileUploaderDropzone"] button {
+        background: linear-gradient(135deg, #252932, #16191f) !important; 
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important; 
+        border-radius: 12px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+        transition: all 0.25s ease !important; 
+        font-weight: 600 !important;
+        letter-spacing: 0.5px !important;
         width: 100% !important;
-    }}
+    }
+
+    /* Елегантен светлинен ефект при посочване на бутоните */
     button[data-testid="stBaseButton-secondary"]:hover, 
     button[data-testid="stBaseButton-primary"]:hover,
-    [data-testid="stFileUploaderDropzone"] button:hover {{
-        background: linear-gradient(135deg, #3d3d3d, #252525) !important;
-        transform: translateY(-2px) !important; 
-        box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.6) !important;
-    }}
-    small {{ color: #888 !important; }}
+    [data-testid="stFileUploaderDropzone"] button:hover {
+        background: linear-gradient(135deg, #2e343f, #1c2028) !important;
+        transform: translateY(-1px) !important; 
+        box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15) !important;
+        border-color: rgba(0, 242, 254, 0.2) !important;
+    }
+
+    small { color: #7e8494 !important; }
 </style>
 """, unsafe_allow_html=True)
-
-
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
