@@ -65,7 +65,7 @@ def get_trip_data(t_id):
     try:
         df = pd.read_csv(DATA_FILE, encoding="utf-8")
         r = df[df["trip_id"] == t_id].copy()
-        if "liters" not in r.columns: r["liters" ] = 0.0
+        if "liters" not in r.columns: r["liters"] = 0.0
         if "current_km" not in r.columns: r["current_km"] = 0.0
         return r
     except: return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters","current_km"])
@@ -368,6 +368,7 @@ else:
                         else:
                             if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
 
+        # === АНАЛИЗ НА РАЗХОДИТЕ ===
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
         for idx, (kat, s_value) in enumerate(categories_totals.items()):
@@ -430,7 +431,13 @@ else:
             else: color_gauge = "#ff4b4b"
 
             lbl_gauge = "ФИНАЛЕН РАЗХОД" if is_final_status else "ТЕКУЩ РАЗХОД"
-            sub_lbl_gauge = "за затворените етапи" if not is_final_status else "за целия пробег"
+            
+            # ДИНАМИЧЕН СУБТИТЪЛ С ИНСТРУКЦИЯ ЗА 0.0 РАЗХОД
+            if val_to_show == 0.0:
+                sub_lbl_gauge = "⚠️ Ще се изчисли при следващо зареждане до горе"
+            else:
+                sub_lbl_gauge = "за затворените етапи" if not is_final_status else "за целия пробег"
+                
             km_progress_pct = 100 if is_final_status else min(100, max(0, (dist / 1000 * 100))) if dist > 0 else 0
             car_left_css = "left: 0px;" if km_progress_pct == 0 else f"left: calc({km_progress_pct}% - 10px);"
             lock_lbl_html = f"<span style='background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;'>🔒 ЗАКЛЮЧЕН</span>" if is_trip_finished else ""
@@ -466,8 +473,8 @@ else:
 
             st.write("📅 Промяна на датите на почивката:")
             try:
-                current_start = datetime.datetime.strptime(st_date, "%\d.%\m.%\Y").date() if st_date and st_date != "nan" else datetime.date.today()
-                current_end = datetime.datetime.strptime(en_date, "%\d.%\m.%\Y").date() if en_date and en_date != "nan" else datetime.date.today() + datetime.timedelta(days=5)
+                current_start = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else datetime.date.today()
+                current_end = datetime.datetime.strptime(en_date, "%d.%m.%Y").date() if en_date and en_date != "nan" else datetime.date.today() + datetime.timedelta(days=5)
             except: current_start, current_end = datetime.date.today(), datetime.date.today() + datetime.timedelta(days=5)
             
             edit_range = st.date_input("Изберете нови дати:", value=[current_start, current_end], key="edit_dates_cal")
@@ -548,13 +555,6 @@ else:
             desc_val = str(row['description'])
             km_val = float(row.get('current_km', 0.0))
             km_td = f"<span class='badge-km'>{km_val:.0f} км</span>" if km_val > 0 else "<span style='color:#ccc;'>—</span>"
-            
-            if "Моментен разход:" in desc_val:
-                parts = desc_val.split("Моментен разход:")
-                before = parts[0]
-                after = parts[1] if len(parts) > 1 else ""
-                desc_val = f"{before} <span class='fuel-highlight'>Моментен разход:{after}</span>"
-            
             pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
             
         pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
@@ -563,6 +563,7 @@ else:
         st.markdown(f'<a href="data:text/html;base64,{b64_pdf}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; cursor:pointer; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
         st.markdown("---")
 
+        # === ИНТЕРАКТИВНА КАРТА НА ПЪТУВАНЕТО ===
         st.subheader("🗺️ Карта на спирките и дестинациите")
         st.markdown("<small style='color:#888;'>💡 Кликнете директно върху картата, за да добавите пинче на това място!</small>", unsafe_allow_html=True)
         
@@ -587,7 +588,7 @@ else:
             
         map_data = st_folium(m, width=700, height=400, key=f"map_{trip_id}")
         if map_data and map_data.get("last_clicked"):
-            st.session_state["active_click" ] = map_data["last_clicked"]
+            st.session_state["active_click"] = map_data["last_clicked"]
 
         if "active_click" in st.session_state and st.session_state["active_click"] is not None and not is_trip_finished:
             click_coords = st.session_state["active_click"]
