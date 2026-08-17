@@ -165,6 +165,7 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 if "view_photos" not in st.session_state: st.session_state["view_photos"] = False
+if "delete_idx" not in st.session_state: st.session_state["delete_idx"] = None
 
 # ЕКРАН 1: ИЗБОР ИЛИ СЪЗДАВАНЕ НА ПЪТУВАНЕ
 if st.session_state["current_trip"] is None:
@@ -273,6 +274,9 @@ else:
                     
                     df_set = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
                     df_set[df_set["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+
+                    df_map = pd.read_csv(MAP_FILE, encoding="utf-8")
+                    df_map[df_map["trip_id"] != trip_id].to_csv(MAP_FILE, index=False, encoding="utf-8")
                     
                     if os.path.exists(papka_snimki):
                         for p in glob.glob(os.path.join(papka_snimki, "*")): os.remove(p)
@@ -609,38 +613,30 @@ else:
                 is_dep = (r["type"] == "deposit")
                 bg_color = "rgba(255, 165, 0, 0.05)" if is_dep else "rgba(255, 255, 255, 0.02)"
                 border_color = "rgba(255, 165, 0, 0.2)" if is_dep else "rgba(255, 255, 255, 0.08)"
-                badge_html = "<span style='background:#ffa500; color:black; font-size:9px; padding:2px 5px; border-radius:4px; font-weight:bold; margin-left:5px;'>ДЕПОЗИТ</span>" if is_dep else ""
+                badge_html = "<span style='background:#ffa500; color:black; font-size:9px; padding:2px 5px; border-radius:4px; font-weight:bold; margin-left:6px;'>ДЕПОЗИТ</span>" if is_dep else ""
 
-                liters_info = f" • <span style='color:#00f2fe;'>{r['liters']:.1f} л</span>" if float(r.get("liters", 0)) > 0 else ""
-                km_info = f" • <span style='color:#888;'>{r['current_km']:.0f} км</span>" if float(r.get("current_km", 0)) > 0 else ""
-
-                st.markdown(f"""
-                <div style='background: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;'>
-                    <div>
-                        <div style='font-size: 13px; font-weight: bold; color: white;'>
-                            {get_emoji(r['category'])} {r['category']} {badge_html}
+                r_col1, r_col2 = st.columns([4, 1])
+                with r_col1:
+                    st.markdown(f"""
+                    <div style='background:{bg_color}; border:1px solid {border_color}; border-radius:10px; padding:10px 12px; margin-bottom:8px;'>
+                        <div style='display:flex; justify-content:space-between; align-items:center;'>
+                            <b style='color:white; font-size:14px;'>{get_emoji(r["category"])} {r["category"]}{badge_html}</b>
+                            <b style='color:#00f2fe; font-size:15px;'>{r["amount"]:.2f} EUR</b>
                         </div>
-                        <div style='font-size: 11px; color: #aaa; margin-top: 2px;'>
-                            {r['description']}
-                        </div>
-                        <div style='font-size: 9px; color: #666; margin-top: 3px;'>
-                            🕒 {r['date']}{liters_info}{km_info}
+                        <div style='display:flex; justify-content:space-between; align-items:center; margin-top:4px;'>
+                            <span style='color:#ccc; font-size:12px;'>{r["description"]}</span>
+                            <small style='color:#666; font-size:10px;'>{r["date"]}</small>
                         </div>
                     </div>
-                    <div style='text-align: right;'>
-                        <div style='font-size: 15px; font-weight: bold; color: #ff4b4b;'>
-                            -{r['amount']:.2f} EUR
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
+                with r_col2:
+                    if st.button("🗑️", key=f"del_btn_{idx}", use_container_width=True):
+                        st.session_state["delete_idx"] = idx
+                        confirm_delete_dialog()
 
-                if st.button("🗑️ Изтрий", key=f"del_btn_{idx}", use_container_width=True):
-                    st.session_state["delete_idx"] = idx
-                    confirm_delete_dialog()
         else:
-            st.info("Все още няма записани разходи.")
+            st.markdown("<div style='text-align:center; color:#666; margin:20px 0;'>Все още няма въведени разходи за тази ваканция.</div>", unsafe_allow_html=True)
 
-        st.markdown("---")
-        if st.button("🚨 Изтрий цялото пътуване", use_container_width=True):
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        if st.button("🚨 ИЗТРИЙ ЦЯЛАТА ВАКАНЦИЯ", use_container_width=True):
             confirm_delete_trip_dialog()
