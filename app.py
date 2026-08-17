@@ -226,7 +226,8 @@ else:
                 df_fuel = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["current_km"] >= s_km)].sort_values(by="current_km")
                 total_valid_liters, total_valid_dist, prev_km, temp_liters = 0.0, 0.0, s_km, 0.0
                 for _, row in df_fuel.iterrows():
-                    current_entry_km = float(row["current_km"]); if current_entry_km == s_km: continue
+                    current_entry_km = float(row["current_km"]);
+                    if current_entry_km == s_km: continue
                     stage_dist = current_entry_km - prev_km
                     if stage_dist > 0:
                         temp_liters += float(row.get("liters", 0.0))
