@@ -596,8 +596,7 @@ else:
         else:
             center_lat, center_lon, zoom_lvl = 42.7339, 25.4858, 5 # Център България
 
-        # Създаваме фолиум обекта
-        # Създаваме стандартна и на 100% стабилна карта
+                # Създаваме стандартна и на 100% стабилна карта
         m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_lvl, tiles="OpenStreetMap")
         
         # Принуждаваме браузъра да преведе картата на български чрез добавяне на български скрипт
@@ -614,18 +613,6 @@ else:
         # Показваме картата в Streamlit
         st_folium(m, width=700, height=400, key=f"map_{trip_id}")
 
-
-                
-        # Рисуваме пинчетата на картата
-        for _, pt in df_points.iterrows():
-            folium.Marker(
-                location=[pt["lat"], pt["lon"]],
-                popup=pt["title"],
-                icon=folium.Icon(color=pt["color"], icon="info-sign")
-            ).add_to(m)
-            
-        # Показваме картата в Streamlit
-        st_folium(m, width=700, height=400, key=f"map_{trip_id}")
         
         # Форма за бързо добавяне на нови координати под картата
         if not is_trip_finished:
