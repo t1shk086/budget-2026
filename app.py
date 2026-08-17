@@ -649,10 +649,8 @@ else:
                         
         st.markdown("---")
 
-        if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True):
+        if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_btn"):
             confirm_delete_trip_dialog()
 
 
-        if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True):
-            confirm_delete_trip_dialog()
 # === КРАЙ НА КОДА ===
