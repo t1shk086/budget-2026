@@ -281,7 +281,7 @@ else:
 
     if st.session_state["view_photos"]:
         # 1. Бутонът за връщане назад е НАЙ-ОТГОРЕ
-        if st.button("⬅️ ВРЪЩАНЕ КЪМ РАЗХОДИТЕ", use_container_width=True, key="clean_gallery_back_btn"):
+        if st.button("🔙 ВРЪЩАНЕ КЪМ РАЗХОДИТЕ", use_container_width=True, key="clean_gallery_back_btn"):
             st.session_state["view_photos"] = False
             st.rerun()
 
@@ -346,7 +346,7 @@ else:
         ekran_za_kategorii = st.empty()
 
 
-        if st.button("⬅️ НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
+        if st.button("🔙 НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
 
         
         v_id = st.session_state["form_version"]
