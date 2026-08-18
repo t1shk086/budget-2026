@@ -352,12 +352,13 @@ else:
 
         v_id = st.session_state["form_version"]
         
-        # Инжектираме сигурен уеб маркер със 60px горно отстояние (буфер за екрана)
-        st.markdown('<div id="target_sum_box" style="margin-top: -60px; padding-top: 60px;">', unsafe_allow_html=True)
+        # Премахваме опасния марджин, който застъпваше бутона, и правим чиста котва
+        st.markdown('<div id="target_sum_box" style="position: relative; scroll-margin-top: 30px;"></div>', unsafe_allow_html=True)
+        
         col1, col2 = st.columns(2)
         with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
         with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
-        st.markdown('</div>', unsafe_allow_html=True)
+
         
         is_trip_finished = (e_km > 0.0)
 
