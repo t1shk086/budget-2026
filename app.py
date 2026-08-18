@@ -342,7 +342,7 @@ else:
         st.markdown("---")
 
         # 🌟 КОПИРАЙ И СЛОЖИ ТОЗИ РЕД ТУК (за да знае браузърът къде е "най-горе"):
-        st.markdown("<div id='top_of_page'></div>", unsafe_allow_html=True)
+        st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
         
         ekran_za_kategorii = st.empty()
 
