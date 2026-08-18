@@ -644,42 +644,35 @@ else:
         pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
         
         b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
+
+        # 1. Кодираме данните за директно изтегляне през уеб браузъра
+        b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
         
-        # 1. Изчисляваме HTML данните за отчета (както досега)
-        b64_html_data = pdf_html.encode("utf-8")
-
-        # 2. Инжектираме луксозния дизайн ДИРЕКТНО вътре в етикета на бутона
-        # Използваме абсолютни отстояния (inset padding), за да пребоядисаме бутона отвътре навън
-        premium_label = f"""
-        <div style="
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex; align-items: center; justify-content: center;
-            background: linear-gradient(180deg, #4A5260, #333943) !important;
-            color: #FFFFFF !important;
-            border: 1px solid rgba(0, 242, 254, 0.35) !important;
-            border-radius: 8px !important;
-            font-weight: 700 !important;
-            font-size: 14px !important;
-            letter-spacing: 0.5px !important;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.15) !important;
-        ">
-            📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
-        </div>
-        """
-
-        # 3. Нативен Streamlit бутон, чието ядро се пренаписва от вградения дизайн
-        st.download_button(
-            label=premium_label,
-            data=b64_html_data,
-            file_name=f"Otchet_{trip_id}_2026.html",
-            mime="text/html",
-            key="force_titanium_download",
-            use_container_width=True
-        )
+        # 2. 👑 ИСТИНСКИ ТИТАНИЕВ ПРЕМИУМ 3Д БУТОН ЗА СВАЛЯНЕ
+        st.markdown(f'''
+            <a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;">
+                <button style="
+                    width: 100%; 
+                    background: linear-gradient(180deg, #4A5260, #333943); 
+                    color: #FFFFFF; 
+                    border: 1px solid rgba(0, 242, 254, 0.35); 
+                    padding: 12px; 
+                    font-weight: bold; 
+                    font-size: 14px;
+                    letter-spacing: 0.5px;
+                    border-radius: 10px; 
+                    cursor: pointer;
+                    box-shadow: 0px 3px 0px #1E2127, 0px 4px 12px rgba(0, 0, 0, 0.35);
+                    transition: all 0.1s ease-in-out;
+                " onmouseover="this.style.background='linear-gradient(180deg, #565F6F, #3C434F)'; this.style.borderColor='rgba(0, 242, 254, 0.6)';" 
+                   onmouseout="this.style.background='linear-gradient(180deg, #4A5260, #333943)'; this.style.borderColor='rgba(0, 242, 254, 0.35)';"
+                   onmousedown="this.style.transform='translateY(2px)'; this.style.boxShadow='0px 1px 0px #1E2127, 0px 2px 5px rgba(0,0,0,0.2)';"
+                   onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 3px 0px #1E2127, 0px 4px 12px rgba(0,0,0,0.35)';">
+                    📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
+                </button>
+            </a>
+        ''', unsafe_allow_html=True)
         st.markdown("---")
-
-
 
 
         st.subheader("🗺️ Карта на спирките и дестинациите")
