@@ -350,19 +350,17 @@ else:
             st.session_state["current_trip"] = None
             st.rerun()
 
-        # 🚀 Нативен уеб тригър: при натискане на долния бутон, притегля екрана тук плавно
-        if st.session_state.get("scroll_to_expenses_flag", False):
-            st.session_state["scroll_to_expenses_flag"] = False # Нулираме веднага флага
-            st.html("<script>setTimeout(() => { document.getElementById('sum_input_anchor').scrollIntoView({behavior: 'smooth', block: 'center'}); }, 100);</script>")
-
-        # Фиксиран маркер, към който се притегля екрана
-        st.markdown('<div id="sum_input_anchor"></div>', unsafe_allow_html=True)
-        
         v_id = st.session_state["form_version"]
+        
+        # Инжектираме сигурен уеб маркер около колоните
+        st.markdown('<div id="target_sum_box">', unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
         with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
         is_trip_finished = (e_km > 0.0)
+
 
 
         @st.dialog("⛽ Зареждане на гориво")
