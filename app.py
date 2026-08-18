@@ -779,12 +779,12 @@ else:
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols: # Лява колона: Главно меню
+        with bottom_cols[0]: # Лява колона: Главно меню
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols: # Дясна колона: Оригинален фабричен бутон
+        with bottom_cols[1]: # Дясна колона: Оригинален фабричен бутон
             st.button("🎚️ КЪМ РАЗХОДИТЕ", use_container_width=True, key="click_scroll_to_sum_btn")
             
         # 🚀 БЕЗОТКАЗЕН СКРИПТ: Прихваща клика директно в браузъра и мести екрана без рефреш!
