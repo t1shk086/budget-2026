@@ -516,10 +516,7 @@ else:
             </a>
         """, unsafe_allow_html=True)
 
-        # Скрит за потребителя Streamlit бутон, който се задейства от HTML кода горе
-        if st.button("📸 Снимки и спомени", key="js_gallery_click", help="hidden"):
-            st.session_state["view_photos"] = True
-            st.rerun()
+
 
 
 
