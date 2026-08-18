@@ -342,7 +342,7 @@ else:
         st.markdown("---")
 
         # 🌟 КОПИРАЙ И СЛОЖИ ТОЗИ РЕД ТУК (за да знае браузърът къде е "най-горе"):
-        st.markdown("<div id='top_of_page'></div>", unsafe_allow_html=True)
+        st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
         
         ekran_za_kategorii = st.empty()
 
@@ -900,7 +900,7 @@ else:
         with bottom_cols[1]: # 🎚️ Втори близнак: Към Разходите
             st.markdown("""
                 <div class="twin-grid-wrapper">
-                    <a href="#target_sum_box" target="_self">
+                    <a href="#trip_top_anchor" target="_self">
                         <button class="twin-premium-3d-btn">
                             🔝 КЪМ РАЗХОДИТЕ
                         </button>
