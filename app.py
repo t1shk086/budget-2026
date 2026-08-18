@@ -535,3 +535,9 @@ else:
         st.markdown("---")
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
+                    # Добавяне на бутон за връщане на главното меню най-накрая на приложението
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        if st.button("🏠 НАЗАД КЪМ ГЛАВНОТО МЕНЮ", use_container_width=True, key="bottom_home_button_2026"):
+            st.session_state["current_trip"] = None
+            st.rerun()
+
