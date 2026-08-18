@@ -498,51 +498,44 @@ else:
 
             st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 СЛЕДЕНЕ НА ПРОБЕГА</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
             
-            # Показваме ТЕКУЩИЯ РАЗХОД (скалата) самостоятелно
+            # Показваме кубчетата едно до друго (flex-wrap ги пази подредени и на телефон)
             st.markdown(f"""
-                <div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;'>
-                    <div style='color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 15px;'>ТЕКУЩ РАЗХОД</div>
-                    <div style='width: 110px; height: 110px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px;'>
-                        <div style='color: white; font-size: 28px; font-weight: 900; line-height: 1.1;'>{val_to_show:.1f}</div>
-                        <div style='color: #666; font-size: 10px; font-weight: bold; margin-top: 2px;'>л/100км</div>
+                <div style='display: flex; flex-wrap: wrap; gap: 15px; width: 100%;'>
+                    
+                    <!-- ЛЯВО КУБЧЕ: ТЕКУЩ РАЗХОД -->
+                    <div style='flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;'>
+                        <div style='color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 15px;'>ТЕКУЩ РАЗХОД</div>
+                        <div style='width: 110px; height: 110px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px;'>
+                            <div style='color: white; font-size: 28px; font-weight: 900; line-height: 1.1;'>{val_to_show:.1f}</div>
+                            <div style='color: #666; font-size: 10px; font-weight: bold; margin-top: 2px;'>л/100км</div>
+                        </div>
+                        <div style='color: #666; font-size: 11px;'>за затворените етапи</div>
                     </div>
-                    <div style='color: #666; font-size: 11px;'>за затворените етапи</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # 🌟 ДОБАВЯМЕ НОВОТО ЛУКСОЗНО 3Д ПОЛЕ ЗА ГОРИВОТО - С ДАННИ В ПЕРФЕКТНИЯ ЦЕНТЪР
-            st.markdown(f"""
-                <div style="
-                    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
-                    backdrop-filter: blur(10px);
-                    -webkit-backdrop-filter: blur(10px);
-                    border-radius: 16px;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    box-shadow: inset 2px 2px 6px rgba(255,255,255,0.05), 
-                                4px 4px 15px rgba(0,0,0,0.4),
-                                -2px -2px 6px rgba(255,255,255,0.01);
-                    padding: 22px;
-                    margin-top: 15px;
-                    margin-bottom: 15px;
-                    text-align: center;
-                    font-family: 'Segoe UI', Roboto, sans-serif;
-                ">
-                    <div style="font-size: 11px; color: #888; font-weight: bold; letter-spacing: 1px; margin-bottom: 10px;">
-                        ⛽ ОБЩО ЗАРЕДЕНО ГОРИВО
-                    </div>
-                    <div style="font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #00f2fe, #4facfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 15px; line-height: 1.1;">
-                        {(float(df_expenses[df_expenses['category'] == 'Транспорт']['liters'].sum()) + m_fuel):.1f} литра
-                    </div>
-                    <div style="width: 60%; margin: 0 auto 15px auto; border-top: 1px solid rgba(255,255,255,0.06);"></div>
-                    <div style="font-size: 11px; color: #888; font-weight: bold; letter-spacing: 1px; margin-bottom: 5px;">
-                        💰 ОБЩА СТОЙНОСТ ТРАНСПОРТ
-                    </div>
-                    <div style="font-size: 30px; font-weight: 800; color: #ff4b4b; line-height: 1.1;">
-                        {auto_fuel_money:.2f} <span style="font-size: 16px; color: #666; font-weight: normal;">EUR</span>
+                    
+                    <!-- ДЯСНО КУБЧЕ: ЗАРЕДЕНО ГОРИВО И СТОЙНОСТ (Едно до друго с лявото, изцяло центрирано!) -->
+                    <div style='flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 25px 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);'>
+                        
+                        <!-- Горна част: Гориво (Центрирано) -->
+                        <div style='margin-bottom: 25px; width: 100%; text-align: center;'>
+                            <div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 8px;'>💧 ОБЩО ЗАРЕДЕНО ГОРИВО</div>
+                            <div style='color: white; font-size: 28px; font-weight: 800;'>
+                                {(float(df_expenses[df_expenses['category'] == 'Транспорт']['liters'].sum()) + m_fuel):.1f} <span style='font-size: 14px; color: #666; font-weight: normal;'>литра</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Долна част: Стойност (Центрирано) -->
+                        <div style='padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); width: 100%; text-align: center;'>
+                            <div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 8px;'>💰 ОБЩА СТОЙНОСТ ТРАНСПОРТ</div>
+                            <div style='color: white; font-size: 28px; font-weight: 800;'>
+                                {auto_fuel_money:.2f} <span style='font-size: 14px; color: #666; font-weight: normal;'>EUR</span>
+                            </div>
+                        </div>
+                        
                     </div>
                 </div>
                 <br>
             """, unsafe_allow_html=True)
+
 
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         @st.dialog("⚙️ Настройки на превозно средство и период")
