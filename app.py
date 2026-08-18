@@ -791,12 +791,12 @@ else:
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols: # Лява колона: Главно меню
+        with bottom_cols[0]: # Лява колона: Главно меню
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid_final"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols: # Дясна колона: Луксозен 3D близнак бутон с добавен буфер за скролване
+        with bottom_cols[1]: # Дясна колона: Луксозен 3D близнак бутон с добавен буфер за скролване
             st.markdown("""
                 <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
                     <button class="stBaseButton-secondary" style="
