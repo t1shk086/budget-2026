@@ -832,9 +832,14 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
 
-        # 🌟 КРАЙ НА ФАЙЛА: АБСОЛЮТНО ОГЛЕДАЛНИ 3Д БЛИЗНАЦИ С ЕДНАКВИ ЕФЕКТИ
+        # 1. Скриваме оригиналния бутон с CSS, за да не гърми Streamlit с непознати аргументи
         st.markdown("""
             <style>
+                div[data-testid="stHeaderActionElements"] + div, 
+                button[key="hidden_home_btn"] {
+                    display: none !important;
+                }
+                
                 /* Глобално правило за плавно и нежно приплъзване на екрана */
                 html {
                     scroll-behavior: smooth !important;
@@ -887,19 +892,27 @@ else:
 
         st.markdown("<br><br>", unsafe_allow_html=True)
         
-        # 1. Използваме скрит бутон, който HTML линкът ще натисне дистанционно
-        if st.button("Home_Trigger_Hidden", key="hidden_home_btn", style="display:none;"):
+        # 2. Истинският скрит бутон (чист Streamlit, без аргумент style)
+        if st.button("Home_Trigger_Hidden", key="hidden_home_btn"):
             st.session_state["current_trip"] = None
             st.rerun()
 
-        # Създаваме чистата решетка от 2 колони
+        # Създаваме чистата решетка от 2 колони с правилно извикване
         bottom_cols = st.columns(2)
         
         with bottom_cols[0]: # 🏠 Първи близнак: Главно Меню
-            # JavaScript-ът симулира клик върху скрития оригинален Streamlit бутон, заобикаляйки URL бъговете
+            # Търсим бутона по неговия текст в DOM дървото, за да го натиснем сигурно от разстояние
             st.markdown("""
                 <div class="twin-grid-wrapper">
-                    <button class="twin-premium-3d-btn" onclick="window.parent.document.querySelector('button[key=\\'hidden_home_btn\\']').click();">
+                    <button class="twin-premium-3d-btn" onclick="
+                        const btns = window.parent.document.querySelectorAll('button');
+                        for (let b of btns) {
+                            if (b.textContent.includes('Home_Trigger_Hidden')) {
+                                b.click();
+                                break;
+                            }
+                        }
+                    ">
                         🏠 ГЛАВНО МЕНЮ
                     </button>
                 </div>
@@ -915,6 +928,7 @@ else:
                     </a>
                 </div>
             """, unsafe_allow_html=True)
+
 
 
 
