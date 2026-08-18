@@ -338,26 +338,25 @@ else:
                    
     else:
         # =========================================================
-        # 👑 ЧИСТ STREAMLIT БУТОН: ЖЕЛЕЗЕН ДЕСЕН РЪБ (РАБОТЕЩ)
+        # 👑 ИЗОЛИРАН ДЕСЕН БУТОН ЗА ГАЛЕРИЯ (БЕЗ ДА БЪРКА БУТОНА НАЗАД)
         # =========================================================
         st.markdown("""
             <style>
-                /* Принуждаваме дясната колона да се подравни плътно вдясно и на телефона */
-                div[data-testid="stColumn"]:nth-of-type(2) {
+                /* Използваме селектор, който филтрира бутоните по съдържание на текст */
+                /* Хващаме контейнера на бутона, само ако вътре има КЛЮЧА за Галерия */
+                div[data-testid="stColumn"]:nth-of-type(2):has(button[key="open_gallery_top_header_2026"]) {
                     display: flex !important;
                     justify-content: flex-end !important;
                     align-items: center !important;
                     width: 100% !important;
                 }
-                div[data-testid="stColumn"]:nth-of-type(2) div[data-testid="stButton"] {
-                    text-align: right !important;
-                }
-                /* Премиум минималистичен дизайн на бутона */
-                div[data-testid="stColumn"]:nth-of-type(2) button {
+                
+                /* Стилизираме САМО бутона за Галерия – напълно прозрачен и стъклен */
+                button[key="open_gallery_top_header_2026"] {
                     display: inline-block !important;
                     width: auto !important;
                     min-width: unset !important;
-                    background: rgba(22, 25, 31, 0.6) !important; /* Прозрачен стъклен стил */
+                    background: rgba(22, 25, 31, 0.6) !important;
                     border: 1px solid rgba(255, 255, 255, 0.15) !important;
                     color: #ffffff !important;
                     padding: 4px 12px !important;
@@ -368,29 +367,36 @@ else:
                     -webkit-backdrop-filter: blur(8px) !important;
                     transition: all 0.2s ease-in-out !important;
                 }
-                div[data-testid="stColumn"]:nth-of-type(2) button:hover {
+                
+                button[key="open_gallery_top_header_2026"]:hover {
                     background: rgba(0, 242, 254, 0.12) !important;
                     border-color: rgba(0, 242, 254, 0.5) !important;
+                }
+                
+                /* БОНУС: Гарантираме, че ако се появи бутонът "Назад към разходите", */
+                /* той ще си запази оригиналния фабричен стил без да се мести в десния ъгъл! */
+                button:not([key="open_gallery_top_header_2026"]) {
+                    position: static !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # Ред 1: Лява празна колона за баланс и дясна колона за бутона, залепена за десния ръб
+        # Ред 1: Разделяне за перфектно дясно позициониране на Галерията
         col_space_top, col_btn_top = st.columns([0.7, 0.3])
         
         with col_btn_top:
             st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            # Използваме 100% оригинален Streamlit бутон за незабавно отваряне
             if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
                 st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
                 st.session_state["view_photos"] = True
                 st.rerun()
 
-        # Ред 2: Перфектно центрираното заглавие и датите, разположени точно под бутона
+        # Ред 2: Перфектно центрираното заглавие и датите отдолу
         date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
         st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         
         st.markdown("---")
+
 
 
 
