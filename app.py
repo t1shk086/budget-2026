@@ -281,12 +281,7 @@ else:
             for idx, p in enumerate(saved):
                 with img_grid[idx % 2]:
                     st.image(p, use_container_width=True)
-                    if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()        # 🌟 КОПИРАЙ И СЛОЖИ ТОЗИ БЛОК ВЕДНАГА СЛЕД СЛОВЕСНОТО ОПИСАНИЕ НА ГАЛЕРИЯТА:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ (ОТДОЛУ)", use_container_width=True, key="back_from_photos_bottom"):
-            st.session_state["view_photos"] = False
-            st.rerun()
-
+                    if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()        
                         
         else: st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма снимки.</div>", unsafe_allow_html=True)
     else:
