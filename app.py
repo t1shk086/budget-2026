@@ -288,7 +288,11 @@ else:
         st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         st.markdown("---")
 
+        # 🌟 ДОБАВЕТЕ ТОЗИ РЕД ТУК:
+        ekran_za_kategorii = st.empty()
+
         if st.button("⬅️ НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
+)
         
         v_id = st.session_state["form_version"]
         col1, col2 = st.columns(2)
@@ -314,42 +318,43 @@ else:
                 if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): st.session_state["form_version"] += 1; st.rerun()
 
         # Проверка дали потребителят е въвел описание и е натиснал Enter
+        # Проверка дали потребителят е въвел описание и е натиснал Enter
         if o_input.strip() and s_input and s_input > 0:
-            # Извеждаме текста извън HTML стринга с CSS, за да избегнем конфликта на фигурните скоби
             header_text = f"Записване на: <b>{s_input:.2f} EUR</b> за <i>\"{o_input.strip()}\"</i>"
             
-            st.markdown(f"""
-            <div style='text-align: center; margin: 20px 0 25px 0; animation: fadeIn 0.5s ease-in-out;'>
-                <h3 style='color: #00f2fe; font-family: "Segoe UI", sans-serif; font-weight: 700;'>🎯 СЕГА ИЗБЕРЕТЕ КАТЕГОРИЯ</h3>
-                <p style='color: #aaa; font-size: 14px;'>{header_text}</p>
-            </div>
-            <style>
-                @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(-10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
-            </style>
-            """, unsafe_allow_html=True)
-            
-            grid = st.columns(3)
-            for i, kat in enumerate(KATEGORII):
-                with grid[i % 3]:
-                    is_disabled = is_trip_finished and (kat == "Транспорт")
-                    if st.button(f"🔒 {kat}" if is_disabled else kat, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
-                        desc, is_d = o_input.strip(), (kat == "Депозит/Резервация")
-                        if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): 
-                            fuel_modal(s_input, kat, desc, is_d)
-                        else:
-                            if add_expense(trip_id, s_input, kat, desc, is_d): 
-                                st.session_state["form_version"] += 1
-                                st.rerun()
-            
-            # Добавяме бутон за отказ, ако потребителят е сгрешил сумата/описанието
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("❌ ОКОНЧАТЕЛЕН ОТКАЗ / НАЗАД", use_container_width=True):
-                st.session_state["form_version"] += 1
-                st.rerun()
+            # Използваме контейнера най-горе на екрана, за да "застъпим" всичко останало
+            with ekran_za_kategorii.container():
+                st.markdown(f"""
+                <div style='text-align: center; margin: 10px 0 20px 0; animation: fadeIn 0.4s ease-in-out;'>
+                    <h3 style='color: #00f2fe; font-family: "Segoe UI", sans-serif; font-weight: 700; margin-bottom: 5px;'>🎯 ИЗБЕРЕТЕ КАТЕГОРИЯ</h3>
+                    <p style='color: #aaa; font-size: 14px; margin-bottom: 15px;'>{header_text}</p>
+                </div>
+                <style>
+                    @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(-10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+                </style>
+                """, unsafe_allow_html=True)
                 
-            # Спираме изпълнението на скрипта надолу, за да създадем ефекта на "нов главен екран"
-            st.stop()
-
+                grid = st.columns(3)
+                for i, kat in enumerate(KATEGORII):
+                    with grid[i % 3]:
+                        is_disabled = is_trip_finished and (kat == "Транспорт")
+                        if st.button(f"🔒 {kat}" if is_disabled else kat, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
+                            desc, is_d = o_input.strip(), (kat == "Депозит/Резервация")
+                            if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): 
+                                fuel_modal(s_input, kat, desc, is_d)
+                            else:
+                                if add_expense(trip_id, s_input, kat, desc, is_d): 
+                                    st.session_state["form_version"] += 1
+                                    st.rerun()
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("❌ ОКОНЧАТЕЛЕН ОТКАЗ / НАЗАД", use_container_width=True):
+                    st.session_state["form_version"] += 1
+                    st.rerun()
+                
+                st.markdown("---")
+                # Спираме кода тук, така че старите полета за въвеждане и хронологията изобщо да не се рендерират отдолу!
+                st.stop()
 
 
         st.markdown("### 📊 Анализ на разходите")
