@@ -346,16 +346,24 @@ else:
         
         ekran_za_kategorii = st.empty()
 
+        if st.button("🔙 НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): 
+            st.session_state["current_trip"] = None
+            st.rerun()
 
-        if st.button("🔙 НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
+        # 🚀 Нативен уеб тригър: при натискане на долния бутон, притегля екрана тук плавно
+        if st.session_state.get("scroll_to_expenses_flag", False):
+            st.session_state["scroll_to_expenses_flag"] = False # Нулираме веднага флага
+            st.html("<script>setTimeout(() => { document.getElementById('sum_input_anchor').scrollIntoView({behavior: 'smooth', block: 'center'}); }, 100);</script>")
 
-        st.markdown('<div id="polenata_za_razhodi"></div>', unsafe_allow_html=True)
+        # Фиксиран маркер, към който се притегля екрана
+        st.markdown('<div id="sum_input_anchor"></div>', unsafe_allow_html=True)
         
         v_id = st.session_state["form_version"]
         col1, col2 = st.columns(2)
         with col1: s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
         with col2: o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
         is_trip_finished = (e_km > 0.0)
+
 
         @st.dialog("⛽ Зареждане на гориво")
         def fuel_modal(amount, category, description, is_dep):
@@ -751,7 +759,7 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ ИЗРАВНЕНИ БУТОНИ С ПЛАВНО СЛУЧВАЩ СЕ СКРОЛ
+        # 🌟 КРАЙ НА ФАЙЛА: 100% ЕДНАКВИ ОРИГИНАЛНИ БУТОНИ С АВТОМАТИЧНО СКРОЛВАНЕ
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
@@ -760,35 +768,10 @@ else:
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # Дясна колона: Линк, маскиран като нативен 3D бутон
-            st.markdown("""
-                <a href="#polenata_za_razhodi" target="_self" style="text-decoration: none; width: 100%; display: block;">
-                    <button class="stBaseButton-secondary" style="
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: 400;
-                        padding: 0.25rem 0.75rem;
-                        border-radius: 0.5rem;
-                        min-height: 38.4px;
-                        margin: 0px;
-                        width: 100%;
-                        user-select: none;
-                        background-color: rgba(255, 255, 255, 0.05);
-                        color: rgb(250, 250, 250);
-                        border: 1px solid rgba(250, 250, 250, 0.2);
-                        cursor: pointer;
-                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-                        transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
-                    " onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgb(250, 250, 250)';" 
-                       onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(250, 250, 250, 0.2)';"
-                       onmousedown="this.style.transform='translateY(2px)'; this.style.boxShadow='0px 2px 5px rgba(0,0,0,0.2)';"
-                       onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 4px 10px rgba(0,0,0,0.3)';"
-                       onclick="var el = window.parent.document.getElementById('polenata_za_razhodi'); if(el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); }">
-                        🎚️ КЪМ РАЗХОДИТЕ
-                    </button>
-                </a>
-            """, unsafe_allow_html=True)
+        with bottom_cols[1]: # Дясна колона: Оригинален близнак бутон
+            if st.button("🎚️ КЪМ РАЗХОДИТЕ", use_container_width=True, key="native_perfect_scroll_to_sum_btn"):
+                st.session_state["scroll_to_expenses_flag"] = True
+                st.rerun()
 
 
 
