@@ -267,6 +267,17 @@ else:
     except: pass
 
     if st.session_state["view_photos"]:
+        # 🌟 КОПИРАЙТЕ И СЛОЖЕТЕ ТОЗИ БЛОК ТУК (Нулира скрола на Streamlit контейнера):
+        st.components.v1.html("""
+            <script>
+                window.parent.document.querySelector('section.main').scrollTo({top: 0, behavior: 'instant'});
+            </script>
+        """, height=0)
+
+        if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
+        
+        up = st.file_uploader("Добавете нови спомени в албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}")
+
         # Премахнахме горния бутон "Назад", за да няма дублиране
         if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
         
