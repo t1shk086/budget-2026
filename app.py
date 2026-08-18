@@ -338,61 +338,57 @@ else:
                    
     else:
         # =========================================================
-        # 👑 ЧИСТА ИЗОЛИРАНА ГАЛЕРИЯ (100% ЦЕНТРИРАНА И ПРОЗРАЧНА)
+        # 👑 ЧИСТ STREAMLIT БУТОН: ЖЕЛЕЗЕН ДЕСЕН РЪБ (РАБОТЕЩ)
         # =========================================================
-        # 1. Скрит тригер, който се активира безотказно от уеб компонента
-        if st.checkbox("Активирай Снимки", key="final_safe_gallery_trigger", value=False, label_visibility="collapsed"):
-            st.session_state["view_photos"] = True
-            st.rerun()
-
-        # 2. Инжектираме 100% независим HTML бутон, който няма как да бъде блокиран от Streamlit
-        html_centered_gallery = """
-        <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 5px;">
-            <button class="luxury-oval-btn" onclick="
-                const inputs = window.parent.document.querySelectorAll('input');
-                for (let i of inputs) {
-                    if (i.id && i.id.includes('final_safe_gallery_trigger')) {
-                        i.click();
-                        break;
-                    }
+        st.markdown("""
+            <style>
+                /* Принуждаваме дясната колона да се подравни плътно вдясно и на телефона */
+                div[data-testid="stColumn"]:nth-of-type(2) {
+                    display: flex !important;
+                    justify-content: flex-end !important;
+                    align-items: center !important;
+                    width: 100% !important;
                 }
-            ">
-                📸 Галерия и спомени
-            </button>
-        </div>
+                div[data-testid="stColumn"]:nth-of-type(2) div[data-testid="stButton"] {
+                    text-align: right !important;
+                }
+                /* Премиум минималистичен дизайн на бутона */
+                div[data-testid="stColumn"]:nth-of-type(2) button {
+                    display: inline-block !important;
+                    width: auto !important;
+                    min-width: unset !important;
+                    background: rgba(22, 25, 31, 0.6) !important; /* Прозрачен стъклен стил */
+                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                    color: #ffffff !important;
+                    padding: 4px 12px !important;
+                    font-size: 12px !important;
+                    font-weight: 600 !important;
+                    border-radius: 8px !important;
+                    backdrop-filter: blur(8px) !important;
+                    -webkit-backdrop-filter: blur(8px) !important;
+                    transition: all 0.2s ease-in-out !important;
+                }
+                div[data-testid="stColumn"]:nth-of-type(2) button:hover {
+                    background: rgba(0, 242, 254, 0.12) !important;
+                    border-color: rgba(0, 242, 254, 0.5) !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
 
-        <style>
-            .luxury-oval-btn {
-                background: rgba(255, 255, 255, 0.04) !important;
-                border: 1px solid rgba(255, 255, 255, 0.18) !important;
-                color: #ffffff !important;
-                padding: 5px 16px !important;
-                font-size: 13px !important;
-                font-weight: 600 !important;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-                border-radius: 20px !important; /* Перфектно овална форма */
-                cursor: pointer !important;
-                backdrop-filter: blur(8px) !important;
-                -webkit-backdrop-filter: blur(8px) !important;
-                transition: all 0.2s ease-in-out !important;
-                outline: none !important;
-            }
-            .luxury-oval-btn:hover {
-                background: rgba(0, 242, 254, 0.12) !important;
-                border-color: rgba(0, 242, 254, 0.5) !important;
-                box-shadow: 0 0 10px rgba(0, 242, 254, 0.2) !important;
-            }
-        </style>
-        """
-        # Извикваме компонента с минимална височина, колкото за един фин бутон
-        st.components.v1.html(html_centered_gallery, height=42)
+        # Ред 1: Лява празна колона за баланс и дясна колона за бутона, залепена за десния ръб
+        col_space_top, col_btn_top = st.columns([0.7, 0.3])
+        
+        with col_btn_top:
+            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+            # Използваме 100% оригинален Streamlit бутон за незабавно отваряне
+            if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
+                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
+                st.session_state["view_photos"] = True
+                st.rerun()
 
-        # Скриваме грозния фабричен контейнер на чекбокса, за да остане само чистият бутон
-        st.markdown("<style>div[data-testid='stCheckbox'] { display: none !important; }</style>", unsafe_allow_html=True)
-
-        # 3. Веднага под него изписваме центрираното име на дестинацията и периода
+        # Ред 2: Перфектно центрираното заглавие и датите, разположени точно под бутона
         date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 10px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         
         st.markdown("---")
 
