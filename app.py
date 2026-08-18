@@ -775,7 +775,7 @@ else:
 
         if not df_points.empty:
             st.markdown("#### 📍 Любими места от пътуването")
-            st.markdown("---")
+            st.markdown("-")
             try:
                 df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
                 color_emojis = {"blue": "🔵", "green": "🟢", "red": "🔴", "purple": "🟣", "orange": "🟠"}
