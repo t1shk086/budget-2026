@@ -602,36 +602,53 @@ else:
             st.markdown("---")
             st.subheader("📋 Хронология на плащанията")
             
-            # 🎨 ЧИСТА ПОДРАВНЯВАЩА МАСКА: Намества кутията и кошчето на една хоризонтална линия
+            # 🎨 ЧИСТ 3Д СТИЛ ЗА КУТИЯТА, КОЯТО ПРЕГЪРЩА И КОШЧЕТО
             st.markdown("""
                 <style>
-                    /* Луксозна кутия за разхода */
-                    .premium-expense-card {
+                    /* Луксозно 3D поле, което се разпъва автоматично */
+                    .unified-expense-card {
                         background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
-                        padding: 14px 18px !important;
+                        padding: 14px 18px 8px 18px !important; /* Леко отстояние отдолу за бутона */
                         border-radius: 12px !important;
-                        border: 1px solid rgba(250, 250, 250, 0.2) !important; /* Деликатен сив контур като 3D бутоните */
+                        border: 1px solid rgba(250, 250, 250, 0.2) !important; /* Сивият контур на приложението */
                         box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
-                        min-height: 54px !important;
+                        margin-bottom: 12px !important;
                         display: flex !important;
                         flex-direction: column !important;
-                        justify-content: center !important;
                         box-sizing: border-box !important;
                     }
                     
-                    /* Специален уеб контейнер, който принуждава фабричното кошче да се центрира перфектно хоризонтално */
-                    .flex-trash-container {
+                    /* Избутваме долния ред с бутона максимално вдясно */
+                    .card-bottom-row {
                         display: flex !important;
+                        justify-content: flex-end !important;
                         align-items: center !important;
-                        justify-content: center !important;
-                        height: 54px !important; /* Абсолютно същата височина като кутията отляво */
+                        width: 100% !important;
+                        margin-top: 8px !important;
                     }
                     
-                    /* Премахваме излишните маргини на Streamlit около бутона с кошчето */
-                    .flex-trash-container div[data-testid="stElementContainer"] {
+                    /* Специфична маска за кошчето, за да стои компактно в ъгъла на кутията */
+                    .card-bottom-row div[data-testid="stElementContainer"] {
+                        width: auto !important;
                         margin: 0px !important;
                         padding: 0px !important;
-                        width: 100% !important;
+                    }
+                    
+                    /* Правим самото кошче малко и кокетно, точно за ъгъла */
+                    .card-bottom-row button {
+                        min-height: 28px !important;
+                        height: 28px !important;
+                        padding: 0px 12px !important;
+                        font-size: 13px !important;
+                        background-color: rgba(255, 255, 255, 0.02) !important;
+                        border: 1px solid rgba(250, 250, 250, 0.15) !important;
+                    }
+                    
+                    /* При посочване кошчето светва в червено */
+                    .card-bottom-row button:hover {
+                        border-color: #ff4b4b !important;
+                        background-color: rgba(255, 75, 75, 0.1) !important;
+                        color: #ff4b4b !important;
                     }
                 </style>
             """, unsafe_allow_html=True)
@@ -642,160 +659,35 @@ else:
                     r = df_all.loc[idx]
                     l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
                     
-                    # Разделяме екрана в прецизно съотношение 88% за разхода и 12% за 3D бутона за изтриване
-                    col_rec, col_del = st.columns([0.88, 0.12])
+                    # 1. Отваряме голямото 3D поле
+                    st.markdown(f'<div class="unified-expense-card">', unsafe_allow_html=True)
                     
-                    with col_rec:
-                        # 1. Изчертаваме чистата уеб кутия за разхода (без никакви коментари или скриптове вътре)
-                        st.markdown(f'''
-                            <div class="premium-expense-card">
-                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                    <div style="font-size: 16px; font-weight: 600; color: #fafafa; font-family: sans-serif;">
-                                        <span>{get_emoji(r["category"])}</span> {r["category"]}
-                                    </div>
-                                    <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
-                                        -{r["amount"]:.2f} EUR
-                                    </div>
-                                </div>
-                                <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
-                                    📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
-                                </div>
-                            </div>
-                        ''', unsafe_allow_html=True)
-                        
-                    with col_del:
-                        # 2. Отваряме флекс контейнера и изчертаваме чистия фабричен бутон с кошчето
-                        st.markdown('<div class="flex-trash-container">', unsafe_allow_html=True)
-                        if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий"):
-                            st.session_state["delete_idx"] = idx
-                            confirm_delete_dialog()
-                        st.markdown('</div>', unsafe_allow_html=True)
-            except:
-                pass
-
-            
-            try:
-                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                for idx in reversed(df_all[df_all["trip_id"] == trip_id].index.tolist()):
-                    r = df_all.loc[idx]
-                    l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
-                    
-                    # 1. Слагаме невидимия оригинален Streamlit бутон, който отваря твоя Dialog прозорец за триене
-                    if st.button(f"DEL_{idx}", key=f"dl_{idx}", help="hidden"):
-                        st.session_state["delete_idx"] = idx
-                        confirm_delete_dialog()
-                    
-                    # 2. Изчертаваме чистата уеб кутия. Кошчето вътре използва JavaScript, за да кликне невидимия бутон горе на секундата!
+                    # Изчертаваме данните за разхода и сумата най-горе в кутията
                     st.markdown(f'''
-                        <div class="pure-expense-card">
-                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                <div style="font-size: 16px; font-weight: 600; color: #fafafa; font-family: sans-serif;">
-                                    <span>{get_emoji(r["category"])}</span> {r["category"]}
-                                </div>
-                                <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
-                                    -{r["amount"]:.2f} EUR
-                                </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div style="font-size: 16px; font-weight: 600; color: #fafafa; font-family: sans-serif;">
+                                <span>{get_emoji(r["category"])}</span> {r["category"]}
                             </div>
-                            <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
-                                📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
+                            <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
+                                -{r["amount"]:.2f} EUR
                             </div>
-                            
-                            <!-- 🗑️ ЧИСТО ВГРАДЕНО 3Д КОШЧЕ -->
-                            <div class="inside-trash-btn" role="button" 
-                                 onclick="var buttons = window.parent.document.querySelectorAll('button'); buttons.forEach(function(b) {{ if(b.innerText === 'DEL_{idx}') b.click(); }});">
-                                🗑️
-                            </div>
+                        </div>
+                        <div style="margin-top: 4px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
+                            📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
                         </div>
                     ''', unsafe_allow_html=True)
                     
-                    # Инжектираме малко CSS, за да скрием грозните служебни бутони, за да не стърчат на екрана
-                    st.markdown(f'''
-                        <style>
-                            div[data-testid="stElementContainer"]:has(button[key="dl_{idx}"]) {{
-                                display: none !important;
-                                height: 0px !important;
-                                margin: 0px !important;
-                                padding: 0px !important;
-                            }}
-                        </style>
-                    ''', unsafe_allow_html=True)
-            except:
-                pass
-
-            
-            try:
-                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                for idx in reversed(df_all[df_all["trip_id"] == trip_id].index.tolist()):
-                    r = df_all.loc[idx]
-                    l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
-                    
-                    # Отваряме общия контейнер, който ще "прегърне" уеб картата и Python бутона на едно място
-                    st.markdown(f'<div class="expense-card-container">', unsafe_allow_html=True)
-                    
-                    # 1. Изчертаваме уеб картата с данните (сумата е изместена малко по-наляво, за да има място за кошчето)
-                    st.markdown(f'''
-                        <div class="premium-expense-card-inside">
-                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
-                                    <span>{get_emoji(r["category"])}</span> {r["category"]}
-                                </div>
-                                <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px; margin-right: -10px;">
-                                    -{r["amount"]:.2f} EUR
-                                </div>
-                            </div>
-                            <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
-                                📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
-                            </div>
-                        </div>
-                    ''', unsafe_allow_html=True)
-                    
-                    # 2. Изчертаваме оригиналния Python бутон. Уеб стилът горе автоматично го прихваща и го вкарва вътре!
-                    if st.button("🗑️", key=f"dl_{idx}"):
+                    # 2. Отваряме долния десен ъгъл НА КУТИЯТА и слагаме истинския Python бутон вътре
+                    st.markdown('<div class="card-bottom-row">', unsafe_allow_html=True)
+                    if st.button("🗑️ Изтрий разхода", key=f"dl_{idx}"):
                         st.session_state["delete_idx"] = idx
                         confirm_delete_dialog()
-                        
-                    st.markdown('</div>', unsafe_allow_html=True) # Затваряме контейнера
+                    st.markdown('</div>', unsafe_allow_html=True) # Затваряме долния ред
+                    
+                    st.markdown('</div>', unsafe_allow_html=True) # Затваряме цялото 3D поле
             except:
                 pass
 
-            
-            try:
-                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                for idx in reversed(df_all[df_all["trip_id"] == trip_id].index.tolist()):
-                    r = df_all.loc[idx]
-                    l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
-                    
-                    # Разделяме в съотношение 88% за разхода и 12% за 3D бутона за изтриване
-                    col_rec, col_del = st.columns([0.88, 0.12])
-                    
-                    with col_rec:
-                        # Създаваме чистата уеб карта за разход с автоматично напасване на височината
-                        st.markdown(f'''
-                            <div class="premium-expense-card">
-                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                    <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
-                                        <span>{get_emoji(r["category"])}</span> {r["category"]}
-                                    </div>
-                                    <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
-                                        -{r["amount"]:.2f} EUR
-                                    </div>
-                                </div>
-                                <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
-                                    📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
-                                </div>
-                            </div>
-                        ''', unsafe_allow_html=True)
-                        
-                    with col_del:
-                        # Вграждаме кошчето в уеб обвивка за идеално центриране спрямо кутията отляво
-                        st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
-                        # Използваме чист фабричен бутон с емоджи, за да хлътва в 3D и да е съвместим с диdialog прозореца ти
-                        if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий този разход"):
-                            st.session_state["delete_idx"] = idx
-                            confirm_delete_dialog()
-                        st.markdown('</div>', unsafe_allow_html=True)
-            except:
-                pass
 
         st.markdown("---")
         
