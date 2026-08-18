@@ -341,55 +341,57 @@ else:
         # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С МИНИ ПРОЗРАЧЕН БУТОН
         # =========================================================
         # =========================================================
-        # 👑 ЧИСТ АБСОЛЮТЕН ДЕСЕН HTML БУТОН + ЦЕНТРИРАНО ЗАГЛАВИЕ
+        # 👑 ЧИСТА СТРУКТУРА: ЦЕНТРИРАНО ЗАГЛАВИЕ И ДЕСЕН БУТОН ЗА СНИМКИ
         # =========================================================
         st.markdown("""
             <style>
-                /* Стилизираме чистия HTML бутон за перфектно закотвяне вдясно */
-                .floating-gallery-btn {
-                    position: fixed !important;
-                    top: 15px !important;
-                    right: 15px !important;
-                    z-index: 999999 !important;
-                    background: rgba(22, 25, 31, 0.7) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                /* Подравняваме уиджета в дясната колона максимално вдясно */
+                div[data-testid="stColumn"]:nth-of-type(3) div[data-testid="stButton"] {
+                    text-align: right !important;
+                }
+                /* Стилизираме бутона да бъде малък, прозрачен и компактен около надписа */
+                div[data-testid="stColumn"]:nth-of-type(3) button {
+                    display: inline-block !important;
+                    width: auto !important;
+                    min-width: unset !important;
+                    background: rgba(22, 25, 31, 0.5) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
                     color: #ffffff !important;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
-                    padding: 5px 12px !important;
+                    box-shadow: none !important;
+                    padding: 4px 12px !important;
                     font-size: 13px !important;
                     font-weight: 600 !important;
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
                     border-radius: 8px !important;
-                    backdrop-filter: blur(10px) !important;
-                    -webkit-backdrop-filter: blur(10px) !important;
-                    cursor: pointer !important;
+                    backdrop-filter: blur(8px) !important;
+                    -webkit-backdrop-filter: blur(8px) !important;
                     transition: all 0.2s ease-in-out !important;
                 }
-                .floating-gallery-btn:hover {
-                    background: rgba(0, 242, 254, 0.15) !important;
-                    border-color: rgba(0, 242, 254, 0.5) !important;
-                    box-shadow: 0 0 15px rgba(0, 242, 254, 0.25) !important;
+                div[data-testid="stColumn"]:nth-of-type(3) button:hover {
+                    background: rgba(0, 242, 254, 0.1) !important;
+                    border-color: rgba(0, 242, 254, 0.4) !important;
+                    box-shadow: 0 0 10px rgba(0, 242, 254, 0.15) !important;
                 }
             </style>
-            
-            <!-- Рендерираме бутона в десния ъгъл с JavaScript клик към скрития Python бутон -->
-            <button class="floating-gallery-btn" onclick="
-                const btns = window.parent.document.querySelectorAll('button');
-                for (let b of btns) {
-                    if (b.textContent.includes('HIDDEN_TRIGGER_TOP_GALLERY')) {
-                        b.click();
-                        break;
-                    }
-                }
-            ">
-                📸 Галерия
-            </button>
         """, unsafe_allow_html=True)
 
-        # Заглавието е напълно свободно от колони и стои 100% математически центрирано
-        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+        # Създаваме 3 симетрични колони за абсолютен баланс
+        col_left_space, col_center_title, col_gallery_top = st.columns([0.15, 0.70, 0.15])
         
+        with col_center_title:
+            # Текстът се разполага точно в геометричния център на екрана
+            date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+            st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+            
+        with col_gallery_top:
+            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True) # Подравняване спрямо заглавието
+            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+            
+            # Използваме оригинален Streamlit бутон с правилен надпис, без use_container_width
+            if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
+                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
+                st.session_state["view_photos"] = True
+                st.rerun()
+
         st.markdown("---")
 
 
