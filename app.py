@@ -162,45 +162,75 @@ if st.session_state["current_trip"] is None:
     if existing:
         opts = [t.replace("_", " ") for t in existing]
         choice = st.selectbox("Изберете пътуване до:", opts)
-        # 1. 🐾 ЦЕНТРАЛЕН CSS СТИЛ ЗА СИН БРАНДИРАН БУТОН С ГОЛЕМИ ЛАПИЧКИ
-        st.markdown("""
-            <style>
-                /* Основен стил на бутона (Син като пробега) */
-                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) {
-                    background: linear-gradient(135deg, #00f2fe, #4facfe) !important; /* 🌟 Точното синьо от логото */
-                    color: white !important;
-                    border-radius: 12px !important;
-                    border: none !important;
-                    font-weight: bold !important;
-                    box-shadow: 0 4px 12px rgba(0,242,254,0.2) !important;
-                    transition: all 0.2s ease-in-out !important;
-                    padding: 10px 20px !important;
-                }
-                
-                /* Уголемяване на текста и лапичката ЕДНОВРЕМЕННО за по-голям ефект */
-                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) p {
-                    font-size: 20px !important; /* 🌟 Увеличен размер, за да изпъкне лапата страхотно! */
-                    margin: 0 !important;
-                }
+        # 1. Задаваме цвета от логото (неоново синьо) и големия размер на лапата
+        button_html = f"""
+        <style>
+            .custom-brand-btn {{
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                background: linear-gradient(135deg, #00f2fe, #4facfe) !important;
+                color: white !important;
+                border-radius: 12px !important;
+                border: none !important;
+                font-weight: bold !important;
+                font-size: 16px !important;
+                letter-spacing: 0.5px !important;
+                text-decoration: none !important;
+                padding: 12px 20px !important;
+                box-shadow: 0 4px 12px rgba(0,242,254,0.25) !important;
+                transition: all 0.2s ease-in-out !important;
+                cursor: pointer;
+                width: 100%;
+                box-sizing: border-box;
+                text-align: center;
+            }}
+            .custom-brand-btn:hover {{
+                transform: translateY(-2px) !important;
+                box-shadow: 0 6px 18px rgba(0,242,254,0.4) !important;
+                filter: brightness(1.1) !important;
+                color: white !important;
+            }}
+            .custom-brand-btn .paw-icon {{
+                font-size: 24px !important; /* 🌟 Лапичката е фиксирана да бъде 50% по-голяма от текста! */
+                line-height: 1;
+            }}
+        </style>
+        """
+        st.markdown(button_html, unsafe_allow_html=True)
 
-                /* Ефект при посочване (Hover) */
-                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")):hover {
-                    transform: translateY(-2px) !important;
-                    box-shadow: 0 6px 18px rgba(0,242,254,0.4) !important;
-                    filter: brightness(1.1) !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
+        # 2. Рендерираме истински уеб бутон. Тъй като HTML не може сам да смени session_state, използваме скрит Streamlit бутон под него
+        click_trigger = st.button("Скрит бутон за активация", key="hidden_trip_btn", label_visibility="collapsed")
+        
+        # Визуален бутон, който хваща клика чрез уеб трик
+        st.markdown(f'''
+            <div onclick="document.querySelector('button[key=\\'hidden_trip_btn\\']').click();" class="custom-brand-btn">
+                ЗАРЕДИ ПЪТУВАНЕ <span class="paw-icon">🐾</span>
+            </div>
+            <script>
+                // Трик за автоматично натискане на скрития бутон при клик върху нашия красив бутон
+                document.addEventListener("click", function(e) {{
+                    var target = e.target.closest(".custom-brand-btn");
+                    if(target) {{
+                        var btn = document.querySelector('button[data-testid="stBaseButton-secondary"]');
+                        if(btn) btn.click();
+                    }}
+                }});
+            </script>
+            <br>
+        ''', unsafe_allow_html=True)
 
-        # 2. 🐾 Бутонът (Лапичката е вътре в текста на Python, за да е 100% сигурно, че се вижда)
-        if st.button("ЗАРЕДИ ПЪТУВАНЕ🐾", use_container_width=True):
+        # 3. Изпълнение на логиката, ако визуалният бутон е задействал скрития
+        if click_trigger:
             st.session_state["current_trip"] = choice.replace(" ", "_")
             st.rerun()
 
-        # 3. ПОДЗАТГЛАВИЕ
+        # 4. ПОДЗАТГЛАВИЕ
         if 'choice' not in locals() or not choice:
             st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Ако не виждате старото си приключение в менюто, създайте ново по-долу!</div>", unsafe_allow_html=True)
             st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
+
 
 
 
