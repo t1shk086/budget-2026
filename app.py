@@ -779,37 +779,31 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: 100% ВИДИМИ И ОГЛЕДАЛНИ 3Д БЛИЗНАЦИ БЕЗ РИСК ОТ ИЗЧЕЗВАНЕ
+        # 🌟 КРАЙ НА ФАЙЛА: 100% ФИКСИРАНИ И ВИДИМИ ОГЛЕДАЛНИ 3Д БЛИЗНАЦИ
         st.markdown("""
             <style>
-                /* Плавен скрол в браузъра */
                 html {
                     scroll-behavior: smooth !important;
                 }
-                
-                /* Споделен контейнер за бутоните един до друг */
                 .twin-buttons-container {
                     display: flex !important;
-                    gap: 1rem !important;
+                    gap: 16px !important;
                     width: 100% !important;
-                    margin-top: 2rem !important;
+                    margin-top: 24px !important;
                 }
-                
                 .twin-buttons-container a {
                     text-decoration: none !important;
                     flex: 1 !important;
                     width: 100% !important;
                     display: block !important;
                 }
-                
-                /* 👑 ЕДИНЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА (Използваме div, за да не изчезва) */
                 .absolute-twin-3d-btn {
                     display: inline-flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     width: 100% !important; 
                     height: 40px !important;
-                    background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important; /* Тъмен графит */
+                    background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important;
                     color: #ffffff !important; 
                     border: 1px solid rgba(255, 255, 255, 0.14) !important;
                     font-weight: 600 !important;
@@ -819,19 +813,14 @@ else:
                     cursor: pointer !important;
                     user-select: none !important;
                     box-sizing: border-box !important;
-                    /* Истински 3D обем: дебело дъно + сянка */
                     box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.4) !important;
                     transition: all 0.15s ease-in-out !important;
                 }
-                
-                /* ОГЛЕДАЛЕН ХОУВЪР ПРИ ПОСОЧВАНЕ */
                 .absolute-twin-3d-btn:hover {
                     background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
                     border-color: rgba(255, 255, 255, 0.3) !important;
                     box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.5) !important;
                 }
-                
-                /* ОГЛЕДАЛНО 3Д ПОТЪВАНЕ ПРИ НАТИСК */
                 .absolute-twin-3d-btn:active {
                     transform: translateY(2px) !important;
                     box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important;
@@ -840,14 +829,12 @@ else:
             </style>
             
             <div class="twin-buttons-container">
-                <!-- 🏠 ЛЯВ БЛИЗНАК: Главно Меню (Презарежда прозореца чисто) -->
                 <a href="/" target="_self" onclick="window.parent.location.reload();">
                     <div class="absolute-twin-3d-btn" role="button">
                         🏠 ГЛАВНО МЕНЮ
                     </div>
                 </a>
                 
-                <!-- 🎚️ ДЕСЕН БЛИЗНАК: Към Разходите (Скролва плавно без рефреш) -->
                 <a href="#target_sum_box" target="_self">
                     <div class="absolute-twin-3d-btn" role="button">
                         🎚️ КЪМ РАЗХОДИТЕ
@@ -855,6 +842,7 @@ else:
                 </a>
             </div>
         """, unsafe_allow_html=True)
+
 
 
 
