@@ -267,7 +267,7 @@ else:
     except: pass
 
     if st.session_state["view_photos"]:
-        # 1. Бутонът за връщане назад е НАЙ-ОТГОРЕ - чист, сигурен и стабилен
+        # 1. Бутонът за връщане назад е НАЙ-ОТГОРЕ
         if st.button("⬅️ ВРЪЩАНЕ КЪМ РАЗХОДИТЕ", use_container_width=True, key="clean_gallery_back_btn"):
             st.session_state["view_photos"] = False
             st.rerun()
@@ -286,19 +286,36 @@ else:
                         out.write(f.getbuffer())
             st.rerun()
             
-        # 3. Показване на снимките в решетка
-        saved = glob.glob(os.path.join(papka_snimki, "*"))
-        if saved:
-            st.markdown("<br>", unsafe_allow_html=True)
-            img_grid = st.columns(2)
-            for idx, p in enumerate(saved):
-                with img_grid[idx % 2]:
-                    st.image(p, use_container_width=True)
-                    if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): 
-                        os.remove(p)
-                        st.rerun()
-        else: 
-            st.markdown("<div style='text-align:center; margin-top:40px; margin-bottom:20px; color:#666;'>Все още няма снимки.</div>", unsafe_allow_html=True)
+        st.markdown("---")
+        
+        # Инициализираме състояние за показване на снимките на телефона, за да не се зареждат веднага
+        if "show_images_grid" not in st.session_state:
+            st.session_state["show_images_grid"] = False
+            
+        # 3. Бутон за разгъване на снимките - спасява телефона от грешен скрол
+        if not st.session_state["show_images_grid"]:
+            if st.button("👁️ ПОКАЖИ ЗАПАЗЕНИТЕ СНИМКИ", use_container_width=True, type="primary"):
+                st.session_state["show_images_grid"] = True
+                st.rerun()
+        else:
+            if st.button("🙈 СКРИЙ СНИМКИТЕ", use_container_width=True):
+                st.session_state["show_images_grid"] = False
+                st.rerun()
+                
+            # 4. Показване на снимките в решетка (само ако потребителят е натиснал бутона)
+            saved = glob.glob(os.path.join(papka_snimki, "*"))
+            if saved:
+                st.markdown("<br>", unsafe_allow_html=True)
+                img_grid = st.columns(2)
+                for idx, p in enumerate(saved):
+                    with img_grid[idx % 2]:
+                        st.image(p, use_container_width=True)
+                        if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): 
+                            os.remove(p)
+                            st.rerun()
+            else: 
+                st.markdown("<div style='text-align:center; margin-top:20px; margin-bottom:20px; color:#666;'>Все още няма снимки.</div>", unsafe_allow_html=True)
+
 
 
 
