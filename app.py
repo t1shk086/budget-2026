@@ -313,19 +313,20 @@ else:
                 if ckm > last_km and lit > 0 and is_full == "ПЪЛЕН": full_desc += f" (Етап: {(ckm - last_km):.0f}км, Разход: {(lit / (ckm - last_km) * 100):.1f}л/100км)"
                 if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): st.session_state["form_version"] += 1; st.rerun()
 
-        # Показва категориите САМО ако потребителят е почнал да пише в полето за Описание
         # Проверка дали потребителят е въвел описание и е натиснал Enter
         if o_input.strip() and s_input and s_input > 0:
-            # Скриваме хронологията и анализа, като изчистваме екрана с празен контейнер
-            st.markdown("""
+            # Извеждаме текста извън HTML стринга с CSS, за да избегнем конфликта на фигурните скоби
+            header_text = f"Записване на: <b>{s_input:.2f} EUR</b> за <i>\"{o_input.strip()}\"</i>"
+            
+            st.markdown(f"""
             <div style='text-align: center; margin: 20px 0 25px 0; animation: fadeIn 0.5s ease-in-out;'>
                 <h3 style='color: #00f2fe; font-family: "Segoe UI", sans-serif; font-weight: 700;'>🎯 СЕГА ИЗБЕРЕТЕ КАТЕГОРИЯ</h3>
-                <p style='color: #aaa; font-size: 14px;'>Записване на: <b>{:.2f} EUR</b> за <i>"{}"</i></p>
+                <p style='color: #aaa; font-size: 14px;'>{header_text}</p>
             </div>
             <style>
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(-10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
             </style>
-            """.format(s_input, o_input.strip()), unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
             
             grid = st.columns(3)
             for i, kat in enumerate(KATEGORII):
@@ -348,6 +349,7 @@ else:
                 
             # Спираме изпълнението на скрипта надолу, за да създадем ефекта на "нов главен екран"
             st.stop()
+
 
 
         st.markdown("### 📊 Анализ на разходите")
