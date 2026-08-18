@@ -710,15 +710,31 @@ else:
         st.subheader("🗺️ Карта на спирките и дестинациите")
         df_points = get_map_points(trip_id)
         c_lat, c_lon = (df_points["lat"].mean(), df_points["lon"].mean()) if not df_points.empty else (42.7339, 25.4858)
+        
         m = folium.Map(location=[c_lat, c_lon], zoom_start=6)
         m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
         folium.LatLngPopup().add_to(m)
+        
         for _, pt in df_points.iterrows():
             folium.Marker(location=[pt["lat"], pt["lon"]], popup=pt["title"], icon=folium.Icon(color=pt["color"], icon="info-sign")).add_to(m)
-        map_data = st_folium(m, width=700, height=400, key=f"map_{trip_id}")
+            
+        # 🌟 ПОПРАВКА 1 и 2: Статичен ключ и връщане само на клика, за да спре премигването и презареждането
+        map_data = st_folium(
+            m, 
+            width=700, 
+            height=400, 
+            key="static_folium_trip_map", 
+            returned_objects=["last_clicked"]
+        )
         
+        # Улавяме новия клик само ако реално има промяна, за да не цикли браузърът
         if map_data and map_data.get("last_clicked"):
-            st.session_state["active_click"] = map_data["last_clicked"]
+            new_click = map_data["last_clicked"]
+            # Проверяваме дали този клик вече е обработен, за да спрем фалшивите презареждания
+            if st.session_state.get("active_click") != new_click:
+                st.session_state["active_click"] = new_click
+                st.rerun()
+                
         if "active_click" in st.session_state and st.session_state["active_click"] is not None and not is_trip_finished:
             click_coords = st.session_state["active_click"]
             st.markdown(f"📌 **Избрано място:** Ширина: `{click_coords['lat']:.4f}`, Дължина: `{click_coords['lng']:.4f}`")
@@ -727,6 +743,7 @@ else:
                 title_in = st.text_input("Име на новата спирка:", placeholder="напр. Хотел...", key="map_title_click")
             with c_m2:
                 color_in = st.selectbox("Цвят:", ["blue", "green", "red", "purple", "orange"], key="map_color_click")
+            
             cb1, cb2 = st.columns([0.7, 0.3])
             with cb1:
                 if st.button("💾 ЗАПИШИ ПИНЧЕТО НА КАРТАТА", use_container_width=True, type="primary") and title_in:
@@ -754,6 +771,7 @@ else:
                             st.rerun()
             except:
                 pass
+
             
         st.markdown("---")
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
