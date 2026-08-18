@@ -707,24 +707,24 @@ else:
 
         # 🗺️ 1. СЛАГАМЕ ЗАЩИТНА ПРОВЕРКА: Изчертаваме картата САМО ако потребителят НЕ е натиснал бутона за разходи
         st.subheader("🗺️ Карта на спирките и дестинациите")
-            df_points = get_map_points(trip_id)
-            c_lat, c_lon = (df_points["lat"].mean(), df_points["lon"].mean()) if not df_points.empty else (42.7339, 25.4858)
+        df_points = get_map_points(trip_id)
+        c_lat, c_lon = (df_points["lat"].mean(), df_points["lon"].mean()) if not df_points.empty else (42.7339, 25.4858)
             
-            m = folium.Map(location=[c_lat, c_lon], zoom_start=6)
-            m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
-            folium.LatLngPopup().add_to(m)
+        m = folium.Map(location=[c_lat, c_lon], zoom_start=6)
+        m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
+        folium.LatLngPopup().add_to(m)
             
-            for _, pt in df_points.iterrows():
+        for _, pt in df_points.iterrows():
                 folium.Marker(location=[pt["lat"], pt["lon"]], popup=pt["title"], icon=folium.Icon(color=pt["color"], icon="info-sign")).add_to(m)
                 
             # Статичен ключ и връщане само на клика, за да спре премигването
-            map_data = st_folium(
-                m, 
-                width=700, 
-                height=400, 
-                key="static_folium_trip_map", 
-                returned_objects=["last_clicked"]
-            )
+        map_data = st_folium(
+            m, 
+            width=700, 
+            height=400, 
+            key="static_folium_trip_map", 
+            returned_objects=["last_clicked"]
+        )
             
             if map_data and map_data.get("last_clicked"):
                 new_click = map_data["last_clicked"]
