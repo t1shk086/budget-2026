@@ -648,51 +648,37 @@ else:
         # 1. Изчисляваме HTML данните за отчета (както досега)
         b64_html_data = pdf_html.encode("utf-8")
 
-        # 2. 🎛️ БРОНИРАН ТИТАНИЕВ 3Д ДИЗАЙН (Алтернативен селектор, който винаги хваща бутона)
-        st.markdown("""
-            <style>
-                /* Хващаме второстепенния бутон в тази специфична зона на екрана */
-                div[data-testid="stElementContainer"] button[data-testid="baseButton-secondary"] {
-                    background: linear-gradient(180deg, #4A5260, #333943) !important; /* Луксозен титаниев металик */
-                    color: #FFFFFF !important; /* Бял изпъкващ текст */
-                    border: 1px solid rgba(0, 242, 254, 0.3) !important; /* Деликатен брандиран син ръб */
-                    border-radius: 8px !important;
-                    font-weight: 700 !important;
-                    font-size: 14px !important;
-                    letter-spacing: 0.5px !important;
-                    box-shadow: 0px 3px 0px #1E2127, 0px 4px 12px rgba(0,0,0,0.35) !important; /* Твърдо 3D дъно */
-                    transition: all 0.1s ease-in-out !important;
-                    height: 42px !important;
-                    width: 100% !important;
-                }
-                
-                /* Ефект при посочване с мишката */
-                div[data-testid="stElementContainer"] button[data-testid="baseButton-secondary"]:hover {
-                    background: linear-gradient(180deg, #565F6F, #3C434F) !important;
-                    border-color: rgba(0, 242, 254, 0.6) !important;
-                    box-shadow: 0px 3px 0px #1E2127, 0px 6px 15px rgba(0,242,254,0.2) !important;
-                }
+        # 2. Инжектираме луксозния дизайн ДИРЕКТНО вътре в етикета на бутона
+        # Използваме абсолютни отстояния (inset padding), за да пребоядисаме бутона отвътре навън
+        premium_label = f"""
+        <div style="
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(180deg, #4A5260, #333943) !important;
+            color: #FFFFFF !important;
+            border: 1px solid rgba(0, 242, 254, 0.35) !important;
+            border-radius: 8px !important;
+            font-weight: 700 !important;
+            font-size: 14px !important;
+            letter-spacing: 0.5px !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.15) !important;
+        ">
+            📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
+        </div>
+        """
 
-                /* 3D Потъване при реален натиск */
-                div[data-testid="stElementContainer"] button[data-testid="baseButton-secondary"]:active {
-                    transform: translateY(2px) !important;
-                    box-shadow: 0px 1px 0px #1E2127, 0px 2px 5px rgba(0,0,0,0.2) !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
-
-
-
-        # 3. 📂 Нативен Streamlit бутон за директно изтегляне (без презареждане на страници)
+        # 3. Нативен Streamlit бутон, чието ядро се пренаписва от вградения дизайн
         st.download_button(
-            label="📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)",
+            label=premium_label,
             data=b64_html_data,
             file_name=f"Otchet_{trip_id}_2026.html",
             mime="text/html",
-            key="premium_gray_download",
+            key="force_titanium_download",
             use_container_width=True
         )
         st.markdown("---")
+
 
 
 
