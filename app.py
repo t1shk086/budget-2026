@@ -338,16 +338,27 @@ else:
                    
     else:
         # =========================================================
-        # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С ПРОЗРАЧЕН БУТОН СНИМКИ
+        # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С МИНИ ПРОЗРАЧЕН БУТОН
         # =========================================================
-        # Инжектираме специален прозрачен стил САМО за този бутон
+        # Инжектираме стил за минимален размер и подравняване вдясно
         st.markdown("""
             <style>
+                /* Насочваме се към контейнера на бутона в дясната колона */
+                div[data-testid="stColumn"]:nth-of-type(3) div[data-testid="stButton"] {
+                    text-align: right !important;
+                }
+                /* Правим самия бутон малък, обгръщащ само текста */
                 div[data-testid="stColumn"]:nth-of-type(3) button {
+                    display: inline-block !important;
+                    width: auto !important;
+                    min-width: unset !important;
                     background: transparent !important;
                     border: 1px solid rgba(255, 255, 255, 0.15) !important;
                     color: #ffffff !important;
                     box-shadow: none !important;
+                    padding: 4px 10px !important; /* Минимални отстояния около текста */
+                    font-size: 13px !important; /* Малко по-лек и изящен шрифт */
+                    border-radius: 8px !important;
                     backdrop-filter: blur(4px) !important;
                     -webkit-backdrop-filter: blur(4px) !important;
                     transition: all 0.2s ease-in-out !important;
@@ -355,12 +366,12 @@ else:
                 div[data-testid="stColumn"]:nth-of-type(3) button:hover {
                     background: rgba(0, 242, 254, 0.08) !important;
                     border-color: rgba(0, 242, 254, 0.4) !important;
-                    box-shadow: 0 0 15px rgba(0, 242, 254, 0.1) !important;
+                    box-shadow: 0 0 10px rgba(0, 242, 254, 0.1) !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        col_left_space, col_center_title, col_gallery_top = st.columns([0.2, 0.6, 0.2])
+        col_left_space, col_center_title, col_gallery_top = st.columns([0.15, 0.7, 0.15])
         
         with col_center_title:
             date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
@@ -369,7 +380,8 @@ else:
         with col_gallery_top:
             st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
             st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            if st.button("📸 Снимки", use_container_width=True, key="open_gallery_top_header_2026"):
+            # Премахнат use_container_width, за да се свие бутонът до размера на думата
+            if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
                 st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
                 st.session_state["view_photos"] = True
                 st.rerun()
