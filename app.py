@@ -340,51 +340,48 @@ else:
         # =========================================================
         # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С МИНИ ПРОЗРАЧЕН БУТОН
         # =========================================================
-        # 👑 АБСОЛЮТНО ФИКСИРАН БУТОН ГАЛЕРИЯ + 100% ЦЕНТРИРАНО ЗАГЛАВИЕ
+        # 👑 КОРЕКЦИЯ: ЖЕЛЕЗНО ДЕСЕН ФИКСИРАН БУТОН ГАЛЕРИЯ
         # =========================================================
-        # Инжектираме CSS за перфектно фиксирано закотвяне в горния десен ъгъл
         st.markdown("""
             <style>
-                /* Закотвяме контейнера на бутона в най-горния десен ъгъл на браузъра */
-                div.stActionButton { display: none !important; } /* Скрива фабрични бутони на Streamlit, ако пречат */
-                
-                div[data-testid="stAppViewContainer"] button[key="open_gallery_top_header_2026"] {
+                /* Насочваме се директно към бутона чрез неговия key атрибут за абсолютен контрол */
+                button[key="open_gallery_top_header_2026"] {
                     position: fixed !important;
-                    top: 15px !important;       /* Отстояние от тавана на екрана */
-                    right: 15px !important;     /* Отстояние от десния ръб на екрана */
-                    z-index: 999999 !important; /* Гарантира, че ще стои над абсолютно всички елементи и карти */
+                    top: 15px !important;        /* Отстояние от тавана */
+                    left: auto !important;       /* Изключваме лявото подравняване изцяло */
+                    right: 15px !important;      /* Желязно закотвяне в ДЕСНИЯ ъгъл */
+                    z-index: 999999 !important;  /* Най-отгоре над всичко */
                     width: auto !important;
                     min-width: unset !important;
-                    background: rgba(15, 18, 25, 0.4) !important; /* Изключително лек тъмен филтър за четливост */
-                    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                    background: rgba(22, 25, 31, 0.6) !important; /* Фин стъклен тъмен декор */
+                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
                     color: #ffffff !important;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
-                    padding: 5px 12px !important;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+                    padding: 4px 12px !important;
                     font-size: 13px !important;
                     border-radius: 8px !important;
-                    backdrop-filter: blur(8px) !important; /* Красив прозрачен ефект */
-                    -webkit-backdrop-filter: blur(8px) !important;
+                    backdrop-filter: blur(10px) !important;
+                    -webkit-backdrop-filter: blur(10px) !important;
                     transition: all 0.2s ease-in-out !important;
                 }
                 
-                /* Ефект при посочване */
-                div[data-testid="stAppViewContainer"] button[key="open_gallery_top_header_2026"]:hover {
-                    background: rgba(0, 242, 254, 0.1) !important;
-                    border-color: rgba(0, 242, 254, 0.4) !important;
-                    box-shadow: 0 0 15px rgba(0, 242, 254, 0.15) !important;
+                /* Уеднаквен хоувър за десния бутон */
+                button[key="open_gallery_top_header_2026"]:hover {
+                    background: rgba(0, 242, 254, 0.12) !important;
+                    border-color: rgba(0, 242, 254, 0.5) !important;
+                    box-shadow: 0 0 15px rgba(0, 242, 254, 0.2) !important;
                     transform: scale(1.02) !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # Вече нямаме нужда от сложни колони, заглавието заема целия ред и е перфектно центрирано!
+        # Заглавието си остава 100% центрирано по средата
         date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
         st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         
-        # Скрита котва за скролване
         st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
         
-        # Рендерираме оригиналния бутон, който CSS стилът ще хване и ще закотви горе вдясно
+        # Бутонът, който бива прехванат от CSS стила горе
         if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
             st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
             st.session_state["view_photos"] = True
