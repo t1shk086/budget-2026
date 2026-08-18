@@ -700,7 +700,7 @@ else:
             st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
             
             # 1. Оригинален бутон за Хронология
-            if st.button("📜 ВИЖ ЦЯЛАТА ХРОНОЛОГИЯ НА ПЛАЩАНИЯТА", use_container_width=True, key="open_hronologia_popup_trigger"):
+            if st.button("➗ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
                 hronologia_popup_dialog()
 
             # 2. Оригинален бутон за Снимки и Спомени
@@ -711,7 +711,7 @@ else:
 
             # 3. Фабричен бутон за изтегляне (Download Button) на Streamlit – подравнен по конец!
             st.download_button(
-                label="📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)",
+                label="🟰 Отчет в PDF",
                 data=pdf_html,
                 file_name=f"Otchet_{trip_id}_2026.html",
                 mime="text/html",
