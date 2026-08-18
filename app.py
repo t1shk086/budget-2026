@@ -779,94 +779,52 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: УЕДНАКВЕНИ ПО СТАНДАРТНИЯ STREAMLIT СТИЛ
-# 🌟 КРАЙ НА ФАЙЛА: ТОЧНО КОПИЕ НА СТАНДАРТНИЯ STREAMLIT БУТОН
-st.markdown("""
-    <style>
-        /* Глобално правило за плавно приплъзване на екрана */
-        html {
-            scroll-behavior: smooth !important;
-        }
+        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ ИЗРАВНЕНИ БУТОНИ С МИЛИМЕТРОВО ПРЕЦИЗЕН СКРОЛ
+        st.markdown("""
+            <style>
+                html {
+                    scroll-behavior: smooth !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        bottom_cols = st.columns(2)
         
-        /* 🌟 Точно копиране на базовия Streamlit бутон за втори HTML бутон */
-        .twin-premium-3d-btn {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 100% !important; 
-            height: 38.4px !important;
-            
-            /* Използване на официалните CSS променливи на Streamlit */
-            background-color: var(--background-color, #0e1117) !important;
-            color: var(--text-color, #fafafa) !important;
-            border: 1px solid rgba(250, 250, 250, 0.2) !important;
-            border-radius: 0.5rem !important;
-            padding: 0.25rem 0.75rem !important;
-            
-            font-weight: 400 !important;
-            font-size: 1rem !important;
-            font-family: inherit !important;
-            line-height: 1.6 !important;
-            
-            cursor: pointer !important;
-            user-select: none !important;
-            box-shadow: none !important;
-            transform: none !important;
-            transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease !important;
-        }
-        
-        /* 🌟 Точен Hover ефект на Streamlit (лек акцент върху рамката и текста) */
-        .twin-premium-3d-btn:hover {
-            border-color: rgba(250, 250, 250, 0.6) !important;
-            color: var(--text-color, #fafafa) !important;
-            background-color: rgba(255, 255, 255, 0.05) !important;
-        }
-        
-        /* 🌟 Точен Active ефект при натискане */
-        .twin-premium-3d-btn:active {
-            border-color: rgba(250, 250, 250, 0.8) !important;
-            background-color: rgba(255, 255, 255, 0.1) !important;
-            color: var(--text-color, #fafafa) !important;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-        
-        /* Скриваме очертанията на линка в решетката */
-        .twin-grid-wrapper a {
-            text-decoration: none !important;
-            width: 100% !important;
-            display: block !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("<br><br>", unsafe_allow_html=True)
-
-# Създаваме чистата решетка от 2 колони
-bottom_cols = st.columns(2)
-
-with bottom_cols[0]: # 🏠 Първи бутон: Главно Меню (оригинален Streamlit)
-    if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
-        st.session_state["current_trip"] = None
-        st.rerun()
-        
-with bottom_cols[1]: # 🎚️ Втори бутон: Към Разходите (копира Streamlit)
-    st.markdown("""
-        <div class="twin-grid-wrapper">
-            <a href="#target_sum_box" target="_self">
-                <button class="twin-premium-3d-btn">
-                    🎚️ КЪМ РАЗХОДИТЕ
-                </button>
-            </a>
-        </div>
-    """, unsafe_allow_html=True)
-        
-
-
-
-
-
-
+        with bottom_cols[0]: # Лява колона: Главно меню
+            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid_final"):
+                st.session_state["current_trip"] = None
+                st.rerun()
+                
+        with bottom_cols[1]: # Дясна колона: Луксозен 3D близнак бутон с добавен буфер за скролване
+            st.markdown("""
+                <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
+                    <button class="stBaseButton-secondary" style="
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: 600;
+                        padding: 0.25rem 0.75rem;
+                        border-radius: 0.5rem;
+                        min-height: 38.4px;
+                        margin: 0px;
+                        width: 100%;
+                        user-select: none;
+                        background-color: rgba(255, 255, 255, 0.05);
+                        color: rgb(250, 250, 250);
+                        border: 1px solid rgba(250, 250, 250, 0.2);
+                        cursor: pointer;
+                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+                        transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
+                    " onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgb(250, 250, 250)';" 
+                       onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(250, 250, 250, 0.2)';"
+                       onmousedown="this.style.transform='translateY(2px)'; this.style.boxShadow='0px 2px 5px rgba(0,0,0,0.2)';"
+                       onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 4px 10px rgba(0,0,0,0.3)';"
+                       onclick="setTimeout(function() { var el = parent.document.getElementById('target_sum_box'); if(el) el.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 50);">
+                        🎚️ КЪМ РАЗХОДИТЕ
+                    </button>
+                </a>
+            """, unsafe_allow_html=True)
 
 
 
