@@ -776,43 +776,52 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ РАВНИ БУТОНИ С ДИРЕКТЕН СКРОЛ БЕЗ RE-RUN
+        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ РАВНИ БУТОНИ С НАЛOЖЕНО ПЛАВНО СЛУЧВАЩ СЕ СКРОЛВАНЕ
+        st.markdown("""
+            <style>
+                /* Налагаме на целия браузър да прави скролването плавно и нежно */
+                html {
+                    scroll-behavior: smooth !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols[0]: # Лява колона: Главно меню
-            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid"):
+        with bottom_cols: # Лява колона: Главно меню
+            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid_final"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # Дясна колона: Оригинален фабричен бутон
-            st.button("🎚️ КЪМ РАЗХОДИТЕ", use_container_width=True, key="click_scroll_to_sum_btn")
-            
-        # 🚀 БЕЗОТКАЗЕН СКРИПТ: Прихваща клика директно в браузъра и мести екрана без рефреш!
-        st.markdown("""
-            <script>
-                function initScrollAction() {
-                    var btn = window.parent.document.querySelector('button[key="click_scroll_to_sum_btn"]');
-                    if (btn) {
-                        btn.onclick = function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            
-                            // Намираме полето за сума в главното приложение
-                            var target = window.parent.document.getElementById('target_sum_box');
-                            if (target) {
-                                // Прескачаме картата и центрираме полето на екрана
-                                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }}
-                        };
-                    }
-                }
-                
-                // Стартираме търсенето на бутона веднага
-                initScrollAction();
-                setTimeout(initScrollAction, 500);
-            </script>
-        """, unsafe_allow_html=True)
+        with bottom_cols: # Дясна колона: Линк, пресъздаващ оригиналния 3D Streamlit бутон до пиксел
+            st.markdown("""
+                <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
+                    <button class="stBaseButton-secondary" style="
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: 400;
+                        padding: 0.25rem 0.75rem;
+                        border-radius: 0.5rem;
+                        min-height: 38.4px;
+                        margin: 0px;
+                        width: 100%;
+                        user-select: none;
+                        background-color: rgba(255, 255, 255, 0.05);
+                        color: rgb(250, 250, 250);
+                        border: 1px solid rgba(250, 250, 250, 0.2);
+                        cursor: pointer;
+                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+                        transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
+                    " onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgb(250, 250, 250)';" 
+                       onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(250, 250, 250, 0.2)';"
+                       onmousedown="this.style.transform='translateY(2px)'; this.style.boxShadow='0px 2px 5px rgba(0,0,0,0.2)';"
+                       onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 4px 10px rgba(0,0,0,0.3)';">
+                        🎚️ КЪМ РАЗХОДИТЕ
+                    </button>
+                </a>
+            """, unsafe_allow_html=True)
 
 
 
