@@ -705,70 +705,72 @@ else:
 
 
 
-        st.subheader("🗺️ Карта на спирките и дестинациите")
-        df_points = get_map_points(trip_id)
-        c_lat, c_lon = (df_points["lat"].mean(), df_points["lon"].mean()) if not df_points.empty else (42.7339, 25.4858)
-        
-        m = folium.Map(location=[c_lat, c_lon], zoom_start=6)
-        m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
-        folium.LatLngPopup().add_to(m)
-        
-        for _, pt in df_points.iterrows():
-            folium.Marker(location=[pt["lat"], pt["lon"]], popup=pt["title"], icon=folium.Icon(color=pt["color"], icon="info-sign")).add_to(m)
+        # 🗺️ 1. СЛАГАМЕ ЗАЩИТНА ПРОВЕРКА: Изчертаваме картата САМО ако потребителят НЕ е натиснал бутона за разходи
+        if not st.session_state.get("hide_map_for_scroll", False):
+            st.subheader("🗺️ Карта на спирките и дестинациите")
+            df_points = get_map_points(trip_id)
+            c_lat, c_lon = (df_points["lat"].mean(), df_points["lon"].mean()) if not df_points.empty else (42.7339, 25.4858)
             
-        # 🌟 ПОПРАВКА 1 и 2: Статичен ключ и връщане само на клика, за да спре премигването и презареждането
-        map_data = st_folium(
-            m, 
-            width=700, 
-            height=400, 
-            key="static_folium_trip_map", 
-            returned_objects=["last_clicked"]
-        )
-        
-        # Улавяме новия клик само ако реално има промяна, за да не цикли браузърът
-        if map_data and map_data.get("last_clicked"):
-            new_click = map_data["last_clicked"]
-            # Проверяваме дали този клик вече е обработен, за да спрем фалшивите презареждания
-            if st.session_state.get("active_click") != new_click:
-                st.session_state["active_click"] = new_click
-                st.rerun()
+            m = folium.Map(location=[c_lat, c_lon], zoom_start=6)
+            m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
+            folium.LatLngPopup().add_to(m)
+            
+            for _, pt in df_points.iterrows():
+                folium.Marker(location=[pt["lat"], pt["lon"]], popup=pt["title"], icon=folium.Icon(color=pt["color"], icon="info-sign")).add_to(m)
                 
-        if "active_click" in st.session_state and st.session_state["active_click"] is not None and not is_trip_finished:
-            click_coords = st.session_state["active_click"]
-            st.markdown(f"📌 **Избрано място:** Ширина: `{click_coords['lat']:.4f}`, Дължина: `{click_coords['lng']:.4f}`")
-            c_m1, c_m2 = st.columns([0.7, 0.3])
-            with c_m1:
-                title_in = st.text_input("Име на новата спирка:", placeholder="напр. Хотел...", key="map_title_click")
-            with c_m2:
-                color_in = st.selectbox("Цвят:", ["blue", "green", "red", "purple", "orange"], key="map_color_click")
+            # Статичен ключ и връщане само на клика, за да спре премигването
+            map_data = st_folium(
+                m, 
+                width=700, 
+                height=400, 
+                key="static_folium_trip_map", 
+                returned_objects=["last_clicked"]
+            )
             
-            cb1, cb2 = st.columns([0.7, 0.3])
-            with cb1:
-                if st.button("💾 ЗАПИШИ ПИНЧЕТО НА КАРТАТА", use_container_width=True, type="primary") and title_in:
-                    if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in):
+            if map_data and map_data.get("last_clicked"):
+                new_click = map_data["last_clicked"]
+                if st.session_state.get("active_click") != new_click:
+                    st.session_state["active_click"] = new_click
+                    st.rerun()
+                    
+            if "active_click" in st.session_state and st.session_state["active_click"] is not None and not is_trip_finished:
+                click_coords = st.session_state["active_click"]
+                st.markdown(f"📌 **Избрано място:** Ширина: `{click_coords['lat']:.4f}`, Дължина: `{click_coords['lng']:.4f}`")
+                c_m1, c_m2 = st.columns([0.7, 0.3])
+                with c_m1:
+                    title_in = st.text_input("Име на новата спирка:", placeholder="напр. Хотел...", key="map_title_click")
+                with c_m2:
+                    color_in = st.selectbox("Цвят:", ["blue", "green", "red", "purple", "orange"], key="map_color_click")
+                
+                cb1, cb2 = st.columns([0.7, 0.3])
+                with cb1:
+                    if st.button("💾 ЗАПИШИ ПИНЧЕТО НА КАРТАТА", use_container_width=True, type="primary") and title_in:
+                        if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in):
+                            st.session_state["active_click"] = None
+                            st.rerun()
+                with cb2:
+                    if st.button("❌ Отказ", use_container_width=True):
                         st.session_state["active_click"] = None
                         st.rerun()
-            with cb2:
-                if st.button("❌ Отказ", use_container_width=True):
-                    st.session_state["active_click"] = None
-                    st.rerun()
 
-        if not df_points.empty:
-            st.markdown("#### 📍 Списък на запазените локации")
-            try:
-                df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
-                color_emojis = {"blue": "🔵", "green": "🟢", "red": "🔴", "purple": "🟣", "orange": "🟠"}
-                for idx in df_all_map[df_all_map["trip_id"] == trip_id].index.tolist():
-                    pt_row = df_all_map.loc[idx]
-                    col_p_txt, col_p_del = st.columns([0.85, 0.15])
-                    with col_p_txt:
-                        st.markdown(f"{color_emojis.get(pt_row['color'], '🔵')} **{pt_row['title']}** <small>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small>", unsafe_allow_html=True)
-                    with col_p_del:
-                        if st.button("🗑️", key=f"del_pin_{idx}", use_container_width=True, disabled=is_trip_finished):
-                            df_all_map.drop(idx).to_csv(MAP_FILE, index=False, encoding="utf-8")
-                            st.rerun()
-            except:
-                pass
+            if not df_points.empty:
+                st.markdown("#### 📍 Списък на запазените локации")
+                try:
+                    df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
+                    color_emojis = {"blue": "🔵", "green": "🟢", "red": "🔴", "purple": "🟣", "orange": "🟠"}
+                    for idx in df_all_map[df_all_map["trip_id"] == trip_id].index.tolist():
+                        pt_row = df_all_map.loc[idx]
+                        col_p_txt, col_p_del = st.columns([0.85, 0.15])
+                        with col_p_txt:
+                            st.markdown(f"{color_emojis.get(pt_row['color'], '🔵')} **{pt_row['title']}** <small>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small>", unsafe_allow_html=True)
+                        with col_p_del:
+                            if st.button("🗑️", key=f"del_pin_{idx}", use_container_width=True, disabled=is_trip_finished):
+                                df_all_map.drop(idx).to_csv(MAP_FILE, index=False, encoding="utf-8")
+                                st.rerun()
+                except:
+                    pass
+        # 🌟 КРАЙ НА ЗАЩИТНАТА ПРОВЕРКА
+
 
             
         st.markdown("---")
