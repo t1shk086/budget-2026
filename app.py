@@ -648,33 +648,53 @@ else:
         # 1. Кодираме данните за директно изтегляне през уеб браузъра
         b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
         
-        # 2. 👑 ИСТИНСКИ ТИТАНИЕВ ПРЕМИУМ 3Д БУТОН СЪС СИЛНО ПРЕЛИВАНЕ И ОБЕМ
+        # 2. 👑 ЧИСТ CSS ЗА ХОУВЪР ЕФЕКТ И ПЛАВНО ПРЕЛИВАНЕ (Заобикаля всички блокировки)
+        st.markdown("""
+            <style>
+                /* Основен стил на бутона */
+                .premium-3d-btn {
+                    width: 100%; 
+                    background: linear-gradient(to bottom, #5d6675 0%, #383e4a 50%, #252932 100%) !important;
+                    color: #FFFFFF !important; 
+                    border: 1px solid rgba(0, 242, 254, 0.4) !important;
+                    padding: 12px; 
+                    font-weight: 900 !important;
+                    font-size: 14px !important;
+                    letter-spacing: 0.8px !important;
+                    border-radius: 10px !important; 
+                    cursor: pointer !important;
+                    box-shadow: inset 0px 1px 0px rgba(255,255,255,0.3), 0px 4px 0px #15171c, 0px 8px 15px rgba(0, 0, 0, 0.5) !important;
+                    transition: all 0.2s ease-in-out !important; /* 🌟 ПРАВИ ЕФЕКТА ПЛАВЕН */
+                    text-shadow: 0px -1px 0px rgba(0,0,0,0.5);
+                }
+                
+                /* 🌟 ХОУВЪР ЕФЕКТ: Светва нежно и плавно, когато минеш с мишката */
+                .premium-3d-btn:hover {
+                    background: linear-gradient(to bottom, #6b7586 0%, #414856 50%, #2c313c 100%) !important;
+                    border-color: rgba(0, 242, 254, 0.8) !important;
+                    box-shadow: inset 0px 1px 0px rgba(255,255,255,0.4), 0px 4px 0px #15171c, 0px 10px 20px rgba(0, 242, 254, 0.15) !important;
+                    filter: brightness(1.05);
+                }
+                
+                /* 3D Потъване при реален натиск */
+                .premium-3d-btn:active {
+                    transform: translateY(3px) !important;
+                    box-shadow: inset 0px 1px 0px rgba(255,255,255,0.2), 0px 1px 0px #15171c, 0px 3px 6px rgba(0,0,0,0.3) !important;
+                    transition: all 0.05s ease !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        # 3. Самият чист HTML бутон, използващ горния CSS клас
         st.markdown(f'''
             <a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;">
-                <button style="
-                    width: 100%; 
-                    background: linear-gradient(to bottom, #5d6675 0%, #383e4a 50%, #252932 100%); /* 🌟 Силно изразен 3D градиент с преливане */
-                    color: #FFFFFF; 
-                    border: 1px solid rgba(0, 242, 254, 0.4); /* Брандиран светещ ръб */
-                    padding: 12px; 
-                    font-weight: 900; /* По-плътен и луксозен текст */
-                    font-size: 14px;
-                    letter-spacing: 0.8px;
-                    border-radius: 10px; 
-                    cursor: pointer;
-                    /* 3D Слоеве: вътрешен блясък + дебело твърдо дъно отдолу + външна мека сянка */
-                    box-shadow: inset 0px 1px 0px rgba(255,255,255,0.3), 0px 4px 0px #15171c, 0px 8px 15px rgba(0, 0, 0, 0.5);
-                    transition: all 0.1s ease-in-out;
-                    text-shadow: 0px -1px 0px rgba(0,0,0,0.5); /* Лек 3D ефект върху самия текст */
-                " onmouseover="this.style.background='linear-gradient(to bottom, #6b7586 0%, #414856 50%, #2c313c 100%)'; this.style.borderColor='rgba(0, 242, 254, 0.7)';" 
-                   onmouseout="this.style.background='linear-gradient(to bottom, #5d6675 0%, #383e4a 50%, #252932 100%)'; this.style.borderColor='rgba(0, 242, 254, 0.4)';"
-                   onmousedown="this.style.transform='translateY(3px)'; this.style.boxShadow='inset 0px 1px 0px rgba(255,255,255,0.2), 0px 1px 0px #15171c, 0px 3px 6px rgba(0,0,0,0.3)';"
-                   onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='inset 0px 1px 0px rgba(255,255,255,0.3), 0px 4px 0px #15171c, 0px 8px 15px rgba(0, 0, 0, 0.5)';">
+                <button class="premium-3d-btn">
                     📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
                 </button>
             </a>
         ''', unsafe_allow_html=True)
         st.markdown("---")
+
 
 
         st.subheader("🗺️ Карта на спирките и дестинациите")
