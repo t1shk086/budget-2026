@@ -294,8 +294,6 @@ else:
             st.session_state["view_photos"] = False
             st.rerun()
         
-                        
-        else: st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма снимки.</div>", unsafe_allow_html=True)
                    
     else:
         date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
