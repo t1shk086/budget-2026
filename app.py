@@ -840,16 +840,16 @@ else:
                     scroll-behavior: smooth !important;
                 }
                 
-                /* Перфектно изравняване на колоните в решетката */
+                /* Заключваме решетката на Streamlit да подравнява елементите точно по долния ръб */
                 div[data-testid="stHorizontalBlock"] {
-                    align-items: center !important;
+                    display: flex !important;
+                    align-items: flex-end !important;
                 }
                 
-                /* Премахване на паразитни отстояния от контейнера на Streamlit */
-                .twin-grid-wrapper div[data-testid="stMarkdownContainer"] p {
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    display: flex !important;
+                /* Премахваме автоматичното празно пространство под оригиналния бутон на Streamlit */
+                div[data-testid="stComponentBlock"] {
+                    margin-bottom: 0px !important;
+                    padding-bottom: 0px !important;
                 }
                 
                 /* Стилизираме ОРЕДЕЛЕНИЯ Streamlit бутон и нашия HTML бутон по еднакъв начин */
@@ -861,7 +861,7 @@ else:
                     width: 100% !important; 
                     height: 38.4px !important;
                     box-sizing: border-box !important;
-                    margin: 0 !important;
+                    margin: 0px !important;
                     background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important;
                     color: #ffffff !important; 
                     border: 1px solid rgba(255, 255, 255, 0.12) !important;
@@ -891,10 +891,14 @@ else:
                     box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important;
                 }
                 
+                /* Изчистваме паразитните блокове около HTML линка */
+                .twin-grid-wrapper,
                 .twin-grid-wrapper a {
                     text-decoration: none !important;
                     width: 100% !important;
                     display: flex !important;
+                    margin: 0px !important;
+                    padding: 0px !important;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -925,7 +929,7 @@ else:
                 
         with b_col2: # 🎚️ Десен близнак: Към Разходите
             st.markdown("""
-                <div class="twin-grid-wrapper" style="margin-top: 1px;">
+                <div class="twin-grid-wrapper">
                     <a href="#trip_top_anchor" target="_self">
                         <button class="twin-premium-3d-btn">
                             🔝 КЪМ РАЗХОДИТЕ
