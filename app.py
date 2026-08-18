@@ -257,14 +257,27 @@ else:
     eff_end_km = e_km if e_km > 0 else max_current_km
     dist = eff_end_km - s_km if eff_end_km > s_km else 0.0
 
+    # 🌟 КОПИРАЙ И ЗАМЕНИ С ТОВА ЗА ПРАВИЛЕН КРАЕН РАЗХОД:
     progressive_avg_con, has_progressive_data = 0.0, False
     try:
         df_trans_fuel = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["current_km"] > s_km)].sort_index()
-        if not df_trans_fuel.empty:
-            progressive_dist = float(df_trans_fuel.iloc[-1]["current_km"]) - s_km
-            progressive_liters = float(df_trans_fuel["liters"].sum()) + m_fuel
-            if progressive_dist > 0 and progressive_liters > 0: progressive_avg_con = (progressive_liters / progressive_dist * 100); has_progressive_data = True
-    except: pass
+        # Търсим само записите, при които резервоарът е напълнен "ДО ГОРЕ" (ПЪЛНО или ПЪЛЕН)
+        df_full_points = df_trans_fuel[df_trans_fuel["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
+        
+        if not df_full_points.empty:
+            # Смятаме разхода до последната сигурна точка, в която резервоарът е бил пълен
+            last_full_km = float(df_full_points.iloc[-1]["current_km"])
+            total_dist = last_full_km - s_km
+            
+            # Взимаме абсолютно всички литри (начални + частични + пълни) до тази последна точка
+            total_liters = float(df_trans_fuel[df_trans_fuel["current_km"] <= last_full_km]["liters"].sum()) + m_fuel
+            
+            if total_dist > 0 and total_liters > 0:
+                progressive_avg_con = (total_liters / total_dist * 100)
+                has_progressive_data = True
+    except: 
+        pass
+
 
     if st.session_state["view_photos"]:
         # 1. Бутонът за връщане назад е НАЙ-ОТГОРЕ
@@ -347,19 +360,59 @@ else:
             if is_trip_finished: st.error("🔒 Пътуването е приключено!"); return
             liters = st.number_input("Литри:", value=None, placeholder="Напишете литри...", step=0.1)
             fuel_type = st.radio("Тип на зареждането:", ["Да, до горе (Пълен резервоар)", "Не, частично (за конкретна сума)"], index=0)
-            df_f = get_trip_data(trip_id)[lambda d: (d["category"] == "Транспорт") & (d["current_km"] > 0)]
+            
+            # Взимаме всички транспортни записи с въведени километри
+            df_f = get_trip_data(trip_id)[lambda d: (d["category"] == "Транспорт") & (d["current_km"] > 0)].sort_index()
             last_km = float(df_f["current_km"].max()) if not df_f.empty else s_km
             km_input = st.number_input("Текущи километри на таблото (км):", value=None, placeholder="Въведете км...", step=1.0)
+            
+            total_segment_liters = 0.0
+            segment_dist = 0.0
+            
+            # Изчисляване на етапен разход на екрана ПРЕДИ запис (само при ПЪЛНО зареждане)
             if liters and km_input and km_input > last_km and "до горе" in fuel_type.lower():
-                st.success(f"📊 Етапен разход: **{(liters / (km_input - last_km) * 100):.1f} л / 100 км**")
+                # Търсим кога за последно резервоарът е бил зареден ДО ГОРЕ (ПЪЛЕН или ПЪЛНО)
+                df_since_full = df_f[df_f["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
+                if not df_since_full.empty:
+                    last_full_km = float(df_since_full.iloc[-1]["current_km"])
+                    # Взимаме всички частични литри, заредени СЛЕД последното пълно зареждане
+                    partial_liters = float(df_f[df_f["current_km"] > last_full_km]["liters"].sum())
+                    total_segment_liters = partial_liters + liters
+                    segment_dist = km_input - last_full_km
+                else:
+                    # Ако няма предишно пълно зареждане, смятаме от началото на пътуването
+                    total_segment_liters = float(df_f["liters"].sum()) + liters + m_fuel
+                    segment_dist = km_input - s_km
+                
+                if segment_dist > 0 and total_segment_liters > 0:
+                    st.success(f"📊 Реален разход за етапа: **{(total_segment_liters / segment_dist * 100):.1f} л / 100 км**")
+            
             if st.button("💾 Запиши зареждането", use_container_width=True, type="primary"):
                 lit, ckm = (float(liters) if liters is not None else 0.0), (float(km_input) if km_input is not None else 0.0)
                 is_full = "ПЪЛНО" if "до горе" in fuel_type.lower() else "ЧАСТИЧНО"
-                full_desc = f"[{is_full} Зареждане] {description}"
-                if ckm > last_km and lit > 0 and is_full == "ПЪЛНО": full_desc += f" (Етап: {(ckm - last_km):.0f}км, Разход: {(lit / (ckm - last_km) * 100):.1f}л/100км)"
-                if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): st.session_state["form_version"] += 1; st.rerun()
+                full_desc = f"[{is_full} ЗАРЕЖДАНЕ] {description}"
+                
+                # Ако записваме ПЪЛНО зареждане, пресмятаме реалните данни за описанието в историята
+                if ckm > last_km and lit > 0 and is_full == "ПЪЛНО":
+                    df_since_full = df_f[df_f["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
+                    if not df_since_full.empty:
+                        last_full_km = float(df_since_full.iloc[-1]["current_km"])
+                        partial_liters = float(df_f[df_f["current_km"] > last_full_km]["liters"].sum())
+                        t_liters = partial_liters + lit
+                        t_dist = ckm - last_full_km
+                    else:
+                        t_liters = float(df_f["liters"].sum()) + lit + m_fuel
+                        t_dist = ckm - s_km
+                    
+                    if t_dist > 0 and t_liters > 0:
+                        full_desc += f" (Етап: {t_dist:.0f}км, Реален разход: {(t_liters / t_dist * 100):.1f}л/100км)"
+                
+                if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): 
+                    st.session_state["form_version"] += 1
+                    st.rerun()
 
-        # Проверка дали потребителят е въвел описание и е натиснал Enter
+
+       
         # Проверка дали потребителят е въвел описание и е натиснал Enter
         if o_input.strip() and s_input and s_input > 0:
             header_text = f"Записване на: <b>{s_input:.2f} EUR</b> за <i>\"{o_input.strip()}\"</i>"
