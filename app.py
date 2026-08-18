@@ -162,14 +162,14 @@ if st.session_state["current_trip"] is None:
     if existing:
         opts = [t.replace("_", " ") for t in existing]
         choice = st.selectbox("Изберете пътуване до:", opts)
-        if st.button("🔎 ЗАРЕДИ ПЪТУВАНЕ", use_container_width=True):
+        if st.button("✔️ ЗАРЕДИ ПЪТУВАНЕ", use_container_width=True):
             st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Все още нямате записани почивки. Създайте първото си приключение по-долу!</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
     
-    @st.dialog("🆕 Създаване на ново приключение")
+    @st.dialog("➕ Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
@@ -194,7 +194,7 @@ if st.session_state["current_trip"] is None:
             except: pass
             st.session_state["current_trip"] = target_id; st.rerun()
 
-    if st.button("🆕 Ново пътуване", use_container_width=True): create_trip_modal()
+    if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
 else:
     trip_id = st.session_state["current_trip"]
     papka_snimki = f"snimki_{trip_id}_2026"
