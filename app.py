@@ -324,7 +324,7 @@ else:
                 for idx, p in enumerate(saved):
                     with img_grid[idx % 2]:
                         st.image(p, use_container_width=True)
-                        if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): 
+                        if st.button("❌ Изтрий", key=f"di_{idx}", use_container_width=True): 
                             os.remove(p)
                             st.rerun()
             else: 
