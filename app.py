@@ -602,49 +602,30 @@ else:
             st.markdown("---")
             st.subheader("📋 Хронология на плащанията")
             
-            # 🎨 ЧИСТА И БЕЗОПАСНА 3Д РЕШЕТКА: Без никакви застъпвания и негативни маргини
+            # Инжектираме стилове за премиум 3D карти и уеднаквени кошчета
             st.markdown("""
                 <style>
-                    /* Контейнер-решетка: разделя кутията на ТЕКСТ (вляво) и КОШЧЕ (вдясно) */
-                    .grid-expense-card {
+                    /* Луксозна кутия за всеки отделен разход */
+                    .premium-expense-card {
                         background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
-                        padding: 24px 25px !important;
-                        border-radius: 14px !important;
-                        border: 1px solid rgba(250, 250, 250, 0.2) !important; /* Същият сив контур */
-                        box-shadow: 0px 6px 16px rgba(0,0,0,0.25) !important;
-                        margin-bottom: 16px !important;
-                        min-height: 90px !important; /* Големият 30% по-обемен мащаб */
-                        display: grid !important;
-                        grid-template-columns: 1fr auto !important; /* Текстът заема всичко, кошчето е вдясно */
-                        align-items: center !important; /* Центрира ги перфектно вертикално */
-                        gap: 20px !important;
-                        box-sizing: border-box !important;
+                        padding: 14px 18px !important;
+                        border-radius: 12px !important;
+                        border: 1px solid rgba(250, 250, 250, 0.2) !important; /* Същият сив контур като бутоните */
+                        box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
+                        margin-bottom: 2px !important;
+                        min-height: 52px !important; /* Автоматично разпъване за дълги текстове */
+                        display: flex !important;
+                        flex-direction: column !important;
+                        justify-content: center !important;
                     }
                     
-                    /* Премахваме абсолютно всички излишни празни пространства около бутона с кошчето */
-                    .trash-grid-cell div[data-testid="stElementContainer"] {
-                        margin: 0px !important;
-                        padding: 0px !important;
-                        width: 44px !important;
-                    }
-                    
-                    /* Кокетно оформление на самото 3D кошче вътре в решетката */
-                    .trash-grid-cell button {
-                        min-height: 36px !important;
-                        height: 36px !important;
-                        padding: 0px !important;
+                    /* Стил за контейнера на иконата за триене, за да застане на перфектно хоризонтално ниво */
+                    .expense-delete-wrapper {
                         display: flex !important;
                         align-items: center !important;
                         justify-content: center !important;
-                        background-color: rgba(255, 255, 255, 0.02) !important;
-                        border: 1px solid rgba(250, 250, 250, 0.15) !important;
-                    }
-                    
-                    /* Ховър ефект за кошчето */
-                    .trash-grid-cell button:hover {
-                        border-color: #ff4b4b !important;
-                        background-color: rgba(255, 75, 75, 0.1) !important;
-                        color: #ff4b4b !important;
+                        height: 100% !important;
+                        margin-top: 10px !important; /* Спуска кошчето на нивото на сумата */
                     }
                 </style>
             """, unsafe_allow_html=True)
@@ -655,38 +636,37 @@ else:
                     r = df_all.loc[idx]
                     l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
                     
-                    # Отваряме общата кутия, която автоматично ще подреди нещата в решетка
-                    st.markdown('<div class="grid-expense-card">', unsafe_allow_html=True)
+                    # Разделяме в съотношение 88% за разхода и 12% за 3D бутона за изтриване
+                    col_rec, col_del = st.columns([0.88, 0.12])
                     
-                    # 1. Лява клетка на решетката: Всички текстове и сумата
-                    st.markdown(f'''
-                        <div style="display: flex; flex-direction: column; justify-content: center; width: 100%;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                <div style="font-size: 18px; font-weight: 600; color: #fafafa; font-family: sans-serif;">
-                                    <span>{get_emoji(r["category"])}</span> {r["category"]}
+                    with col_rec:
+                        # Създаваме чистата уеб карта за разход с автоматично напасване на височината
+                        st.markdown(f'''
+                            <div class="premium-expense-card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
+                                        <span>{get_emoji(r["category"])}</span> {r["category"]}
+                                    </div>
+                                    <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
+                                        -{r["amount"]:.2f} EUR
+                                    </div>
                                 </div>
-                                <div style="font-size: 18px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
-                                    -{r["amount"]:.2f} EUR
+                                <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
+                                    📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
                                 </div>
                             </div>
-                            <div style="margin-top: 8px; font-size: 13.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
-                                📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
-                            </div>
-                        </div>
-                    ''', unsafe_allow_html=True)
-                    
-                    # 2. Дясна клетка на решетката: Оригиналният Python бутон за триене
-                    st.markdown('<div class="trash-grid-cell">', unsafe_allow_html=True)
-                    if st.button("🗑️", key=f"dl_{idx}", use_container_width=True):
-                        st.session_state["delete_idx"] = idx
-                        confirm_delete_dialog()
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    st.markdown('</div>', unsafe_allow_html=True) # Затваряме кутията
+                        ''', unsafe_allow_html=True)
+                        
+                    with col_del:
+                        # Вграждаме кошчето в уеб обвивка за идеално центриране спрямо кутията отляво
+                        st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
+                        # Използваме чист фабричен бутон с емоджи, за да хлътва в 3D и да е съвместим с диdialog прозореца ти
+                        if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий този разход"):
+                            st.session_state["delete_idx"] = idx
+                            confirm_delete_dialog()
+                        st.markdown('</div>', unsafe_allow_html=True)
             except:
                 pass
-
-
 
         st.markdown("---")
         
