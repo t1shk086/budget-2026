@@ -342,7 +342,7 @@ else:
         # =========================================================
         # 👑 МОНОЛИТНО ЦЕНТРИРАНО ЗАГЛАВИЕ С ДЕСЕН БУТОН ЗА СНИМКИ
         # =========================================================
-        # Генерираме линк, който при натискане казва на Streamlit да отвори снимките
+        # Генерираме тригер, който при активиране казва на Streamlit да отвори снимките
         if st.checkbox("Отвори Галерия", key="hidden_gallery_checkbox_trigger", value=False, label_visibility="collapsed"):
             st.session_state["view_photos"] = True
             st.rerun()
@@ -362,13 +362,12 @@ else:
                 
                 <!-- 2. ЖЕЛЕЗЕН ДЕСЕН БУТОН (КОМПАКТЕН И ПРОЗРАЧЕН) -->
                 <button class="header-gallery-luxury-btn" onclick="
-                    const check = window.parent.document.querySelector('input[type Plebox], .stCheckbox input');
                     const allInputs = window.parent.document.querySelectorAll('input');
                     for (let i of allInputs) {{
                         if (i.id && i.id.includes('hidden_gallery_checkbox_trigger')) {{
                             i.click();
                             break;
-                        }
+                        }}
                     }}
                 ">
                     📸 Галерия
