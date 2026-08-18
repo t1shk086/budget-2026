@@ -771,7 +771,7 @@ else:
 
             # 2. Фабричен бутон за изтегляне (Download Button) на Streamlit
             st.download_button(
-                label="📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)",
+                label="Отчет в PDF",
                 data=pdf_html,
                 file_name=f"Otchet_{trip_id}_2026.html",
                 mime="text/html",
