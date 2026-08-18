@@ -492,14 +492,35 @@ else:
                 pass
         st.markdown("---")
         
-        if st.button("📸 Снимки и спомени", use_container_width=True, key="open_gallery_trigger_btn"):
+        # Проверка и инициализация на състоянието, ако липсва
+        if "view_photos" not in st.session_state:
+            st.session_state["view_photos"] = False
+
+        # Новият бутон с HTML котва за моментално качване най-горе
+        st.markdown("""
+            <a href="#top_of_page" target="_self" style="text-decoration: none;">
+                <button onclick="window.parent.postMessage({type: 'streamlit:click_button', key: 'js_gallery_click'}, '*')" style="
+                    width: 100%;
+                    background: linear-gradient(135deg, #ff4b4b, #ff758c);
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 10px;
+                    font-weight: bold;
+                    font-size: 16px;
+                    box-shadow: 0 4px 15px rgba(255, 75, 75, 0.3);
+                    cursor: pointer;
+                ">
+                    📸 Снимки и спомени
+                </button>
+            </a>
+        """, unsafe_allow_html=True)
+
+        # Скрит за потребителя Streamlit бутон, който се задейства от HTML кода горе
+        if st.button("📸 Снимки и спомени", key="js_gallery_click", help="hidden"):
             st.session_state["view_photos"] = True
-            st.components.v1.html("""
-                <script>
-                    window.parent.document.querySelector('section.main').scrollTo({top: 0, behavior: 'instant'});
-                </script>
-            """, height=0)
             st.rerun()
+
 
 
         st.markdown("---")
