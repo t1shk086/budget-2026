@@ -250,7 +250,7 @@ else:
         if row["category"] in categories_totals: categories_totals[row["category"]] += float(row["amount"])
         if row["category"] == "Транспорт":
             if float(row.get("liters", 0)) > 0: total_liters_sum += float(row["liters"]); auto_fuel_money += float(row["amount"])
-            elif any(k in str(row["description"]).lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): auto_fuel_money += float(row["amount"])
+            elif any(k in str(row["description"]).lower() for k in ["газ", "гориво", "зареждане", "бензин", "дизел"]): auto_fuel_money += float(row["amount"])
     
     total_liters_calculated = total_liters_sum + m_fuel
     max_current_km = float(df_expenses["current_km"].max()) if not df_expenses.empty and "current_km" in df_expenses.columns else 0.0
