@@ -648,38 +648,39 @@ else:
         # 1. Изчисляваме HTML данните за отчета (както досега)
         b64_html_data = pdf_html.encode("utf-8")
 
-        # 2. 🎛️ ПРЕМИУМ ТИТАНИЕВ 3Д ДИЗАЙН (Различен нюанс със запазени фабрични ефекти)
+        # 2. 🎛️ БРОНИРАН ТИТАНИЕВ 3Д ДИЗАЙН (Алтернативен селектор, който винаги хваща бутона)
         st.markdown("""
             <style>
-                /* Специфичен стил за бутона за отчет - Матов Космически Титан */
-                div[data-testid="stElementContainer"] button[key="premium_gray_download"] {
-                    background: linear-gradient(180deg, #4A5260, #333943) !important; /* Луксозен титаниев металик нюанс */
-                    color: #FFFFFF !important; /* Чисто бял ярък текст, за да изпъква */
-                    border: 1px solid rgba(0, 242, 254, 0.25) !important; /* Фино неоново синьо сияние по ръба, свързващо го с бранда */
+                /* Хващаме второстепенния бутон в тази специфична зона на екрана */
+                div[data-testid="stElementContainer"] button[data-testid="baseButton-secondary"] {
+                    background: linear-gradient(180deg, #4A5260, #333943) !important; /* Луксозен титаниев металик */
+                    color: #FFFFFF !important; /* Бял изпъкващ текст */
+                    border: 1px solid rgba(0, 242, 254, 0.3) !important; /* Деликатен брандиран син ръб */
                     border-radius: 8px !important;
-                    font-weight: 700 !important; /* Малко по-удебелен текст за премиум усещане */
+                    font-weight: 700 !important;
                     font-size: 14px !important;
                     letter-spacing: 0.5px !important;
-                    box-shadow: 0px 3px 0px #1E2127, 0px 4px 12px rgba(0,0,0,0.35) !important; /* Солидно 3D дъно + дълбока сянка */
+                    box-shadow: 0px 3px 0px #1E2127, 0px 4px 12px rgba(0,0,0,0.35) !important; /* Твърдо 3D дъно */
                     transition: all 0.1s ease-in-out !important;
                     height: 42px !important;
                     width: 100% !important;
                 }
                 
-                /* Hover ефект - металът просветва при посочване */
-                div[data-testid="stElementContainer"] button[key="premium_gray_download"]:hover {
-                    background: linear-gradient(180deg, #565F6F, #3C434F) !important; /* Просветляване на метала */
-                    border-color: rgba(0, 242, 254, 0.5) !important; /* Сиянието по рамката се засилва */
-                    box-shadow: 0px 3px 0px #1E2127, 0px 6px 15px rgba(0,242,254,0.15) !important; /* Лека синя аура в сянката */
+                /* Ефект при посочване с мишката */
+                div[data-testid="stElementContainer"] button[data-testid="baseButton-secondary"]:hover {
+                    background: linear-gradient(180deg, #565F6F, #3C434F) !important;
+                    border-color: rgba(0, 242, 254, 0.6) !important;
+                    box-shadow: 0px 3px 0px #1E2127, 0px 6px 15px rgba(0,242,254,0.2) !important;
                 }
 
-                /* 3D Физически клик ефект (Запазен на 100%) */
-                div[data-testid="stElementContainer"] button[key="premium_gray_download"]:active {
+                /* 3D Потъване при реален натиск */
+                div[data-testid="stElementContainer"] button[data-testid="baseButton-secondary"]:active {
                     transform: translateY(2px) !important;
                     box-shadow: 0px 1px 0px #1E2127, 0px 2px 5px rgba(0,0,0,0.2) !important;
                 }
             </style>
         """, unsafe_allow_html=True)
+
 
 
         # 3. 📂 Нативен Streamlit бутон за директно изтегляне (без презареждане на страници)
