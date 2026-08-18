@@ -832,12 +832,24 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
 
-        # 👑 ЕДИНЕН ЛУКСОЗЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА
+# 👑 ЕДИНЕН ЛУКСОЗЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА
         st.markdown("""
             <style>
                 /* Глобално правило за плавно и нежно приплъзване на екрана */
                 html {
                     scroll-behavior: smooth !important;
+                }
+                
+                /* Перфектно изравняване на колоните в решетката */
+                div[data-testid="stHorizontalBlock"] {
+                    align-items: center !important;
+                }
+                
+                /* Премахване на паразитни отстояния от контейнера на Streamlit */
+                .twin-grid-wrapper div[data-testid="stMarkdownContainer"] p {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    display: flex !important;
                 }
                 
                 /* Стилизираме ОРЕДЕЛЕНИЯ Streamlit бутон и нашия HTML бутон по еднакъв начин */
@@ -848,6 +860,8 @@ else:
                     justify-content: center !important;
                     width: 100% !important; 
                     height: 38.4px !important;
+                    box-sizing: border-box !important;
+                    margin: 0 !important;
                     background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important;
                     color: #ffffff !important; 
                     border: 1px solid rgba(255, 255, 255, 0.12) !important;
@@ -880,7 +894,7 @@ else:
                 .twin-grid-wrapper a {
                     text-decoration: none !important;
                     width: 100% !important;
-                    display: block !important;
+                    display: flex !important;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -890,8 +904,7 @@ else:
         # Разделяме екрана на две колони по чистия начин
         b_col1, b_col2 = st.columns(2)
         
-        with b_col1: # 🏠 Ляв близнак: Главно Меню (Чист Streamlit бутон, стилизиран с CSS класа)
-            # Инжектираме малък HTML маркер точно преди бутона, за да му прикачим специалния CSS стил без да чупим нищо
+        with b_col1: # 🏠 Ляв близнак: Главно Меню
             st.markdown('<div class="twin-grid-wrapper">', unsafe_allow_html=True)
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
                 st.session_state["current_trip"] = None
@@ -910,9 +923,9 @@ else:
                 </script>
             """, unsafe_allow_html=True)
                 
-        with b_col2: # 🎚️ Десен близнак: Към Разходите (HTML котва за плавно превъртане нагоре)
+        with b_col2: # 🎚️ Десен близнак: Към Разходите
             st.markdown("""
-                <div class="twin-grid-wrapper">
+                <div class="twin-grid-wrapper" style="margin-top: 1px;">
                     <a href="#trip_top_anchor" target="_self">
                         <button class="twin-premium-3d-btn">
                             🔝 КЪМ РАЗХОДИТЕ
