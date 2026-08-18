@@ -779,7 +779,7 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ ИЗРАВНЕНИ БУТОНИ ЕДИН ДО ДРУГ СЪС ЗАПАЗЕН 3Д ДИЗАЙН
+        # 🌟 КРАЙ НА ФАЙЛА: АБСОЛЮТНИ БЛИЗНАЦИ С ДИРЕКТЕН ФАБРИЧЕН 3Д КЛАС СТРИЙМЛИТ
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
@@ -788,57 +788,31 @@ else:
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # 🎚️ Дясна колона: Линк, пресъздаващ оригиналния 3D дизайн до последната точка
+        with bottom_cols[1]: # 🎚️ Дясна колона: Браузърна котва, маскирана със системния клас на Streamlit
             st.markdown("""
                 <style>
-                    /* Магическо уеб правило за меко и плавно скролване в браузъра */
+                    /* Налагаме плавно движение в браузъра */
                     html {
                         scroll-behavior: smooth !important;
                     }
-                    
-                    /* Специален клас, който копира нативния 3D Streamlit дизайн */
-                    .premium-grid-scroll-btn {
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-family: inherit;
-                        font-weight: 600;
-                        font-size: 14px;
-                        letter-spacing: 0.5px;
-                        padding: 0.25rem 0.75rem;
-                        border-radius: 0.5rem;
-                        min-height: 38.4px;
-                        margin: 0px;
-                        width: 100%;
-                        user-select: none;
-                        background-color: rgba(255, 255, 255, 0.05) !important; /* Официален сив фон */
-                        color: rgb(250, 250, 250) !important; /* Чисто бял текст */
-                        border: 1px solid rgba(250, 250, 250, 0.2) !important; /* Фабричен контур */
-                        cursor: pointer;
-                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-                        transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
-                    }
-                    
-                    /* 🌟 ИНТЕРАКТИВЕН ХОУВЪР: Бутонът светва меко при посочване */
-                    .premium-grid-scroll-btn:hover {
-                        background-color: rgba(255, 255, 255, 0.1) !important;
-                        border-color: rgb(250, 250, 250) !important;
-                    }
-                    
-                    /* 🌟 3Д ПОТЪВАНЕ: Физическо хлътване с 2px при реален натиск */
-                    .premium-grid-scroll-btn:active {
-                        transform: translateY(2px) !important;
-                        box-shadow: 0px 2px 5px rgba(0,0,0,0.2) !important;
+                    /* Правим така, че линкът да се разпъне на 100% и да не пречи на бутона */
+                    .st-scroll-link-wrapper a {
+                        text-decoration: none !important;
+                        width: 100% !important;
+                        display: block !important;
                     }
                 </style>
                 
-                <!-- Чиста браузърна котва, скрита зад перфектния 3D дизайн -->
-                <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
-                    <button class="premium-grid-scroll-btn">
-                        🎚️ КЪМ РАЗХОДИТЕ
-                    </button>
-                </a>
+                <div class="st-scroll-link-wrapper">
+                    <a href="#target_sum_box" target="_self">
+                        <!-- 👑 ИЗПОЛЗВАМЕ ОФИЦИАЛНИЯ КЛАС "stBaseButton-secondary", ЗА ДА ОТКРАДНЕМ ФАБРИЧНИЯ ДИЗАЙН -->
+                        <button class="stBaseButton-secondary" style="width: 100% !important; margin: 0px !important;">
+                            🎚️ КЪМ РАЗХОДИТЕ
+                        </button>
+                    </a>
+                </div>
             """, unsafe_allow_html=True)
+
 
 
 
