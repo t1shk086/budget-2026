@@ -338,52 +338,51 @@ else:
                    
     else:
         # =========================================================
-        # 👑 КРАЙНО РЕШЕНИЕ: АБСОЛЮТНО ФИКСИРАН ДЕСЕН БУТОН ЗА СМАРТФОН
+        # 👑 КРАЙНО РЕШЕНИЕ: ФИКСИРАН ДЕСЕН БУТОН СПРЯМО СТЪКЛОТО
         # =========================================================
         st.markdown("""
             <style>
-                /* Насочваме се към бутона през неговия КЛЮЧ на най-високо ниво в уеб йерархията */
-                div.stMainBlockContainer button[key="open_gallery_top_header_2026"] {
-                    position: absolute !important;
-                    top: 50px !important;        /* Перфектно напасване спрямо височината на заглавието */
-                    right: 15px !important;       /* Заключваме го плътно в ДЕСНИЯ ръб на телефона и лаптопа */
-                    left: auto !important;        /* Забраняваме фабричното ляво подравняване */
+                /* Заковаваме бутона спрямо стъклото на телефона - тук Streamlit няма сила да го премести вляво */
+                button[key="open_gallery_top_header_2026"] {
+                    position: fixed !important;
+                    top: 75px !important;        /* Подравняване по вертикала точно срещу заглавието */
+                    right: 16px !important;       /* Железен десен ръб на лаптоп и телефон */
+                    left: auto !important;        /* Спира фабричното ляво подравняване */
                     width: auto !important;
                     min-width: unset !important;
-                    background: rgba(22, 25, 31, 0.6) !important; /* Прозрачен стъклен ефект */
+                    background: rgba(22, 25, 31, 0.6) !important; /* Красив прозрачен стъклен ефект */
                     border: 1px solid rgba(255, 255, 255, 0.15) !important;
                     color: #ffffff !important;
-                    padding: 4px 12px !important;
+                    padding: 5px 12px !important;
                     font-size: 12px !important;
                     font-weight: 600 !important;
                     border-radius: 8px !important;
                     backdrop-filter: blur(8px) !important;
                     -webkit-backdrop-filter: blur(8px) !important;
                     white-space: nowrap !important;
-                    z-index: 99999 !important;     /* Слагаме го най-отгоре */
+                    z-index: 9999999 !important;   /* Най-отгоре над абсолютно всички кутии */
                     transition: all 0.2s ease-in-out !important;
                 }
                 
-                div.stMainBlockContainer button[key="open_gallery_top_header_2026"]:hover {
+                button[key="open_gallery_top_header_2026"]:hover {
                     background: rgba(0, 242, 254, 0.12) !important;
                     border-color: rgba(0, 242, 254, 0.5) !important;
                 }
                 
-                /* Защита за всички останали бутони (включително "Назад"), за да си стоят по местата */
+                /* Защита за бутона Назад и останалите - остават си фабрични без промяна */
                 button:not([key="open_gallery_top_header_2026"]) {
                     position: static !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # Рендерираме заглавието и датите чисто - те заемат 100% от широчината и са съвършено центрирани
-        # Добавяме и малко padding вдясно, за да не може дълго име на дестинация да застъпи бутона на малък телефон
+        # Заглавието и датите - 100% центрирани с отстояние вдясно, за да не се застъпят на малък телефон
         date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px; padding-right: 75px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px; padding-right: 85px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         
         st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
         
-        # Оригинален Streamlit бутон - CSS кодът горе го хваща по ключ и го изстрелва в горния десен ъгъл на стъклото
+        # Фабричен бутон - благодарение на 'position: fixed' той се откъсва от решетката и отива в десния ъгъл
         if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
             st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
             st.session_state["view_photos"] = True
