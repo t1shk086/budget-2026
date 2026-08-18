@@ -314,26 +314,41 @@ else:
                 if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): st.session_state["form_version"] += 1; st.rerun()
 
         # Показва категориите САМО ако потребителят е почнал да пише в полето за Описание
-        if o_input.strip():
+        # Проверка дали потребителят е въвел описание и е натиснал Enter
+        if o_input.strip() and s_input and s_input > 0:
+            # Скриваме хронологията и анализа, като изчистваме екрана с празен контейнер
             st.markdown("""
-            <div style='text-align: center; margin: 10px 0 15px 0; animation: fadeIn 0.4s ease-in-out;'>
-                <small style='color: #4facfe; font-weight: bold; letter-spacing: 0.5px;'>🎯 ИЗБЕРЕТЕ КАТЕГОРИЯ ЗА ЗАПИС:</small>
+            <div style='text-align: center; margin: 20px 0 25px 0; animation: fadeIn 0.5s ease-in-out;'>
+                <h3 style='color: #00f2fe; font-family: "Segoe UI", sans-serif; font-weight: 700;'>🎯 СЕГА ИЗБЕРЕТЕ КАТЕГОРИЯ</h3>
+                <p style='color: #aaa; font-size: 14px;'>Записване на: <b>{:.2f} EUR</b> за <i>"{}"</i></p>
             </div>
             <style>
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
             </style>
-            """, unsafe_allow_html=True)
+            """.format(s_input, o_input.strip()), unsafe_allow_html=True)
             
             grid = st.columns(3)
             for i, kat in enumerate(KATEGORII):
                 with grid[i % 3]:
                     is_disabled = is_trip_finished and (kat == "Транспорт")
                     if st.button(f"🔒 {kat}" if is_disabled else kat, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
-                        if s_input and s_input > 0:
-                            desc, is_d = o_input.strip(), (kat == "Депозит/Резервация")
-                            if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): fuel_modal(s_input, kat, desc, is_d)
-                            else:
-                                if add_expense(trip_id, s_input, kat, desc, is_d): st.session_state["form_version"] += 1; st.rerun()
+                        desc, is_d = o_input.strip(), (kat == "Депозит/Резервация")
+                        if kat == "Транспорт" and any(k in desc.lower() for k in ["гориво", "зареждане", "бензин", "дизел"]): 
+                            fuel_modal(s_input, kat, desc, is_d)
+                        else:
+                            if add_expense(trip_id, s_input, kat, desc, is_d): 
+                                st.session_state["form_version"] += 1
+                                st.rerun()
+            
+            # Добавяме бутон за отказ, ако потребителят е сгрешил сумата/описанието
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("❌ ОКОНЧАТЕЛЕН ОТКАЗ / НАЗАД", use_container_width=True):
+                st.session_state["form_version"] += 1
+                st.rerun()
+                
+            # Спираме изпълнението на скрипта надолу, за да създадем ефекта на "нов главен екран"
+            st.stop()
+
 
         st.markdown("### 📊 Анализ на разходите")
         stat_grid = st.columns(2)
