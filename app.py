@@ -194,7 +194,7 @@ if st.session_state["current_trip"] is None:
             except: pass
             st.session_state["current_trip"] = target_id; st.rerun()
 
-    if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
+    if st.button("🆕 Ново пътуване", use_container_width=True): create_trip_modal()
 else:
     trip_id = st.session_state["current_trip"]
     papka_snimki = f"snimki_{trip_id}_2026"
