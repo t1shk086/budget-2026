@@ -355,7 +355,7 @@ else:
             if st.button("💾 Запиши зареждането", use_container_width=True, type="primary"):
                 lit, ckm = (float(liters) if liters is not None else 0.0), (float(km_input) if km_input is not None else 0.0)
                 is_full = "ПЪЛНО" if "до горе" in fuel_type.lower() else "ЧАСТИЧНО"
-                full_desc = f"[{is_full} Зареждаме] {description}"
+                full_desc = f"[{is_full} Зареждане] {description}"
                 if ckm > last_km and lit > 0 and is_full == "ПЪЛНО": full_desc += f" (Етап: {(ckm - last_km):.0f}км, Разход: {(lit / (ckm - last_km) * 100):.1f}л/100км)"
                 if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): st.session_state["form_version"] += 1; st.rerun()
 
