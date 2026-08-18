@@ -215,21 +215,21 @@ else:
             except: pass
             c_del1, c_del2 = st.columns(2)
             with c_del1:
-                if st.button("👍 ДА, ИЗТРИЙ", use_container_width=True, type="primary"):
+                if st.button("✔️ ДА, ИЗТРИЙ", use_container_width=True, type="primary"):
                     try:
                         df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
                         df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
                     except: pass
                     st.session_state["delete_idx"] = None; st.rerun()
             with c_del2:
-                if st.button("🛟 ОТКАЗ", use_container_width=True): st.session_state["delete_idx"] = None; st.rerun()
+                if st.button("✖️ ОТКАЗ", use_container_width=True): st.session_state["delete_idx"] = None; st.rerun()
 
     @st.dialog("🚨 Изтриване на цялото пътуване")
     def confirm_delete_trip_dialog():
         st.error(f"ВНИМАНИЕ! Изтриване на пътуването до {trip_id.replace('_', ' ')}?")
         c_tr1, c_tr2 = st.columns(2)
         with c_tr1:
-            if st.button("💥 ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
+            if st.button("✔️ ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
                 try:
                     pd.read_csv(DATA_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
                     pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
@@ -239,7 +239,7 @@ else:
                 except: pass
                 st.session_state["current_trip"] = None; st.rerun()
         with c_tr2:
-            if st.button("🛟 ОТКАЗ", use_container_width=True): st.rerun()
+            if st.button("✖️ ОТКАЗ", use_container_width=True): st.rerun()
 
     df_trip = get_trip_data(trip_id)
     depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum())
