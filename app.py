@@ -292,7 +292,7 @@ else:
         ekran_za_kategorii = st.empty()
 
         if st.button("⬅️ НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
-)
+
         
         v_id = st.session_state["form_version"]
         col1, col2 = st.columns(2)
