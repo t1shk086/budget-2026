@@ -268,6 +268,13 @@ else:
 
     if st.session_state["view_photos"]:
         if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True): st.session_state["view_photos"] = False; st.rerun()
+        
+        # 🌟 КОПИРАЙ И СЛОЖИ ТЕЗИ ДВА РЕДА ТУК:
+        st.markdown("<div id='top_of_gallery'></div>", unsafe_allow_html=True)
+        st.markdown("<script>window.location.hash = 'top_of_gallery';</script>", unsafe_allow_html=True)
+        
+        if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
+
         if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
         up = st.file_uploader("Добавете нови спомени в албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}")
         if up:
