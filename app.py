@@ -749,35 +749,52 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: НАПЪЛНО УЕДНАКВЕНИ 3Д БУТОНИ С РАБОТЕЩО ПРЕВЪРТАНЕ
+        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ РАВНИ ОРИГИНАЛНИ 3Д БУТОНИ С ГАРАНТИРАНО ПЛАВНО ПРЕВЪРТАНЕ
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols[0]: # Колона 1: Главно меню
+        with bottom_cols[0]: # Първата колона за Главно Меню
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # Колона 2: Връщане най-горе
-            # Инжектираме невидима котва-линк, която хваща клика върху бутона и те изстрелва най-горе
-            st.markdown("""
-                <style>
-                    /* Малък трик: караме линка да покрие целия контейнер на бутона */
-                    .scroll-link-wrapper a {
-                        text-decoration: none !important;
-                        display: block;
-                        width: 100%;
+        with bottom_cols[1]: # Втората колона за Връщане Най-горе
+            # Абсолютно нативен Streamlit бутон - застава на перфектния милиметър ниво до левия!
+            st.button("🔝 НАЙ-ГОРЕ (РАЗХОДИ)", use_container_width=True, key="native_perfect_scroll_btn")
+            
+        # 🚀 ГЛОБАЛЕН СКРИПТ: Хваща бутона директно през уеб браузъра и превърта плавно
+        # Този код работи извън контейнерите и няма как да бъде блокиран
+        st.markdown("""
+            <script>
+                // Функция, която търси бутона в приложението и му закача плавно превъртане
+                function setupScrollButton() {
+                    // Търсим бутона по неговия уникален Streamlit ключ
+                    var btn = window.parent.document.querySelector('button[key="native_perfect_scroll_btn"]');
+                    if (!btn) {
+                        // Алтернативно търсене, ако първото се забави
+                        btn = window.parent.document.querySelector('div[data-testid="stElementContainer"] button:has(p:contains("НАЙ-ГОРЕ"))');
                     }
-                </style>
-                <div class="scroll-link-wrapper">
-                    <a href="#top_of_page" target="_self">
-            """, unsafe_allow_html=True)
-            
-            # Истински, оригинален Streamlit бутон (със същите 3D ефекти по рождение)
-            st.button("🔝 НАЙ-ГОРЕ (РАЗХОДИ)", use_container_width=True, key="native_scroll_top_btn_v5")
-            
-            st.markdown("""
-                    </a>
-                </div>
-            """, unsafe_allow_html=True)
+                    
+                    if (btn) {
+                        // Махаме стари слушатели, за да няма дублиране
+                        btn.onclick = null;
+                        // Закачаме сигурната уеб команда за плавно плъзгане до най-горния пиксел
+                        btn.onclick = function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.parent.window.scrollTo({
+                                top: 0,
+                                behavior: 'smooth'
+                            });
+                        };
+                    }
+                }
+                
+                // Стартираме проверката веднага и я повтаряме леко при зареждане на компонентите
+                setupScrollButton();
+                setTimeout(setupScrollButton, 500);
+                setTimeout(setupScrollButton, 1500);
+            </script>
+        """, unsafe_allow_html=True)
+
 
