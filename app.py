@@ -832,7 +832,14 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
 
-# 👑 ЕДИНЕН ЛУКСОЗЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА
+        # 1. НЕВИДИМ БУТОН ЗА СИГУРНА ВРЪЗКА С PYTHON (Скрит извън екрана)
+        st.markdown('<div style="position: absolute; left: -9999px; top: -9999px;">', unsafe_allow_html=True)
+        if st.button("EXECUTE_HOME_RESET", key="hidden_home_reset_trigger"):
+            st.session_state["current_trip"] = None
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # 👑 ЕДИНЕН ЛУКСОЗЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА
         st.markdown("""
             <style>
                 /* Глобално правило за плавно и нежно приплъзване на екрана */
@@ -840,20 +847,20 @@ else:
                     scroll-behavior: smooth !important;
                 }
                 
-                /* Заключваме решетката на Streamlit да подравнява елементите точно по долния ръб */
-                div[data-testid="stHorizontalBlock"] {
+                /* РЕШЕТКА, КОЯТО ДЪРЖИ ДВАТА HTML БУТОНА ИДЕАЛНО РАВНИ */
+                .twin-html-grid {
                     display: flex !important;
-                    align-items: flex-end !important;
+                    gap: 1rem !important;
+                    width: 100% !important;
+                    box-sizing: border-box !important;
                 }
                 
-                /* Премахваме автоматичното празно пространство под оригиналния бутон на Streamlit */
-                div[data-testid="stComponentBlock"] {
-                    margin-bottom: 0px !important;
-                    padding-bottom: 0px !important;
+                .twin-html-col {
+                    flex: 1 !important;
+                    width: 50% !important;
                 }
                 
-                /* Стилизираме ОРЕДЕЛЕНИЯ Streamlit бутон и нашия HTML бутон по еднакъв начин */
-                button[data-testid="stBaseButton-secondary"].twin-style,
+                /* ЕДИНСТВЕН И СПОДЕЛЕН СТИЛ И ЗА ДВАТА БУТОНА */
                 .twin-premium-3d-btn {
                     display: inline-flex !important;
                     align-items: center !important;
@@ -877,7 +884,6 @@ else:
                 }
                 
                 /* 🌟 ХОУВЪР ЕФЕКТ */
-                button[data-testid="stBaseButton-secondary"].twin-style:hover,
                 .twin-premium-3d-btn:hover {
                     background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
                     border-color: rgba(255, 255, 255, 0.3) !important;
@@ -885,59 +891,49 @@ else:
                 }
                 
                 /* 🌟 3Д ПОТЪВАНЕ ПРИ КЛИК */
-                button[data-testid="stBaseButton-secondary"].twin-style:active,
                 .twin-premium-3d-btn:active {
                     transform: translateY(2px) !important;
                     box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important;
                 }
                 
-                /* Изчистваме паразитните блокове около HTML линка */
-                .twin-grid-wrapper,
-                .twin-grid-wrapper a {
+                .twin-html-col a {
                     text-decoration: none !important;
                     width: 100% !important;
-                    display: flex !important;
-                    margin: 0px !important;
-                    padding: 0px !important;
+                    display: block !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
         
-        # Разделяме екрана на две колони по чистия начин
-        b_col1, b_col2 = st.columns(2)
-        
-        with b_col1: # 🏠 Ляв близнак: Главно Меню
-            st.markdown('<div class="twin-grid-wrapper">', unsafe_allow_html=True)
-            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
-                st.session_state["current_trip"] = None
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Прикачваме нашия стил директно към бутона, за да стане 3D
-            st.markdown("""
-                <script>
-                    var buttons = window.parent.document.querySelectorAll('button');
-                    for (var i = 0; i < buttons.length; i++) {
-                        if (buttons[i].textContent.includes('ГЛАВНО МЕНЮ')) {
-                            buttons[i].classList.add('twin-style');
+        # 2. ИЗЧЕРТАВАНЕ НА ЧИСТИЯ HTML КОНТЕЙНЕР БЕЗ СМЕСВАНЕ СЪС STREAMLIT БУТОНИ
+        st.markdown("""
+            <div class="twin-html-grid">
+                <!-- 🏠 Ляв близнак: Главно Меню -->
+                <div class="twin-html-col">
+                    <button class="twin-premium-3d-btn" onclick="
+                        const btns = window.parent.document.querySelectorAll('button');
+                        for (let b of btns) {
+                            if (b.textContent.includes('EXECUTE_HOME_RESET')) {
+                                b.click();
+                                break;
+                            }
                         }
-                    }
-                </script>
-            """, unsafe_allow_html=True)
+                    ">
+                        🏠 ГЛАВНО МЕНЮ
+                    </button>
+                </div>
                 
-        with b_col2: # 🎚️ Десен близнак: Към Разходите
-            st.markdown("""
-                <div class="twin-grid-wrapper">
+                <!-- 🎚️ Десен близнак: Към Разходите -->
+                <div class="twin-html-col">
                     <a href="#trip_top_anchor" target="_self">
                         <button class="twin-premium-3d-btn">
                             🔝 КЪМ РАЗХОДИТЕ
                         </button>
                     </a>
                 </div>
-            """, unsafe_allow_html=True)
-
+            </div>
+        """, unsafe_allow_html=True)
 
 
 
