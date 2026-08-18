@@ -779,53 +779,59 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: 100% ЕДНАКВИ ОРИГИНАЛНИ БУТОНИ С ГАРАНТИРАН СКРОЛ БЕЗ RE-RUN
+        # 🌟 КРАЙ НА ФАЙЛА: 100% ЕДНАКВИ ОРИГИНАЛНИ БУТОНИ С ЖЕЛЕЗЕН СКРОЛ БЕЗ RE-RUN
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols[0]: # Лява колона: Главно меню
+        with bottom_cols: # Лява колона: Главно меню
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid_final"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # Дясна колона: Чист, оригинален Streamlit бутон-близнак
+        with bottom_cols: # Дясна колона: Чист, оригинален Streamlit бутон-близнак
             st.button("🎚️ КЪМ РАЗХОДИТЕ", use_container_width=True, key="click_scroll_to_sum_btn")
             
-        # 🚀 СУПЕР СТИКЕР СКРИПТ: Намира оригиналния бутон и му закача плавното скролване в браузъра
+        # 🚀 ПОДОБРЕН СКРИПТ: Търси дълбоко в HTML структурата и поддържа мобилни устройства
         st.markdown("""
             <script>
                 function initScrollAction() {
-                    // Намираме десния бутон по неговия вътрешен текст
+                    // Търсим всички бутони на екрана
                     var buttons = window.parent.document.querySelectorAll('button');
                     var targetBtn = null;
                     
                     buttons.forEach(function(btn) {
-                        if (btn.textContent.includes("КЪМ РАЗХОДИТЕ")) {
+                        // Проверяваме дали бутонът съдържа нашия текст, дори и да е скрит в <p> или <span> таг
+                        if (btn.innerHTML && btn.innerHTML.includes("КЪМ РАЗХОДИТЕ")) {
                             targetBtn = btn;
                         }
                     });
                     
                     if (targetBtn) {
-                        // Закачаме уеб командата директно за бутона
-                        targetBtn.onclick = function(e) {
+                        // Функция за изпълнение на скрола
+                        var handleScroll = function(e) {
                             e.preventDefault();
                             e.stopPropagation();
                             
-                            // Намираме полето за сума и го приплъзваме на екрана
                             var target = window.parent.document.getElementById('target_sum_box');
                             if (target) {
                                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }
                         };
+                        
+                        // Закачаме логиката за компютри (клик) и за телефони (докосване)
+                        targetBtn.onclick = handleScroll;
+                        targetBtn.ontouchstart = handleScroll;
                     }
                 }
                 
-                // Стартираме прихващането веднага и след малко за подсигуряване
+                // Стартираме прихващането на няколко етапа, за да изчакаме пълното зареждане на интерфейса
                 initScrollAction();
-                setTimeout(initScrollAction, 400);
-                setTimeout(initScrollAction, 1000);
+                setTimeout(initScrollAction, 300);
+                setTimeout(initScrollAction, 800);
+                setTimeout(initScrollAction, 1500);
             </script>
         """, unsafe_allow_html=True)
+
 
 
 
