@@ -340,62 +340,56 @@ else:
         # =========================================================
         # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С МИНИ ПРОЗРАЧЕН БУТОН
         # =========================================================
-        # =========================================================
-        # 👑 ЧИСТО СИНХРОНИЗИРАНО ЗАГЛАВИЕ С ДЕСЕН БУТОН ЗА СНИМКИ
+        # 👑 ЧИСТО ЦЕНТРИРАНО ЗАГЛАВИЕ С ПЛАВАЩ ДЕСЕН БУТОН ЗА СНИМКИ
         # =========================================================
         st.markdown("""
             <style>
-                /* Специфично подравняване за мобилни телефони и лаптопи */
-                div[data-testid="stColumn"]:nth-of-type(3) {
-                    display: flex !important;
-                    justify-content: flex-end !important;
-                    align-items: center !important;
-                }
-                div[data-testid="stColumn"]:nth-of-type(3) div[data-testid="stButton"] {
-                    text-align: right !important;
-                    width: auto !important;
-                }
-                /* Компактен стъклен дизайн на бутона, обгръщащ само думата */
-                div[data-testid="stColumn"]:nth-of-type(3) button {
-                    display: inline-block !important;
+                /* Този стил прихваща директно бутона по неговия КЛЮЧ и го заковава в горния десен ъгъл */
+                div[data-testid="stAppViewContainer"] button[key="open_gallery_top_header_2026"] {
+                    position: absolute !important;
+                    top: 5px !important;        /* Разстояние от горната линия */
+                    right: 0px !important;       /* Заковаване в крайно ДЯСНО на телефона и лаптопа */
+                    left: auto !important;       /* Изключва лявото подравняване */
                     width: auto !important;
                     min-width: unset !important;
-                    background: rgba(22, 25, 31, 0.5) !important;
+                    background: rgba(22, 25, 31, 0.5) !important; /* Фин стъклен дизайн */
                     border: 1px solid rgba(255, 255, 255, 0.15) !important;
                     color: #ffffff !important;
                     box-shadow: none !important;
-                    padding: 4px 12px !important;
-                    font-size: 13px !important;
+                    padding: 4px 10px !important;
+                    font-size: 12px !important;
                     font-weight: 600 !important;
                     border-radius: 8px !important;
                     backdrop-filter: blur(8px) !important;
                     -webkit-backdrop-filter: blur(8px) !important;
                     transition: all 0.2s ease-in-out !important;
                 }
-                div[data-testid="stColumn"]:nth-of-type(3) button:hover {
+                
+                div[data-testid="stAppViewContainer"] button[key="open_gallery_top_header_2026"]:hover {
                     background: rgba(0, 242, 254, 0.1) !important;
                     border-color: rgba(0, 242, 254, 0.4) !important;
-                    box-shadow: 0 0 10px rgba(0, 242, 254, 0.15) !important;
+                }
+                
+                /* Скриваме напълно всякакви остатъчни стари скрити бутони по техните ключове */
+                button[key*="hidden_trigger"], button[key*="py_top_gallery"], div[id*="hidden"] {
+                    display: none !important;
+                    opacity: 0 !important;
+                    height: 0 !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # Решетка от 3 колони: Първата поддържа симетрията, втората центрира заглавието, третата държи бутона вдясно
-        col_left_space, col_center_title, col_gallery_top = st.columns([0.15, 0.70, 0.15])
+        # Заглавието заема 100% от екрана и е съвършено центрирано по рождение
+        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 5px; padding: 0 80px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         
-        with col_center_title:
-            date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-            st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 5px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
-            
-        with col_gallery_top:
-            st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True) # Фин баланс по вертикала на реда
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            
-            # Стабилен фабричен бутон, защитен от софтуерни блокирания
-            if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
-                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
-                st.session_state["view_photos"] = True
-                st.rerun()
+        st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+        
+        # Оригинален и напълно защитен фабричен бутон – CSS стилът горе го избутва в десния ъгъл на телефона автоматично!
+        if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
+            st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
+            st.session_state["view_photos"] = True
+            st.rerun()
 
         st.markdown("---")
 
@@ -409,14 +403,6 @@ else:
         
         ekran_za_kategorii = st.empty()
 
-                # Скрит бутон, който ще бъде натискан дистанционно от нашия красив HTML бутон горе вдясно
-        st.markdown('<div style="position: absolute; left: -9999px; top: -9999px;">', unsafe_allow_html=True)
-        if st.button("HIDDEN_TRIGGER_TOP_GALLERY", key="py_top_gallery_hidden_trigger"):
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
-            st.session_state["view_photos"] = True
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
         if st.button("🔙 НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): 
             st.session_state["current_trip"] = None
