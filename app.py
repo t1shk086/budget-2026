@@ -827,61 +827,55 @@ else:
 
      
 
-            
         st.markdown("---")
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
 
-        # 1. Скриваме оригиналния бутон с CSS, за да не гърми Streamlit с непознати аргументи
+        # 👑 ЕДИНЕН ЛУКСОЗЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА
         st.markdown("""
             <style>
-                div[data-testid="stHeaderActionElements"] + div, 
-                button[key="hidden_home_btn"] {
-                    display: none !important;
-                }
-                
                 /* Глобално правило за плавно и нежно приплъзване на екрана */
                 html {
                     scroll-behavior: smooth !important;
                 }
                 
-                /* 👑 ЕДИНЕН ЛУКСОЗЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА */
+                /* Стилизираме ОРЕДЕЛЕНИЯ Streamlit бутон и нашия HTML бутон по еднакъв начин */
+                button[data-testid="stBaseButton-secondary"].twin-style,
                 .twin-premium-3d-btn {
                     display: inline-flex !important;
                     align-items: center !important;
                     justify-content: center !important;
                     width: 100% !important; 
-                    height: 38.4px !important; /* Точната фабрична височина */
-                    background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important; /* Тъмен графитен металик */
+                    height: 38.4px !important;
+                    background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important;
                     color: #ffffff !important; 
-                    border: 1px solid rgba(255, 255, 255, 0.12) !important; /* Деликатен светъл ръб */
-                    padding: 0.25rem 0.75rem !important;
+                    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                    padding: 0px 12px !important;
                     font-weight: 600 !important;
                     font-size: 14px !important;
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
                     border-radius: 0.5rem !important;
                     cursor: pointer !important;
                     user-select: none !important;
-                    /* 3D Обем: Твърдо сиво дъно отдолу + външна мека сянка */
                     box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important;
-                    transition: all 0.15s ease-in-out !important; /* Плавно преливане на ховъра */
+                    transition: all 0.15s ease-in-out !important;
                 }
                 
-                /* 🌟 УЕДНАКВЕН ХОУВЪР: И двата бутона светват абсолютно еднакво нежно */
+                /* 🌟 ХОУВЪР ЕФЕКТ */
+                button[data-testid="stBaseButton-secondary"].twin-style:hover,
                 .twin-premium-3d-btn:hover {
                     background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
                     border-color: rgba(255, 255, 255, 0.3) !important;
                     box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.45) !important;
                 }
                 
-                /* 🌟 УЕДНАКВЕНО 3Д ПОТЪВАНЕ: И двата бутона хлътват по абсолютно един и същ начин при клик */
+                /* 🌟 3Д ПОТЪВАНЕ ПРИ КЛИК */
+                button[data-testid="stBaseButton-secondary"].twin-style:active,
                 .twin-premium-3d-btn:active {
-                    transform: translateY(2px) !important; /* Бутоните потъват физически */
-                    box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important; /* Дъното се свива */
-                    transition: all 0.05s ease !important;
+                    transform: translateY(2px) !important;
+                    box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important;
                 }
                 
-                /* Скриваме стандартните очертания на линковете в решетката */
                 .twin-grid-wrapper a {
                     text-decoration: none !important;
                     width: 100% !important;
@@ -892,33 +886,30 @@ else:
 
         st.markdown("<br><br>", unsafe_allow_html=True)
         
-        # 2. Истинският скрит бутон (чист Streamlit, без аргумент style)
-        if st.button("Home_Trigger_Hidden", key="hidden_home_btn"):
-            st.session_state["current_trip"] = None
-            st.rerun()
-
-        # Създаваме чистата решетка от 2 колони с правилно извикване
-        bottom_cols = st.columns(2)
+        # Разделяме екрана на две колони по чистия начин
+        b_col1, b_col2 = st.columns(2)
         
-        with bottom_cols[0]: # 🏠 Първи близнак: Главно Меню
-            # Търсим бутона по неговия текст в DOM дървото, за да го натиснем сигурно от разстояние
+        with b_col1: # 🏠 Ляв близнак: Главно Меню (Чист Streamlit бутон, стилизиран с CSS класа)
+            # Инжектираме малък HTML маркер точно преди бутона, за да му прикачим специалния CSS стил без да чупим нищо
+            st.markdown('<div class="twin-grid-wrapper">', unsafe_allow_html=True)
+            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
+                st.session_state["current_trip"] = None
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Прикачваме нашия стил директно към бутона, за да стане 3D
             st.markdown("""
-                <div class="twin-grid-wrapper">
-                    <button class="twin-premium-3d-btn" onclick="
-                        const btns = window.parent.document.querySelectorAll('button');
-                        for (let b of btns) {
-                            if (b.textContent.includes('Home_Trigger_Hidden')) {
-                                b.click();
-                                break;
-                            }
+                <script>
+                    var buttons = window.parent.document.querySelectorAll('button');
+                    for (var i = 0; i < buttons.length; i++) {
+                        if (buttons[i].textContent.includes('ГЛАВНО МЕНЮ')) {
+                            buttons[i].classList.add('twin-style');
                         }
-                    ">
-                        🏠 ГЛАВНО МЕНЮ
-                    </button>
-                </div>
+                    }
+                </script>
             """, unsafe_allow_html=True)
                 
-        with bottom_cols[1]: # 🎚️ Втори близнак: Към Разходите
+        with b_col2: # 🎚️ Десен близнак: Към Разходите (HTML котва за плавно превъртане нагоре)
             st.markdown("""
                 <div class="twin-grid-wrapper">
                     <a href="#target_sum_box" target="_self">
@@ -928,7 +919,6 @@ else:
                     </a>
                 </div>
             """, unsafe_allow_html=True)
-
 
 
 
