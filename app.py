@@ -749,41 +749,35 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: 100% РАБОТЕЩО ПЛАВНО ПРЕВЪРТАНЕ С ФАБРИЧЕН 3Д ДИЗАЙН
+        # 🌟 КРАЙ НА ФАЙЛА: НАПЪЛНО УЕДНАКВЕНИ 3Д БУТОНИ С РАБОТЕЩО ПРЕВЪРТАНЕ
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols[0]:
+        with bottom_cols[0]: # Колона 1: Главно меню
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]:
-            # Маскираме HTML линка като нативен 3D Streamlit бутон
+        with bottom_cols[1]: # Колона 2: Връщане най-горе
+            # Инжектираме невидима котва-линк, която хваща клика върху бутона и те изстрелва най-горе
             st.markdown("""
-                <a href="#top_of_page" target="_self" style="text-decoration: none; width: 100%; display: block;">
-                    <button class="stBaseButton-secondary" style="
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: 400;
-                        padding: 0.25rem 0.75rem;
-                        border-radius: 0.5rem;
-                        min-height: 38.4px;
-                        margin: 0px;
+                <style>
+                    /* Малък трик: караме линка да покрие целия контейнер на бутона */
+                    .scroll-link-wrapper a {
+                        text-decoration: none !important;
+                        display: block;
                         width: 100%;
-                        user-select: none;
-                        background-color: rgb(255, 255, 255, 0.05);
-                        color: rgb(250, 250, 250);
-                        border: 1px solid rgba(250, 250, 250, 0.2);
-                        cursor: pointer;
-                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-                        transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
-                    " onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgb(250, 250, 250)';" 
-                       onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(250, 250, 250, 0.2)';"
-                       onmousedown="this.style.transform='translateY(2px)'; this.style.boxShadow='0px 2px 5px rgba(0,0,0,0.2)';"
-                       onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 4px 10px rgba(0,0,0,0.3)';">
-                        🔝 НАЙ-ГОРЕ (РАЗХОДИ)
-                    </button>
-                </a>
+                    }
+                </style>
+                <div class="scroll-link-wrapper">
+                    <a href="#top_of_page" target="_self">
             """, unsafe_allow_html=True)
+            
+            # Истински, оригинален Streamlit бутон (със същите 3D ефекти по рождение)
+            st.button("🔝 НАЙ-ГОРЕ (РАЗХОДИ)", use_container_width=True, key="native_scroll_top_btn_v5")
+            
+            st.markdown("""
+                    </a>
+                </div>
+            """, unsafe_allow_html=True)
+
