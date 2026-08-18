@@ -779,56 +779,57 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-# 🌟 КРАЙ НА ФАЙЛА: АБСОЛЮТНО ОГЛЕДАЛНИ 3Д БЛИЗНАЦИ С ЕДНАКВИ ЕФЕКТИ
+        # 🌟 КРАЙ НА ФАЙЛА: УЕДНАКВЕНИ ПО СТАНДАРТНИЯ STREAMLIT СТИЛ
 st.markdown("""
     <style>
-        /* Глобално правило за плавно и нежно приплъзване на екрана */
+        /* Глобално правило за плавно приплъзване на екрана */
         html {
             scroll-behavior: smooth !important;
         }
         
-        /* 👑 ЕДИНЕН ЛУКСОЗЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА */
-        .twin-premium-3d-btn,
-        div[data-testid="stColumn"] div.stButton > button {
+        /* 🌟 Прилагане на стандартния Streamlit бутон стил върху втория бутон */
+        .twin-premium-3d-btn {
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
             width: 100% !important; 
-            height: 38.4px !important; /* Точната фабрична височина */
-            background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important; /* Тъмен графитен металик */
-            color: #ffffff !important; 
-            border: 1px solid rgba(255, 255, 255, 0.12) !important; /* Деликатен светъл ръб */
-            padding: 0.25rem 0.75rem !important;
-            font-weight: 600 !important;
-            font-size: 14px !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            height: 38.4px !important;
+            
+            /* Фабрични цветове и граници на Streamlit */
+            background-color: var(--background-color, #ffffff) !important;
+            color: var(--text-color, #31333F) !important;
+            border: 1px solid rgba(49, 51, 63, 0.2) !important;
             border-radius: 0.5rem !important;
+            padding: 0.25rem 0.75rem !important;
+            
+            font-weight: 400 !important;
+            font-size: 1rem !important;
+            font-family: inherit !important;
+            line-height: 1.6 !important;
+            
             cursor: pointer !important;
             user-select: none !important;
-            /* 3D Обем: Твърдо сиво дъно отдолу + външна мека сянка */
-            box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important;
-            transition: all 0.15s ease-in-out !important; /* Плавно преливане на ховъра */
+            box-shadow: none !important;
+            transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease !important;
         }
         
-        /* 🌟 УЕДНАКВЕН ХОУВЪР */
-        .twin-premium-3d-btn:hover,
-        div[data-testid="stColumn"] div.stButton > button:hover {
-            background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
-            border-color: rgba(255, 255, 255, 0.3) !important;
+        /* 🌟 Стандартен Streamlit Hover (Осветяване на рамката и текста) */
+        .twin-premium-3d-btn:hover {
+            border-color: #ff4b4b !important;
+            color: #ff4b4b !important;
+            background-color: transparent !important;
+        }
+        
+        /* 🌟 Стандартен Streamlit Active (Натискане) */
+        .twin-premium-3d-btn:active {
             color: #ffffff !important;
-            box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.45) !important;
+            background-color: #ff4b4b !important;
+            border-color: #ff4b4b !important;
+            transform: none !important;
+            box-shadow: none !important;
         }
         
-        /* 🌟 УЕДНАКВЕНО 3Д ПОТЪВАНЕ ПРИ КЛИК */
-        .twin-premium-3d-btn:active,
-        div[data-testid="stColumn"] div.stButton > button:active,
-        div[data-testid="stColumn"] div.stButton > button:focus:not(:focus-visible) {
-            transform: translateY(2px) !important; /* Бутоните потъват физически */
-            box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important; /* Дъното се свива */
-            transition: all 0.05s ease !important;
-        }
-        
-        /* Скриваме стандартните очертания на линковете в решетката */
+        /* Скриваме очертанията на линка в решетката */
         .twin-grid-wrapper a {
             text-decoration: none !important;
             width: 100% !important;
@@ -842,12 +843,12 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 # Създаваме чистата решетка от 2 колони
 bottom_cols = st.columns(2)
 
-with bottom_cols[0]: # 🏠 Първи близнак: Главно Меню
+with bottom_cols[0]: # 🏠 Първи бутон: Главно Меню (оригинален Streamlit)
     if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
         st.session_state["current_trip"] = None
         st.rerun()
         
-with bottom_cols[1]: # 🎚️ Втори близнак: Към Разходите
+with bottom_cols[1]: # 🎚️ Втори бутон: Към Разходите (HTML бутон, копиращ Streamlit)
     st.markdown("""
         <div class="twin-grid-wrapper">
             <a href="#target_sum_box" target="_self">
@@ -857,6 +858,8 @@ with bottom_cols[1]: # 🎚️ Втори близнак: Към Разходи�
             </a>
         </div>
     """, unsafe_allow_html=True)
+
+        
 
 
 
