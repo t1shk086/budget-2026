@@ -749,6 +749,7 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
+        # 🌟 КРАЙ НА ФАЙЛА: НАПЪЛНО УЕДНАКВЕНИ ОРИГИНАЛНИ 3Д БУТОНИ
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
@@ -758,53 +759,11 @@ else:
                 st.rerun()
                 
         with bottom_cols[1]:
-            # 1. 🔝 Чист CSS за 3D ефекти и движение при посочване (В същия премиум стил)
-            st.markdown("""
-                <style>
-                    .scroll-top-3d-btn {
-                        width: 100%; 
-                        background: linear-gradient(to bottom, #5d6675 0%, #383e4a 50%, #252932 100%) !important;
-                        color: #ffffff !important; 
-                        border: 1px solid rgba(255, 255, 255, 0.15) !important; 
-                        border-radius: 12px !important; 
-                        padding: 6px 16px !important;
-                        font-weight: 600 !important;
-                        font-size: 14px !important;
-                        letter-spacing: 0.5px !important;
-                        height: 38px !important;
-                        display: flex !important;
-                        align-items: center !important;
-                        justify-content: center !important;
-                        cursor: pointer !important;
-                        /* 3D Слоеве: горен блясък + дебело твърдо дъно отдолу + външна мека сянка */
-                        box-shadow: inset 0px 1px 0px rgba(255,255,255,0.25), 0px 3px 0px #15171c, 0px 6px 12px rgba(0, 0, 0, 0.4) !important;
-                        transition: all 0.2s ease-in-out !important; /* 🌟 Прави светването мазно */
-                        text-shadow: 0px -1px 0px rgba(0,0,0,0.5);
-                    }
-                    
-                    /* Ховър ефект - металът светва нежно при посочване */
-                    .scroll-top-3d-btn:hover {
-                        background: linear-gradient(to bottom, #6b7586 0%, #414856 50%, #2c313c 100%) !important;
-                        border-color: rgba(255, 255, 255, 0.3) !important;
-                        box-shadow: inset 0px 1px 0px rgba(255,255,255,0.35), 0px 3px 0px #15171c, 0px 8px 16px rgba(0, 0, 0, 0.5) !important;
-                        filter: brightness(1.05);
-                    }
-                    
-                    /* Реалистично 3D физическо потъване при кликване */
-                    .scroll-top-3d-btn:active {
-                        transform: translateY(2px) !important; /* Бутонът хлътва надолу */
-                        box-shadow: inset 0px 1px 0px rgba(255,255,255,0.15), 0px 1px 0px #15171c, 0px 2px 4px rgba(0,0,0,0.3) !important; /* Подложката се свива */
-                        transition: all 0.05s ease !important;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-
-            # 2. 🔝 Самият бутон, обвързан към твоя оригинален линк за превъртане
-            st.markdown("""
-                <a href="#top_of_page" style="text-decoration: none;" target="_self">
-                    <button class="scroll-top-3d-btn">
-                        🔝 НАЙ-ГОРЕ (РАЗХОДИ)
-                    </button>
-                </a>
-            """, unsafe_allow_html=True)
-
+            # 🔝 Превърнахме го в оригинален Streamlit бутон за 100% еднакво 3D усещане
+            if st.button("🔝 НАЙ-ГОРЕ (РАЗХОДИ)", use_container_width=True, key="native_scroll_top_btn"):
+                # Едноредов JavaScript трик, който превърта страницата плавно най-горе веднага при клик
+                st.components.v1.html(
+                    "<script>parent.window.scrollTo({top: 0, behavior: 'smooth'});</script>", 
+                    height=0, 
+                    width=0
+                )
