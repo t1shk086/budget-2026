@@ -779,15 +779,7 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ ИЗРАВНЕНИ БУТОНИ С МИЛИМЕТРОВО ПРЕЦИЗЕН СКРОЛ
-        st.markdown("""
-            <style>
-                html {
-                    scroll-behavior: smooth !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
-
+        # 🌟 КРАЙ НА ФАЙЛА: 100% ЕДНАКВИ ОРИГИНАЛНИ БУТОНИ С ГАРАНТИРАН СКРОЛ БЕЗ RE-RUN
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
@@ -796,35 +788,45 @@ else:
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # Дясна колона: Луксозен 3D близнак бутон с добавен буфер за скролване
-            st.markdown("""
-                <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
-                    <button class="stBaseButton-secondary" style="
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: 600;
-                        padding: 0.25rem 0.75rem;
-                        border-radius: 0.5rem;
-                        min-height: 38.4px;
-                        margin: 0px;
-                        width: 100%;
-                        user-select: none;
-                        background-color: rgba(255, 255, 255, 0.05);
-                        color: rgb(250, 250, 250);
-                        border: 1px solid rgba(250, 250, 250, 0.2);
-                        cursor: pointer;
-                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-                        transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
-                    " onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgb(250, 250, 250)';" 
-                       onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(250, 250, 250, 0.2)';"
-                       onmousedown="this.style.transform='translateY(2px)'; this.style.boxShadow='0px 2px 5px rgba(0,0,0,0.2)';"
-                       onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 4px 10px rgba(0,0,0,0.3)';"
-                       onclick="setTimeout(function() { var el = parent.document.getElementById('target_sum_box'); if(el) el.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 50);">
-                        🎚️ КЪМ РАЗХОДИТЕ
-                    </button>
-                </a>
-            """, unsafe_allow_html=True)
+        with bottom_cols[1]: # Дясна колона: Чист, оригинален Streamlit бутон-близнак
+            st.button("🎚️ КЪМ РАЗХОДИТЕ", use_container_width=True, key="click_scroll_to_sum_btn")
+            
+        # 🚀 СУПЕР СТИКЕР СКРИПТ: Намира оригиналния бутон и му закача плавното скролване в браузъра
+        st.markdown("""
+            <script>
+                function initScrollAction() {
+                    // Намираме десния бутон по неговия вътрешен текст
+                    var buttons = window.parent.document.querySelectorAll('button');
+                    var targetBtn = null;
+                    
+                    buttons.forEach(function(btn) {
+                        if (btn.textContent.includes("КЪМ РАЗХОДИТЕ")) {
+                            targetBtn = btn;
+                        }
+                    });
+                    
+                    if (targetBtn) {
+                        // Закачаме уеб командата директно за бутона
+                        targetBtn.onclick = function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Намираме полето за сума и го приплъзваме на екрана
+                            var target = window.parent.document.getElementById('target_sum_box');
+                            if (target) {
+                                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        };
+                    }
+                }
+                
+                // Стартираме прихващането веднага и след малко за подсигуряване
+                initScrollAction();
+                setTimeout(initScrollAction, 400);
+                setTimeout(initScrollAction, 1000);
+            </script>
+        """, unsafe_allow_html=True)
+
 
 
 
