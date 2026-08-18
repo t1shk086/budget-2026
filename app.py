@@ -338,29 +338,33 @@ else:
                    
     else:
         # =========================================================
-        # 👑 КРАЙНО РЕШЕНИЕ: ФИКСИРАН ДЕСЕН БУТОН СПРЯМО СТЪКЛОТО
+        # 👑 ИЗОЛИРАН ДЕСЕН БУТОН ЗА ГАЛЕРИЯ (БЕЗ ДА БЪРКА БУТОНА НАЗАД)
         # =========================================================
         st.markdown("""
             <style>
-                /* Заковаваме бутона спрямо стъклото на телефона - тук Streamlit няма сила да го премести вляво */
+                /* Използваме селектор, който филтрира бутоните по съдържание на текст */
+                /* Хващаме контейнера на бутона, само ако вътре има КЛЮЧА за Галерия */
+                div[data-testid="stColumn"]:nth-of-type(2):has(button[key="open_gallery_top_header_2026"]) {
+                    display: flex !important;
+                    justify-content: flex-end !important;
+                    align-items: center !important;
+                    width: 100% !important;
+                }
+                
+                /* Стилизираме САМО бутона за Галерия – напълно прозрачен и стъклен */
                 button[key="open_gallery_top_header_2026"] {
-                    position: fixed !important;
-                    top: 75px !important;        /* Подравняване по вертикала точно срещу заглавието */
-                    right: 16px !important;       /* Железен десен ръб на лаптоп и телефон */
-                    left: auto !important;        /* Спира фабричното ляво подравняване */
+                    display: inline-block !important;
                     width: auto !important;
                     min-width: unset !important;
-                    background: rgba(22, 25, 31, 0.6) !important; /* Красив прозрачен стъклен ефект */
+                    background: rgba(22, 25, 31, 0.6) !important;
                     border: 1px solid rgba(255, 255, 255, 0.15) !important;
                     color: #ffffff !important;
-                    padding: 5px 12px !important;
+                    padding: 4px 12px !important;
                     font-size: 12px !important;
                     font-weight: 600 !important;
                     border-radius: 8px !important;
                     backdrop-filter: blur(8px) !important;
                     -webkit-backdrop-filter: blur(8px) !important;
-                    white-space: nowrap !important;
-                    z-index: 9999999 !important;   /* Най-отгоре над абсолютно всички кутии */
                     transition: all 0.2s ease-in-out !important;
                 }
                 
@@ -369,26 +373,30 @@ else:
                     border-color: rgba(0, 242, 254, 0.5) !important;
                 }
                 
-                /* Защита за бутона Назад и останалите - остават си фабрични без промяна */
+                /* БОНУС: Гарантираме, че ако се появи бутонът "Назад към разходите", */
+                /* той ще си запази оригиналния фабричен стил без да се мести в десния ъгъл! */
                 button:not([key="open_gallery_top_header_2026"]) {
                     position: static !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # Заглавието и датите - 100% центрирани с отстояние вдясно, за да не се застъпят на малък телефон
-        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px; padding-right: 85px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+        # Ред 1: Разделяне за перфектно дясно позициониране на Галерията
+        col_space_top, col_btn_top = st.columns([0.7, 0.3])
         
-        st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-        
-        # Фабричен бутон - благодарение на 'position: fixed' той се откъсва от решетката и отива в десния ъгъл
-        if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
-            st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
-            st.session_state["view_photos"] = True
-            st.rerun()
+        with col_btn_top:
+            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+            if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
+                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
+                st.session_state["view_photos"] = True
+                st.rerun()
 
+        # Ред 2: Перфектно центрираното заглавие и датите отдолу
+        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+        st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+        
         st.markdown("---")
+
 
 
 
