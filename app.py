@@ -758,7 +758,7 @@ else:
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols:
+        with bottom_cols[2]:
             # Маскираме HTML линка като нативен 3D Streamlit бутон
             st.markdown("""
                 <a href="#top_of_page" target="_self" style="text-decoration: none; width: 100%; display: block;">
