@@ -162,37 +162,62 @@ if st.session_state["current_trip"] is None:
     if existing:
         opts = [t.replace("_", " ") for t in existing]
         choice = st.selectbox("Изберете пътуване до:", opts)
-        # 1. 🐾 CSS КОДЪТ СЕ СЛАГА НАЙ-ОТГОРЕ (За да е активен винаги)
+        # 1. 🐾 ЦЕНТРАЛЕН CSS СТИЛ ЗА СИН БРАНДИРАН БУТОН С ГОЛЕМИ ЛАПИЧКИ
         st.markdown("""
             <style>
+                /* Основен стил на бутона (Син като пробега) */
                 div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) {
-                    background-color: #00f2fe !important; /* 🌟 Тук е сложено синьото от пробега. Смени го, ако логото е друг цвят! */
+                    background: linear-gradient(135deg, #00f2fe, #4facfe) !important; /* 🌟 Точното синьо от логото/пробега */
                     color: white !important;
                     border-radius: 12px !important;
-                    border: 1px solid rgba(255,255,255,0.1) !important;
+                    border: none !important;
                     font-weight: bold !important;
                     font-size: 15px !important;
                     letter-spacing: 0.5px !important;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+                    box-shadow: 0 4px 12px rgba(0,242,254,0.2) !important;
                     transition: all 0.2s ease-in-out !important;
                 }
+                
+                /* Уголемяване на самата кучешка лапичка вътре в бутона с 50% */
+                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) span,
+                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) p {
+                    font-size: 15px !important;
+                }
+                
+                /* Трик за уголемяване конкретно на символа 🐾 */
+                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) [data-testid="stMarkdownContainer"] p {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 5px;
+                }
+                
+                /* Специфично уголемяване на лапата */
+                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾"))::after {
+                    content: "🐾";
+                    font-size: 22px !important; /* 🌟 50% по-голяма лапа визуално */
+                    margin-left: 4px;
+                }
+
+                /* Ефект при посочване (Hover) */
                 div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")):hover {
                     transform: translateY(-2px) !important;
-                    box-shadow: 0 6px 15px rgba(0,0,0,0.35) !important;
+                    box-shadow: 0 6px 18px rgba(0,242,254,0.4) !important;
                     filter: brightness(1.1) !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # 2. 🐾 БУТОНЪТ СЕ ИЗКАРВА САМОСТОЯТЕЛНО (За да се вижда веднага и да си хване цвета)
-        if st.button("ЗАРЕДИ ПЪТУВАНЕ🐾", use_container_width=True):
+        # 2. 🐾 Бутонът (Текстът тук е без лапичка накрая, защото CSS я добавя автоматично по-голяма!)
+        if st.button("ЗАРЕДИ ПЪТУВАНЕ", use_container_width=True):
             st.session_state["current_trip"] = choice.replace(" ", "_")
             st.rerun()
 
-        # 3. ПОДЗАТГЛАВИЕ (Ако списъкът все пак изглежда празен в системата)
+        # 3. ПОДЗАТГЛАВИЕ
         if 'choice' not in locals() or not choice:
             st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Ако не виждате старото си приключение в менюто, създайте ново по-долу!</div>", unsafe_allow_html=True)
             st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
+
 
     
     @st.dialog("➕ Създаване на ново приключение")
