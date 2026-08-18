@@ -779,58 +779,68 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: 100% ЕДНАКВИ ОРИГИНАЛНИ БУТОНИ С ЖЕЛЕЗЕН СКРОЛ БЕЗ RE-RUN
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        bottom_cols = st.columns(2)
-        
-        with bottom_cols[0]: # Лява колона: Главно меню
-            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid_final"):
-                st.session_state["current_trip"] = None
-                st.rerun()
-                
-        with bottom_cols[1]: # Дясна колона: Чист, оригинален Streamlit бутон-близнак
-            st.button("🎚️ КЪМ РАЗХОДИТЕ", use_container_width=True, key="click_scroll_to_sum_btn")
-            
-        # 🚀 ПОДОБРЕН СКРИПТ: Търси дълбоко в HTML структурата и поддържа мобилни устройства
+        # 🌟 КРАЙ НА ФАЙЛА: ДВА НАПЪЛНО ОТДЕЛНИ И НЕЗАВИСИМИ 3Д БУТОНА
+
+        # ----------------------------------------------------
+        # БЛОК 1: БУТОН ЗА ГЛАВНО МЕНЮ (Изчистен Python бутон)
+        # ----------------------------------------------------
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="isolated_home_btn"):
+            st.session_state["current_trip"] = None
+            st.rerun()
+
+        # ----------------------------------------------------
+        # БЛОК 2: БУТОН КЪМ РАЗХОДИТЕ (Изолиран 3D HTML бутон със сигурен скрол)
+        # ----------------------------------------------------
+        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
-            <script>
-                function initScrollAction() {
-                    // Търсим всички бутони на екрана
-                    var buttons = window.parent.document.querySelectorAll('button');
-                    var targetBtn = null;
-                    
-                    buttons.forEach(function(btn) {
-                        // Проверяваме дали бутонът съдържа нашия текст, дори и да е скрит в <p> или <span> таг
-                        if (btn.innerHTML && btn.innerHTML.includes("КЪМ РАЗХОДИТЕ")) {
-                            targetBtn = btn;
-                        }
-                    });
-                    
-                    if (targetBtn) {
-                        // Функция за изпълнение на скрола
-                        var handleScroll = function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            
-                            var target = window.parent.document.getElementById('target_sum_box');
-                            if (target) {
-                                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                        };
-                        
-                        // Закачаме логиката за компютри (клик) и за телефони (докосване)
-                        targetBtn.onclick = handleScroll;
-                        targetBtn.ontouchstart = handleScroll;
-                    }
+            <style>
+                /* Глобално уеб правило за изключително меко приплъзване на екрана */
+                html {
+                    scroll-behavior: smooth !important;
                 }
                 
-                // Стартираме прихващането на няколко етапа, за да изчакаме пълното зареждане на интерфейса
-                initScrollAction();
-                setTimeout(initScrollAction, 300);
-                setTimeout(initScrollAction, 800);
-                setTimeout(initScrollAction, 1500);
-            </script>
+                /* Индивидуален стил за изолирания ни бутон за разходи */
+                .isolated-3d-scroll-btn {
+                    width: 100%;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 600;
+                    font-size: 14px;
+                    letter-spacing: 0.5px;
+                    padding: 10px 16px;
+                    border-radius: 8px;
+                    min-height: 38.4px;
+                    background-color: rgba(255, 255, 255, 0.05); /* Оригиналният цвят на Streamlit */
+                    color: rgb(250, 250, 250);
+                    border: 1px solid rgba(250, 250, 250, 0.2);
+                    cursor: pointer;
+                    box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+                    transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
+                }
+                
+                /* Ховър ефект - светва плавно, когато минеш с мишката */
+                .isolated-3d-scroll-btn:hover {
+                    background-color: rgba(255, 255, 255, 0.1);
+                    border-color: rgb(250, 250, 250);
+                }
+                
+                /* Физическо 3D потъване при натискане на компютър или телефон */
+                .isolated-3d-scroll-btn:active {
+                    transform: translateY(2px);
+                    box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
+                }
+            </style>
+            
+            <!-- Самият бутон, затворен в директна връзка, която браузърът не може да блокира -->
+            <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
+                <button class="isolated-3d-scroll-btn">
+                    🎚️ КЪМ РАЗХОДИТЕ
+                </button>
+            </a>
         """, unsafe_allow_html=True)
+        st.markdown("---")
 
 
 
