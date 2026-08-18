@@ -728,7 +728,7 @@ else:
                         align-items: center;
                         justify-content: center;
                     ">
-                        ⬆️ НАЙ-ГОРЕ (РАЗХОДИ)
+                        🔝 НАЙ-ГОРЕ (РАЗХОДИ)
                     </button>
                 </a>
             """, unsafe_allow_html=True)
