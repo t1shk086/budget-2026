@@ -533,7 +533,7 @@ else:
         # ⚙️ БУТОНИ ЗА УПРАВЛЕНИЕ НА КОЛАТА (СЕГА СА НАД АНАЛИЗА)
         # =========================================================
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
-        @st.dialog("⚙️ Настройки на prevozno sredstvo i period")
+        @st.dialog("⚙️ Настройки за автомобил и период")
         def edit_car_modal():
             v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1, disabled=is_trip_finished)
             new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, disabled=is_trip_finished)
