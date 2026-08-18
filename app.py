@@ -162,35 +162,36 @@ if st.session_state["current_trip"] is None:
     if existing:
         opts = [t.replace("_", " ") for t in existing]
         choice = st.selectbox("Изберете пътуване до:", opts)
-    # 1. 🐾 CSS код
-    st.markdown("""
-        <style>
-            div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) {
-                background-color: #ffa500 !important;
-                color: white !important;
-                border-radius: 12px !important;
-                border: 1px solid rgba(255,255,255,0.1) !important;
-                font-weight: bold !important;
-                font-size: 15px !important;
-                letter-spacing: 0.5px !important;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
-                transition: all 0.2s ease-in-out !important;
-            }
-            div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")):hover {
-                transform: translateY(-2px) !important;
-                box-shadow: 0 6px 15px rgba(0,0,0,0.35) !important;
-                filter: brightness(1.1) !important;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+        # 1. 🐾 CSS код за брандиране на бутона
+        st.markdown("""
+            <style>
+                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) {
+                    background-color: #00f2fe !important; /* 🌟 ЗАМЕНИ ТОЗИ КОД С ТОЧНИЯ ЦВЯТ НА ТВОЕТО ЛОГО! */
+                    color: white !important;
+                    border-radius: 12px !important;
+                    border: 1px solid rgba(255,255,255,0.1) !important;
+                    font-weight: bold !important;
+                    font-size: 15px !important;
+                    letter-spacing: 0.5px !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+                    transition: all 0.2s ease-in-out !important;
+                }
+                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")):hover {
+                    transform: translateY(-2px) !important;
+                    box-shadow: 0 6px 15px rgba(0,0,0,0.35) !important;
+                    filter: brightness(1.1) !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
 
-    # 2. 🐾 Логика
-    if st.button("ЗАРЕДИ ПЪТУВАНЕ🐾", use_container_width=True):
-        st.session_state["current_trip"] = choice.replace(" ", "_")
-        st.rerun()
-    else:
-        st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Все още нямате записани почивки. Създайте първото си приключение по-долу!</div>", unsafe_allow_html=True)
-        st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
+        # 2. 🐾 Сигурна структура за бутона и съобщението
+        if st.button("ЗАРЕДИ ПЪТУВАНЕ🐾", use_container_width=True):
+            st.session_state["current_trip"] = choice.replace(" ", "_")
+            st.rerun()
+        else:
+            st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Все още нямате записани почивки. Създайте първото си приключение по-долу!</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
+
 
 
     
