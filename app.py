@@ -775,19 +775,44 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: 100% ЕДНАКВИ ОРИГИНАЛНИ БУТОНИ С АВТОМАТИЧНО СКРОЛВАНЕ
+        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ РАВНИ БУТОНИ С ДИРЕКТЕН СКРОЛ БЕЗ RE-RUN
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols[0]: # Лява колона: Главно меню
+        with bottom_cols: # Лява колона: Главно меню
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # Дясна колона: Оригинален близнак бутон
-            if st.button("🎚️ КЪМ РАЗХОДИТЕ", use_container_width=True, key="native_perfect_scroll_to_sum_btn"):
-                st.session_state["scroll_to_expenses_flag"] = True
-                st.rerun()
+        with bottom_cols: # Дясна колона: Оригинален фабричен бутон
+            st.button("🎚️ КЪМ РАЗХОДИТЕ", use_container_width=True, key="click_scroll_to_sum_btn")
+            
+        # 🚀 БЕЗОТКАЗЕН СКРИПТ: Прихваща клика директно в браузъра и мести екрана без рефреш!
+        st.markdown("""
+            <script>
+                function initScrollAction() {
+                    var btn = window.parent.document.querySelector('button[key="click_scroll_to_sum_btn"]');
+                    if (btn) {
+                        btn.onclick = function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Намираме полето за сума в главното приложение
+                            var target = window.parent.document.getElementById('target_sum_box');
+                            if (target) {
+                                // Прескачаме картата и центрираме полето на екрана
+                                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }}
+                        };
+                    }
+                }
+                
+                // Стартираме търсенето на бутона веднага
+                initScrollAction();
+                setTimeout(initScrollAction, 500);
+            </script>
+        """, unsafe_allow_html=True)
+
 
 
 
