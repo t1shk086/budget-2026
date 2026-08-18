@@ -764,7 +764,7 @@ else:
             
             cb1, cb2 = st.columns([0.7, 0.3])
             with cb1:
-                if st.button("💾 ЗАПИШИ ПИНЧЕТО НА КАРТАТА", use_container_width=True, type="primary") and title_in:
+                if st.button("💾 Запис", use_container_width=True, type="primary") and title_in:
                     if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in):
                         st.session_state["active_click"] = None
                         st.rerun()
