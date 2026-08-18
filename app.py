@@ -608,51 +608,52 @@ else:
                     r = df_all.loc[idx]
                     l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
                     
-                    # 🚀 МАГИЧЕСКАТА КУТИЯ: Обграждаме целия разход в един чист уеб контейнер
+                    # 🚀 МАГИЧЕСКАТА КУТИЯ: Уголемена с повече padding и по-голяма min-height
                     st.markdown(f'''
                         <div style="
                             position: relative;
                             background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
-                            padding: 14px 70px 14px 18px; /* 70px аванс отдясно за кошчето */
+                            padding: 18px 75px 18px 20px; /* 🔘 ПОПРАВКА: По-големи отстояния за луксозен обем */
                             border-radius: 12px;
                             border: 1px solid rgba(250, 250, 250, 0.2);
                             box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
                             margin-bottom: -38px; /* Насилствено издърпваме следващия елемент нагоре */
-                            min-height: 54px;
+                            min-height: 65px; /* 🔘 ПОПРАВКА: По-висок главен прозорец */
                             display: flex;
                             flex-direction: column;
                             justify-content: center;
                         ">
                             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                <div style="font-size: 16px; font-weight: 600; color: #fafafa; font-family: sans-serif;">
+                                <div style="font-size: 16.5px; font-weight: 600; color: #fafafa; font-family: sans-serif;">
                                     <span>{get_emoji(r["category"])}</span> {r["category"]}
                                 </div>
-                                <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
+                                <div style="font-size: 16.5px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
                                     -{r["amount"]:.2f} EUR
                                 </div>
                             </div>
-                            <div style="margin-top: 5px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
+                            <div style="margin-top: 6px; font-size: 13px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
                                 📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
                             </div>
                         </div>
                     ''', unsafe_allow_html=True)
                     
-                    # 🎯 ПРИТИСКАЩ КОНТЕНЕР: Използваме колона, за да позиционираме Python бутона точно в десния ъгъл на кутията
+                    # 🎯 ПРИТИСКАЩ КОНТЕНЕР: Центрираме Python бутона спрямо новата височина
                     col_space, col_btn = st.columns([0.88, 0.12])
                     with col_space:
-                        st.write("") # Празно пространство, за да избутаме бутона вдясно
+                        st.write("") 
                     with col_btn:
-                        # Инжектираме отместване нагоре, което вкарва бутона физически вътре в горния HTML блок
-                        st.markdown('<div style="margin-top: -46px; position: relative; z-index: 10; min-height: 32px; height: 32px;">', unsafe_allow_html=True)
+                        # 🔘 ПОПРАВКА: Спуснат маргин на -51px, за да легне на перфектната уеб среда в по-голямата кутия
+                        st.markdown('<div style="margin-top: -51px; position: relative; z-index: 10; min-height: 32px; height: 32px;">', unsafe_allow_html=True)
                         if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий"):
                             st.session_state["delete_idx"] = idx
                             confirm_delete_dialog()
                         st.markdown('</div>', unsafe_allow_html=True)
                         
-                    # Малък разделител за разстояние между отделните кутии
-                    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+                    # Разделител за разстояние между отделните кутии
+                    st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
             except:
                 pass
+
 
 
 
