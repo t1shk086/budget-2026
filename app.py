@@ -609,7 +609,6 @@ else:
             def hronologia_popup_dialog():
                 st.markdown("<p style='color: #888; margin-bottom: 20px;'>Всички записани разходи за текущото пътуване по категории и дати:</p>", unsafe_allow_html=True)
                 
-                # Инжектираме премиум стиловете за картите директно вътре в прозореца
                 st.markdown("""
                     <style>
                         .premium-expense-card {
@@ -678,63 +677,82 @@ else:
                     st.rerun()
 
             # =========================================================
-            # 👑 ОБЕДИНЕН ПРЕМИУМ БЛОК С ДЕЙСТВИЯ (ЧАСТ 1)
+            # 👻 СКРИТИ СТАНДАРТНИ БУТОНИ ЗА СВРЪЗКА С PYTHON СИСТЕМАТА
             # =========================================================
-            st.markdown("---") # Една обща начална линия за целия блок
-            
+            st.markdown('<div style="position: absolute; left: -9999px; top: -9999px;">', unsafe_allow_html=True)
+            if st.button("HIDDEN_TRIGGER_POPUP_HRONOLOGIA", key="py_hronologia_hidden_trigger"):
+                hronologia_popup_dialog()
+                
+            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+            if st.button("HIDDEN_TRIGGER_GALLERY_PHOTOS", key="py_gallery_hidden_trigger"):
+                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
+                st.session_state["view_photos"] = True
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+            # =========================================================
+            # 👑 МОНОЛИТЕН ПРЕМИУМ 3Д БЛОК - СТИЛИЗАЦИЯ И ПОДГОТОВКА
+            # =========================================================
+            st.markdown("---")
             st.markdown("""
                 <style>
-                    .unified-actions-container div[data-testid="stBlock"] {
-                        gap: 0.5rem !important;
+                    /* ОБЩА ВЕРТИКАЛНА ФЛЕКС КУТИЯ ЗА АБСОЛЮТНО ЕДНАКВИ МЕЖДУДИСТАНЦИИ */
+                    .monolithic-action-box {
+                        display: flex !important;
+                        flex-direction: column !important;
+                        gap: 10px !important;
+                        width: 100% !important;
+                        box-sizing: border-box !important;
                     }
-                    .premium-report-3d-btn {
-                        width: 100% !important; 
-                        background: linear-gradient(to bottom, #5d6675 0%, #383e4a 50%, #252932 100%) !important;
-                        color: #FFFFFF !important; 
-                        border: 1px solid rgba(0, 242, 254, 0.4) !important;
-                        padding: 10px 14px !important; 
+                    
+                    /* ЕДИНЕН ДИЗАЙН ЗА ВСИЧКИ БУТОНИ В МЕНЮТО */
+                    .monolithic-btn {
+                        display: inline-flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        width: 100% !important;
+                        height: 42px !important;
+                        box-sizing: border-box !important;
+                        margin: 0px !important;
+                        background: linear-gradient(135deg, #252932, #16191f) !important;
+                        color: #ffffff !important;
+                        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                        border-radius: 12px !important;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
                         font-weight: 600 !important;
                         font-size: 14px !important;
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
                         letter-spacing: 0.5px !important;
-                        border-radius: 12px !important; 
                         cursor: pointer !important;
                         user-select: none !important;
-                        box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.4) !important;
-                        transition: all 0.25s ease !important;
-                        text-align: center !important;
+                        transition: all 0.2s ease !important;
                     }
-                    .premium-report-3d-btn:hover {
-                        background: linear-gradient(to bottom, #6b7586 0%, #414856 50%, #2c313c 100%) !important;
-                        border-color: rgba(0, 242, 254, 0.8) !important;
-                        box-shadow: 0px 6px 20px rgba(0, 242, 254, 0.15) !important;
+                    
+                    /* Ховър ефект */
+                    .monolithic-btn:hover {
+                        background: linear-gradient(135deg, #2e343f, #1c2028) !important;
                         transform: translateY(-1px) !important;
+                        box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15) !important;
+                        border-color: rgba(0, 242, 254, 0.2) !important;
                     }
-                    .premium-report-3d-btn:active {
+                    
+                    /* Потъване при клик */
+                    .monolithic-btn:active {
                         transform: translateY(1px) !important;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+                    }
+                    
+                    .monolithic-action-box a {
+                        text-decoration: none !important;
+                        width: 100% !important;
+                        display: block !important;
+                        margin: 0px !important;
+                        padding: 0px !important;
                     }
                 </style>
             """, unsafe_allow_html=True)
 
-            st.markdown('<div class="unified-actions-container">', unsafe_allow_html=True)
-
-            if st.button("📜 ВИЖ ЦЯЛАТА ХРОНОЛОГИЯ НА ПЛАЩАНИЯТА", use_container_width=True, key="open_hronologia_popup_trigger"):
-                hronologia_popup_dialog()
-
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            if st.button("📸 Снимки и спомени", use_container_width=True, key="open_gallery_final_2026"):
-                st.components.v1.html("""
-                    <script>
-                        window.parent.document.getElementById('click_scroll_trigger').click();
-                    </script>
-                """, height=0)
-                st.session_state["view_photos"] = True
-                st.rerun()
-
             avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
             grand_total = depozit_hotel + total_on_site
-            
-            # Всички HTML къдрави скоби за CSS стиловете по-долу са перфектно дублирани с {{ и }}, за да няма SyntaxError!
             period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
             dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
             
@@ -750,16 +768,45 @@ else:
             pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
             b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
 
+            # РЕНДЕРИРАНЕ НА ОБЩАТА СТРУКТУРА С ЕДНАКВИ ОТСТОЯНИЯ ОКОЛО БУТОНИТЕ
             st.markdown(f'''
-                <a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none; display:block; margin-top: 2px;">
-                    <button class="premium-report-3d-btn">
-                        📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
+                <div class="monolithic-action-box">
+                    <!-- 1. Бутон Хронология -->
+                    <button class="monolithic-btn" onclick="
+                        const btns = window.parent.document.querySelectorAll('button');
+                        for (let b of btns) {{
+                            if (b.textContent.includes('HIDDEN_TRIGGER_POPUP_HRONOLOGIA')) {{
+                                b.click();
+                                break;
+                            }
+                        }}
+                    ">
+                        📜 ВИЖ ЦЯЛАТА ХРОНОЛОГИЯ НА ПЛАЩАНИЯТА
                     </button>
-                </a>
+                    
+                    <!-- 2. Бутон Снимки -->
+                    <button class="monolithic-btn" onclick="
+                        const btns = window.parent.document.querySelectorAll('button');
+                        for (let b of btns) {{
+                            if (b.textContent.includes('HIDDEN_TRIGGER_GALLERY_PHOTOS')) {{
+                                b.click();
+                                break;
+                            }
+                        }}
+                    ">
+                        📸 Снимки и спомени
+                    </button>
+                    
+                    <!-- 3. Бутон Свали отчет -->
+                    <a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html">
+                        <button class="monolithic-btn">
+                            📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
+                        </button>
+                    </a>
+                </div>
             ''', unsafe_allow_html=True)
 
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown("---") # Една крайна обща линия след целия пакет с бутони
+            st.markdown("---")
 
 
 
