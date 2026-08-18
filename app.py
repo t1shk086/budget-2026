@@ -779,7 +779,7 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: ХИРУРГИЧЕСКИ ИЗРАВНЕНИ БУТОНИ С ТОЧЕН СКРОЛ
+        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ ИЗРАВНЕНИ БУТОНИ С МИЛИМЕТРОВО ПРЕЦИЗЕН СКРОЛ
         st.markdown("""
             <style>
                 html {
@@ -791,12 +791,12 @@ else:
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols[0]: # Лява колона: Главно меню
+        with bottom_cols: # Лява колона: Главно меню
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid_final"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # Дясна колона: Луксозен 3D близнак бутон с фиксиран скрол
+        with bottom_cols: # Дясна колона: Луксозен 3D близнак бутон с добавен буфер за скролване
             st.markdown("""
                 <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
                     <button class="stBaseButton-secondary" style="
@@ -825,6 +825,7 @@ else:
                     </button>
                 </a>
             """, unsafe_allow_html=True)
+
 
 
 
