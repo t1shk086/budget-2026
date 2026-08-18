@@ -340,57 +340,72 @@ else:
         # =========================================================
         # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С МИНИ ПРОЗРАЧЕН БУТОН
         # =========================================================
+        # 👑 МОНОЛИТНО ЦЕНТРИРАНО ЗАГЛАВИЕ С ДЕСЕН БУТОН ЗА СНИМКИ
         # =========================================================
-        # 👑 ЧИСТА СТРУКТУРА: ЦЕНТРИРАНО ЗАГЛАВИЕ И ДЕСЕН БУТОН ЗА СНИМКИ
-        # =========================================================
-        st.markdown("""
+        # Генерираме линк, който при натискане казва на Streamlit да отвори снимките
+        if st.checkbox("Отвори Галерия", key="hidden_gallery_checkbox_trigger", value=False, label_visibility="collapsed"):
+            st.session_state["view_photos"] = True
+            st.rerun()
+
+        # HTML контейнер, който подрежда елементите безупречно на компютър и телефон
+        date_txt = f"{st_date} - {en_date}" if st_date and st_date != "nan" else ""
+        
+        st.markdown(f"""
+            <div style="position: relative; width: 100%; text-align: center; margin-top: 5px; margin-bottom: 15px;">
+                <!-- 1. ЦЕНТРИРАНО ЗАГЛАВИЕ И ДАТИ -->
+                <h2 style="font-family: 'Segoe UI', Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0 70px;">
+                    🌴 Дестинация: {trip_id.replace('_', ' ')}
+                </h2>
+                <p style="font-size: 14px; color: #888; font-weight: 500; margin: 5px 0 0 0;">
+                    {date_txt}
+                </p>
+                
+                <!-- 2. ЖЕЛЕЗЕН ДЕСЕН БУТОН (КОМПАКТЕН И ПРОЗРАЧЕН) -->
+                <button class="header-gallery-luxury-btn" onclick="
+                    const check = window.parent.document.querySelector('input[type Plebox], .stCheckbox input');
+                    const allInputs = window.parent.document.querySelectorAll('input');
+                    for (let i of allInputs) {{
+                        if (i.id && i.id.includes('hidden_gallery_checkbox_trigger')) {{
+                            i.click();
+                            break;
+                        }
+                    }}
+                ">
+                    📸 Галерия
+                </button>
+            </div>
+            
             <style>
-                /* Подравняваме уиджета в дясната колона максимално вдясно */
-                div[data-testid="stColumn"]:nth-of-type(3) div[data-testid="stButton"] {
-                    text-align: right !important;
-                }
-                /* Стилизираме бутона да бъде малък, прозрачен и компактен около надписа */
-                div[data-testid="stColumn"]:nth-of-type(3) button {
-                    display: inline-block !important;
-                    width: auto !important;
-                    min-width: unset !important;
+                /* Стилизация на бутона, която гарантира десния ъгъл на всеки телефон */
+                .header-gallery-luxury-btn {{
+                    position: absolute !important;
+                    right: 0px !important;
+                    top: 4px !important;
                     background: rgba(22, 25, 31, 0.5) !important;
                     border: 1px solid rgba(255, 255, 255, 0.15) !important;
                     color: #ffffff !important;
-                    box-shadow: none !important;
-                    padding: 4px 12px !important;
-                    font-size: 13px !important;
+                    padding: 4px 10px !important;
+                    font-size: 12px !important;
                     font-weight: 600 !important;
+                    font-family: -apple-system, BlinkMacSystemFont, sans-serif !important;
                     border-radius: 8px !important;
                     backdrop-filter: blur(8px) !important;
                     -webkit-backdrop-filter: blur(8px) !important;
-                    transition: all 0.2s ease-in-out !important;
-                }
-                div[data-testid="stColumn"]:nth-of-type(3) button:hover {
+                    cursor: pointer !important;
+                    transition: all 0.2s ease !important;
+                }}
+                .header-gallery-luxury-btn:hover {{
                     background: rgba(0, 242, 254, 0.1) !important;
                     border-color: rgba(0, 242, 254, 0.4) !important;
-                    box-shadow: 0 0 10px rgba(0, 242, 254, 0.15) !important;
-                }
+                }}
+                /* Скриваме малкия чекбокс, за да не загрозява екрана */
+                div[data-testid="stCheckbox"] {{
+                    display: none !important;
+                    position: absolute !important;
+                    left: -9999px !important;
+                }}
             </style>
         """, unsafe_allow_html=True)
-
-        # Създаваме 3 симетрични колони за абсолютен баланс
-        col_left_space, col_center_title, col_gallery_top = st.columns([0.15, 0.70, 0.15])
-        
-        with col_center_title:
-            # Текстът се разполага точно в геометричния център на екрана
-            date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-            st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
-            
-        with col_gallery_top:
-            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True) # Подравняване спрямо заглавието
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            
-            # Използваме оригинален Streamlit бутон с правилен надпис, без use_container_width
-            if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
-                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
-                st.session_state["view_photos"] = True
-                st.rerun()
 
         st.markdown("---")
 
