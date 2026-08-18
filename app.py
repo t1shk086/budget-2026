@@ -607,174 +607,98 @@ else:
             # =========================================================
             @st.dialog("📜 Хронология на плащанията", width="large")
             def hronologia_popup_dialog():
-                st.markdown("<p style='color: #888; margin-bottom: 20px;'>Всички записани разходи за текущото пътуване по категории и дати:</p>", unsafe_allow_html=True)
-                
-                # Инжектираме премиум стиловете за картите директно вътре в прозореца
-                st.markdown("""
-                    <style>
-                        .premium-expense-card {
-                            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
-                            padding: 14px 18px !important;
-                            border-radius: 12px !important;
-                            border: 1px solid rgba(250, 250, 250, 0.2) !important;
-                            box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
-                            margin-bottom: 2px !important;
-                            min-height: 52px !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                            justify-content: center !important;
-                        }
-                        .expense-delete-wrapper {
-                            display: flex !important;
-                            align-items: center !important;
-                            justify-content: center !important;
-                            height: 100% !important;
-                            margin-top: 10px !important;
-                        }
-                    </style>
-                """, unsafe_allow_html=True)
-                
-                try:
-                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                    valid_expenses = df_all[df_all["trip_id"] == trip_id].index.tolist()
+            # =========================================================
+            # 👑 ОБЕДИНЕН ПРЕМИУМ БЛОК С ДЕЙСТВИЯ (БЕЗ РАЗДЕЛИТЕЛНИ ЛИНИИ)
+            # =========================================================
+            st.markdown("---") # Една обща начална линия за целия блок
+            
+            # Стилизираме бутоните да стоят с минимално отстояние един от друг в единен блок
+            st.markdown("""
+                <style>
+                    /* Намаляваме разстоянието между елементите в този конкретен блок */
+                    .unified-actions-container div[data-testid="stBlock"] {
+                        gap: 0.5rem !important;
+                    }
                     
-                    if not valid_expenses:
-                        st.info("Няма регистрирани разходи за това пътуване.")
-                    else:
-                        for idx in reversed(valid_expenses):
-                            r = df_all.loc[idx]
-                            l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
-                            
-                            col_rec, col_del = st.columns([0.88, 0.12])
-                            
-                            with col_rec:
-                                st.markdown(f'''
-                                    <div class="premium-expense-card">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                            <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
-                                                <span>{get_emoji(r["category"])}</span> {r["category"]}
-                                            </div>
-                                            <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
-                                                -{r["amount"]:.2f} EUR
-                                            </div>
-                                        </div>
-                                        <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
-                                            📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
-                                        </div>
-                                    </div>
-                                ''', unsafe_allow_html=True)
-                                
-                            with col_del:
-                                st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
-                                if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий този разход"):
-                                    st.session_state["delete_idx"] = idx
-                                    confirm_delete_dialog()
-                                st.markdown('</div>', unsafe_allow_html=True)
-                except:
-                    st.error("Грешка при зареждане на хронологията.")
-                
-                st.markdown("---")
-                if st.button("❌ ЗАТВОРИ ХРОНОЛОГИЯТА", use_container_width=True, key="close_hronologia_popup_btn"):
-                    st.rerun()
+                    /* Стил за HTML бутона на отчета, за да пасне перфектно на другите */
+                    .premium-report-3d-btn {
+                        width: 100% !important; 
+                        background: linear-gradient(to bottom, #5d6675 0%, #383e4a 50%, #252932 100%) !important;
+                        color: #FFFFFF !important; 
+                        border: 1px solid rgba(0, 242, 254, 0.4) !important;
+                        padding: 10px 14px !important; 
+                        font-weight: 600 !important;
+                        font-size: 14px !important;
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+                        letter-spacing: 0.5px !important;
+                        border-radius: 12px !important; 
+                        cursor: pointer !important;
+                        user-select: none !important;
+                        box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.4) !important;
+                        transition: all 0.25s ease !important;
+                        text-align: center !important;
+                    }
+                    
+                    .premium-report-3d-btn:hover {
+                        background: linear-gradient(to bottom, #6b7586 0%, #414856 50%, #2c313c 100%) !important;
+                        border-color: rgba(0, 242, 254, 0.8) !important;
+                        box-shadow: 0px 6px 20px rgba(0, 242, 254, 0.15) !important;
+                        transform: translateY(-1px) !important;
+                    }
+                    
+                    .premium-report-3d-btn:active {
+                        transform: translateY(1px) !important;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
 
-            # =========================================================
-            # 📜 БУТОН ЗА ОТВАРЯНЕ НА ХРОНОЛОГИЯТА
-            # =========================================================
+            # Отваряме обща обвивка за трите бутона
+            st.markdown('<div class="unified-actions-container">', unsafe_allow_html=True)
+
+            # 1. Бутон за Хронология
             if st.button("📜 ВИЖ ЦЯЛАТА ХРОНОЛОГИЯ НА ПЛАЩАНИЯТА", use_container_width=True, key="open_hronologia_popup_trigger"):
                 hronologia_popup_dialog()
 
+            # 2. Бутон за Снимки и Спомени
+            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+            if st.button("📸 Снимки и спомени", use_container_width=True, key="open_gallery_final_2026"):
+                st.components.v1.html("""
+                    <script>
+                        window.parent.document.getElementById('click_scroll_trigger').click();
+                    </script>
+                """, height=0)
+                st.session_state["view_photos"] = True
+                st.rerun()
 
-
-        st.markdown("---")
-        
-        # Уверяваме се, че състоянието съществува
-        if "view_photos" not in st.session_state:
-            st.session_state["view_photos"] = False
-
-        # 1. Скрит линк-котва, който телефонът ще активира при клик
-        st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-
-        # 2. Истински Streamlit бутон с модерен Glassmorphic дизайн и вграден скрол в клика
-        if st.button("📸 Снимки и спомени", use_container_width=True, key="open_gallery_final_2026"):
-            # Този JavaScript се задейства моментално при клик в браузъра
-            st.components.v1.html("""
-                <script>
-                    window.parent.document.getElementById('click_scroll_trigger').click();
-                </script>
-            """, height=0)
-            st.session_state["view_photos"] = True
-            st.rerun()
-
-
-
-
-
-        st.markdown("---")
-        avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
-        grand_total = depozit_hotel + total_on_site
-        pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{f' | <b>Период:</b> {st_date} - {en_date}' if st_date and st_date != 'nan' else ''}{f' | <b>Общо изминати км. :</b> {dist:.0f} км' if dist > 0 else ''}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
-        
-        for _, row in df_trip.iterrows():
-            desc_val = str(row['description'])
-            if "Моментен разход:" in desc_val:
-                desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
-            cur_km_val = float(row.get('current_km', 0.0))
-            km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
-            pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
+            # Генериране на base64 данните за отчета (запазваме твоята логика)
+            avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
+            grand_total = depozit_hotel + total_on_site
+            pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{f' | <b>Период:</b> {st_date} - {en_date}' if st_date and st_date != 'nan' else ''}{f' | <b>Общо изминати км. :</b> {dist:.0f} км' if dist > 0 else ''}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
             
-        pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
-        
-        b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
-
-        # 1. Кодираме данните за директно изтегляне през уеб браузъра
-        b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
-        
-        # 2. 👑 ЧИСТ CSS ЗА ХОУВЪР ЕФЕКТ И ПЛАВНО ПРЕЛИВАНЕ (Заобикаля всички блокировки)
-        st.markdown("""
-            <style>
-                /* Основен стил на бутона */
-                .premium-3d-btn {
-                    width: 100%; 
-                    background: linear-gradient(to bottom, #5d6675 0%, #383e4a 50%, #252932 100%) !important;
-                    color: #FFFFFF !important; 
-                    border: 1px solid rgba(0, 242, 254, 0.4) !important;
-                    padding: 12px; 
-                    font-weight: 900 !important;
-                    font-size: 14px !important;
-                    letter-spacing: 0.8px !important;
-                    border-radius: 10px !important; 
-                    cursor: pointer !important;
-                    box-shadow: inset 0px 1px 0px rgba(255,255,255,0.3), 0px 4px 0px #15171c, 0px 8px 15px rgba(0, 0, 0, 0.5) !important;
-                    transition: all 0.2s ease-in-out !important; /* 🌟 ПРАВИ ЕФЕКТА ПЛАВЕН */
-                    text-shadow: 0px -1px 0px rgba(0,0,0,0.5);
-                }
+            for _, row in df_trip.iterrows():
+                desc_val = str(row['description'])
+                if "Моментен разход:" in desc_val:
+                    desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
+                cur_km_val = float(row.get('current_km', 0.0))
+                km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
+                pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
                 
-                /* 🌟 ХОУВЪР ЕФЕКТ: Светва нежно и плавно, когато минеш с мишката */
-                .premium-3d-btn:hover {
-                    background: linear-gradient(to bottom, #6b7586 0%, #414856 50%, #2c313c 100%) !important;
-                    border-color: rgba(0, 242, 254, 0.8) !important;
-                    box-shadow: inset 0px 1px 0px rgba(255,255,255,0.4), 0px 4px 0px #15171c, 0px 10px 20px rgba(0, 242, 254, 0.15) !important;
-                    filter: brightness(1.05);
-                }
-                
-                /* 3D Потъване при реален натиск */
-                .premium-3d-btn:active {
-                    transform: translateY(3px) !important;
-                    box-shadow: inset 0px 1px 0px rgba(255,255,255,0.2), 0px 1px 0px #15171c, 0px 3px 6px rgba(0,0,0,0.3) !important;
-                    transition: all 0.05s ease !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
+            pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
+            b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
 
-        # 3. Самият чист HTML бутон, използващ горния CSS клас
-        st.markdown(f'''
-            <a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;">
-                <button class="premium-3d-btn">
-                    📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
-                </button>
-            </a>
-        ''', unsafe_allow_html=True)
-        st.markdown("---")
+            # 3. HTML Бутон за изтегляне на Отчет (интегриран плътно без междинни линии)
+            st.markdown(f'''
+                <a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none; display:block; margin-top: 2px;">
+                    <button class="premium-report-3d-btn">
+                        📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
+                    </button>
+                </a>
+            ''', unsafe_allow_html=True)
+
+            # Затваряме общата обвивка
+            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("---") # Една крайна обща линия след целия пакет с бутони
+
 
 
 
