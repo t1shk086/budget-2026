@@ -670,7 +670,7 @@ else:
                     st.error("Грешка при зареждане на хронологията.")
                 
                 st.markdown("---")
-                if st.button("❌ ЗАТВОРИ ХРОНОЛОГИЯТА", use_container_width=True, key="close_hronologia_popup_btn"):
+                if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
                     st.rerun()
             # =========================================================
             # 📊 ПОДГОТОВКА НА ДАННИТЕ ЗА КРАЙНИЯ ОТЧЕТ
@@ -700,7 +700,7 @@ else:
             st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
             
             # 1. Оригинален бутон за Хронология
-            if st.button("➗ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
+            if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
                 hronologia_popup_dialog()
 
             # 2. Оригинален бутон за Снимки и Спомени
@@ -711,7 +711,7 @@ else:
 
             # 3. Фабричен бутон за изтегляне (Download Button) на Streamlit – подравнен по конец!
             st.download_button(
-                label="🟰 Отчет в PDF",
+                label="🔎 Отчет в PDF",
                 data=pdf_html,
                 file_name=f"Otchet_{trip_id}_2026.html",
                 mime="text/html",
