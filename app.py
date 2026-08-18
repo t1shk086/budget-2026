@@ -675,88 +675,16 @@ else:
                 st.markdown("---")
                 if st.button("❌ ЗАТВОРИ ХРОНОЛОГИЯТА", use_container_width=True, key="close_hronologia_popup_btn"):
                     st.rerun()
-
             # =========================================================
-            # 👻 СКРИТИ СТАНДАРТНИ БУТОНИ ЗА СВРЪЗКА С PYTHON СИСТЕМАТА
+            # 📊 ПОДГОТОВКА НА ДАННИТЕ ЗА КРАЙНИЯ ОТЧЕТ
             # =========================================================
-            st.markdown('<div style="position: absolute; left: -9999px; top: -9999px;">', unsafe_allow_html=True)
-            if st.button("HIDDEN_TRIGGER_POPUP_HRONOLOGIA", key="py_hronologia_hidden_trigger"):
-                hronologia_popup_dialog()
-                
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            if st.button("HIDDEN_TRIGGER_GALLERY_PHOTOS", key="py_gallery_hidden_trigger"):
-                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
-                st.session_state["view_photos"] = True
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            # =========================================================
-            # 👑 МОНОЛИТЕН ПРЕМИУМ 3Д БЛОК - СТИЛИЗАЦИЯ И ПОДГОТОВКА
-            # =========================================================
-            st.markdown("---")
-            st.markdown("""
-                <style>
-                    /* ОБЩА ВЕРТИКАЛНА ФЛЕКС КУТИЯ ЗА АБСОЛЮТНО ЕДНАКВИ МЕЖДУДИСТАНЦИИ */
-                    .monolithic-action-box {
-                        display: flex !important;
-                        flex-direction: column !important;
-                        gap: 10px !important;
-                        width: 100% !important;
-                        box-sizing: border-box !important;
-                    }
-                    
-                    /* ЕДИНЕН ДИЗАЙН ЗА ВСИЧКИ БУТОНИ В МЕНЮТО */
-                    .monolithic-btn {
-                        display: inline-flex !important;
-                        align-items: center !important;
-                        justify-content: center !important;
-                        width: 100% !important;
-                        height: 42px !important;
-                        box-sizing: border-box !important;
-                        margin: 0px !important;
-                        background: linear-gradient(135deg, #252932, #16191f) !important;
-                        color: #ffffff !important;
-                        border: 1px solid rgba(255, 255, 255, 0.05) !important;
-                        border-radius: 12px !important;
-                        box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-                        font-weight: 600 !important;
-                        font-size: 14px !important;
-                        letter-spacing: 0.5px !important;
-                        cursor: pointer !important;
-                        user-select: none !important;
-                        transition: all 0.2s ease !important;
-                    }
-                    
-                    /* Ховър ефект */
-                    .monolithic-btn:hover {
-                        background: linear-gradient(135deg, #2e343f, #1c2028) !important;
-                        transform: translateY(-1px) !important;
-                        box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15) !important;
-                        border-color: rgba(0, 242, 254, 0.2) !important;
-                    }
-                    
-                    /* Потъване при клик */
-                    .monolithic-btn:active {
-                        transform: translateY(1px) !important;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-                    }
-                    
-                    .monolithic-action-box a {
-                        text-decoration: none !important;
-                        width: 100% !important;
-                        display: block !important;
-                        margin: 0px !important;
-                        padding: 0px !important;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-
             avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
             grand_total = depozit_hotel + total_on_site
             period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
             dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
             
             pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
+            
             for _, row in df_trip.iterrows():
                 desc_val = str(row['description'])
                 if "Моментен разход:" in desc_val:
@@ -766,49 +694,37 @@ else:
                 pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
                 
             pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
-            b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
+            # =========================================================
+            # 👑 ОБЕДИНЕН ЧИСТ STREAMLIT БЛОК С БУТОНИ
+            # =========================================================
+            st.markdown("---") # Начална линия на блока
+            
+            # Тъй като и трите елемента са оригинални Streamlit бутони, 
+            # те автоматично застават на абсолютно еднакви разстояния по вертикала!
+            
+            # 1. Оригинален бутон за Хронология
+            if st.button("📜 ВИЖ ЦЯЛАТА ХРОНОЛОГИЯ НА ПЛАЩАНИЯТА", use_container_width=True, key="open_hronologia_popup_trigger"):
+                hronologia_popup_dialog()
 
-            # Използваме чиста сглобка с оператор %, за да изолираме напълно JavaScript скобите от Python
-            html_menu_block = '''
-                <div class="monolithic-action-box">
-                    <!-- 1. Бутон Хронология -->
-                    <button class="monolithic-btn" onclick="
-                        const btns = window.parent.document.querySelectorAll('button');
-                        for (let b of btns) {
-                            if (b.textContent.includes('HIDDEN_TRIGGER_POPUP_HRONOLOGIA')) {
-                                b.click();
-                                break;
-                            }
-                        }
-                    ">
-                        📜 ВИЖ ЦЯЛАТА ХРОНОЛОГИЯ НА ПЛАЩАНИЯТА
-                    </button>
-                    
-                    <!-- 2. Бутон Снимки -->
-                    <button class="monolithic-btn" onclick="
-                        const btns = window.parent.document.querySelectorAll('button');
-                        for (let b of btns) {
-                            if (b.textContent.includes('HIDDEN_TRIGGER_GALLERY_PHOTOS')) {
-                                b.click();
-                                break;
-                            }
-                        }
-                    ">
-                        📸 Снимки и спомени
-                    </button>
-                    
-                    <!-- 3. Бутон Свали отчет -->
-                    <a href="data:text/html;base64,%s" download="Otchet_%s_2026.html">
-                        <button class="monolithic-btn">
-                            📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
-                        </button>
-                    </a>
-                </div>
-            ''' % (b64_html_data, trip_id)
+            # 2. Оригинален бутон за Снимки и Спомени
+            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+            if st.button("📸 Снимки и спомени", use_container_width=True, key="open_gallery_final_2026"):
+                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
+                st.session_state["view_photos"] = True
+                st.rerun()
 
-            # Рендерираме готовия и напълно защитен HTML блок
-            st.markdown(html_menu_block, unsafe_allow_html=True)
-            st.markdown("---")
+            # 3. Фабричен бутон за изтегляне (Download Button) на Streamlit – подравнен по конец!
+            st.download_button(
+                label="📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)",
+                data=pdf_html,
+                file_name=f"Otchet_{trip_id}_2026.html",
+                mime="text/html",
+                use_container_width=True,
+                key="st_premium_report_download_btn"
+            )
+
+            st.markdown("---") # Крайна обща линия след пакета с бутони
+
 
 
 
