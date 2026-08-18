@@ -832,20 +832,102 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
 
+        # 👑 ЕДИНЕН ЛУКСОЗЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА
+        st.markdown("""
+            <style>
+                /* Глобално правило за плавно и нежно приплъзване на екрана */
+                html {
+                    scroll-behavior: smooth !important;
+                }
+                
+                /* Заключваме решетката на Streamlit да държи бутоните на еднаква базова линия */
+                div[data-testid="stHorizontalBlock"] {
+                    display: flex !important;
+                    align-items: center !important;
+                }
+                
+                /* Стилизираме ОРЕДЕЛЕНИЯ Streamlit бутон и нашия HTML бутон по еднакъв начин */
+                button[data-testid="stBaseButton-secondary"].twin-style,
+                .twin-premium-3d-btn {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: 100% !important; 
+                    height: 38.4px !important;
+                    box-sizing: border-box !important;
+                    margin: 0px !important;
+                    background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important;
+                    color: #ffffff !important; 
+                    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                    padding: 0px 12px !important;
+                    font-weight: 600 !important;
+                    font-size: 14px !important;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+                    border-radius: 0.5rem !important;
+                    cursor: pointer !important;
+                    user-select: none !important;
+                    box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important;
+                    transition: all 0.15s ease-in-out !important;
+                }
+                
+                /* 🌟 ХОУВЪР ЕФЕКТ */
+                button[data-testid="stBaseButton-secondary"].twin-style:hover,
+                .twin-premium-3d-btn:hover {
+                    background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
+                    border-color: rgba(255, 255, 255, 0.3) !important;
+                    box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.45) !important;
+                }
+                
+                /* 🌟 3Д ПОТЪВАНЕ ПРИ КЛИК */
+                button[data-testid="stBaseButton-secondary"].twin-style:active,
+                .twin-premium-3d-btn:active {
+                    transform: translateY(2px) !important;
+                    box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important;
+                }
+                
+                .twin-grid-wrapper {
+                    width: 100% !important;
+                    margin: 0px !important;
+                    padding: 0px !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
         st.markdown("<br><br>", unsafe_allow_html=True)
         
-        # Създаваме две напълно чисти, стандартни Streamlit колони
+        # Разделяме екрана на две колони по чистия начин
         b_col1, b_col2 = st.columns(2)
         
-        with b_col1: # 🏠 Ляв бутон: Главно Меню (Оригинален Streamlit)
-            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="final_clean_home_btn"):
+        with b_col1: # 🏠 Ляв близнак: Главно Меню (Чист Streamlit бутон)
+            st.markdown('<div class="twin-grid-wrapper">', unsafe_allow_html=True)
+            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
                 st.session_state["current_trip"] = None
                 st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
                 
-        with b_col2: # 🎚️ Десен бутон: Към Разходите (Оригинален Streamlit)
-            # При натискане просто презареждаме страницата – това автоматично връща потребителя най-горе!
-            if st.button("🔝 КЪМ РАЗХОДИТЕ", use_container_width=True, key="final_clean_scroll_btn"):
-                st.rerun()
+        with b_col2: # 🎚️ Десен близнак: Към Разходите (Използва чист HTML, за да превърти без презареждане)
+            st.markdown("""
+                <div class="twin-grid-wrapper">
+                    <a href="#trip_top_anchor" target="_self" style="text-decoration: none; display: block; width: 100%;">
+                        <button class="twin-premium-3d-btn">
+                            🔝 КЪМ РАЗХОДИТЕ
+                        </button>
+                    </a>
+                </div>
+            """, unsafe_allow_html=True)
+
+        # 🎯 СИНХРОНИЗИРАЩ СКРИПТ: Боядисва левия бутон и ги изравнява на екрана
+        st.markdown("""
+            <script>
+                var buttons = window.parent.document.querySelectorAll('button');
+                for (var i = 0; i < buttons.length; i++) {
+                    if (buttons[i].textContent.includes('ГЛАВНО МЕНЮ')) {
+                        buttons[i].classList.add('twin-style');
+                    }
+                }
+            </script>
+        """, unsafe_allow_html=True)
+
 
 
 
