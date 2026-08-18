@@ -163,46 +163,55 @@ if st.session_state["current_trip"] is None:
         opts = [t.replace("_", " ") for t in existing]
         choice = st.selectbox("Изберете пътуване до:", opts)
 
-        # 1. Проверяваме дали потребителят току-що е кликнал уеб бутона (чрез URL параметър)
-        import streamlit as st
-        
-        # Взимаме текущите параметри от линка
-        params = st.query_params
-        if "trigger_trip" in params and params["trigger_trip"] == "yes":
-            # Изчистваме параметъра от линка, за да не се върти в безкраен цикъл
-            st.query_params.clear()
+        # 1. Инжектираме уникален CSS (Унищожава кеша на браузъра и налага Синьото и голямата лапа)
+        st.markdown("""
+            <style>
+                /* Влизаме в най-дълбокия слой на бутона с този специфичен ключ */
+                div[data-testid="stElementContainer"] button[key="v3_blue_paw_btn"] {
+                    background: linear-gradient(135deg, #00f2fe, #4facfe) !important;
+                    background-color: #00f2fe !important;
+                    color: white !important;
+                    border-radius: 12px !important;
+                    border: none !important;
+                    font-weight: bold !important;
+                    box-shadow: 0 4px 12px rgba(0,242,254,0.3) !important;
+                    transition: all 0.2s ease-in-out !important;
+                    height: 52px !important;
+                    width: 100% !important;
+                }
+                
+                /* Налагаме бял цвят и по-голям размер за текста вътре */
+                div[data-testid="stElementContainer"] button[key="v3_blue_paw_btn"] p {
+                    color: white !important;
+                    font-size: 18px !important; /* Увеличаваме текста и лапата едновременно */
+                    font-weight: 800 !important;
+                    margin: 0 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 8px !important;
+                }
+
+                /* Ефект при посочване (Hover) */
+                div[data-testid="stElementContainer"] button[key="v3_blue_paw_btn"]:hover {
+                    transform: translateY(-2px) !important;
+                    box-shadow: 0 6px 18px rgba(0,242,254,0.5) !important;
+                    filter: brightness(1.1) !important;
+                    background: linear-gradient(135deg, #00f2fe, #4facfe) !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        # 2. Чист оригинален Streamlit бутон с НОВ УНИКАЛЕН КЛЮЧ
+        if st.button("ЗАРЕДИ ПЪТУВАНЕ 🐾", key="v3_blue_paw_btn", use_container_width=True):
             st.session_state["current_trip"] = choice.replace(" ", "_")
             st.rerun()
 
-        # 2. 🐾 ЧИСТА HTML ВИЗУАЛИЗАЦИЯ (Инлайн стил - гарантира СИН цвят и огромни лапи)
-        # Създаваме линк, който изглежда като бутон и препраща към същата страница, но добавя скрит тригър
-        st.markdown(f"""
-            <a href="?trigger_trip=yes" target="_self" style="
-                display: block;
-                width: 100%;
-                background: linear-gradient(135deg, #00f2fe, #4facfe) !important; /* 🌟 Синьото от логото */
-                color: white !important;
-                border-radius: 12px !important;
-                text-align: center !important;
-                padding: 14px 20px !important;
-                font-size: 16px !important;
-                font-weight: bold !important;
-                letter-spacing: 0.5px !important;
-                text-decoration: none !important;
-                box-shadow: 0 4px 12px rgba(0,242,254,0.3) !important;
-                transition: all 0.2s ease-in-out !important;
-                box-sizing: border-box;
-                margin-bottom: 10px;
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 18px rgba(0,242,254,0.45)';" 
-               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,242,254,0.3)';">
-                ЗАРЕДИ ПЪТУВАНЕ <span style="font-size: 26px !important; margin-left: 6px; vertical-align: middle;">🐾</span>
-            </a>
-        """, unsafe_allow_html=True)
-
-        # 3. ПОДЗАГЛАВИЕ
+        # 3. ПОДЗАТГЛАВИЕ
         if 'choice' not in locals() or not choice:
             st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Ако не виждате старото си приключение в менюто, създайте ново по-долу!</div>", unsafe_allow_html=True)
             st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
+
 
   
     @st.dialog("➕ Създаване на ново приключение")
