@@ -644,8 +644,29 @@ else:
         pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
         
         b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
-        st.markdown(f'<a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;"><button style="width:100%; background:linear-gradient(135deg, #00f2fe, #4facfe); color:white; border:none; padding:12px; font-weight:bold; border-radius:10px; box-shadow:0px 4px 10px rgba(0,242,254,0.3);">📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)</button></a>', unsafe_allow_html=True)
+        
+        # 📊 Новият светлосив стил с фини граници и плаващ hover ефект
+        st.markdown(f'''
+            <a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;">
+                <button style="
+                    width: 100%; 
+                    background: rgba(255, 255, 255, 0.07); 
+                    color: #e0e0e0; 
+                    border: 1px solid rgba(255, 255, 255, 0.15); 
+                    padding: 12px; 
+                    font-weight: bold; 
+                    border-radius: 10px; 
+                    cursor: pointer;
+                    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+                    transition: all 0.2s ease-in-out;
+                " onmouseover="this.style.background='rgba(255, 255, 255, 0.14)'; this.style.color='#ffffff'; this.style.borderColor='rgba(255, 255, 255, 0.3)';" 
+                   onmouseout="this.style.background='rgba(255, 255, 255, 0.07)'; this.style.color='#e0e0e0'; this.style.borderColor='rgba(255, 255, 255, 0.15)';">
+                    📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
+                </button>
+            </a>
+        ''', unsafe_allow_html=True)
         st.markdown("---")
+
 
         st.subheader("🗺️ Карта на спирките и дестинациите")
         df_points = get_map_points(trip_id)
