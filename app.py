@@ -167,36 +167,20 @@ if st.session_state["current_trip"] is None:
             <style>
                 /* Основен стил на бутона (Син като пробега) */
                 div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) {
-                    background: linear-gradient(135deg, #00f2fe, #4facfe) !important; /* 🌟 Точното синьо от логото/пробега */
+                    background: linear-gradient(135deg, #00f2fe, #4facfe) !important; /* 🌟 Точното синьо от логото */
                     color: white !important;
                     border-radius: 12px !important;
                     border: none !important;
                     font-weight: bold !important;
-                    font-size: 15px !important;
-                    letter-spacing: 0.5px !important;
                     box-shadow: 0 4px 12px rgba(0,242,254,0.2) !important;
                     transition: all 0.2s ease-in-out !important;
+                    padding: 10px 20px !important;
                 }
                 
-                /* Уголемяване на самата кучешка лапичка вътре в бутона с 50% */
-                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) span,
+                /* Уголемяване на текста и лапичката ЕДНОВРЕМЕННО за по-голям ефект */
                 div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) p {
-                    font-size: 15px !important;
-                }
-                
-                /* Трик за уголемяване конкретно на символа 🐾 */
-                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾")) [data-testid="stMarkdownContainer"] p {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 5px;
-                }
-                
-                /* Специфично уголемяване на лапата */
-                div.stButton > button:has(div[data-testid="stMarkdownContainer"] p:contains("ЗАРЕДИ ПЪТУВАНЕ🐾"))::after {
-                    content: "🐾";
-                    font-size: 22px !important; /* 🌟 50% по-голяма лапа визуално */
-                    margin-left: 4px;
+                    font-size: 20px !important; /* 🌟 Увеличен размер, за да изпъкне лапата страхотно! */
+                    margin: 0 !important;
                 }
 
                 /* Ефект при посочване (Hover) */
@@ -208,8 +192,8 @@ if st.session_state["current_trip"] is None:
             </style>
         """, unsafe_allow_html=True)
 
-        # 2. 🐾 Бутонът (Текстът тук е без лапичка накрая, защото CSS я добавя автоматично по-голяма!)
-        if st.button("ЗАРЕДИ ПЪТУВАНЕ", use_container_width=True):
+        # 2. 🐾 Бутонът (Лапичката е вътре в текста на Python, за да е 100% сигурно, че се вижда)
+        if st.button("ЗАРЕДИ ПЪТУВАНЕ🐾", use_container_width=True):
             st.session_state["current_trip"] = choice.replace(" ", "_")
             st.rerun()
 
@@ -217,6 +201,7 @@ if st.session_state["current_trip"] is None:
         if 'choice' not in locals() or not choice:
             st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Ако не виждате старото си приключение в менюто, създайте ново по-долу!</div>", unsafe_allow_html=True)
             st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
+
 
 
     
