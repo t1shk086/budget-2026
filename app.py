@@ -338,51 +338,64 @@ else:
                    
     else:
         # =========================================================
-        # 👑 СЪВЪРШЕНА СТРУКТУРА: ГАЛЕРИЯ НАЙ-ГОРЕ + ЦЕНТРИРАНО ЗАГЛАВИЕ
+        # 👑 ЧИСТА ИЗОЛИРАНА ГАЛЕРИЯ (100% ЦЕНТРИРАНА И ПРОЗРАЧНА)
         # =========================================================
-        st.markdown("""
-            <style>
-                /* Стилизираме бутона да изглежда като луксозен, централен етикет най-отгоре */
-                div[data-testid="stAppViewContainer"] div[data-testid="stVerticalBlock"] > div:has(button[key="open_gallery_top_header_2026"]) {
-                    text-align: center !important;
-                    margin-bottom: -5px !important; /* Приближава бутона към заглавието */
-                }
-                button[key="open_gallery_top_header_2026"] {
-                    display: inline-block !important;
-                    width: auto !important;
-                    min-width: unset !important;
-                    background: rgba(22, 25, 31, 0.5) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-                    color: #ffffff !important;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
-                    padding: 4px 14px !important;
-                    font-size: 13px !important;
-                    font-weight: 600 !important;
-                    border-radius: 20px !important; /* Овална форма тип премиум етикет */
-                    backdrop-filter: blur(8px) !important;
-                    -webkit-backdrop-filter: blur(8px) !important;
-                    transition: all 0.2s ease-in-out !important;
-                }
-                button[key="open_gallery_top_header_2026"]:hover {
-                    background: rgba(0, 242, 254, 0.1) !important;
-                    border-color: rgba(0, 242, 254, 0.4) !important;
-                    box-shadow: 0 0 10px rgba(0, 242, 254, 0.15) !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
-
-        # 1. Слагаме оригиналния бутон НАЙ-ГОРЕ на страницата (Центриран през CSS)
-        st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-        if st.button("📸 Галерия и спомени", key="open_gallery_top_header_2026"):
-            st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
+        # 1. Скрит тригер, който се активира безотказно от уеб компонента
+        if st.checkbox("Активирай Снимки", key="final_safe_gallery_trigger", value=False, label_visibility="collapsed"):
             st.session_state["view_photos"] = True
             st.rerun()
 
-        # 2. Поставяме името на пътуването и периода веднага ПОД бутона
+        # 2. Инжектираме 100% независим HTML бутон, който няма как да бъде блокиран от Streamlit
+        html_centered_gallery = """
+        <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 5px;">
+            <button class="luxury-oval-btn" onclick="
+                const inputs = window.parent.document.querySelectorAll('input');
+                for (let i of inputs) {
+                    if (i.id && i.id.includes('final_safe_gallery_trigger')) {
+                        i.click();
+                        break;
+                    }
+                }
+            ">
+                📸 Галерия и спомени
+            </button>
+        </div>
+
+        <style>
+            .luxury-oval-btn {
+                background: rgba(255, 255, 255, 0.04) !important;
+                border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                color: #ffffff !important;
+                padding: 5px 16px !important;
+                font-size: 13px !important;
+                font-weight: 600 !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                border-radius: 20px !important; /* Перфектно овална форма */
+                cursor: pointer !important;
+                backdrop-filter: blur(8px) !important;
+                -webkit-backdrop-filter: blur(8px) !important;
+                transition: all 0.2s ease-in-out !important;
+                outline: none !important;
+            }
+            .luxury-oval-btn:hover {
+                background: rgba(0, 242, 254, 0.12) !important;
+                border-color: rgba(0, 242, 254, 0.5) !important;
+                box-shadow: 0 0 10px rgba(0, 242, 254, 0.2) !important;
+            }
+        </style>
+        """
+        # Извикваме компонента с минимална височина, колкото за един фин бутон
+        st.components.v1.html(html_centered_gallery, height=42)
+
+        # Скриваме грозния фабричен контейнер на чекбокса, за да остане само чистият бутон
+        st.markdown("<style>div[data-testid='stCheckbox'] { display: none !important; }</style>", unsafe_allow_html=True)
+
+        # 3. Веднага под него изписваме центрираното име на дестинацията и периода
         date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-        st.markdown(f"<div style='text-align: center; margin-top: 10px; margin-bottom: 10px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 10px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         
         st.markdown("---")
+
 
 
 
