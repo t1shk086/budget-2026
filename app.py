@@ -779,7 +779,51 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: АБСОЛЮТНИ БЛИЗНАЦИ С ДИРЕКТЕН ФАБРИЧЕН 3Д КЛАС СТРИЙМЛИТ
+        # 🌟 КРАЙ НА ФАЙЛА: ЛУКСOЗНИ ОГЛЕДАЛНИ 3Д БЛИЗНАЦИ СЪС СИГУРЕН СКРОЛ (РЕШЕНИЕ)
+        st.markdown("""
+            <style>
+                /* Глобално правило за плавно и мазно приплъзване на екрана */
+                html {
+                    scroll-behavior: smooth !important;
+                }
+                
+                /* 👑 ПРЕСЪЗДАВАМЕ НАТИВНИЯ 3Д СТРИЙМЛИТ ДИЗАЙН ДО ПОСЛЕДНИЯ ПИКСЕЛ */
+                .final-premium-3d-btn {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: 100% !important; 
+                    height: 38.4px !important; /* Точната фабрична височина на Streamlit */
+                    background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important; /* Премиум тъмен графит */
+                    color: #ffffff !important; 
+                    border: 1px solid rgba(255, 255, 255, 0.1) !important; /* Нежно фабрично ръбче */
+                    padding: 0.25rem 0.75rem !important;
+                    font-weight: 500 !important;
+                    font-size: 14px !important;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; /* Системен шрифт */
+                    border-radius: 0.5rem !important; /* Същата заобленост */
+                    cursor: pointer !important;
+                    user-select: none !important;
+                    /* 3D Слоеве: фино дъно отдолу + външна деликатна сянка */
+                    box-shadow: 0px 2px 0px #0e1117, 0px 4px 10px rgba(0,0,0,0.3) !important;
+                    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease !important;
+                }
+                
+                /* 🌟 ХОУВЪР ЕФЕКТ: Бутонът омеква и светва елегантно при посочване */
+                .final-premium-3d-btn:hover {
+                    background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
+                    border-color: rgba(255, 255, 255, 0.25) !important;
+                    box-shadow: 0px 2px 0px #0e1117, 0px 6px 14px rgba(0,0,0,0.4) !important;
+                }
+                
+                /* 🌟 ИСТИНСКО 3Д ПОТЪВАНЕ: Физическо хлътване надолу при натискане */
+                .final-premium-3d-btn:active {
+                    transform: translateY(2px) !important; /* Бутонът потъва физически */
+                    box-shadow: 0px 0px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important; /* Подложката се свива */
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
@@ -788,30 +832,15 @@ else:
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # 🎚️ Дясна колона: Браузърна котва, маскирана със системния клас на Streamlit
+        with bottom_cols[1]: # 🎚️ Дясна колона: Браузърна котва с перфектния 3D стил
             st.markdown("""
-                <style>
-                    /* Налагаме плавно движение в браузъра */
-                    html {
-                        scroll-behavior: smooth !important;
-                    }
-                    /* Правим така, че линкът да се разпъне на 100% и да не пречи на бутона */
-                    .st-scroll-link-wrapper a {
-                        text-decoration: none !important;
-                        width: 100% !important;
-                        display: block !important;
-                    }
-                </style>
-                
-                <div class="st-scroll-link-wrapper">
-                    <a href="#target_sum_box" target="_self">
-                        <!-- 👑 ИЗПОЛЗВАМЕ ОФИЦИАЛНИЯ КЛАС "stBaseButton-secondary", ЗА ДА ОТКРАДНЕМ ФАБРИЧНИЯ ДИЗАЙН -->
-                        <button class="stBaseButton-secondary" style="width: 100% !important; margin: 0px !important;">
-                            🎚️ КЪМ РАЗХОДИТЕ
-                        </button>
-                    </a>
-                </div>
+                <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
+                    <button class="final-premium-3d-btn">
+                        🎚️ КЪМ РАЗХОДИТЕ
+                    </button>
+                </a>
             """, unsafe_allow_html=True)
+
 
 
 
