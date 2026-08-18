@@ -267,24 +267,33 @@ else:
     except: pass
 
     if st.session_state["view_photos"]:
-        if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True): st.session_state["view_photos"] = False; st.rerun()   
-       
+        # Премахнахме горния бутон "Назад", за да няма дублиране
         if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
-
-        if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
+        
         up = st.file_uploader("Добавете нови спомени в албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}")
         if up:
             for f in up:
                 if not os.path.exists(os.path.join(papka_snimki, f.name)):
                     with open(os.path.join(papka_snimki, f.name), "wb") as out: out.write(f.getbuffer())
             st.rerun()
+            
         saved = glob.glob(os.path.join(papka_snimki, "*"))
         if saved:
-            st.markdown("<br>", unsafe_allow_html=True); img_grid = st.columns(2)
+            st.markdown("<br>", unsafe_allow_html=True)
+            img_grid = st.columns(2)
             for idx, p in enumerate(saved):
                 with img_grid[idx % 2]:
                     st.image(p, use_container_width=True)
-                    if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()        
+                    if st.button("🗑️ Изтрий", key=f"di_{idx}", use_container_width=True): os.remove(p); st.rerun()
+        else: 
+            st.markdown("<div style='text-align:center; margin-top:40px; margin-bottom:20px; color:#666;'>Все още няма снимки.</div>", unsafe_allow_html=True)
+
+        # 🌟 ЕДИНСТВЕНИЯТ БУТОН НАЗАД: Автоматично отива под снимките (ако има) или под съобщението за празна галерия
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True, key="single_gallery_back_btn"):
+            st.session_state["view_photos"] = False
+            st.rerun()
+        
                         
         else: st.markdown("<div style='text-align:center; margin-top:40px; color:#666;'>Все още няма снимки.</div>", unsafe_allow_html=True)
                    
