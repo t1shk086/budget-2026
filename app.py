@@ -831,7 +831,7 @@ else:
         st.markdown("---")
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
-        # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
+
         # 🌟 КРАЙ НА ФАЙЛА: АБСОЛЮТНО ОГЛЕДАЛНИ 3Д БЛИЗНАЦИ С ЕДНАКВИ ЕФЕКТИ
         st.markdown("""
             <style>
@@ -887,14 +887,23 @@ else:
 
         st.markdown("<br><br>", unsafe_allow_html=True)
         
+        # 1. Използваме скрит бутон, който HTML линкът ще натисне дистанционно
+        if st.button("Home_Trigger_Hidden", key="hidden_home_btn", style="display:none;"):
+            st.session_state["current_trip"] = None
+            st.rerun()
+
         # Създаваме чистата решетка от 2 колони
         bottom_cols = st.columns(2)
         
         with bottom_cols[0]: # 🏠 Първи близнак: Главно Меню
-            # Използваме уеб линк, който нулира пътуването и презарежда приложението чисто
-            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
-                st.session_state["current_trip"] = None
-                st.rerun()
+            # JavaScript-ът симулира клик върху скрития оригинален Streamlit бутон, заобикаляйки URL бъговете
+            st.markdown("""
+                <div class="twin-grid-wrapper">
+                    <button class="twin-premium-3d-btn" onclick="window.parent.document.querySelector('button[key=\\'hidden_home_btn\\']').click();">
+                        🏠 ГЛАВНО МЕНЮ
+                    </button>
+                </div>
+            """, unsafe_allow_html=True)
                 
         with bottom_cols[1]: # 🎚️ Втори близнак: Към Разходите
             st.markdown("""
