@@ -276,7 +276,8 @@ else:
 
         if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
         
-        up = st.file_uploader("Добавете нови спомени в албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}")
+        up = st.file_uploader("Добавете нови спомени в албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}_gallery")
+
 
         # Премахнахме горния бутон "Назад", за да няма дублиране
         if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
