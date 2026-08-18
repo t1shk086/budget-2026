@@ -8,6 +8,18 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 
+
+# 🚀 АВТОМАТИЧЕН СКРИПТ ЗА НАЙ-ГОРЕ (Сложи го веднага след импортите ти)
+if "scroll_to_top_trigger" in st.session_state and st.session_state["scroll_to_top_trigger"]:
+    # Изчистваме флага веднага, за да не превърта постоянно
+    st.session_state["scroll_to_top_trigger"] = False
+    # Използваме вградения HTML компонент, който се изпълнява вътре в браузъра без ограничения
+    st.components.v1.html(
+        "<script>window.scrollTo({top: 0, behavior: 'smooth'}); window.parent.scrollTo({top: 0, behavior: 'smooth'});</script>",
+        height=0,
+        width=0
+    )
+
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 st.markdown("""
@@ -749,7 +761,7 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ РАВНИ ОРИГИНАЛНИ 3Д БУТОНИ С ГАРАНТИРАНО ПЛАВНО ПРЕВЪРТАНЕ
+        # 🌟 КРАЙ НА ФАЙЛА: ПЕРФЕКТНО РАВНИ БУТОНИ СЪС СИГУРЕН PYTHON ТРИГЪР
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
@@ -759,42 +771,10 @@ else:
                 st.rerun()
                 
         with bottom_cols[1]: # Втората колона за Връщане Най-горе
-            # Абсолютно нативен Streamlit бутон - застава на перфектния милиметър ниво до левия!
-            st.button("🔝 НАЙ-ГОРЕ (РАЗХОДИ)", use_container_width=True, key="native_perfect_scroll_btn")
-            
-        # 🚀 ГЛОБАЛЕН СКРИПТ: Хваща бутона директно през уеб браузъра и превърта плавно
-        # Този код работи извън контейнерите и няма как да бъде блокиран
-        st.markdown("""
-            <script>
-                // Функция, която търси бутона в приложението и му закача плавно превъртане
-                function setupScrollButton() {
-                    // Търсим бутона по неговия уникален Streamlit ключ
-                    var btn = window.parent.document.querySelector('button[key="native_perfect_scroll_btn"]');
-                    if (!btn) {
-                        // Алтернативно търсене, ако първото се забави
-                        btn = window.parent.document.querySelector('div[data-testid="stElementContainer"] button:has(p:contains("НАЙ-ГОРЕ"))');
-                    }
-                    
-                    if (btn) {
-                        // Махаме стари слушатели, за да няма дублиране
-                        btn.onclick = null;
-                        // Закачаме сигурната уеб команда за плавно плъзгане до най-горния пиксел
-                        btn.onclick = function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            window.parent.window.scrollTo({
-                                top: 0,
-                                behavior: 'smooth'
-                            });
-                        };
-                    }
-                }
-                
-                // Стартираме проверката веднага и я повтаряме леко при зареждане на компонентите
-                setupScrollButton();
-                setTimeout(setupScrollButton, 500);
-                setTimeout(setupScrollButton, 1500);
-            </script>
-        """, unsafe_allow_html=True)
+            # Когато бутонът се натисне, вдигаме флаг в сесията и презареждаме
+            if st.button("🔝 НАЙ-ГОРЕ (РАЗХОДИ)", use_container_width=True, key="native_perfect_scroll_btn"):
+                st.session_state["scroll_to_top_trigger"] = True
+                st.rerun()
+
 
 
