@@ -489,7 +489,16 @@ else:
             except:
                 pass
         st.markdown("---")
-        st.button("📸 Снимки и спомени", use_container_width=True, on_click=lambda: st.session_state.update({"view_photos": True}))
+        # Заменяш стария ред с този блок:
+if st.button("📸 Снимки и спомени", use_container_width=True, key="open_gallery_trigger_btn"):
+    st.session_state["view_photos"] = True
+    st.components.v1.html("""
+        <script>
+            window.parent.document.querySelector('section.main').scrollTo({top: 0, behavior: 'instant'});
+        </script>
+    """, height=0)
+    st.rerun()
+
         st.markdown("---")
         avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
         grand_total = depozit_hotel + total_on_site
