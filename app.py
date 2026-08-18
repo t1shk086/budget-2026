@@ -779,68 +779,66 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: ДВА НАПЪЛНО ОТДЕЛНИ И НЕЗАВИСИМИ 3Д БУТОНА
-
-        # ----------------------------------------------------
-        # БЛОК 1: БУТОН ЗА ГЛАВНО МЕНЮ (Изчистен Python бутон)
-        # ----------------------------------------------------
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="isolated_home_btn"):
-            st.session_state["current_trip"] = None
-            st.rerun()
-
-        # ----------------------------------------------------
-        # БЛОК 2: БУТОН КЪМ РАЗХОДИТЕ (Изолиран 3D HTML бутон със сигурен скрол)
-        # ----------------------------------------------------
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""
-            <style>
-                /* Глобално уеб правило за изключително меко приплъзване на екрана */
-                html {
-                    scroll-behavior: smooth !important;
-                }
+        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ ИЗРАВНЕНИ БУТОНИ ЕДИН ДО ДРУГ СЪС ЗАПАЗЕН 3Д ДИЗАЙН
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        bottom_cols = st.columns(2)
+        
+        with bottom_cols: # 🏠 Лява колона: Фабричен бутон за Главно Меню
+            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid_final"):
+                st.session_state["current_trip"] = None
+                st.rerun()
                 
-                /* Индивидуален стил за изолирания ни бутон за разходи */
-                .isolated-3d-scroll-btn {
-                    width: 100%;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 600;
-                    font-size: 14px;
-                    letter-spacing: 0.5px;
-                    padding: 10px 16px;
-                    border-radius: 8px;
-                    min-height: 38.4px;
-                    background-color: rgba(255, 255, 255, 0.05); /* Оригиналният цвят на Streamlit */
-                    color: rgb(250, 250, 250);
-                    border: 1px solid rgba(250, 250, 250, 0.2);
-                    cursor: pointer;
-                    box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-                    transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
-                }
+        with bottom_cols: # 🎚️ Дясна колона: Линк, пресъздаващ оригиналния 3D дизайн до последната точка
+            st.markdown("""
+                <style>
+                    /* Магическо уеб правило за меко и плавно скролване в браузъра */
+                    html {
+                        scroll-behavior: smooth !important;
+                    }
+                    
+                    /* Специален клас, който копира нативния 3D Streamlit дизайн */
+                    .premium-grid-scroll-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-family: inherit;
+                        font-weight: 600;
+                        font-size: 14px;
+                        letter-spacing: 0.5px;
+                        padding: 0.25rem 0.75rem;
+                        border-radius: 0.5rem;
+                        min-height: 38.4px;
+                        margin: 0px;
+                        width: 100%;
+                        user-select: none;
+                        background-color: rgba(255, 255, 255, 0.05) !important; /* Официален сив фон */
+                        color: rgb(250, 250, 250) !important; /* Чисто бял текст */
+                        border: 1px solid rgba(250, 250, 250, 0.2) !important; /* Фабричен контур */
+                        cursor: pointer;
+                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+                        transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
+                    }
+                    
+                    /* 🌟 ИНТЕРАКТИВЕН ХОУВЪР: Бутонът светва меко при посочване */
+                    .premium-grid-scroll-btn:hover {
+                        background-color: rgba(255, 255, 255, 0.1) !important;
+                        border-color: rgb(250, 250, 250) !important;
+                    }
+                    
+                    /* 🌟 3Д ПОТЪВАНЕ: Физическо хлътване с 2px при реален натиск */
+                    .premium-grid-scroll-btn:active {
+                        transform: translateY(2px) !important;
+                        box-shadow: 0px 2px 5px rgba(0,0,0,0.2) !important;
+                    }
+                </style>
                 
-                /* Ховър ефект - светва плавно, когато минеш с мишката */
-                .isolated-3d-scroll-btn:hover {
-                    background-color: rgba(255, 255, 255, 0.1);
-                    border-color: rgb(250, 250, 250);
-                }
-                
-                /* Физическо 3D потъване при натискане на компютър или телефон */
-                .isolated-3d-scroll-btn:active {
-                    transform: translateY(2px);
-                    box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
-                }
-            </style>
-            
-            <!-- Самият бутон, затворен в директна връзка, която браузърът не може да блокира -->
-            <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
-                <button class="isolated-3d-scroll-btn">
-                    🎚️ КЪМ РАЗХОДИТЕ
-                </button>
-            </a>
-        """, unsafe_allow_html=True)
-        st.markdown("---")
+                <!-- Чиста браузърна котва, скрита зад перфектния 3D дизайн -->
+                <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
+                    <button class="premium-grid-scroll-btn">
+                        🎚️ КЪМ РАЗХОДИТЕ
+                    </button>
+                </a>
+            """, unsafe_allow_html=True)
 
 
 
