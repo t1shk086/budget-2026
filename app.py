@@ -340,53 +340,58 @@ else:
         # =========================================================
         # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С МИНИ ПРОЗРАЧЕН БУТОН
         # =========================================================
-        # Инжектираме стил за минимален размер и подравняване вдясно
+        # 👑 АБСОЛЮТНО ФИКСИРАН БУТОН ГАЛЕРИЯ + 100% ЦЕНТРИРАНО ЗАГЛАВИЕ
+        # =========================================================
+        # Инжектираме CSS за перфектно фиксирано закотвяне в горния десен ъгъл
         st.markdown("""
             <style>
-                /* Насочваме се към контейнера на бутона в дясната колона */
-                div[data-testid="stColumn"]:nth-of-type(3) div[data-testid="stButton"] {
-                    text-align: right !important;
-                }
-                /* Правим самия бутон малък, обгръщащ само текста */
-                div[data-testid="stColumn"]:nth-of-type(3) button {
-                    display: inline-block !important;
+                /* Закотвяме контейнера на бутона в най-горния десен ъгъл на браузъра */
+                div.stActionButton { display: none !important; } /* Скрива фабрични бутони на Streamlit, ако пречат */
+                
+                div[data-testid="stAppViewContainer"] button[key="open_gallery_top_header_2026"] {
+                    position: fixed !important;
+                    top: 15px !important;       /* Отстояние от тавана на екрана */
+                    right: 15px !important;     /* Отстояние от десния ръб на екрана */
+                    z-index: 999999 !important; /* Гарантира, че ще стои над абсолютно всички елементи и карти */
                     width: auto !important;
                     min-width: unset !important;
-                    background: transparent !important;
-                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                    background: rgba(15, 18, 25, 0.4) !important; /* Изключително лек тъмен филтър за четливост */
+                    border: 1px solid rgba(255, 255, 255, 0.12) !important;
                     color: #ffffff !important;
-                    box-shadow: none !important;
-                    padding: 4px 10px !important; /* Минимални отстояния около текста */
-                    font-size: 13px !important; /* Малко по-лек и изящен шрифт */
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+                    padding: 5px 12px !important;
+                    font-size: 13px !important;
                     border-radius: 8px !important;
-                    backdrop-filter: blur(4px) !important;
-                    -webkit-backdrop-filter: blur(4px) !important;
+                    backdrop-filter: blur(8px) !important; /* Красив прозрачен ефект */
+                    -webkit-backdrop-filter: blur(8px) !important;
                     transition: all 0.2s ease-in-out !important;
                 }
-                div[data-testid="stColumn"]:nth-of-type(3) button:hover {
-                    background: rgba(0, 242, 254, 0.08) !important;
+                
+                /* Ефект при посочване */
+                div[data-testid="stAppViewContainer"] button[key="open_gallery_top_header_2026"]:hover {
+                    background: rgba(0, 242, 254, 0.1) !important;
                     border-color: rgba(0, 242, 254, 0.4) !important;
-                    box-shadow: 0 0 10px rgba(0, 242, 254, 0.1) !important;
+                    box-shadow: 0 0 15px rgba(0, 242, 254, 0.15) !important;
+                    transform: scale(1.02) !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        col_left_space, col_center_title, col_gallery_top = st.columns([0.15, 0.7, 0.15])
+        # Вече нямаме нужда от сложни колони, заглавието заема целия ред и е перфектно центрирано!
+        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         
-        with col_center_title:
-            date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-            st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
-            
-        with col_gallery_top:
-            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            # Премахнат use_container_width, за да се свие бутонът до размера на думата
-            if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
-                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
-                st.session_state["view_photos"] = True
-                st.rerun()
+        # Скрита котва за скролване
+        st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+        
+        # Рендерираме оригиналния бутон, който CSS стилът ще хване и ще закотви горе вдясно
+        if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
+            st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
+            st.session_state["view_photos"] = True
+            st.rerun()
 
         st.markdown("---")
+
 
 
 
