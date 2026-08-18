@@ -783,12 +783,12 @@ else:
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols: # Лява колона: Главно меню
+        with bottom_cols[0]: # Лява колона: Главно меню
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid_final"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols: # Дясна колона: Чист, оригинален Streamlit бутон-близнак
+        with bottom_cols[1]: # Дясна колона: Чист, оригинален Streamlit бутон-близнак
             st.button("🎚️ КЪМ РАЗХОДИТЕ", use_container_width=True, key="click_scroll_to_sum_btn")
             
         # 🚀 ПОДОБРЕН СКРИПТ: Търси дълбоко в HTML структурата и поддържа мобилни устройства
