@@ -756,7 +756,7 @@ else:
                     st.rerun()
 
         if not df_points.empty:
-            st.markdown("#### 📍 Списък на запазените локации")
+            st.markdown("#### 📍 Любими места от пътуването")
             try:
                 df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
                 color_emojis = {"blue": "🔵", "green": "🟢", "red": "🔴", "purple": "🟣", "orange": "🟠"}
@@ -766,7 +766,7 @@ else:
                     with col_p_txt:
                         st.markdown(f"{color_emojis.get(pt_row['color'], '🔵')} **{pt_row['title']}** <small>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small>", unsafe_allow_html=True)
                     with col_p_del:
-                        if st.button("🗑️", key=f"del_pin_{idx}", use_container_width=True, disabled=is_trip_finished):
+                        if st.button("❌", key=f"del_pin_{idx}", use_container_width=True, disabled=is_trip_finished):
                             df_all_map.drop(idx).to_csv(MAP_FILE, index=False, encoding="utf-8")
                             st.rerun()
             except:
