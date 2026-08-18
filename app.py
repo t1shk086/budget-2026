@@ -338,60 +338,52 @@ else:
                    
     else:
         # =========================================================
-        # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С МИНИ ПРОЗРАЧЕН БУТОН
-        # =========================================================
-        # 👑 ЧИСТО ЦЕНТРИРАНО ЗАГЛАВИЕ С ПЛАВАЩ ДЕСЕН БУТОН ЗА СНИМКИ
+        # 👑 СЪВЪРШЕНА СТРУКТУРА: ГАЛЕРИЯ НАЙ-ГОРЕ + ЦЕНТРИРАНО ЗАГЛАВИЕ
         # =========================================================
         st.markdown("""
             <style>
-                /* Този стил прихваща директно бутона по неговия КЛЮЧ и го заковава в горния десен ъгъл */
-                div[data-testid="stAppViewContainer"] button[key="open_gallery_top_header_2026"] {
-                    position: absolute !important;
-                    top: 5px !important;        /* Разстояние от горната линия */
-                    right: 0px !important;       /* Заковаване в крайно ДЯСНО на телефона и лаптопа */
-                    left: auto !important;       /* Изключва лявото подравняване */
+                /* Стилизираме бутона да изглежда като луксозен, централен етикет най-отгоре */
+                div[data-testid="stAppViewContainer"] div[data-testid="stVerticalBlock"] > div:has(button[key="open_gallery_top_header_2026"]) {
+                    text-align: center !important;
+                    margin-bottom: -5px !important; /* Приближава бутона към заглавието */
+                }
+                button[key="open_gallery_top_header_2026"] {
+                    display: inline-block !important;
                     width: auto !important;
                     min-width: unset !important;
-                    background: rgba(22, 25, 31, 0.5) !important; /* Фин стъклен дизайн */
+                    background: rgba(22, 25, 31, 0.5) !important;
                     border: 1px solid rgba(255, 255, 255, 0.15) !important;
                     color: #ffffff !important;
-                    box-shadow: none !important;
-                    padding: 4px 10px !important;
-                    font-size: 12px !important;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+                    padding: 4px 14px !important;
+                    font-size: 13px !important;
                     font-weight: 600 !important;
-                    border-radius: 8px !important;
+                    border-radius: 20px !important; /* Овална форма тип премиум етикет */
                     backdrop-filter: blur(8px) !important;
                     -webkit-backdrop-filter: blur(8px) !important;
                     transition: all 0.2s ease-in-out !important;
                 }
-                
-                div[data-testid="stAppViewContainer"] button[key="open_gallery_top_header_2026"]:hover {
+                button[key="open_gallery_top_header_2026"]:hover {
                     background: rgba(0, 242, 254, 0.1) !important;
                     border-color: rgba(0, 242, 254, 0.4) !important;
-                }
-                
-                /* Скриваме напълно всякакви остатъчни стари скрити бутони по техните ключове */
-                button[key*="hidden_trigger"], button[key*="py_top_gallery"], div[id*="hidden"] {
-                    display: none !important;
-                    opacity: 0 !important;
-                    height: 0 !important;
+                    box-shadow: 0 0 10px rgba(0, 242, 254, 0.15) !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # Заглавието заема 100% от екрана и е съвършено центрирано по рождение
-        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 5px; padding: 0 80px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
-        
+        # 1. Слагаме оригиналния бутон НАЙ-ГОРЕ на страницата (Центриран през CSS)
         st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-        
-        # Оригинален и напълно защитен фабричен бутон – CSS стилът горе го избутва в десния ъгъл на телефона автоматично!
-        if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
+        if st.button("📸 Галерия и спомени", key="open_gallery_top_header_2026"):
             st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
             st.session_state["view_photos"] = True
             st.rerun()
 
+        # 2. Поставяме името на пътуването и периода веднага ПОД бутона
+        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+        st.markdown(f"<div style='text-align: center; margin-top: 10px; margin-bottom: 10px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+        
         st.markdown("---")
+
 
 
 
