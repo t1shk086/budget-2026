@@ -338,20 +338,33 @@ else:
                    
     else:
         # =========================================================
-        # 👑 ИЗОЛИРАН ДЕСЕН БУТОН ЗА ГАЛЕРИЯ (БЕЗ ДА БЪРКА БУТОНА НАЗАД)
+        # 👑 МОБИЛНО ОПТИМИЗИРАН ДЕСЕН БУТОН ЗА ГАЛЕРИЯ
         # =========================================================
         st.markdown("""
             <style>
-                /* Използваме селектор, който филтрира бутоните по съдържание на текст */
-                /* Хващаме контейнера на бутона, само ако вътре има КЛЮЧА за Галерия */
-                div[data-testid="stColumn"]:nth-of-type(2):has(button[key="open_gallery_top_header_2026"]) {
+                /* Принуждаваме контейнера на колоните да НЕ се чупи на телефона и да държи елементите на един ред */
+                div[data-testid="stHorizontalBlock"]:has(button[key="open_gallery_top_header_2026"]) {
                     display: flex !important;
-                    justify-content: flex-end !important;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
                     align-items: center !important;
+                    justify-content: space-between !important;
                     width: 100% !important;
                 }
                 
-                /* Стилизираме САМО бутона за Галерия – напълно прозрачен и стъклен */
+                /* Задаваме точни пропорции на колоните на телефона: 70% за празното място, 30% за бутона */
+                div[data-testid="stHorizontalBlock"]:has(button[key="open_gallery_top_header_2026"]) > div[data-testid="stColumn"]:nth-of-type(1) {
+                    width: 70% !important;
+                    flex: unset !important;
+                }
+                div[data-testid="stHorizontalBlock"]:has(button[key="open_gallery_top_header_2026"]) > div[data-testid="stColumn"]:nth-of-type(2) {
+                    width: 30% !important;
+                    flex: unset !important;
+                    display: flex !important;
+                    justify-content: flex-end !important;
+                }
+
+                /* Стилизираме бутона – прозрачен, стъклен и компактен около надписа */
                 button[key="open_gallery_top_header_2026"] {
                     display: inline-block !important;
                     width: auto !important;
@@ -365,6 +378,7 @@ else:
                     border-radius: 8px !important;
                     backdrop-filter: blur(8px) !important;
                     -webkit-backdrop-filter: blur(8px) !important;
+                    white-space: nowrap !important; /* Пречи на текста да се пренесе на два реда */
                     transition: all 0.2s ease-in-out !important;
                 }
                 
@@ -373,15 +387,14 @@ else:
                     border-color: rgba(0, 242, 254, 0.5) !important;
                 }
                 
-                /* БОНУС: Гарантираме, че ако се появи бутонът "Назад към разходите", */
-                /* той ще си запази оригиналния фабричен стил без да се мести в десния ъгъл! */
+                /* Защита за бутона Назад – оставя го непроменен */
                 button:not([key="open_gallery_top_header_2026"]) {
                     position: static !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # Ред 1: Разделяне за перфектно дясно позициониране на Галерията
+        # Ред 1: Колони, които благодарение на горния CSS ще останат на един ред и на телефон
         col_space_top, col_btn_top = st.columns([0.7, 0.3])
         
         with col_btn_top:
