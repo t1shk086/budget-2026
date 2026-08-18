@@ -821,7 +821,7 @@ else:
                        onmousedown="this.style.transform='translateY(2px)'; this.style.boxShadow='0px 2px 5px rgba(0,0,0,0.2)';"
                        onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 4px 10px rgba(0,0,0,0.3)';"
                        onclick="setTimeout(function() { var el = parent.document.getElementById('target_sum_box'); if(el) el.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 50);">
-                        🎚️ КЪМ РАЗХОДИТЕ
+                        🔝 КЪМ РАЗХОДИТЕ
                     </button>
                 </a>
             """, unsafe_allow_html=True)
