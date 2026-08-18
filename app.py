@@ -753,7 +753,7 @@ else:
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols:
+        with bottom_cols[1]:
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid"):
                 st.session_state["current_trip"] = None
                 st.rerun()
