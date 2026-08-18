@@ -749,26 +749,41 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: 100% РАБОТЕЩО ПЛАВНО ПРЕВЪРТАНЕ С ОРИГИНАЛНИ БУТОНИ
+        # 🌟 КРАЙ НА ФАЙЛА: 100% РАБОТЕЩО ПЛАВНО ПРЕВЪРТАНЕ С ФАБРИЧЕН 3Д ДИЗАЙН
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols[0]:
+        with bottom_cols:
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]:
-            # Създаваме оригинален 3D бутон, който активира плавното превъртане чрез HTML котва
-            if st.button("🔝 НАЙ-ГОРЕ (РАЗХОДИ)", use_container_width=True, key="native_scroll_top_btn"):
-                st.markdown('''
-                    <script>
-                        // Намираме котвата в главното приложение и я кликваме скрито за плавно превъртане
-                        var link = parent.document.createElement("a");
-                        link.href = "#top_of_page";
-                        link.target = "_self";
-                        parent.document.body.appendChild(link);
-                        link.click();
-                        link.remove();
-                    </script>
-                ''', unsafe_allow_html=True)
+        with bottom_cols:
+            # Маскираме HTML линка като нативен 3D Streamlit бутон
+            st.markdown("""
+                <a href="#top_of_page" target="_self" style="text-decoration: none; width: 100%; display: block;">
+                    <button class="stBaseButton-secondary" style="
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: 400;
+                        padding: 0.25rem 0.75rem;
+                        border-radius: 0.5rem;
+                        min-height: 38.4px;
+                        margin: 0px;
+                        width: 100%;
+                        user-select: none;
+                        background-color: rgb(255, 255, 255, 0.05);
+                        color: rgb(250, 250, 250);
+                        border: 1px solid rgba(250, 250, 250, 0.2);
+                        cursor: pointer;
+                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+                        transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
+                    " onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgb(250, 250, 250)';" 
+                       onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(250, 250, 250, 0.2)';"
+                       onmousedown="this.style.transform='translateY(2px)'; this.style.boxShadow='0px 2px 5px rgba(0,0,0,0.2)';"
+                       onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 4px 10px rgba(0,0,0,0.3)';">
+                        🔝 НАЙ-ГОРЕ (РАЗХОДИ)
+                    </button>
+                </a>
+            """, unsafe_allow_html=True)
