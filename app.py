@@ -848,7 +848,7 @@ else:
                 <div class="twin-grid-wrapper">
                     <a href="#target_sum_box" target="_self">
                         <button class="twin-premium-3d-btn">
-                            🎚️ КЪМ РАЗХОДИТЕ
+                            🔝 КЪМ РАЗХОДИТЕ
                         </button>
                     </a>
                 </div>
