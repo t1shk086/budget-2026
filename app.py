@@ -645,27 +645,54 @@ else:
         
         b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
         
-        # 📊 Новият светлосив стил с фини граници и плаващ hover ефект
-        st.markdown(f'''
-            <a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;">
-                <button style="
-                    width: 100%; 
-                    background: rgba(255, 255, 255, 0.07); 
-                    color: #e0e0e0; 
-                    border: 1px solid rgba(255, 255, 255, 0.15); 
-                    padding: 12px; 
-                    font-weight: bold; 
-                    border-radius: 10px; 
-                    cursor: pointer;
-                    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
-                    transition: all 0.2s ease-in-out;
-                " onmouseover="this.style.background='rgba(255, 255, 255, 0.14)'; this.style.color='#ffffff'; this.style.borderColor='rgba(255, 255, 255, 0.3)';" 
-                   onmouseout="this.style.background='rgba(255, 255, 255, 0.07)'; this.style.color='#e0e0e0'; this.style.borderColor='rgba(255, 255, 255, 0.15)';">
-                    📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
-                </button>
-            </a>
-        ''', unsafe_allow_html=True)
+        # 1. Изчисляваме HTML данните за отчета (както досега)
+        b64_html_data = pdf_html.encode("utf-8")
+
+        # 2. 🎛️ Прецизен CSS за фабричен светлосив 3D бутон
+        st.markdown("""
+            <style>
+                /* Хващаме бутона директно по неговия Streamlit ключ */
+                div[data-testid="stElementContainer"] button[key="premium_gray_download"] {
+                    background: linear-gradient(180deg, #3a3f47, #2d3139) !important; /* Модерно стоманено сиво с 3D градиент */
+                    color: #e0e0e0 !important; /* Чист, лесен за четене светлосив текст */
+                    border: 1px solid rgba(255, 255, 255, 0.15) !important; /* Фина горна светлина */
+                    border-radius: 8px !important; /* Точната фабрична заобленост на Streamlit */
+                    font-weight: 600 !important;
+                    font-size: 14px !important;
+                    letter-spacing: 0.3px !important;
+                    box-shadow: 0px 3px 0px #1a1c20, 0px 4px 10px rgba(0,0,0,0.3) !important; /* 3D подложка отдолу + мека сянка */
+                    transition: all 0.1s ease-in-out !important;
+                    height: 42px !important; /* Фабрична височина */
+                    width: 100% !important;
+                }
+                
+                /* Интеракция при посочване с мишката (Hover) */
+                div[data-testid="stElementContainer"] button[key="premium_gray_download"]:hover {
+                    background: linear-gradient(180deg, #434952, #323740) !important; /* Леко просветляване */
+                    color: #ffffff !important;
+                    border-color: rgba(255, 255, 255, 0.25) !important;
+                    box-shadow: 0px 3px 0px #1a1c20, 0px 5px 12px rgba(0,0,0,0.4) !important;
+                }
+
+                /* Интеракция при реален натиск (3D Клик ефект) */
+                div[data-testid="stElementContainer"] button[key="premium_gray_download"]:active {
+                    transform: translateY(2px) !important; /* Бутонът потъва надолу */
+                    box-shadow: 0px 1px 0px #1a1c20, 0px 2px 5px rgba(0,0,0,0.2) !important; /* Сянката и подложката се свиват */
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        # 3. 📂 Нативен Streamlit бутон за директно изтегляне (без презареждане на страници)
+        st.download_button(
+            label="📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)",
+            data=b64_html_data,
+            file_name=f"Otchet_{trip_id}_2026.html",
+            mime="text/html",
+            key="premium_gray_download",
+            use_container_width=True
+        )
         st.markdown("---")
+
 
 
         st.subheader("🗺️ Карта на спирките и дестинациите")
