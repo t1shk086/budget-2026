@@ -602,61 +602,71 @@ else:
             st.markdown("---")
             st.subheader("📋 Хронология на плащанията")
             
+            # Инжектираме стилове за премиум 3D карти и уеднаквени кошчета
+            st.markdown("""
+                <style>
+                    /* Луксозна кутия за всеки отделен разход */
+                    .premium-expense-card {
+                        background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
+                        padding: 14px 18px !important;
+                        border-radius: 12px !important;
+                        border: 1px solid rgba(250, 250, 250, 0.2) !important; /* Същият сив контур като бутоните */
+                        box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
+                        margin-bottom: 2px !important;
+                        min-height: 52px !important; /* Автоматично разпъване за дълги текстове */
+                        display: flex !important;
+                        flex-direction: column !important;
+                        justify-content: center !important;
+                    }
+                    
+                    /* Стил за контейнера на иконата за триене, за да застане на перфектно хоризонтално ниво */
+                    .expense-delete-wrapper {
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        height: 100% !important;
+                        margin-top: 10px !important; /* Спуска кошчето на нивото на сумата */
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+            
             try:
                 df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
                 for idx in reversed(df_all[df_all["trip_id"] == trip_id].index.tolist()):
                     r = df_all.loc[idx]
                     l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
                     
-                    # 🚀 МАСИВНА ПРЕСИУМ КУТИЯ: Увеличена с още 30% за максимален обем и луксозна визия
-                    st.markdown(f'''
-                        <div style="
-                            position: relative;
-                            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
-                            padding: 24px 80px 24px 25px; /* 🔘 ПОПРАВКА: +30% по-широки отстояния */
-                            border-radius: 14px;
-                            border: 1px solid rgba(250, 250, 250, 0.2);
-                            box-shadow: 0px 6px 16px rgba(0,0,0,0.25);
-                            margin-bottom: -38px; /* Насилствено издърпваме следващия елемент нагоре */
-                            min-height: 90px; /* 🔘 ПОПРАВКА: +30% по-висок главен прозорец */
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: center;
-                        ">
-                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                <div style="font-size: 18px; font-weight: 600; color: #fafafa; font-family: sans-serif;">
-                                    <span>{get_emoji(r["category"])}</span> {r["category"]}
-                                </div>
-                                <div style="font-size: 18px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
-                                    -{r["amount"]:.2f} EUR
-                                </div>
-                            </div>
-                            <div style="margin-top: 8px; font-size: 13.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
-                                📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
-                            </div>
-                        </div>
-                    ''', unsafe_allow_html=True)
+                    # Разделяме в съотношение 88% за разхода и 12% за 3D бутона за изтриване
+                    col_rec, col_del = st.columns([0.88, 0.12])
                     
-                    # 🎯 ПРИТИСКАЩ КОНТЕНЕР: Идеално напасване на бутона в центъра на новата 90px кутия
-                    col_space, col_btn = st.columns([0.88, 0.12])
-                    with col_space:
-                        st.write("") 
-                    with col_btn:
-                        # 🔘 ПОПРАВКА: Преместен маргин на -61px, за да застане право в центъра на голямото поле
-                        st.markdown('<div style="margin-top: -61px; position: relative; z-index: 10; min-height: 34px; height: 34px;">', unsafe_allow_html=True)
-                        if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий"):
+                    with col_rec:
+                        # Създаваме чистата уеб карта за разход с автоматично напасване на височината
+                        st.markdown(f'''
+                            <div class="premium-expense-card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
+                                        <span>{get_emoji(r["category"])}</span> {r["category"]}
+                                    </div>
+                                    <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
+                                        -{r["amount"]:.2f} EUR
+                                    </div>
+                                </div>
+                                <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
+                                    📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
+                                </div>
+                            </div>
+                        ''', unsafe_allow_html=True)
+                        
+                    with col_del:
+                        # Вграждаме кошчето в уеб обвивка за идеално центриране спрямо кутията отляво
+                        st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
+                        # Използваме чист фабричен бутон с емоджи, за да хлътва в 3D и да е съвместим с диdialog прозореца ти
+                        if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий този разход"):
                             st.session_state["delete_idx"] = idx
                             confirm_delete_dialog()
                         st.markdown('</div>', unsafe_allow_html=True)
-                        
-                    # Разделител за разстояние между отделните кутии
-                    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
             except:
                 pass
-
-
-
-
 
         st.markdown("---")
         
@@ -896,7 +906,6 @@ else:
                     </a>
                 </div>
             """, unsafe_allow_html=True)
-
 
 
 
