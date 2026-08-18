@@ -267,17 +267,10 @@ else:
     except: pass
 
     if st.session_state["view_photos"]:
-        # 1. Автоматично превъртане на браузъра най-горе в началото на галерията
-        st.components.v1.html("""
-            <script>
-                window.parent.document.querySelector('section.main').scrollTo({top: 0, behavior: 'instant'});
-            </script>
-        """, height=0)
-
         if not os.path.exists(papka_snimki): 
             os.makedirs(papka_snimki)
         
-        # 2. Единствен и уникален компонент за качване на снимки
+        # 1. Компонент за качване на снимки (сега е първи)
         up = st.file_uploader("Добавете нови спомени в албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}_gallery")
         if up:
             for f in up:
@@ -286,7 +279,7 @@ else:
                         out.write(f.getbuffer())
             st.rerun()
             
-        # 3. Показване на снимките в решетка
+        # 2. Показване на снимките в решетка
         saved = glob.glob(os.path.join(papka_snimki, "*"))
         if saved:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -300,11 +293,20 @@ else:
         else: 
             st.markdown("<div style='text-align:center; margin-top:40px; margin-bottom:20px; color:#666;'>Все още няма снимки.</div>", unsafe_allow_html=True)
 
-        # 4. Единственият бутон за връщане назад (автоматично отива под снимките)
+        # 3. Бутон за връщане назад (автоматично отива под снимките)
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True, key="single_gallery_back_btn"):
             st.session_state["view_photos"] = False
             st.rerun()
+
+        # 🌟 4. Скролваме най-горе ЧАК СЛЕД като всички елементи са напълно заредени на екрана!
+        st.components.v1.html("""
+            <script>
+                setTimeout(function() {
+                    window.parent.document.querySelector('section.main').scrollTo({top: 0, behavior: 'instant'});
+                }, 100);
+            </script>
+        """, height=0)
 
         
                    
