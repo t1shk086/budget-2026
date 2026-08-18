@@ -840,13 +840,13 @@ else:
                     scroll-behavior: smooth !important;
                 }
                 
-                /* Заключваме решетката на Streamlit да държи бутоните на еднаква базова линия */
+                /* Заключваме самата решетка на Streamlit да подравнява съдържанието перфектно по центъра */
                 div[data-testid="stHorizontalBlock"] {
                     display: flex !important;
                     align-items: center !important;
                 }
                 
-                /* Стилизираме ОРЕДЕЛЕНИЯ Streamlit бутон и нашия HTML бутон по еднакъв начин */
+                /* Стилизираме ОРЕДЕЛЕНИЯ Streamlit бутон и нашия HTML бутон по абсолютно еднакъв начин */
                 button[data-testid="stBaseButton-secondary"].twin-style,
                 .twin-premium-3d-btn {
                     display: inline-flex !important;
@@ -868,6 +868,7 @@ else:
                     user-select: none !important;
                     box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important;
                     transition: all 0.15s ease-in-out !important;
+                    line-height: normal !important;
                 }
                 
                 /* 🌟 ХОУВЪР ЕФЕКТ */
@@ -885,10 +886,17 @@ else:
                     box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important;
                 }
                 
+                /* Премахваме фабричния горен паразит на Streamlit, който размества нещата на лаптоп */
+                .twin-grid-wrapper div[data-testid="stBlock"] {
+                    padding-top: 0px !important;
+                    margin-top: 0px !important;
+                }
+                
                 .twin-grid-wrapper {
                     width: 100% !important;
                     margin: 0px !important;
                     padding: 0px !important;
+                    display: flex !important;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -905,10 +913,10 @@ else:
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
                 
-        with b_col2: # 🎚️ Десен близнак: Към Разходите (Използва чист HTML, за да превърти без презареждане)
+        with b_col2: # 🎚️ Десен близнак: Към Разходите
             st.markdown("""
                 <div class="twin-grid-wrapper">
-                    <a href="#trip_top_anchor" target="_self" style="text-decoration: none; display: block; width: 100%;">
+                    <a href="#trip_top_anchor" target="_self" style="text-decoration: none; display: block; width: 100%; margin: 0; padding: 0;">
                         <button class="twin-premium-3d-btn">
                             🔝 КЪМ РАЗХОДИТЕ
                         </button>
@@ -916,17 +924,21 @@ else:
                 </div>
             """, unsafe_allow_html=True)
 
-        # 🎯 СИНХРОНИЗИРАЩ СКРИПТ: Боядисва левия бутон и ги изравнява на екрана
+        # 🎯 СИНХРОНИЗИРАЩ СКРИПТ: Намира бутона в реално време и му инжектира стила
         st.markdown("""
             <script>
                 var buttons = window.parent.document.querySelectorAll('button');
                 for (var i = 0; i < buttons.length; i++) {
                     if (buttons[i].textContent.includes('ГЛАВНО МЕНЮ')) {
                         buttons[i].classList.add('twin-style');
+                        // Изравняваме вътрешните рамки на Streamlit контейнера
+                        buttons[i].parentElement.style.padding = '0';
+                        buttons[i].parentElement.style.margin = '0';
                     }
                 }
             </script>
         """, unsafe_allow_html=True)
+
 
 
 
