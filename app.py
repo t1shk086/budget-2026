@@ -776,10 +776,9 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ РАВНИ БУТОНИ С НАЛOЖЕНО ПЛАВНО СЛУЧВАЩ СЕ СКРОЛВАНЕ
+        # 🌟 КРАЙ НА ФАЙЛА: ХИРУРГИЧЕСКИ ИЗРАВНЕНИ БУТОНИ С ТОЧЕН СКРОЛ
         st.markdown("""
             <style>
-                /* Налагаме на целия браузър да прави скролването плавно и нежно */
                 html {
                     scroll-behavior: smooth !important;
                 }
@@ -794,14 +793,14 @@ else:
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # Дясна колона: Линк, пресъздаващ оригиналния 3D Streamlit бутон до пиксел
+        with bottom_cols[1]: # Дясна колона: Луксозен 3D близнак бутон с фиксиран скрол
             st.markdown("""
                 <a href="#target_sum_box" target="_self" style="text-decoration: none; width: 100%; display: block;">
                     <button class="stBaseButton-secondary" style="
                         display: inline-flex;
                         align-items: center;
                         justify-content: center;
-                        font-weight: 400;
+                        font-weight: 600;
                         padding: 0.25rem 0.75rem;
                         border-radius: 0.5rem;
                         min-height: 38.4px;
@@ -817,7 +816,8 @@ else:
                     " onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgb(250, 250, 250)';" 
                        onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(250, 250, 250, 0.2)';"
                        onmousedown="this.style.transform='translateY(2px)'; this.style.boxShadow='0px 2px 5px rgba(0,0,0,0.2)';"
-                       onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 4px 10px rgba(0,0,0,0.3)';">
+                       onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 4px 10px rgba(0,0,0,0.3)';"
+                       onclick="setTimeout(function() { var el = parent.document.getElementById('target_sum_box'); if(el) el.scrollIntoView({behavior: 'smooth', block: 'start'}); }, 50);">
                         🎚️ КЪМ РАЗХОДИТЕ
                     </button>
                 </a>
