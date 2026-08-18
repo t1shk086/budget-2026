@@ -289,8 +289,11 @@ else:
         st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         st.markdown("---")
 
-        # 🌟 ДОБАВЕТЕ ТОЗИ РЕД ТУК:
+        # 🌟 КОПИРАЙ И СЛОЖИ ТОЗИ РЕД ТУК (за да знае браузърът къде е "най-горе"):
+        st.markdown("<div id='top_of_page'></div>", unsafe_allow_html=True)
+        
         ekran_za_kategorii = st.empty()
+
 
         if st.button("⬅️ НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
 
@@ -535,9 +538,38 @@ else:
         st.markdown("---")
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
-                    # Добавяне на бутон за връщане на главното меню най-накрая на приложението
+        # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("🏠 НАЗАД КЪМ ГЛАВНОТО МЕНЮ", use_container_width=True, key="bottom_home_button_2026"):
-            st.session_state["current_trip"] = None
-            st.rerun()
+        bottom_cols = st.columns(2)
+        
+        with bottom_cols[0]:
+            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid"):
+                st.session_state["current_trip"] = None
+                st.rerun()
+                
+        with bottom_cols[1]:
+            # Луксозен бутон, който съвпада с твоя дизайн и превърта плавно най-горе
+            st.markdown("""
+                <a href="#top_of_page" style="text-decoration: none;" target="_self">
+                    <button style="
+                        width: 100%; 
+                        background: linear-gradient(135deg, #252932, #16191f); 
+                        color: #ffffff; 
+                        border: 1px solid rgba(255, 255, 255, 0.05); 
+                        border-radius: 12px; 
+                        padding: 6px 16px;
+                        font-weight: 600;
+                        font-size: 14px;
+                        letter-spacing: 0.5px;
+                        height: 38px;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        ⬆️ НАЙ-ГОРЕ (РАЗХОДИ)
+                    </button>
+                </a>
+            """, unsafe_allow_html=True)
 
