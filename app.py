@@ -340,21 +340,25 @@ else:
         # =========================================================
         # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С МИНИ ПРОЗРАЧЕН БУТОН
         # =========================================================
-        # 👑 КОРЕКЦИЯ: ЖЕЛЕЗНО ДЕСЕН ФИКСИРАН БУТОН ГАЛЕРИЯ
+        # =========================================================
+        # 👑 КОРЕКЦИЯ: ГЛОБАЛНО ДЕСЕН ФИКСИРАН КОНТЕЙНЕР ЗА ГАЛЕРИЯ
         # =========================================================
         st.markdown("""
             <style>
-                /* Насочваме се директно към бутона чрез неговия key атрибут за абсолютен контрол */
-                button[key="open_gallery_top_header_2026"] {
+                /* Преместваме целия контейнер на уиджета в горния десен ъгъл */
+                div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="element-container"]:has(button[key="open_gallery_top_header_2026"]) {
                     position: fixed !important;
                     top: 15px !important;        /* Отстояние от тавана */
-                    left: auto !important;       /* Изключваме лявото подравняване изцяло */
-                    right: 15px !important;      /* Желязно закотвяне в ДЕСНИЯ ъгъл */
+                    left: auto !important;       /* Изключваме ляво подравняване */
+                    right: 15px !important;      /* Твърдо закотвяне в ДЕСНИЯ ъгъл */
                     z-index: 999999 !important;  /* Най-отгоре над всичко */
                     width: auto !important;
-                    min-width: unset !important;
-                    background: rgba(22, 25, 31, 0.6) !important; /* Фин стъклен тъмен декор */
-                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                }
+                
+                /* Стилизираме самия бутон вътре в преместения контейнер */
+                button[key="open_gallery_top_header_2026"] {
+                    background: rgba(22, 25, 31, 0.7) !important; /* Стъклен тъмен декор */
+                    border: 1px solid rgba(255, 255, 255, 0.18) !important;
                     color: #ffffff !important;
                     box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
                     padding: 4px 12px !important;
@@ -363,13 +367,14 @@ else:
                     backdrop-filter: blur(10px) !important;
                     -webkit-backdrop-filter: blur(10px) !important;
                     transition: all 0.2s ease-in-out !important;
+                    width: auto !important;
                 }
                 
-                /* Уеднаквен хоувър за десния бутон */
+                /* Хоувър ефект */
                 button[key="open_gallery_top_header_2026"]:hover {
-                    background: rgba(0, 242, 254, 0.12) !important;
+                    background: rgba(0, 242, 254, 0.15) !important;
                     border-color: rgba(0, 242, 254, 0.5) !important;
-                    box-shadow: 0 0 15px rgba(0, 242, 254, 0.2) !important;
+                    box-shadow: 0 0 15px rgba(0, 242, 254, 0.25) !important;
                     transform: scale(1.02) !important;
                 }
             </style>
@@ -381,7 +386,7 @@ else:
         
         st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
         
-        # Бутонът, който бива прехванат от CSS стила горе
+        # Бутонът, който CSS правилото хваща заедно с неговия контейнер
         if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
             st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
             st.session_state["view_photos"] = True
