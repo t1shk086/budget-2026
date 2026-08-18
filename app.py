@@ -780,6 +780,7 @@ else:
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
         # 🌟 КРАЙ НА ФАЙЛА: УЕДНАКВЕНИ ПО СТАНДАРТНИЯ STREAMLIT СТИЛ
+# 🌟 КРАЙ НА ФАЙЛА: ТОЧНО КОПИЕ НА СТАНДАРТНИЯ STREAMLIT БУТОН
 st.markdown("""
     <style>
         /* Глобално правило за плавно приплъзване на екрана */
@@ -787,7 +788,7 @@ st.markdown("""
             scroll-behavior: smooth !important;
         }
         
-        /* 🌟 Прилагане на стандартния Streamlit бутон стил върху втория бутон */
+        /* 🌟 Точно копиране на базовия Streamlit бутон за втори HTML бутон */
         .twin-premium-3d-btn {
             display: inline-flex !important;
             align-items: center !important;
@@ -795,10 +796,10 @@ st.markdown("""
             width: 100% !important; 
             height: 38.4px !important;
             
-            /* Фабрични цветове и граници на Streamlit */
-            background-color: var(--background-color, #ffffff) !important;
-            color: var(--text-color, #31333F) !important;
-            border: 1px solid rgba(49, 51, 63, 0.2) !important;
+            /* Използване на официалните CSS променливи на Streamlit */
+            background-color: var(--background-color, #0e1117) !important;
+            color: var(--text-color, #fafafa) !important;
+            border: 1px solid rgba(250, 250, 250, 0.2) !important;
             border-radius: 0.5rem !important;
             padding: 0.25rem 0.75rem !important;
             
@@ -810,21 +811,22 @@ st.markdown("""
             cursor: pointer !important;
             user-select: none !important;
             box-shadow: none !important;
+            transform: none !important;
             transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease !important;
         }
         
-        /* 🌟 Стандартен Streamlit Hover (Осветяване на рамката и текста) */
+        /* 🌟 Точен Hover ефект на Streamlit (лек акцент върху рамката и текста) */
         .twin-premium-3d-btn:hover {
-            border-color: #ff4b4b !important;
-            color: #ff4b4b !important;
-            background-color: transparent !important;
+            border-color: rgba(250, 250, 250, 0.6) !important;
+            color: var(--text-color, #fafafa) !important;
+            background-color: rgba(255, 255, 255, 0.05) !important;
         }
         
-        /* 🌟 Стандартен Streamlit Active (Натискане) */
+        /* 🌟 Точен Active ефект при натискане */
         .twin-premium-3d-btn:active {
-            color: #ffffff !important;
-            background-color: #ff4b4b !important;
-            border-color: #ff4b4b !important;
+            border-color: rgba(250, 250, 250, 0.8) !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            color: var(--text-color, #fafafa) !important;
             transform: none !important;
             box-shadow: none !important;
         }
@@ -848,7 +850,7 @@ with bottom_cols[0]: # 🏠 Първи бутон: Главно Меню (ори
         st.session_state["current_trip"] = None
         st.rerun()
         
-with bottom_cols[1]: # 🎚️ Втори бутон: Към Разходите (HTML бутон, копиращ Streamlit)
+with bottom_cols[1]: # 🎚️ Втори бутон: Към Разходите (копира Streamlit)
     st.markdown("""
         <div class="twin-grid-wrapper">
             <a href="#target_sum_box" target="_self">
@@ -858,7 +860,6 @@ with bottom_cols[1]: # 🎚️ Втори бутон: Към Разходите 
             </a>
         </div>
     """, unsafe_allow_html=True)
-
         
 
 
