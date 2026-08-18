@@ -492,29 +492,23 @@ else:
                 pass
         st.markdown("---")
         
-        # Проверка и инициализация на състоянието, ако липсва
+        # Уверяваме се, че състоянието съществува
         if "view_photos" not in st.session_state:
             st.session_state["view_photos"] = False
 
-        # Новият бутон с HTML котва за моментално качване най-горе
-        st.markdown("""
-            <a href="#top_of_page" target="_self" style="text-decoration: none;">
-                <button onclick="window.parent.postMessage({type: 'streamlit:click_button', key: 'js_gallery_click'}, '*')" style="
-                    width: 100%;
-                    background: linear-gradient(135deg, #ff4b4b, #ff758c);
-                    color: white;
-                    border: none;
-                    border-radius: 12px;
-                    padding: 10px;
-                    font-weight: bold;
-                    font-size: 16px;
-                    box-shadow: 0 4px 15px rgba(255, 75, 75, 0.3);
-                    cursor: pointer;
-                ">
-                    📸 Снимки и спомени
-                </button>
-            </a>
-        """, unsafe_allow_html=True)
+        # 1. Скрит линк-котва, който телефонът ще активира при клик
+        st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+
+        # 2. Истински Streamlit бутон с модерен Glassmorphic дизайн и вграден скрол в клика
+        if st.button("📸 Снимки и спомени", use_container_width=True, key="open_gallery_final_2026"):
+            # Този JavaScript се задейства моментално при клик в браузъра
+            st.components.v1.html("""
+                <script>
+                    window.parent.document.getElementById('click_scroll_trigger').click();
+                </script>
+            """, height=0)
+            st.session_state["view_photos"] = True
+            st.rerun()
 
 
 
