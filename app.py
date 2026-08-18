@@ -602,66 +602,77 @@ else:
             st.markdown("---")
             st.subheader("📋 Хронология на плащанията")
             
-            # 🎨 ДЕФИНИРАМЕ ЕДИНЕН ПРЕМИУМ 3Д СТИЛ ЗА КАРТАТА И ВГРАДЕНОТО КОШЧЕ
+            # 🎨 ЧИСТА ПОДРАВНЯВАЩА МАСКА: Намества кутията и кошчето на една хоризонтална линия
             st.markdown("""
                 <style>
-                    /* Луксозна кутия за разхода с предвидено място отдясно */
-                    .pure-expense-card {
-                        position: relative !important;
+                    /* Луксозна кутия за разхода */
+                    .premium-expense-card {
                         background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
-                        padding: 14px 65px 14px 18px !important;
+                        padding: 14px 18px !important;
                         border-radius: 12px !important;
-                        border: 1px solid rgba(250, 250, 250, 0.2) !important; /* Същият контур като долните бутони */
+                        border: 1px solid rgba(250, 250, 250, 0.2) !important; /* Деликатен сив контур като 3D бутоните */
                         box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
-                        margin-bottom: 12px !important;
-                        min-height: 52px !important;
+                        min-height: 54px !important;
                         display: flex !important;
                         flex-direction: column !important;
                         justify-content: center !important;
                         box-sizing: border-box !important;
                     }
                     
-                    /* 🗑️ ОГЛЕДАЛНО 3Д КОШЧЕ, КОЕТО ЗАСТАВА ВЪТРЕ ОТДЯСНО */
-                    .inside-trash-btn {
-                        position: absolute !important;
-                        right: 14px !important;
-                        top: 50% !important;
-                        transform: translateY(-50%) !important; /* Перфектно центрирано вертикално */
-                        width: 36px !important;
-                        height: 34px !important;
-                        display: inline-flex !important;
+                    /* Специален уеб контейнер, който принуждава фабричното кошче да се центрира перфектно хоризонтално */
+                    .flex-trash-container {
+                        display: flex !important;
                         align-items: center !important;
                         justify-content: center !important;
-                        background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important; /* Графитен металик */
-                        border: 1px solid rgba(250, 250, 250, 0.2) !important;
-                        border-radius: 6px !important;
-                        cursor: pointer !important;
-                        user-select: none !important;
-                        font-size: 14px !important;
-                        /* 3D сенки на бутончето */
-                        box-shadow: 0px 2px 0px #0e1117, 0px 3px 6px rgba(0,0,0,0.3) !important;
-                        transition: all 0.1s ease-in-out !important;
+                        height: 54px !important; /* Абсолютно същата височина като кутията отляво */
                     }
                     
-                    /* Ховър: Кошчето светва нежно в червено при посочване */
-                    .inside-trash-btn:hover {
-                        border-color: #ff4b4b !important;
-                        background: rgba(255, 75, 75, 0.1) !important;
-                        color: #ff4b4b !important;
-                    }
-                    
-                    /* 3D Потъване: Кошчето хлътва физически с 2px при реален натиск */
-                    .inside-trash-btn:active {
-                        transform: translateY(-50%) scale(0.95) !important; /* Леко свиване на място */
-                        box-shadow: 0px 0px 0px #0e1117, 0px 1px 2px rgba(0,0,0,0.2) !important;
-                    }
-                    
-                    /* Скрит помощен бутон за задействане на Python диалога */
-                    .hidden-trigger-btn {
-                        display: none !important;
+                    /* Премахваме излишните маргини на Streamlit около бутона с кошчето */
+                    .flex-trash-container div[data-testid="stElementContainer"] {
+                        margin: 0px !important;
+                        padding: 0px !important;
+                        width: 100% !important;
                     }
                 </style>
             """, unsafe_allow_html=True)
+            
+            try:
+                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                for idx in reversed(df_all[df_all["trip_id"] == trip_id].index.tolist()):
+                    r = df_all.loc[idx]
+                    l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
+                    
+                    # Разделяме екрана в прецизно съотношение 88% за разхода и 12% за 3D бутона за изтриване
+                    col_rec, col_del = st.columns([0.88, 0.12])
+                    
+                    with col_rec:
+                        # 1. Изчертаваме чистата уеб кутия за разхода (без никакви коментари или скриптове вътре)
+                        st.markdown(f'''
+                            <div class="premium-expense-card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <div style="font-size: 16px; font-weight: 600; color: #fafafa; font-family: sans-serif;">
+                                        <span>{get_emoji(r["category"])}</span> {r["category"]}
+                                    </div>
+                                    <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
+                                        -{r["amount"]:.2f} EUR
+                                    </div>
+                                </div>
+                                <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
+                                    📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
+                                </div>
+                            </div>
+                        ''', unsafe_allow_html=True)
+                        
+                    with col_del:
+                        # 2. Отваряме флекс контейнера и изчертаваме чистия фабричен бутон с кошчето
+                        st.markdown('<div class="flex-trash-container">', unsafe_allow_html=True)
+                        if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий"):
+                            st.session_state["delete_idx"] = idx
+                            confirm_delete_dialog()
+                        st.markdown('</div>', unsafe_allow_html=True)
+            except:
+                pass
+
             
             try:
                 df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
