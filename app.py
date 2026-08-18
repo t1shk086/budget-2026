@@ -349,6 +349,7 @@ else:
 
         if st.button("🔙 НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): st.session_state["current_trip"] = None; st.rerun()
 
+        st.markdown('<div id="polenata_za_razhodi"></div>', unsafe_allow_html=True)
         
         v_id = st.session_state["form_version"]
         col1, col2 = st.columns(2)
@@ -750,45 +751,44 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: 100% ЕДНАКВИ ОРИГИНАЛНИ БУТОНИ С ГАРАНТИРАНО ПЛАВНО ПРЕВЪРТАНЕ
+        # 🌟 КРАЙ НА ФАЙЛА: МАТЕМАТИЧЕСКИ ИЗРАВНЕНИ БУТОНИ С ПЛАВНО СЛУЧВАЩ СЕ СКРОЛ
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
-        with bottom_cols[0]: # Първата колона за Главно Меню
+        with bottom_cols[0]: # Лява колона: Главно меню
             if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="bottom_home_btn_grid"):
                 st.session_state["current_trip"] = None
                 st.rerun()
                 
-        with bottom_cols[1]: # Втората колона за Връщане Най-горе
-            # Използваме чист нативен бутон - застава на абсолютно същия милиметър хоризонтално!
-            st.button("🔝 НАЙ-ГОРЕ (РАЗХОДИ)", use_container_width=True, key="final_perfect_scroll_btn")
-            
-        # 🚀 ИНЖЕКТИРАМЕ СИГУРЕН CSS/JS ХЪБ, КОЙТО СВЪРЗВА БУТОНА СЪС СКРОЛА БЕЗ PYTHON RE-RUN
-        st.markdown("""
-            <script>
-                function attachScrollLogic() {
-                    // Намираме десния бутон в реално време на екрана
-                    var btn = window.parent.document.querySelector('button[key="final_perfect_scroll_btn"]');
-                    if (btn) {
-                        btn.onclick = function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            // Намираме основния скрол контейнер на Streamlit и го плъзваме плавно най-горе
-                            var mainSection = window.parent.document.querySelector('section.main');
-                            if (mainSection) {
-                                mainSection.scrollTo({ top: 0, behavior: 'smooth' });
-                            } else {
-                                window.parent.window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }
-                        };
-                    }
-                }
-                // Изпълняваме веднага и след малко за подсигуряване при бавно зареждане
-                attachScrollLogic();
-                setTimeout(attachScrollLogic, 300);
-                setTimeout(attachScrollLogic, 1000);
-            </script>
-        """, unsafe_allow_html=True)
+        with bottom_cols[1]: # Дясна колона: Линк, маскиран като нативен 3D бутон
+            st.markdown("""
+                <a href="#polenata_za_razhodi" target="_self" style="text-decoration: none; width: 100%; display: block;">
+                    <button class="stBaseButton-secondary" style="
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: 400;
+                        padding: 0.25rem 0.75rem;
+                        border-radius: 0.5rem;
+                        min-height: 38.4px;
+                        margin: 0px;
+                        width: 100%;
+                        user-select: none;
+                        background-color: rgba(255, 255, 255, 0.05);
+                        color: rgb(250, 250, 250);
+                        border: 1px solid rgba(250, 250, 250, 0.2);
+                        cursor: pointer;
+                        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+                        transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
+                    " onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgb(250, 250, 250)';" 
+                       onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(250, 250, 250, 0.2)';"
+                       onmousedown="this.style.transform='translateY(2px)'; this.style.boxShadow='0px 2px 5px rgba(0,0,0,0.2)';"
+                       onmouseup="this.style.transform='translateY(0)'; this.style.boxShadow='0px 4px 10px rgba(0,0,0,0.3)';"
+                       onclick="var el = window.parent.document.getElementById('polenata_za_razhodi'); if(el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); }">
+                        🎚️ КЪМ РАЗХОДИТЕ
+                    </button>
+                </a>
+            """, unsafe_allow_html=True)
 
 
 
