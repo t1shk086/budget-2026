@@ -267,12 +267,8 @@ else:
     except: pass
 
     if st.session_state["view_photos"]:
-        if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True): st.session_state["view_photos"] = False; st.rerun()
-        
-        # 🌟 КОПИРАЙ И СЛОЖИ ТЕЗИ ДВА РЕДА ТУК:
-        st.markdown("<div id='top_of_gallery'></div>", unsafe_allow_html=True)
-        st.markdown("<script>window.location.hash = 'top_of_gallery';</script>", unsafe_allow_html=True)
-        
+        if st.button("⬅️ НАЗАД КЪМ РАЗХОДИТЕ", use_container_width=True): st.session_state["view_photos"] = False; st.rerun()   
+       
         if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
 
         if not os.path.exists(papka_snimki): os.makedirs(papka_snimki)
