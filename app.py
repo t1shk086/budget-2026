@@ -706,8 +706,7 @@ else:
 
 
         # 🗺️ 1. СЛАГАМЕ ЗАЩИТНА ПРОВЕРКА: Изчертаваме картата САМО ако потребителят НЕ е натиснал бутона за разходи
-        if not st.session_state.get("hide_map_for_scroll", False):
-            st.subheader("🗺️ Карта на спирките и дестинациите")
+        st.subheader("🗺️ Карта на спирките и дестинациите")
             df_points = get_map_points(trip_id)
             c_lat, c_lon = (df_points["lat"].mean(), df_points["lon"].mean()) if not df_points.empty else (42.7339, 25.4858)
             
@@ -769,8 +768,7 @@ else:
                                 st.rerun()
                 except:
                     pass
-        # 🌟 КРАЙ НА ЗАЩИТНАТА ПРОВЕРКА
-
+     
 
             
         st.markdown("---")
