@@ -600,89 +600,89 @@ else:
             st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>💰 НА МЯСТО</small><h2 style='color:#00f2fe; margin:5px 0;'>{total_on_site:.2f} EUR</h2></div>", unsafe_allow_html=True)
 
         if not df_trip.empty:
-        # =========================================================
-        # 📜 СТЪПКА 1: ДЕФИНИЦИЯ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ ЗА ХРОНОЛОГИЯ
-        # =========================================================
-        @st.dialog("📜 Хронология на плащанията", width="large")
-        def hronologia_popup_dialog():
-            st.markdown("<p style='color: #888; margin-bottom: 20px;'>Всички записани разходи за текущото пътуване по категории и дати:</p>", unsafe_allow_html=True)
-            
-            # Инжектираме премиум стиловете за картите директно вътре в прозореца
-            st.markdown("""
-                <style>
-                    .premium-expense-card {
-                        background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
-                        padding: 14px 18px !important;
-                        border-radius: 12px !important;
-                        border: 1px solid rgba(250, 250, 250, 0.2) !important;
-                        box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
-                        margin-bottom: 2px !important;
-                        min-height: 52px !important;
-                        display: flex !important;
-                        flex-direction: column !important;
-                        justify-content: center !important;
-                    }
-                    .expense-delete-wrapper {
-                        display: flex !important;
-                        align-items: center !important;
-                        justify-content: center !important;
-                        height: 100% !important;
-                        margin-top: 10px !important;
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-            
-            try:
-                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                valid_expenses = df_all[df_all["trip_id"] == trip_id].index.tolist()
-                
-                if not valid_expenses:
-                    st.info("Няма регистрирани разходи за това пътуване.")
-                else:
-                    for idx in reversed(valid_expenses):
-                        r = df_all.loc[idx]
-                        l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
-                        
-                        col_rec, col_del = st.columns([0.88, 0.12])
-                        
-                        with col_rec:
-                            st.markdown(f'''
-                                <div class="premium-expense-card">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                        <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
-                                            <span>{get_emoji(r["category"])}</span> {r["category"]}
-                                        </div>
-                                        <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
-                                            -{r["amount"]:.2f} EUR
-                                        </div>
-                                    </div>
-                                    <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
-                                        📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
-                                    </div>
-                                </div>
-                            ''', unsafe_allow_html=True)
-                            
-                        with col_del:
-                            st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
-                            if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий този разход"):
-                                st.session_state["delete_idx"] = idx
-                                confirm_delete_dialog()
-                            st.markdown('</div>', unsafe_allow_html=True)
-            except:
-                st.error("Грешка при зареждане на хронологията.")
-            
             st.markdown("---")
-            if st.button("❌ ЗАТВОРИ ХРОНОЛОГИЯТА", use_container_width=True, key="close_hronologia_popup_btn"):
-                st.rerun()
 
-        # =========================================================
-        # 📜 СТЪПКА 2: ИЗЧЕРТАВАНЕ НА БУТОНА ЗА ОТВАРЯНЕ НА ЕКРАНА
-        # =========================================================
-        if not df_trip.empty:
-            st.markdown("---")
-            # Поставяме бутона на мястото на старата таблица
+            # =========================================================
+            # 📜 ДЕФИНИЦИЯ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ ЗА ХРОНОЛОГИЯ
+            # =========================================================
+            @st.dialog("📜 Хронология на плащанията", width="large")
+            def hronologia_popup_dialog():
+                st.markdown("<p style='color: #888; margin-bottom: 20px;'>Всички записани разходи за текущото пътуване по категории и дати:</p>", unsafe_allow_html=True)
+                
+                # Инжектираме премиум стиловете за картите директно вътре в прозореца
+                st.markdown("""
+                    <style>
+                        .premium-expense-card {
+                            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
+                            padding: 14px 18px !important;
+                            border-radius: 12px !important;
+                            border: 1px solid rgba(250, 250, 250, 0.2) !important;
+                            box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
+                            margin-bottom: 2px !important;
+                            min-height: 52px !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                            justify-content: center !important;
+                        }
+                        .expense-delete-wrapper {
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            height: 100% !important;
+                            margin-top: 10px !important;
+                        }
+                    </style>
+                """, unsafe_allow_html=True)
+                
+                try:
+                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                    valid_expenses = df_all[df_all["trip_id"] == trip_id].index.tolist()
+                    
+                    if not valid_expenses:
+                        st.info("Няма регистрирани разходи за това пътуване.")
+                    else:
+                        for idx in reversed(valid_expenses):
+                            r = df_all.loc[idx]
+                            l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
+                            
+                            col_rec, col_del = st.columns([0.88, 0.12])
+                            
+                            with col_rec:
+                                st.markdown(f'''
+                                    <div class="premium-expense-card">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                            <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
+                                                <span>{get_emoji(r["category"])}</span> {r["category"]}
+                                            </div>
+                                            <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
+                                                -{r["amount"]:.2f} EUR
+                                            </div>
+                                        </div>
+                                        <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
+                                            📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
+                                        </div>
+                                    </div>
+                                ''', unsafe_allow_html=True)
+                                
+                            with col_del:
+                                st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
+                                if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий този разход"):
+                                    st.session_state["delete_idx"] = idx
+                                    confirm_delete_dialog()
+                                st.markdown('</div>', unsafe_allow_html=True)
+                except:
+                    st.error("Грешка при зареждане на хронологията.")
+                
+                st.markdown("---")
+                if st.button("❌ ЗАТВОРИ ХРОНОЛОГИЯТА", use_container_width=True, key="close_hronologia_popup_btn"):
+                    st.rerun()
+
+            # =========================================================
+            # 📜 БУТОН ЗА ОТВАРЯНЕ НА ХРОНОЛОГИЯТА
+            # =========================================================
             if st.button("📜 ВИЖ ЦЯЛАТА ХРОНОЛОГИЯ НА ПЛАЩАНИЯТА", use_container_width=True, key="open_hronologia_popup_trigger"):
                 hronologia_popup_dialog()
+
 
 
         st.markdown("---")
