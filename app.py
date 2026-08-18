@@ -699,15 +699,14 @@ else:
             # =========================================================
             st.markdown("---") # Начална линия на блока
             
-            # Тъй като и трите елемента са оригинални Streamlit бутони, 
-            # те автоматично застават на абсолютно еднакви разстояния по вертикала!
+            # Изместваме скрития HTML маркер извън блока с бутоните, за да не отваря празно място
+            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
             
             # 1. Оригинален бутон за Хронология
             if st.button("📜 ВИЖ ЦЯЛАТА ХРОНОЛОГИЯ НА ПЛАЩАНИЯТА", use_container_width=True, key="open_hronologia_popup_trigger"):
                 hronologia_popup_dialog()
 
             # 2. Оригинален бутон за Снимки и Спомени
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
             if st.button("📸 Снимки и спомени", use_container_width=True, key="open_gallery_final_2026"):
                 st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
                 st.session_state["view_photos"] = True
@@ -724,6 +723,7 @@ else:
             )
 
             st.markdown("---") # Крайна обща линия след пакета с бутони
+
 
 
 
