@@ -768,18 +768,18 @@ else:
             pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
             b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
 
-            # РЕНДЕРИРАНЕ НА ОБЩАТА СТРУКТУРА С ЕДНАКВИ ОТСТОЯНИЯ ОКОЛО БУТОНИТЕ
-            st.markdown(f'''
+            # Използваме ОБИКНОВЕН СТРИНГ (без f), за да спрем проверките на Python за къдрави скоби
+            html_menu_block = '''
                 <div class="monolithic-action-box">
                     <!-- 1. Бутон Хронология -->
                     <button class="monolithic-btn" onclick="
                         const btns = window.parent.document.querySelectorAll('button');
-                        for (let b of btns) {{
-                            if (b.textContent.includes('HIDDEN_TRIGGER_POPUP_HRONOLOGIA')) {{
+                        for (let b of btns) {
+                            if (b.textContent.includes('HIDDEN_TRIGGER_POPUP_HRONOLOGIA')) {
                                 b.click();
                                 break;
                             }
-                        }}
+                        }
                     ">
                         📜 ВИЖ ЦЯЛАТА ХРОНОЛОГИЯ НА ПЛАЩАНИЯТА
                     </button>
@@ -787,30 +787,28 @@ else:
                     <!-- 2. Бутон Снимки -->
                     <button class="monolithic-btn" onclick="
                         const btns = window.parent.document.querySelectorAll('button');
-                        for (let b of btns) {{
-                            if (b.textContent.includes('HIDDEN_TRIGGER_GALLERY_PHOTOS')) {{
+                        for (let b of btns) {
+                            if (b.textContent.includes('HIDDEN_TRIGGER_GALLERY_PHOTOS')) {
                                 b.click();
                                 break;
                             }
-                        }}
+                        }
                     ">
                         📸 Снимки и спомени
                     </button>
                     
                     <!-- 3. Бутон Свали отчет -->
-                    <a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html">
+                    <a href="data:text/html;base64,{data_placeholder}" download="Otchet_{trip_placeholder}_2026.html">
                         <button class="monolithic-btn">
                             📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
                         </button>
                     </a>
                 </div>
-            ''', unsafe_allow_html=True)
+            '''.format(data_placeholder=b64_html_data, trip_placeholder=trip_id)
 
+            # Рендерираме готовия и сигурен HTML блок
+            st.markdown(html_menu_block, unsafe_allow_html=True)
             st.markdown("---")
-
-
-
-
 
 
 
