@@ -163,47 +163,59 @@ if st.session_state["current_trip"] is None:
         opts = [t.replace("_", " ") for t in existing]
         choice = st.selectbox("Изберете пътуване до:", opts)
 
-        # 1. Инжектираме уникален CSS (Унищожава кеша на браузъра и налага Синьото и голямата лапа)
-        st.markdown("""
+        # 1. 🐾 НАПЪЛНО БРОНИРАН CSS (Забранява на телефоните да сменят цвета в кафяво)
+        st.html("""
             <style>
-                /* Влизаме в най-дълбокия слой на бутона с този специфичен ключ */
-                div[data-testid="stElementContainer"] button[key="v3_blue_paw_btn"] {
+                /* Хващаме бутона през ядрото на Streamlit с максимален приоритет */
+                button[data-testid="baseButton-secondaryFormSubmit"],
+                button[key="v4_mobile_proof_btn"],
+                .stButton > button {
                     background: linear-gradient(135deg, #00f2fe, #4facfe) !important;
                     background-color: #00f2fe !important;
                     color: white !important;
-                    border-radius: 12px !important;
+                    border-radius: 14px !important;
                     border: none !important;
                     font-weight: bold !important;
-                    box-shadow: 0 4px 12px rgba(0,242,254,0.3) !important;
+                    font-size: 16px !important;
+                    box-shadow: 0 4px 15px rgba(0,242,254,0.3) !important;
                     transition: all 0.2s ease-in-out !important;
-                    height: 52px !important;
+                    height: 54px !important;
                     width: 100% !important;
+                    
+                    /* 📱 БЛОКИРАНЕ НА СИСТЕМНИТЕ ТЕМИ НА ТЕЛЕФОНИТЕ (iOS / Android) */
+                    -webkit-appearance: none !important;
+                    -moz-appearance: none !important;
+                    appearance: none !important;
+                    -webkit-text-fill-color: white !important;
                 }
                 
-                /* Налагаме бял цвят и по-голям размер за текста вътре */
-                div[data-testid="stElementContainer"] button[key="v3_blue_paw_btn"] p {
+                /* Специфично подсигуряване на текста и лапата */
+                .stButton > button p, 
+                button[key="v4_mobile_proof_btn"] p {
                     color: white !important;
-                    font-size: 18px !important; /* Увеличаваме текста и лапата едновременно */
+                    -webkit-text-fill-color: white !important;
+                    font-size: 16px !important;
                     font-weight: 800 !important;
-                    margin: 0 !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
-                    gap: 8px !important;
+                    gap: 10px !important;
+                    margin: 0 !important;
                 }
 
-                /* Ефект при посочване (Hover) */
-                div[data-testid="stElementContainer"] button[key="v3_blue_paw_btn"]:hover {
-                    transform: translateY(-2px) !important;
-                    box-shadow: 0 6px 18px rgba(0,242,254,0.5) !important;
-                    filter: brightness(1.1) !important;
-                    background: linear-gradient(135deg, #00f2fe, #4facfe) !important;
+                /* 🌟 ТРИК ЗА ЕФЕКТ ПРИ НАТИСКАНЕ НА ТЕЛЕФОН */
+                .stButton > button:active,
+                .stButton > button:hover {
+                    background: linear-gradient(135deg, #4facfe, #00f2fe) !important;
+                    transform: scale(0.98) !important;
+                    box-shadow: 0 2px 8px rgba(0,242,254,0.2) !important;
                 }
             </style>
-        """, unsafe_allow_html=True)
+        """)
 
-        # 2. Чист оригинален Streamlit бутон с НОВ УНИКАЛЕН КЛЮЧ
-        if st.button("ЗАРЕДИ ПЪТУВАНЕ 🐾", key="v3_blue_paw_btn", use_container_width=True):
+        # 2. 🐾 Истинският бутон с НОВ КЛЮЧ (За да изчистим кафявия кеш на телефона)
+        # Сложихме лапата вътре с малко HTML разстояние
+        if st.button("ЗАРЕДИ ПЪТУВАНЕ   🐾", key="v4_mobile_proof_btn", use_container_width=True):
             st.session_state["current_trip"] = choice.replace(" ", "_")
             st.rerun()
 
@@ -211,6 +223,7 @@ if st.session_state["current_trip"] is None:
         if 'choice' not in locals() or not choice:
             st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Ако не виждате старото си приключение в менюто, създайте ново по-долу!</div>", unsafe_allow_html=True)
             st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
+
 
 
   
