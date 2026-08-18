@@ -610,7 +610,7 @@ else:
                     with col_rec:
                         st.markdown(f'<div style="background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); height: 75px;"><span style="font-size:16px;">{get_emoji(r["category"])}</span> <b>{r["category"]}</b> — <span style="color:#ff4b4b; font-weight:bold;">{r["amount"]:.2f} EUR</span><br><small style="color:#aaa;">📅 {r["date"]} — {r["description"]}{l_txt}</small></div>', unsafe_allow_html=True)
                     with col_del:
-                        if st.button("❌", key=f"dl_{idx}", use_container_width=True):
+                        if st.button("❌ Изтрий", key=f"dl_{idx}", use_container_width=True):
                             st.session_state["delete_idx"] = idx
                             confirm_delete_dialog()
             except:
