@@ -338,17 +338,36 @@ else:
                    
     else:
         # =========================================================
-        # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С БУТОН ЗА СНИМКИ
+        # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С ПРОЗРАЧЕН БУТОН СНИМКИ
         # =========================================================
+        # Инжектираме специален прозрачен стил САМО за този бутон
+        st.markdown("""
+            <style>
+                div[data-testid="stColumn"]:nth-of-type(3) button {
+                    background: transparent !important;
+                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                    color: #ffffff !important;
+                    box-shadow: none !important;
+                    backdrop-filter: blur(4px) !important;
+                    -webkit-backdrop-filter: blur(4px) !important;
+                    transition: all 0.2s ease-in-out !important;
+                }
+                div[data-testid="stColumn"]:nth-of-type(3) button:hover {
+                    background: rgba(0, 242, 254, 0.08) !important;
+                    border-color: rgba(0, 242, 254, 0.4) !important;
+                    box-shadow: 0 0 15px rgba(0, 242, 254, 0.1) !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
         col_left_space, col_center_title, col_gallery_top = st.columns([0.2, 0.6, 0.2])
         
         with col_center_title:
-            # Изписваме дестинацията и периода винаги идеално центрирани по средата на екрана
             date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
             st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
             
         with col_gallery_top:
-            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True) # Напасване спрямо заглавието по вертикала
+            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
             st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
             if st.button("📸 Снимки", use_container_width=True, key="open_gallery_top_header_2026"):
                 st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
@@ -356,6 +375,7 @@ else:
                 st.rerun()
 
         st.markdown("---")
+
 
 
 
