@@ -913,7 +913,7 @@ else:
         with b_col2: # 🎚️ Десен близнак: Към Разходите (HTML котва за плавно превъртане нагоре)
             st.markdown("""
                 <div class="twin-grid-wrapper">
-                    <a href="#target_sum_box" target="_self">
+                    <a href="#trip_top_anchor" target="_self">
                         <button class="twin-premium-3d-btn">
                             🔝 КЪМ РАЗХОДИТЕ
                         </button>
