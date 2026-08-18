@@ -779,80 +779,84 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: АБСОЛЮТНО ОГЛЕДАЛНИ 3Д БЛИЗНАЦИ С ЕДНАКВИ ЕФЕКТИ
-        st.markdown("""
-            <style>
-                /* Глобално правило за плавно и нежно приплъзване на екрана */
-                html {
-                    scroll-behavior: smooth !important;
-                }
-                
-                /* 👑 ЕДИНЕН ЛУКСОЗЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА */
-                .twin-premium-3d-btn {
-                    display: inline-flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    width: 100% !important; 
-                    height: 38.4px !important; /* Точната фабрична височина */
-                    background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important; /* Тъмен графитен металик */
-                    color: #ffffff !important; 
-                    border: 1px solid rgba(255, 255, 255, 0.12) !important; /* Деликатен светъл ръб */
-                    padding: 0.25rem 0.75rem !important;
-                    font-weight: 600 !important;
-                    font-size: 14px !important;
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-                    border-radius: 0.5rem !important;
-                    cursor: pointer !important;
-                    user-select: none !important;
-                    /* 3D Обем: Твърдо сиво дъно отдолу + външна мека сянка */
-                    box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important;
-                    transition: all 0.15s ease-in-out !important; /* Плавно преливане на ховъра */
-                }
-                
-                /* 🌟 УЕДНАКВЕН ХОУВЪР: И двата бутона светват абсолютно еднакво нежно */
-                .twin-premium-3d-btn:hover {
-                    background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
-                    border-color: rgba(255, 255, 255, 0.3) !important;
-                    box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.45) !important;
-                }
-                
-                /* 🌟 УЕДНАКВЕНО 3Д ПОТЪВАНЕ: И двата бутона хлътват по абсолютно един и същ начин при клик */
-                .twin-premium-3d-btn:active {
-                    transform: translateY(2px) !important; /* Бутоните потъват физически */
-                    box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important; /* Дъното се свива */
-                    transition: all 0.05s ease !important;
-                }
-                
-                /* Скриваме стандартните очертания на линковете в решетката */
-                .twin-grid-wrapper a {
-                    text-decoration: none !important;
-                    width: 100% !important;
-                    display: block !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
+# 🌟 КРАЙ НА ФАЙЛА: АБСОЛЮТНО ОГЛЕДАЛНИ 3Д БЛИЗНАЦИ С ЕДНАКВИ ЕФЕКТИ
+st.markdown("""
+    <style>
+        /* Глобално правило за плавно и нежно приплъзване на екрана */
+        html {
+            scroll-behavior: smooth !important;
+        }
+        
+        /* 👑 ЕДИНЕН ЛУКСОЗЕН 3Д ДИЗАЙН ЗА ДВАТА БУТОНА */
+        .twin-premium-3d-btn,
+        div[data-testid="stColumn"] div.stButton > button {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important; 
+            height: 38.4px !important; /* Точната фабрична височина */
+            background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important; /* Тъмен графитен металик */
+            color: #ffffff !important; 
+            border: 1px solid rgba(255, 255, 255, 0.12) !important; /* Деликатен светъл ръб */
+            padding: 0.25rem 0.75rem !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            border-radius: 0.5rem !important;
+            cursor: pointer !important;
+            user-select: none !important;
+            /* 3D Обем: Твърдо сиво дъно отдолу + външна мека сянка */
+            box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important;
+            transition: all 0.15s ease-in-out !important; /* Плавно преливане на ховъра */
+        }
+        
+        /* 🌟 УЕДНАКВЕН ХОУВЪР */
+        .twin-premium-3d-btn:hover,
+        div[data-testid="stColumn"] div.stButton > button:hover {
+            background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
+            border-color: rgba(255, 255, 255, 0.3) !important;
+            color: #ffffff !important;
+            box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.45) !important;
+        }
+        
+        /* 🌟 УЕДНАКВЕНО 3Д ПОТЪВАНЕ ПРИ КЛИК */
+        .twin-premium-3d-btn:active,
+        div[data-testid="stColumn"] div.stButton > button:active,
+        div[data-testid="stColumn"] div.stButton > button:focus:not(:focus-visible) {
+            transform: translateY(2px) !important; /* Бутоните потъват физически */
+            box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important; /* Дъното се свива */
+            transition: all 0.05s ease !important;
+        }
+        
+        /* Скриваме стандартните очертания на линковете в решетката */
+        .twin-grid-wrapper a {
+            text-decoration: none !important;
+            width: 100% !important;
+            display: block !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-        st.markdown("<br><br>", unsafe_allow_html=True)
+st.markdown("<br><br>", unsafe_allow_html=True)
+
+# Създаваме чистата решетка от 2 колони
+bottom_cols = st.columns(2)
+
+with bottom_cols[0]: # 🏠 Първи близнак: Главно Меню
+    if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
+        st.session_state["current_trip"] = None
+        st.rerun()
         
-        # Създаваме чистата решетка от 2 колони
-        bottom_cols = st.columns(2)
-        
-        with bottom_cols[0]: # 🏠 Първи близнак: Главно Меню
-            # Използваме уеб линк, който нулира пътуването и презарежда приложението чисто
-            if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
-                st.session_state["current_trip"] = None
-                st.rerun()
-                
-        with bottom_cols[1]: # 🎚️ Втори близнак: Към Разходите
-            st.markdown("""
-                <div class="twin-grid-wrapper">
-                    <a href="#target_sum_box" target="_self">
-                        <button class="twin-premium-3d-btn">
-                            🎚️ КЪМ РАЗХОДИТЕ
-                        </button>
-                    </a>
-                </div>
-            """, unsafe_allow_html=True)
+with bottom_cols[1]: # 🎚️ Втори близнак: Към Разходите
+    st.markdown("""
+        <div class="twin-grid-wrapper">
+            <a href="#target_sum_box" target="_self">
+                <button class="twin-premium-3d-btn">
+                    🎚️ КЪМ РАЗХОДИТЕ
+                </button>
+            </a>
+        </div>
+    """, unsafe_allow_html=True)
 
 
 
