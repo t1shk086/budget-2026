@@ -768,7 +768,7 @@ else:
             pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
             b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
 
-            # Използваме ОБИКНОВЕН СТРИНГ (без f), за да спрем проверките на Python за къдрави скоби
+            # Използваме чиста сглобка с оператор %, за да изолираме напълно JavaScript скобите от Python
             html_menu_block = '''
                 <div class="monolithic-action-box">
                     <!-- 1. Бутон Хронология -->
@@ -798,15 +798,15 @@ else:
                     </button>
                     
                     <!-- 3. Бутон Свали отчет -->
-                    <a href="data:text/html;base64,{data_placeholder}" download="Otchet_{trip_placeholder}_2026.html">
+                    <a href="data:text/html;base64,%s" download="Otchet_%s_2026.html">
                         <button class="monolithic-btn">
                             📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
                         </button>
                     </a>
                 </div>
-            '''.format(data_placeholder=b64_html_data, trip_placeholder=trip_id)
+            ''' % (b64_html_data, trip_id)
 
-            # Рендерираме готовия и сигурен HTML блок
+            # Рендерираме готовия и напълно защитен HTML блок
             st.markdown(html_menu_block, unsafe_allow_html=True)
             st.markdown("---")
 
