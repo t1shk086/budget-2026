@@ -338,23 +338,25 @@ else:
                    
     else:
         # =========================================================
-        # 👑 ПРЕМИУМ ЗАГЛАВНА СЕКЦИЯ С БУТОН ЗА СНИМКИ НАЙ-ГОРЕ
+        # 👑 СИНХРОННО ЦЕНТРИРАНО ЗАГЛАВИЕ С БУТОН ЗА СНИМКИ
         # =========================================================
-        col_title, col_gallery_top = st.columns([0.65, 0.35])
+        col_left_space, col_center_title, col_gallery_top = st.columns([0.2, 0.6, 0.2])
         
-        with col_title:
+        with col_center_title:
+            # Изписваме дестинацията и периода винаги идеално центрирани по средата на екрана
             date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-            st.markdown(f"<div style='text-align: left; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
             
         with col_gallery_top:
-            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True) # Идеално центриране по вертикала
+            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True) # Напасване спрямо заглавието по вертикала
             st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            if st.button("📸 Снимки и спомени", use_container_width=True, key="open_gallery_top_header_2026"):
+            if st.button("📸 Снимки", use_container_width=True, key="open_gallery_top_header_2026"):
                 st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
                 st.session_state["view_photos"] = True
                 st.rerun()
 
         st.markdown("---")
+
 
 
         # 🌟 КОПИРАЙ И СЛОЖИ ТОЗИ РЕД ТУК (за да знае браузърът къде е "най-горе"):
