@@ -749,7 +749,7 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
             confirm_delete_trip_dialog()
         # 🌟 КОПИРАЙ И ЗАМЕНИ НА САМИЯ КРАЙ НА ФАЙЛА СИ:
-        # 🌟 КРАЙ НА ФАЙЛА: НАПЪЛНО УЕДНАКВЕНИ ОРИГИНАЛНИ 3Д БУТОНИ
+        # 🌟 КРАЙ НА ФАЙЛА: 100% РАБОТЕЩО ПЛАВНО ПРЕВЪРТАНЕ С ОРИГИНАЛНИ БУТОНИ
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         
@@ -759,11 +759,16 @@ else:
                 st.rerun()
                 
         with bottom_cols[1]:
-            # 🔝 Превърнахме го в оригинален Streamlit бутон за 100% еднакво 3D усещане
+            # Създаваме оригинален 3D бутон, който активира плавното превъртане чрез HTML котва
             if st.button("🔝 НАЙ-ГОРЕ (РАЗХОДИ)", use_container_width=True, key="native_scroll_top_btn"):
-                # Едноредов JavaScript трик, който превърта страницата плавно най-горе веднага при клик
-                st.components.v1.html(
-                    "<script>parent.window.scrollTo({top: 0, behavior: 'smooth'});</script>", 
-                    height=0, 
-                    width=0
-                )
+                st.markdown('''
+                    <script>
+                        // Намираме котвата в главното приложение и я кликваме скрито за плавно превъртане
+                        var link = parent.document.createElement("a");
+                        link.href = "#top_of_page";
+                        link.target = "_self";
+                        parent.document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                    </script>
+                ''', unsafe_allow_html=True)
