@@ -945,22 +945,19 @@ else:
                 </div>
             """, unsafe_allow_html=True)
 
-        # =========================================================
+            # =========================================================
         # 🛠️ СКРИТИ АДМИНИСТРАТИВНИ ИНСТРУМЕНТИ (БЕКАП И ВЪЗСТАНОВЯВАНЕ)
         # =========================================================
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown("---")
         
-        # Променлива в сесията, която следи дали менюто е отворено
         if "show_admin_panel" not in st.session_state:
             st.session_state["show_admin_panel"] = False
 
-        # Единствен дискретен бутон, който контролира показването
         if st.button("🛠️ Административни Инструменти", use_container_width=True, key="toggle_admin_panel_btn"):
             st.session_state["show_admin_panel"] = not st.session_state["show_admin_panel"]
             st.rerun()
 
-        # Ако бутонът е натиснат, разгъваме цялата функционалност
         if st.session_state["show_admin_panel"]:
             st.markdown("""
                 <div style="background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.15); padding: 15px; border-radius: 12px; margin-top: 10px;">
@@ -1005,6 +1002,8 @@ else:
                 
                 if uploaded_zip is not None:
                     if st.button("🔄 ВЪЗСТАНОВИ ДАННИТЕ СЕГА", use_container_width=True, type="primary", key="trigger_restore_data_btn"):
+                        # Създаваме изолиран блок само за разархивирането, за да не лови излишни грешки
+                        success_extract = False
                         try:
                             import zipfile
                             with zipfile.ZipFile(uploaded_zip) as zip_file:
@@ -1015,18 +1014,18 @@ else:
                                         with open(f_name, "wb") as f_out:
                                             f_out.write(zip_file.read(f_name))
                                         restored_count += 1
-                                
                                 if restored_count > 0:
-                                    st.success("🎉 Данните са възстановени! Приложението се рестартира...")
-                                    import time
-                                    time.sleep(1.5)
-                                    st.session_state["show_admin_panel"] = False
-                                    st.session_state["current_trip"] = None
-                                    st.rerun()
+                                    success_extract = True
                                 else:
                                     st.error("В ZIP архива не бяха открити валидни бази данни на PixelApp.")
                         except:
                             st.error("Конфликт при разархивирането. Уверете се, че качвате правилния файл.")
-
+                        
+                        # Ако всичко е наред, зачистваме панела и рестартираме чисто без забавяне
+                        if success_extract:
+                            st.success("🎉 Данните са възстановени успешно!")
+                            st.session_state["show_admin_panel"] = False
+                            st.session_state["current_trip"] = None
+                            st.rerun()
 
 
