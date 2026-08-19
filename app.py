@@ -1078,7 +1078,7 @@ with st.sidebar:
                                         "current_km": float(row.get("current_km", 0.0)) if "current_km" in row else 0.0
                                     }
                                     r_post = requests.post(f"{url_base}/rest/v1/budget_data", json=payload, headers=headers, timeout=4)
-                                    if r_post.status_code in:
+                                    if r_post.status_code == 200 or r_post.status_code == 201:
                                         качени_разходи += 1
                     except Exception as e:
                         st.warning(f"Грешка разходи: {e}")
@@ -1101,7 +1101,7 @@ with st.sidebar:
                                 if f"{t_id}_{lat:.4f}_{lon:.4f}" not in cloud_maps:
                                     payload = {"trip_id": t_id, "lat": lat, "lon": lon, "title": str(row.get("title", "Спирка")), "color": str(row.get("color", "blue"))}
                                     r_post = requests.post(f"{url_base}/rest/v1/map_points", json=payload, headers=headers, timeout=4)
-                                    if r_post.status_code in:
+                                    if r_post.status_code == 200 or r_post.status_code == 201:
                                         качени_пинове += 1
                     except Exception as e:
                         st.warning(f"Грешка карта: {e}")
@@ -1125,7 +1125,7 @@ with st.sidebar:
                                     headers_upsert = headers.copy()
                                     headers_upsert["Prefer"] = "resolution=merge-duplicates"
                                     r_post = requests.post(f"{url_base}/rest/v1/trip_settings", json=payload, headers=headers_upsert, timeout=4)
-                                    if r_post.status_code in:
+                                    if r_post.status_code == 200 or r_post.status_code == 201:
                                         качени_настройки += 1
                     except Exception as e:
                         st.warning(f"Грешка настройки: {e}")
