@@ -1040,7 +1040,7 @@ with st.sidebar:
     
     if st.button("🔄 СИНХРОНИЗИРАЙ ВСИЧКИ ДАННИ СЕГА"):
         if "supabase" not in st.secrets:
-            st.error("❌ Грешка: Липсва секция [supabase] in Secrets на Streamlit Cloud!")
+            st.error("❌ Грешка: Липсва секция [supabase] в Secrets на Streamlit Cloud!")
         else:
             url_base = st.secrets["supabase"].get("url")
             jwt_key = st.secrets["supabase"].get("jwt_key")
@@ -1106,7 +1106,7 @@ with st.sidebar:
                     except Exception as e:
                         st.warning(f"Грешка карта: {e}")
 
-                # 3. ...и настройките за колата
+                # 3. Синхронизация на настройките за колата
                 if os.path.exists("trip_settings_2026.csv"):
                     try:
                         df_settings = pd.read_csv("trip_settings_2026.csv", encoding="utf-8")
@@ -1131,5 +1131,3 @@ with st.sidebar:
                         st.warning(f"Грешка настройки: {e}")
 
                 st.success(f"📊 Готово! Качени: {качени_разходи} разхода, {качени_пинове} пина, {качени_настройки} настройки.")
-
-
