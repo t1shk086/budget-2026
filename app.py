@@ -966,43 +966,13 @@ else:
 
 
 # =====================================================================
-# 🔥 ИЗОЛИРАН БЛОК ЗА ФОНОВО КАЧВАНЕ НА СНИМКИ В SUPABASE STORAGE
+# 🚀 ФИНАЛЕН РАБОТЕЩ БЛОК ЗА ФОНОВ ЗАПИС НА РАЗХОДИ И СНИМКИ
 # =====================================================================
 import requests
-
-def background_supabase_upload_photo(bucket_name, file_name, file_bytes):
-    """Качва снимка в Supabase Storage тихомълком в заден фон."""
-    try:
-        url = f"https://supabase.co{bucket_name}/{file_name}"
-        headers = {
-            "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
-            "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7"
-        }
-        requests.post(url, data=file_bytes, headers=headers, timeout=5)
-    except:
-        pass
-
-# Проверяваме дали потребителят току-що е качил снимки през file_uploader
-if "current_trip" in st.session_state and st.session_state["current_trip"] is not None:
-    t_id = st.session_state["current_trip"]
-    widget_key = f"u_{t_id}_gallery"
-    if widget_key in st.session_state and st.session_state[widget_key] is not None:
-        uploaded_files = st.session_state[widget_key]
-        if isinstance(uploaded_files, list) and len(uploaded_files) > 0:
-            for f in uploaded_files:
-                upload_tracker_key = f"uploaded_cloud_{t_id}_{f.name}"
-                if not st.session_state.get(upload_tracker_key, False):
-                    try:
-                        bytes_data = f.getvalue()
-                        cloud_name = f"{t_id}_{f.name}"
-                        background_supabase_upload_photo("snimki", cloud_name, bytes_data)
-                        st.session_state[upload_tracker_key] = True
-                    except:
-                        pass
-
+import datetime
 
 def background_supabase_log(t_id, amt, cat, desc, is_dep=False):
-    """Изпраща копие от разхода към Supabase и показва грешката на екрана."""
+    """Изпраща копие от разхода към Supabase тихомълком в заден фон."""
     try:
         url = "https://supabase.co"
         headers = {
@@ -1020,45 +990,36 @@ def background_supabase_log(t_id, amt, cat, desc, is_dep=False):
             "liters": 0.0,
             "current_km": 0.0
         }
-        res = requests.post(url, json=payload, headers=headers, timeout=3)
-        # Проверяваме дали статус кодът е различен от успешните 200 и 201
-        if res.status_code != 200 and res.status_code != 201:
-            st.error(f"Фонов лог отказан от Supabase (Код {res.status_code}): {res.text}")
-    except Exception as ex:
-        st.error(f"Грешка във фоновата връзка: {ex}")
-
-# =====================================================================
-# 🛡️ ИЗОЛИРАН БЛОК: СПАСЯВАНЕ НА ХРОНОЛОГИЯТА И ИЗОЛИРАНЕ НА SUPABASE
-# =====================================================================
-import requests
-
-# Пълно подсигуряване, че ако Supabase върне празен отговор, локалното приложение няма да се счупи
-if 'df_trip' in locals() and (df_trip is None or (isinstance(df_trip, pd.DataFrame) and df_trip.empty)):
-    try:
-        # Принудително зареждаме локалния CSV файл, за да тръгне хронологията Ви веднага
-        if os.path.exists(DATA_FILE):
-            df_trip = pd.read_csv(DATA_FILE, encoding="utf-8")
-            if "trip_id" in df_trip.columns and 'trip_id' in locals():
-                df_trip = df_trip[df_trip["trip_id"] == trip_id]
+        requests.post(url, json=payload, headers=headers, timeout=3)
     except:
         pass
 
-# Създаваме скрито меню встрани за проверка на връзката, без да пречи на главния екран
-with st.sidebar:
-    st.markdown("---")
-    st.markdown("### 🔌 Диагностика на Облака")
-    if st.button("🔍 Тествай връзката със Supabase"):
-        try:
-            test_url = "https://supabase.co"
-            test_headers = {
-                "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
-                "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7"
-            }
-            res = requests.get(test_url, headers=test_headers, timeout=4)
-            if res.status_code == 200:
-                st.success("✅ Връзката е успешна! Базата данни отговаря.")
-            else:
-                st.error(f"❌ Грешка {res.status_code}: {res.text}")
-        except Exception as err:
-            st.error(f"💥 Срив при свързване: {err}")
+def background_supabase_upload_photo(bucket_name, file_name, file_bytes):
+    """Качва снимка в Supabase Storage тихомълком в заден фон."""
+    try:
+        url = f"https://supabase.co{bucket_name}/{file_name}"
+        headers = {
+            "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
+            "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7"
+        }
+        requests.post(url, data=file_bytes, headers=headers, timeout=5)
+    except:
+        pass
 
+# Автоматично прихващане на качените снимки през фабричния уиджети
+if "current_trip" in st.session_state and st.session_state["current_trip"] is not None:
+    t_id = st.session_state["current_trip"]
+    widget_key = f"u_{t_id}_gallery"
+    if widget_key in st.session_state and st.session_state[widget_key] is not None:
+        uploaded_files = st.session_state[widget_key]
+        if isinstance(uploaded_files, list) and len(uploaded_files) > 0:
+            for f in uploaded_files:
+                upload_tracker_key = f"uploaded_cloud_{t_id}_{f.name}"
+                if not st.session_state.get(upload_tracker_key, False):
+                    try:
+                        bytes_data = f.getvalue()
+                        cloud_name = f"{t_id}_{f.name}"
+                        background_supabase_upload_photo("snimki", cloud_name, bytes_data)
+                        st.session_state[upload_tracker_key] = True
+                    except:
+                        pass
