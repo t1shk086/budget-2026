@@ -965,6 +965,40 @@ else:
             """, unsafe_allow_html=True)
 
 
+# =====================================================================
+# 🔥 ИЗОЛИРАН БЛОК ЗА ФОНОВО КАЧВАНЕ НА СНИМКИ В SUPABASE STORAGE
+# =====================================================================
+import requests
+
+def background_supabase_upload_photo(bucket_name, file_name, file_bytes):
+    """Качва снимка в Supabase Storage тихомълком в заден фон."""
+    try:
+        url = f"https://supabase.co{bucket_name}/{file_name}"
+        headers = {
+            "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
+            "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7"
+        }
+        requests.post(url, data=file_bytes, headers=headers, timeout=5)
+    except:
+        pass
+
+# Проверяваме дали потребителят току-що е качил снимки през file_uploader
+if "current_trip" in st.session_state and st.session_state["current_trip"] is not None:
+    t_id = st.session_state["current_trip"]
+    widget_key = f"u_{t_id}_gallery"
+    if widget_key in st.session_state and st.session_state[widget_key] is not None:
+        uploaded_files = st.session_state[widget_key]
+        if isinstance(uploaded_files, list) and len(uploaded_files) > 0:
+            for f in uploaded_files:
+                upload_tracker_key = f"uploaded_cloud_{t_id}_{f.name}"
+                if not st.session_state.get(upload_tracker_key, False):
+                    try:
+                        bytes_data = f.getvalue()
+                        cloud_name = f"{t_id}_{f.name}"
+                        background_supabase_upload_photo("snimki", cloud_name, bytes_data)
+                        st.session_state[upload_tracker_key] = True
+                    except:
+                        pass
 
 
 
