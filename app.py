@@ -96,37 +96,76 @@ def download_photo_bytes(file_id):
     except: return b""
 st.markdown("""
 <style>
+    /* Луксозен, дълбок уеб градиент, който прелива плавно по целия екран */
     html, body, [data-testid="stAppViewContainer"] {
         background: linear-gradient(135deg, #090b0e 0%, #11151c 50%, #0d1117 100%) !important;
         background-attachment: fixed !important;
     }
+    
+    /* Фин предпазен слой за перфектен контраст на белия текст */
     [data-testid="stAppViewContainer"]::before {
-        content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        background: rgba(0, 0, 0, 0.15) !important; z-index: -1; pointer-events: none;
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0, 0, 0, 0.15) !important;
+        z-index: -1;
+        pointer-events: none;
     }
+
+    /* 🔥 КОРИГИРАН СЕЛЕКТОР: Променя само рамките за въвеждане, без да скрива логото и заглавията */
+    div[data-testid="stWidgetByPassId"] [data-baseweb="select"],
+    div[data-testid="stWidgetByPassId"] [data-baseweb="input"],
+    div[data-testid="stWidgetByPassId"] [data-testid="stFileUploaderDropzone"] {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 14px !important; 
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+        backdrop-filter: blur(4px) !important;
+        -webkit-backdrop-filter: blur(4px) !important;
+    }
+    
+    /* Отстояния между самите полета */
     div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {
-        background: rgba(255, 255, 255, 0.02) !important; border: 1px solid rgba(255, 255, 255, 0.06) !important;
-        border-radius: 14px !important; padding: 10px 15px !important; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
-        backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; margin-bottom: 15px !important;
+        margin-bottom: 15px !important;
     }
-    button[data-testid="stBaseButton-secondary"], button[data-testid="stBaseButton-primary"], [data-testid="stFileUploaderDropzone"] button {
-        background: linear-gradient(135deg, #252932, #16191f) !important; color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important; border-radius: 12px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
-        transition: all 0.25s ease !important; font-weight: 600 !important; letter-spacing: 0.5px !important; width: 100% !important;
+
+    /* Професионални тъмни бутони с дълбока сянка */
+    button[data-testid="stBaseButton-secondary"], 
+    button[data-testid="stBaseButton-primary"],
+    [data-testid="stFileUploaderDropzone"] button {
+        background: linear-gradient(135deg, #252932, #16191f) !important; 
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important; 
+        border-radius: 12px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+        transition: all 0.25s ease !important; 
+        font-weight: 600 !important;
+        letter-spacing: 0.5px !important;
+        width: 100% !important;
     }
-    button[data-testid="stBaseButton-secondary"]:hover, button[data-testid="stBaseButton-primary"]:hover, [data-testid="stFileUploaderDropzone"] button:hover {
-        background: linear-gradient(135deg, #2e343f, #1c2028) !important; transform: translateY(-1px) !important;
-        box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15) !important; border-color: rgba(0, 242, 254, 0.2) !important;
+
+    /* Елегантен светлинен ефект при посочване на бутоните */
+    button[data-testid="stBaseButton-secondary"]:hover, 
+    button[data-testid="stBaseButton-primary"]:hover,
+    [data-testid="stFileUploaderDropzone"] button:hover {
+        background: linear-gradient(135deg, #2e343f, #1c2028) !important;
+        transform: translateY(-1px) !important; 
+        box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15) !important;
+        border-color: rgba(0, 242, 254, 0.2) !important;
     }
+
     small { color: #7e8494 !important; }
 </style>
 """, unsafe_allow_html=True)
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
-DATA_FILE, SETTINGS_FILE, MAP_FILE = "budget_data_2026.csv", "trip_settings_2026.csv", "trip_map_points_2026.csv"
+DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
+MAP_FILE = "trip_map_points_2026.csv"
+
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
+
 
 def get_trip_data(t_id):
     df = read_csv_from_drive(DATA_FILE, ["trip_id","date","amount","category","description","type","liters","current_km"])
