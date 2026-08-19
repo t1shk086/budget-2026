@@ -1184,3 +1184,65 @@ with st.sidebar:
         except Exception as e:
             st.error(f"💥 Грешка: {e}")
 
+# =====================================================================
+# 🛸 АВТОМАТИЧЕН СИНХРОНИЗАТОР НА CSV ФАЙЛА КЪМ ОБЛАКА (В САМИЯ КРАЙ)
+# =====================================================================
+import requests
+import os
+import pandas as pd
+
+def sync_local_csv_to_supabase():
+    """Сверява локалния CSV файл и качва липсващите редове в Supabase."""
+    # Име на Вашия локален файл с разходи (променете го, ако се казва различно)
+    LOCAL_FILE = "budget_data.csv"
+    
+    if os.path.exists(LOCAL_FILE):
+        try:
+            # 1. Зареждаме локалните разходи от телефона
+            df_local = pd.read_csv(LOCAL_FILE, encoding="utf-8")
+            if df_local.empty:
+                return
+
+            # Настройки на новата Ви работеща база данни
+            url = "https://supabase.co"
+            jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVidW5xcWtrZWN6andtZW1kdW95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTE4MDEsImV4cCI6MjEwMjcyNzgwMX0.tOn9YEJ5iM8BCxDdHscFTCzcWkAcLl7H1n3ASZngwMk"
+            headers = {
+                "apikey": jwt_key,
+                "Authorization": f"Bearer {jwt_key}",
+                "Content-Type": "application/json"
+            }
+
+            # 2. Проверяваме какво вече има в Supabase, за да не повтаряме редове
+            res = requests.get(f"{url}?select=trip_id,amount,date,description", headers=headers, timeout=3)
+            cloud_keys = set()
+            if res.status_code == 200 and res.json():
+                for r in res.json():
+                    # Създаваме уникален ключ за всеки разход
+                    cloud_keys.add(f"{r.get('trip_id')}_{r.get('amount')}_{r.get('date')}")
+
+            # 3. Превъртаме локалните разходи и качваме само новите
+            for _, row in df_local.iterrows():
+                t_id = str(row.get("trip_id", ""))
+                amt = float(row.get("amount", 0.0))
+                dt = str(row.get("date", ""))
+                
+                match_key = f"{t_id}_{amt}_{dt}"
+                
+                # Ако този разход го няма в облака, го изпращаме веднага
+                if match_key not in cloud_keys:
+                    payload = {
+                        "trip_id": t_id,
+                        "date": dt,
+                        "amount": amt,
+                        "category": str(row.get("category", "Други")),
+                        "description": str(row.get("description", "Без описание")),
+                        "type": str(row.get("type", "expense")),
+                        "liters": float(row.get("liters", 0.0)) if "liters" in row else 0.0,
+                        "current_km": float(row.get("current_km", 0.0)) if "current_km" in row else 0.0
+                    }
+                    requests.post(url, json=payload, headers=headers, timeout=3)
+        except:
+            pass
+
+# Изпълняваме автоматичната синхронизация при всяко раздвижване/зареждане на екрана
+sync_local_csv_to_supabase()
