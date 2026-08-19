@@ -560,11 +560,14 @@ else:
         
         try:
             df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-            valid_expenses = df_all[df_all["trip_id"] == trip_id].index.tolist()
-            if not valid_expenses:
+            # Намираме редовете, които съответстват на текущото пътуване
+            df_trip_rows = df_all[df_all["trip_id"] == trip_id]
+            
+            if df_trip_rows.empty:
                 st.info("Няма регистрирани разходи за това пътуване.")
             else:
-                for idx in reversed(valid_expenses):
+                # Въртим хронологията от най-новите към най-старите
+                for idx in reversed(df_trip_rows.index.tolist()):
                     if idx not in df_all.index:
                         continue
                     r = df_all.loc[idx]
@@ -590,14 +593,16 @@ else:
                         
                     with col_del:
                         st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
-                        if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True, help="Изтрий веднага"):
+                        # Използваме бутон, който директно презарежда базата след премахване на конкретния ред
+                        if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True):
                             df_fresh = pd.read_csv(DATA_FILE, encoding="utf-8")
-                            df_fresh.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
+                            df_fresh = df_fresh.drop(idx)
+                            df_fresh.to_csv(DATA_FILE, index=False, encoding="utf-8")
                             st.session_state["form_version"] += 1
                             st.rerun()
                         st.markdown('</div>', unsafe_allow_html=True)
-        except:
-            st.error("Грешка при зареждане на хронологията.")
+        except Exception as e:
+            st.error(f"Грешка при зареждане на хронологията: {str(e)}")
         
         st.markdown("---")
         if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
@@ -635,6 +640,7 @@ else:
     )
 
     st.markdown("---")
+
     st.subheader("🗺️ Карта на спирките и дестинациите")
     df_points = get_map_points(trip_id)
     
