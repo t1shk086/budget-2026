@@ -80,51 +80,56 @@ conn = st.connection(
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
-def get_trip_data(t_id):
-    try:
-        res = conn.table("budget_data").select("*").eq("trip_id", t_id).execute()
-        if res.data:
-            r = pd.DataFrame(res.data)
-            if "liters" not in r.columns: r["liters"] = 0.0
-            if "current_km" not in r.columns: r["current_km"] = 0.0
-            return r
-    except: pass
-    return pd.DataFrame(columns=["id","trip_id","date","amount","category","description","type","liters","current_km"])
-
-def get_trip_settings(t_id):
-    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
-    try:
-        res = conn.table("trip_settings").select("*").eq("trip_id", t_id).execute()
-        if res.data and len(res.data) > 0:
-            return res.data
-    except: pass
-    return d
-
 def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
     try:
-        row_data = {"trip_id": str(t_id), "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f), "start_date": str(s_d), "end_date": str(e_d)}
+        row_data = {
+            "trip_id": str(t_id), 
+            "car_trip": str(c_t), 
+            "track_fuel": str(t_f), 
+            "start_km": float(s_k), 
+            "end_km": float(e_k), 
+            "manual_fuel": float(m_f), 
+            "start_date": str(s_d), 
+            "end_date": str(e_d)
+        }
         conn.table("trip_settings").upsert(row_data).execute()
-    except: pass
+    except Exception as e:
+        st.sidebar.error(f"Грешка настройки: {e}")
+
 def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
-        row = {"trip_id": str(t_id), "date": datetime.datetime.now().strftime("%d.%m %H:%M"), "amount": float(amt), "category": str(cat), "description": str(desc) if desc else "Без описание", "type": "deposit" if is_dep else "expense", "liters": float(lit), "current_km": float(c_km)}
+        row = {
+            "trip_id": str(t_id), 
+            "date": datetime.datetime.now().strftime("%d.%m %H:%M"), 
+            "amount": float(amt), 
+            "category": str(cat), 
+            "description": str(desc) if desc else "Без описание", 
+            "type": "deposit" if is_dep else "expense", 
+            "liters": float(lit), 
+            "current_km": float(c_km)
+        }
+        # Използваме директен insert без подаване на празно или ръчно ID
         conn.table("budget_data").insert(row).execute()
         return True
-    except: return False
-
-def get_map_points(t_id):
-    try:
-        res = conn.table("map_points").select("*").eq("trip_id", t_id).execute()
-        if res.data: return pd.DataFrame(res.data)
-    except: pass
-    return pd.DataFrame(columns=["id", "trip_id", "lat", "lon", "title", "color"])
+    except Exception as e:
+        st.sidebar.error(f"Грешка разход: {e}")
+        return False
 
 def add_map_point(t_id, lat, lon, title, color="blue"):
     try:
-        row = {"trip_id": str(t_id), "lat": float(lat), "lon": float(lon), "title": str(title), "color": str(color)}
+        row = {
+            "trip_id": str(t_id), 
+            "lat": float(lat), 
+            "lon": float(lon), 
+            "title": str(title), 
+            "color": str(color)
+        }
         conn.table("map_points").insert(row).execute()
         return True
-    except: return False
+    except Exception as e:
+        st.sidebar.error(f"Грешка карта: {e}")
+        return False
+
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
