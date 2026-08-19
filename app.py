@@ -80,6 +80,26 @@ conn = st.connection(
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
+def get_trip_data(t_id):
+    try:
+        res = conn.table("budget_data").select("*").eq("trip_id", t_id).execute()
+        if res.data:
+            r = pd.DataFrame(res.data)
+            if "liters" not in r.columns: r["liters"] = 0.0
+            if "current_km" not in r.columns: r["current_km"] = 0.0
+            return r
+    except: pass
+    return pd.DataFrame(columns=["id","trip_id","date","amount","category","description","type","liters","current_km"])
+
+def get_trip_settings(t_id):
+    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
+    try:
+        res = conn.table("trip_settings").select("*").eq("trip_id", t_id).execute()
+        if res.data and len(res.data) > 0:
+            return res.data[0] if isinstance(res.data, list) else res.data
+    except: pass
+    return d
+
 def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
     try:
         row_data = {
@@ -113,6 +133,13 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     except Exception as e:
         st.error(f"Supabase Грешка (Разход): {e}")
         return False
+
+def get_map_points(t_id):
+    try:
+        res = conn.table("map_points").select("*").eq("trip_id", t_id).execute()
+        if res.data: return pd.DataFrame(res.data)
+    except: pass
+    return pd.DataFrame(columns=["id", "trip_id", "lat", "lon", "title", "color"])
 
 def add_map_point(t_id, lat, lon, title, color="blue"):
     try:
