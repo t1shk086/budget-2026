@@ -798,23 +798,23 @@ else:
 
 
 
-        # 7. Карта на спирките и дестинациите (Folium) - Стабилна и с памет за конкретното пътуване
+        # 7. Карта на спирките и дестинациите (Folium) - Стабилна, с памет за пътуване и фиксиран зуум
         st.subheader("🗺️ Карта на спирките и дестинациите")
         df_points = get_map_points(trip_id)
         
-        # СЛЕДЕНЕ ЗА СМЯНА НА ПЪТУВАНЕТО: Ако сесията е празна или сме сменили дестинацията, рестартираме центъра
+        # Рестартиране на центъра и зуума единствено при пълна смяна на пътуването
         if "map_current_trip_id" not in st.session_state or st.session_state["map_current_trip_id"] != trip_id:
             st.session_state["map_current_trip_id"] = trip_id
             if not df_points.empty:
                 st.session_state["stable_lat"] = float(df_points["lat"].mean())
                 st.session_state["stable_lon"] = float(df_points["lon"].mean())
-                st.session_state["stable_zoom"] = 8
+                st.session_state["stable_zoom"] = 8  # Фабричен начален зуум за ново пътуване
             else:
                 st.session_state["stable_lat"] = 42.7339
                 st.session_state["stable_lon"] = 25.4858
                 st.session_state["stable_zoom"] = 6
 
-        # Създаваме чист Folium обект с актуалните за това пътуване координати
+        # Създаваме картата с последното запомнено състояние (няма да се нулира към 8 при запис)
         m = folium.Map(
             location=[st.session_state["stable_lat"], st.session_state["stable_lon"]], 
             zoom_start=st.session_state["stable_zoom"]
@@ -830,23 +830,28 @@ else:
                 icon=folium.Icon(color=pt["color"], icon="info-sign")
             ).add_to(m)
         
-        # Връщаме само натиснатия маркер, за да няма премигвания
+        # Връщаме обектите. Добавяме "zoom" тук, за да разберем на какво разстояние си бил по време на клика
         map_data = st_folium(
             m, 
             width=700, 
             height=400, 
             key="static_folium_trip_map", 
-            returned_objects=["last_clicked"]
+            returned_objects=["last_clicked", "zoom"]
         )
 
         # Обработка на клик за нова точка
         if map_data and map_data.get("last_clicked"):
             new_click = map_data["last_clicked"]
             if st.session_state.get("active_click") != new_click: 
-                # Запазваме мястото на клика като нов център само за текущото пътуване
+                # Запазваме центъра на клика
                 st.session_state["stable_lat"] = new_click["lat"]
                 st.session_state["stable_lon"] = new_click["lng"]
-                st.session_state["stable_zoom"] = 13
+                
+                # УЛАВЯНЕ НА ЗУУМА: Ако потребителят е бил приближил ръчно, пазим ТОЧНИЯ му зуум, за да не се променя
+                if map_data.get("zoom") is not None:
+                    st.session_state["stable_zoom"] = map_data["zoom"]
+                else:
+                    st.session_state["stable_zoom"] = 13  # Защитен вариант, ако липсва данни
                 
                 st.session_state["active_click"] = new_click
                 st.rerun()
@@ -861,12 +866,14 @@ else:
             with cb1:
                 if st.button("💾 Запис", use_container_width=True, type="primary") and title_in:
                     if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in): 
+                        # При успешен запис НЕ пипаме st.session_state["stable_zoom"], за да остане същият!
                         st.session_state["active_click"] = None
                         st.rerun()
             with cb2:
                 if st.button("❌ Отказ", use_container_width=True): 
                     st.session_state["active_click"] = None
                     st.rerun()
+
 
 
 
