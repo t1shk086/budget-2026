@@ -935,6 +935,47 @@ else:
             """, unsafe_allow_html=True)
 
 
+# =====================================================================
+# 📦 ЦЕНТЪР ЗА РЪЧЕН БЕКЪП И ЕКСПОРТ НА ЛОГОВЕ (В САМИЯ КРАЙ)
+# =====================================================================
+import streamlit as st
+import pandas as pd
+import os
+
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("### 📥 Архивиране и Експорт")
+    
+    # Търсим реалния файл с разходи на сървъра
+    ИМЕ_НА_ФАЙЛА = "budget_data_2026.csv"
+    
+    if os.path.exists(ИМЕ_НА_ФАЙЛА) and os.path.getsize(ИМЕ_НА_ФАЙЛА) > 0:
+        try:
+            # Зареждаме данните за експорт
+            df_export = pd.read_csv(ИМЕ_НА_ФАЙЛА, encoding="utf-8")
+            
+            if not df_export.empty:
+                st.write(f"📊 Открити: {len(df_export)} записа в лога.")
+                
+                # ОПЦИЯ 1: Директно сваляне като Excel/CSV на телефона Ви
+                csv_bytes = df_export.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="💾 Свали CSV лог на телефона",
+                    data=csv_bytes,
+                    file_name=f"pixelbudget_backup_{datetime.datetime.now().strftime('%d_%m_%Y')}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+                
+                # ОПЦИЯ 2: Визуален бекъп код (копиране на целия текст на лога)
+                with st.expander("📝 Виж лога като текст (за копиране)"):
+                    st.text_area("Копирайте и си го запазете в Бележките:", value=df_export.to_csv(index=False), height=250)
+            else:
+                st.info("Логът в момента е празен.")
+        except Exception as e:
+            st.error(f"Грешка при четене на лога: {e}")
+    else:
+        st.info("ℹ️ Все още няма въведени локални разходи за запис.")
 
 
 
