@@ -35,7 +35,7 @@ def get_map_points(t_id):
 
 def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
-        # 1. ОРИГИНАЛНИЯТ ВИ ЛОКАЛЕН ЗАПИС (Недокоснат, за да работи хронологията Ви)
+        # 1. Локален запис за хронологията на телефона Ви (Остава непокътнат и бърз)
         df = pd.read_csv(DATA_FILE, encoding="utf-8") if os.path.exists(DATA_FILE) else pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters","current_km"])
         row = {
             "trip_id": str(t_id), 
@@ -49,10 +49,11 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
         }
         pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(DATA_FILE, index=False, encoding="utf-8")
         
-        # 2. ДИРЕКТЕН ОБЛАЧЕН ЗАПИС (Вграден директно вътре при натискане на бутона)
+        # 2. Светкавичен запис към НОВИЯ проект в Supabase
         try:
             url = "https://supabase.co"
-            jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudXFwenpvcmNuanJidHd3b3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNDA2OTEsImV4cCI6MjEwMjcxNjY5MX0.Kjim-3myqk53OnB6RiilKYxG1R3xnLsaNJb04FtrShM"
+            jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVidW5xcWtrZWN6andtZW1kdW95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTE4MDEsImV4cCI6MjEwMjcyNzgwMX0.tOn9YEJ5iM8BCxDdHscFTCzcWkAcLl7H1n3ASZngwMk"
+            
             headers = {
                 "apikey": jwt_key,
                 "Authorization": f"Bearer {jwt_key}",
@@ -60,12 +61,13 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
             }
             requests.post(url, json=row, headers=headers, timeout=4)
         except:
-            pass # Ако интернетът на телефона се забави, подминава, за да не Ви блокира екрана
+            pass # Предотвратява забиване, ако интернетът на телефона се забави
             
         return True
     except Exception as e:
         st.error(f"Локална грешка: {e}")
         return False
+
 
 
 
