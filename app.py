@@ -33,10 +33,9 @@ def get_trip_settings(t_id):
 def get_map_points(t_id):
     return pd.DataFrame(columns=["id", "trip_id", "lat", "lon", "title", "color"])
 
-# 🔥 МОЩЕН ПРЕНАСОЧВАЩ ХУК – ПРЕПИСВА ОРИГИНАЛНАТА ФУНКЦИЯ ЗА ЗАПИС:
 def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
-        # 1. СВЕТКАВИЧЕН ЛОКАЛЕН ЗАПИС (За да работи хронологията Ви)
+        # 1. ОРИГИНАЛНИЯТ ВИ ЛОКАЛЕН ЗАПИС (Недокоснат, за да работи хронологията Ви)
         df = pd.read_csv(DATA_FILE, encoding="utf-8") if os.path.exists(DATA_FILE) else pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters","current_km"])
         row = {
             "trip_id": str(t_id), 
@@ -50,19 +49,24 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
         }
         pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(DATA_FILE, index=False, encoding="utf-8")
         
-        # 2. МОМЕНТАЛЕН СИНХРОНЕН ЗАПИС В SUPABASE (Вече няма как да се пропусне)
-        url = "https://supabase.co"
-        headers = {
-            "apikey": SUPABASE_JWT_KEY,
-            "Authorization": f"Bearer {SUPABASE_JWT_KEY}",
-            "Content-Type": "application/json"
-        }
-        requests.post(url, json=row, headers=headers, timeout=4)
+        # 2. ДИРЕКТЕН ОБЛАЧЕН ЗАПИС (Вграден директно вътре при натискане на бутона)
+        try:
+            url = "https://supabase.co"
+            jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudXFwenpvcmNuanJidHd3b3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNDA2OTEsImV4cCI6MjEwMjcxNjY5MX0.Kjim-3myqk53OnB6RiilKYxG1R3xnLsaNJb04FtrShM"
+            headers = {
+                "apikey": jwt_key,
+                "Authorization": f"Bearer {jwt_key}",
+                "Content-Type": "application/json"
+            }
+            requests.post(url, json=row, headers=headers, timeout=4)
+        except:
+            pass # Ако интернетът на телефона се забави, подминава, за да не Ви блокира екрана
+            
         return True
     except Exception as e:
-        # Ако нещо се обърка, показваме точната грешка на екрана, за да я хванем
-        st.error(f"Грешка при запис: {e}")
+        st.error(f"Локална грешка: {e}")
         return False
+
 
 
 def background_supabase_log(t_id, amt, cat, desc, is_dep=False):
