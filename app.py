@@ -577,7 +577,7 @@ else:
                     margin-bottom: 2px !important;
                     min-height: 52px !important;
                     display: flex !important;
-                    flex-direction: column !important;
+                    flex-direction: column;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -620,7 +620,6 @@ else:
                             target_row = df_fresh.loc[idx]
                             desc_str = str(target_row["description"])
                             
-                            # Ако изтриваме ръчно добавено пропуснато гориво
                             if "[ПРОПУСНАТО ГОРИВО]" in desc_str:
                                 import re
                                 match = re.search(r"Добавени\s*([0-9.]+)\s*литра", desc_str)
@@ -629,8 +628,6 @@ else:
                                     new_m_fuel = max(0.0, m_fuel - liters_to_subtract)
                                     save_trip_settings(trip_id, car_trip, t_fuel, s_km, e_km, new_m_fuel, st_date, en_date)
                             
-                            # Ако е нормално гориво от категория "Транспорт", .drop() автоматично
-                            # ще намали сбора при следващото калкулиране на transport_liters
                             df_fresh = df_fresh.drop(idx)
                             df_fresh.to_csv(DATA_FILE, index=False, encoding="utf-8")
                             st.session_state["form_version"] += 1
@@ -643,12 +640,71 @@ else:
         if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
             st.rerun()
 
-    avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
+    # Смятане на средния разход
+    avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л" if dist > 0 else (f"{progressive_avg_con:.1f} л" if has_progressive_data else "Няма данни")
+    
+    # Моментен/Текущ разход (вземаме последното въведено зареждане от лога за колата, ако има)
+    current_con_txt = "Няма данни"
+    if dist > 0 and total_liters_calculated > 0:
+        # Примерен алгоритъм за текущ спрямо последните данни или прогресивния моментен разход
+        current_con_txt = f"{progressive_avg_con:.1f} л" if has_progressive_data else avg_con_txt
+
     grand_total = depozit_hotel + total_on_site
     period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
     
-    pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
+    # НОВО: Дизайн на 3D Километражите в едно общо поле с две секции
+    st.markdown(f"""
+        <div style="
+            background: linear-gradient(135deg, #1e2029 0%, #111217 100%);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.5), inset 0px 1px 2px rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            text-align: center;
+        ">
+            <!-- Текущ разход Километраж -->
+            <div style="flex: 1; border-right: 1px solid rgba(255,255,255,0.1); padding: 10px;">
+                <div style="font-size: 11px; font-weight: 800; color: #888; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px;">
+                    ⚡ ТЕКУЩ РАЗХОД
+                </div>
+                <div style="
+                    font-size: 28px; 
+                    font-weight: 900; 
+                    color: #00f2fe; 
+                    text-shadow: 0px 4px 10px rgba(0, 242, 254, 0.3);
+                    font-family: monospace;
+                ">
+                    {current_con_txt}
+                </div>
+                <div style="font-size: 11px; color: #555; margin-top: 2px;">за 100 км</div>
+            </div>
+            
+            <!-- Среден разход Километраж -->
+            <div style="flex: 1; padding: 10px;">
+                <div style="font-size: 11px; font-weight: 800; color: #888; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px;">
+                    📊 СРЕДЕН РАЗХОД
+                </div>
+                <div style="
+                    font-size: 28px; 
+                    font-weight: 900; 
+                    color: #ff4b4b; 
+                    text-shadow: 0px 4px 10px rgba(255, 75, 75, 0.3);
+                    font-family: monospace;
+                ">
+                    {avg_con_txt}
+                </div>
+                <div style="font-size: 11px; color: #555; margin-top: 2px;">общо за пътя</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Генератор за HTML към PDF
+    pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt} / 100 км</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
     
     for _, row in df_trip.iterrows():
         desc_val = str(row['description'])
