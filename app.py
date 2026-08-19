@@ -131,7 +131,7 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
             "current_km": float(c_km)
         }
         res = requests.post(url, json=payload, headers=SUPABASE_HEADERS)
-        if res.status_code in:
+        if res.status_code == 200 or res.status_code == 201:
             return True
         else:
             st.error(f"Грешка при запис в базата: {res.text}")
@@ -139,6 +139,7 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     except Exception as e:
         st.error(f"Грешка връзка: {e}")
         return False
+
 
 
 def get_map_points(t_id):
