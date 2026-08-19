@@ -74,8 +74,9 @@ conn = st.connection(
     "supabase",
     type=SupabaseConnection,
     url="https://supabase.co",
-    key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudXFwenpvcmNuanJidHd3b3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNDA2OTEsImV4cCI6MjEwMjcxNjY5MX0.Kjim-3myqk53OnB6RiilKYxG1R3xnLsaNJb04FtrShM"
+    anon_key="sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7"
 )
+
 
 
 def get_emoji(cat):
