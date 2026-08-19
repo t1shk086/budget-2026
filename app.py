@@ -934,30 +934,30 @@ else:
                 </div>
             """, unsafe_allow_html=True)
 
-
 # =====================================================================
-# 📦 ЦЕНТЪР ЗА РЪЧЕН БЕКЪП И ЕКСПОРТ НА ЛОГОВЕ (В САМИЯ КРАЙ)
+# 📦 ЦЕНТЪР ЗА АРХИВИРАНЕ: СВАЛЯНЕ И ОБРАТНО ВЪЗСТАНОВЯВАНЕ (В САМИЯ КРАЙ)
 # =====================================================================
 import streamlit as st
 import pandas as pd
 import os
+import datetime
 
 with st.sidebar:
     st.markdown("---")
     st.markdown("### 📥 Архивиране и Експорт")
     
-    # Търсим реалния файл с разходи на сървъра
     ИМЕ_НА_ФАЙЛА = "budget_data_2026.csv"
     
+    # -----------------------------------------------------------------
+    # ЧАСТ 1: СВАЛЯНЕ НА ЛОГА (ЕКСПОРТ)
+    # -----------------------------------------------------------------
     if os.path.exists(ИМЕ_НА_ФАЙЛА) and os.path.getsize(ИМЕ_НА_ФАЙЛА) > 0:
         try:
-            # Зареждаме данните за експорт
             df_export = pd.read_csv(ИМЕ_НА_ФАЙЛА, encoding="utf-8")
-            
             if not df_export.empty:
-                st.write(f"📊 Открити: {len(df_export)} записа в лога.")
+                st.write(f"📊 Налични: {len(df_export)} записа в лога.")
                 
-                # ОПЦИЯ 1: Директно сваляне като Excel/CSV на телефона Ви
+                # Бутон за сваляне на файла на телефона
                 csv_bytes = df_export.to_csv(index=False).encode('utf-8')
                 st.download_button(
                     label="💾 Свали CSV лог на телефона",
@@ -967,15 +967,49 @@ with st.sidebar:
                     use_container_width=True
                 )
                 
-                # ОПЦИЯ 2: Визуален бекъп код (копиране на целия текст на лога)
-                with st.expander("📝 Виж лога като текст (за копиране)"):
-                    st.text_area("Копирайте и си го запазете в Бележките:", value=df_export.to_csv(index=False), height=250)
+                with st.expander("📝 Виж лога като текст"):
+                    st.text_area("Копирайте за Бележки:", value=df_export.to_csv(index=False), height=200)
             else:
-                st.info("Логът в момента е празен.")
-        except Exception as e:
-            st.error(f"Грешка при четене на лога: {e}")
+                st.info("Логът е празен.")
+        except:
+            st.info("Въведете разход за активиране на експорта.")
     else:
-        st.info("ℹ️ Все още няма въведени локални разходи за запис.")
+        st.info("ℹ️ Все още няма въведени разходи.")
 
-
+    # -----------------------------------------------------------------
+    # ЧАСТ 2: ОБРАТНО КАЧВАНЕ НА ЛОГА (ИМПОРТ / ВЪЗСТАНОВЯВАНЕ)
+    # -----------------------------------------------------------------
+    st.markdown("---")
+    st.markdown("### 📤 Възстановяване на архив")
+    
+    качен_архив = st.file_uploader(
+        "Изберете запазен .csv файл от телефона:", 
+        type=["csv"], 
+        key="restore_uploader_unique"
+    )
+    
+    if качен_архив is not None:
+        if st.button("🚀 Възстанови данните сега", use_container_width=True):
+            try:
+                # 1. Прочитаме качения от Вас файл
+                df_imported = pd.read_csv(качен_архив, encoding="utf-8")
+                
+                if not df_imported.empty:
+                    # 2. Ако вече има някакви нови редове в приложението, ги сливаме без да дублираме
+                    if os.path.exists(ИМЕ_НА_ФАЙЛА) and os.path.getsize(ИМЕ_НА_ФАЙЛА) > 0:
+                        df_current = pd.read_csv(ИМЕ_НА_ФАЙЛА, encoding="utf-8")
+                        # Сливане и премахване на абсолютно еднакви редове
+                        df_final = pd.concat([df_current, df_imported]).drop_duplicates(ignore_index=True)
+                    else:
+                        df_final = df_imported
+                    
+                    # 3. Записваме финалния резултат обратно в сърцето на приложението
+                    df_final.to_csv(ИМЕ_НА_ФАЙЛА, index=False, encoding="utf-8")
+                    
+                    st.success(f"✅ Успех! Възстановени са {len(df_final)} разхода!")
+                    st.rerun()
+                else:
+                    st.error("Каченият файл е празен!")
+            except Exception as ex:
+                st.error(f"Грешка при импортиране: {ex}")
 
