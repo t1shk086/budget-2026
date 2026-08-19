@@ -798,7 +798,7 @@ else:
 
 
 
-        # 7. Карта на спирките и дестинациите (Folium) - Стабилна, с памет за пътуване и фиксиран зуум
+        # 7. Карта на спирките и дестинациите (Folium) - Финална версия с динамичен ключ
         st.subheader("🗺️ Карта на спирките и дестинациите")
         df_points = get_map_points(trip_id)
         
@@ -808,13 +808,13 @@ else:
             if not df_points.empty:
                 st.session_state["stable_lat"] = float(df_points["lat"].mean())
                 st.session_state["stable_lon"] = float(df_points["lon"].mean())
-                st.session_state["stable_zoom"] = 8  # Фабричен начален зуум за ново пътуване
+                st.session_state["stable_zoom"] = 8
             else:
                 st.session_state["stable_lat"] = 42.7339
                 st.session_state["stable_lon"] = 25.4858
                 st.session_state["stable_zoom"] = 6
 
-        # Създаваме картата с последното запомнено състояние (няма да се нулира към 8 при запис)
+        # Създаваме картата с последно запазените в сесията параметри
         m = folium.Map(
             location=[st.session_state["stable_lat"], st.session_state["stable_lon"]], 
             zoom_start=st.session_state["stable_zoom"]
@@ -822,7 +822,6 @@ else:
         m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
         folium.LatLngPopup().add_to(m)
         
-        # Рисуване на маркерите
         for _, pt in df_points.iterrows(): 
             folium.Marker(
                 location=[pt["lat"], pt["lon"]], 
@@ -830,12 +829,17 @@ else:
                 icon=folium.Icon(color=pt["color"], icon="info-sign")
             ).add_to(m)
         
-        # Връщаме обектите. Добавяме "zoom" тук, за да разберем на какво разстояние си бил по време на клика
+        # ДИНАМИЧЕН КЛЮЧ: Променя се спрямо броя точки и състоянието на клика.
+        # Това принуждава браузъра да приложи новия stable_zoom веднага, без да го нулира!
+        points_count = len(df_points)
+        click_state = "active" if "active_click" in st.session_state and st.session_state["active_click"] is not None else "idle"
+        dynamic_map_key = f"folium_map_{trip_id}_{points_count}_{click_state}"
+
         map_data = st_folium(
             m, 
             width=700, 
             height=400, 
-            key="static_folium_trip_map", 
+            key=dynamic_map_key, 
             returned_objects=["last_clicked", "zoom"]
         )
 
@@ -843,15 +847,12 @@ else:
         if map_data and map_data.get("last_clicked"):
             new_click = map_data["last_clicked"]
             if st.session_state.get("active_click") != new_click: 
-                # Запазваме центъра на клика
                 st.session_state["stable_lat"] = new_click["lat"]
                 st.session_state["stable_lon"] = new_click["lng"]
                 
-                # УЛАВЯНЕ НА ЗУУМА: Ако потребителят е бил приближил ръчно, пазим ТОЧНИЯ му зуум, за да не се променя
+                # Хващаме точния зуум, на който е бил потребителят в момента на клика
                 if map_data.get("zoom") is not None:
                     st.session_state["stable_zoom"] = map_data["zoom"]
-                else:
-                    st.session_state["stable_zoom"] = 13  # Защитен вариант, ако липсва данни
                 
                 st.session_state["active_click"] = new_click
                 st.rerun()
@@ -866,13 +867,14 @@ else:
             with cb1:
                 if st.button("💾 Запис", use_container_width=True, type="primary") and title_in:
                     if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in): 
-                        # При успешен запис НЕ пипаме st.session_state["stable_zoom"], за да остане същият!
+                        # При успешен запис държим същия зуум, който хванахме при клика!
                         st.session_state["active_click"] = None
                         st.rerun()
             with cb2:
                 if st.button("❌ Отказ", use_container_width=True): 
                     st.session_state["active_click"] = None
                     st.rerun()
+
 
 
 
