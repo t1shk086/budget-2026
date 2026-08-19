@@ -640,115 +640,35 @@ else:
         if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
             st.rerun()
 
-    # Смятане на средния разход
-    avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л" if dist > 0 else (f"{progressive_avg_con:.1f} л" if has_progressive_data else "Няма данни")
-    
-    # Моментен/Текущ разход (вземаме последното въведено зареждане от лога за колата, ако има)
-    current_con_txt = "Няма данни"
-    if dist > 0 and total_liters_calculated > 0:
-        # Примерен алгоритъм за текущ спрямо последните данни или прогресивния моментен разход
-        current_con_txt = f"{progressive_avg_con:.1f} л" if has_progressive_data else avg_con_txt
+    # Изчисляване на стойностите за разхода
+    avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л" if dist > 0 else (f"{progressive_avg_con:.1f} л" if has_progressive_data else "0.0 л")
+    current_con_txt = f"{progressive_avg_con:.1f} л" if has_progressive_data else avg_con_txt
 
     grand_total = depozit_hotel + total_on_site
     period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
-    
-    # Истински Premium 3D Скеуоморфичен Автомобилен Клъстер
-    st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, #242731 0%, #15161c 100%);
-            border-top: 1px solid rgba(255,255,255,0.15);
-            border-left: 1px solid rgba(255,255,255,0.1);
-            border-right: 1px solid rgba(0,0,0,0.4);
-            border-bottom: 2px solid rgba(0,0,0,0.6);
-            border-radius: 20px;
-            padding: 4px;
-            margin-bottom: 28px;
-            box-shadow: 
-                0px 15px 35px rgba(0,0,0,0.6), 
-                0px 5px 15px rgba(0,0,0,0.4),
-                inset 0px 1px 0px rgba(255,255,255,0.1);
-        ">
-            <div style="
-                background: #0d0e12;
-                border-radius: 16px;
-                padding: 22px 10px;
-                display: flex;
-                justify-content: space-around;
-                align-items: center;
-                text-align: center;
-                box-shadow: inset 0px 4px 12px rgba(0,0,0,0.8), inset 0px -2px 6px rgba(255,255,255,0.05);
-                border: 1px solid rgba(0,0,0,0.5);
-            ">
-                <!-- 3D Клетка: ТЕКУЩ РАЗХОД -->
-                <div style="
-                    flex: 1; 
-                    border-right: 1px solid rgba(255,255,255,0.05); 
-                    padding: 0 15px;
-                    position: relative;
-                ">
-                    <div style="
-                        background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.00) 100%);
-                        padding: 12px 5px;
-                        border-radius: 12px;
-                        border: 1px solid rgba(255,255,255,0.03);
-                        box-shadow: 0px 4px 8px rgba(0,0,0,0.3), inset 0px 1px 1px rgba(255,255,255,0.05);
-                    ">
-                        <div style="font-size: 10px; font-weight: 800; color: #6a6f80; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; text-shadow: 1px 1px 0px #000;">
-                            ⚡ ТЕКУЩ РАЗХОД
-                        </div>
-                        <div style="
-                            font-size: 32px; 
-                            font-weight: 900; 
-                            color: #00f2fe; 
-                            text-shadow: 
-                                0px 0px 12px rgba(0, 242, 254, 0.6),
-                                0px 2px 4px rgba(0,0,0,0.9);
-                            font-family: 'Courier New', Courier, monospace;
-                            letter-spacing: -1px;
-                        ">
-                            {current_con_txt}
-                        </div>
-                        <div style="font-size: 11px; color: #434856; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">за 100 км</div>
-                    </div>
+    dashboard_html = f'''
+    <div style="background: linear-gradient(135deg, #242731 0%, #15161c 100%); border-top: 1px solid rgba(255,255,255,0.15); border-left: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(0,0,0,0.4); border-bottom: 2px solid rgba(0,0,0,0.6); border-radius: 20px; padding: 4px; margin-bottom: 28px; box-shadow: 0px 15px 35px rgba(0,0,0,0.6), 0px 5px 15px rgba(0,0,0,0.4), inset 0px 1px 0px rgba(255,255,255,0.1);">
+        <div style="background: #0d0e12; border-radius: 16px; padding: 22px 10px; display: flex; justify-content: space-around; align-items: center; text-align: center; box-shadow: inset 0px 4px 12px rgba(0,0,0,0.8), inset 0px -2px 6px rgba(255,255,255,0.05); border: 1px solid rgba(0,0,0,0.5);">
+            <div style="flex: 1; border-right: 1px solid rgba(255,255,255,0.05); padding: 0 15px; position: relative;">
+                <div style="background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.00) 100%); padding: 12px 5px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.03); box-shadow: 0px 4px 8px rgba(0,0,0,0.3), inset 0px 1px 1px rgba(255,255,255,0.05);">
+                    <div style="font-size: 10px; font-weight: 800; color: #6a6f80; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; text-shadow: 1px 1px 0px #000;">⚡ ТЕКУЩ РАЗХОД</div>
+                    <div style="font-size: 32px; font-weight: 900; color: #00f2fe; text-shadow: 0px 0px 12px rgba(0, 242, 254, 0.6), 0px 2px 4px rgba(0,0,0,0.9); font-family: 'Courier New', Courier, monospace; letter-spacing: -1px;">{current_con_txt}</div>
+                    <div style="font-size: 11px; color: #434856; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">за 100 км</div>
                 </div>
-                
-                <!-- 3D Клетка: СРЕДЕН РАЗХОД -->
-                <div style="
-                    flex: 1; 
-                    padding: 0 15px;
-                ">
-                    <div style="
-                        background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.00) 100%);
-                        padding: 12px 5px;
-                        border-radius: 12px;
-                        border: 1px solid rgba(255,255,255,0.03);
-                        box-shadow: 0px 4px 8px rgba(0,0,0,0.3), inset 0px 1px 1px rgba(255,255,255,0.05);
-                    ">
-                        <div style="font-size: 10px; font-weight: 800; color: #6a6f80; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; text-shadow: 1px 1px 0px #000;">
-                            📊 СРЕДЕН РАЗХОД
-                        </div>
-                        <div style="
-                            font-size: 32px; 
-                            font-weight: 900; 
-                            color: #ff4b4b; 
-                            text-shadow: 
-                                0px 0px 12px rgba(255, 75, 75, 0.6),
-                                0px 2px 4px rgba(0,0,0,0.9);
-                            font-family: 'Courier New', Courier, monospace;
-                            letter-spacing: -1px;
-                        ">
-                            {avg_con_txt}
-                        </div>
-                        <div style="font-size: 11px; color: #434856; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">общо за пътя</div>
-                    </div>
+            </div>
+            <div style="flex: 1; padding: 0 15px;">
+                <div style="background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.00) 100%); padding: 12px 5px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.03); box-shadow: 0px 4px 8px rgba(0,0,0,0.3), inset 0px 1px 1px rgba(255,255,255,0.05);">
+                    <div style="font-size: 10px; font-weight: 800; color: #6a6f80; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; text-shadow: 1px 1px 0px #000;">📊 СРЕДЕН РАЗХОД</div>
+                    <div style="font-size: 32px; font-weight: 900; color: #ff4b4b; text-shadow: 0px 0px 12px rgba(255, 75, 75, 0.6), 0px 2px 4px rgba(0,0,0,0.9); font-family: 'Courier New', Courier, monospace; letter-spacing: -1px;">{avg_con_txt}</div>
+                    <div style="font-size: 11px; color: #434856; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">общо за пътя</div>
                 </div>
             </div>
         </div>
-    """, unsafe_allow_html=True)
+    </div>
+    '''
+    st.markdown(dashboard_html, unsafe_allow_html=True)
 
-
-    # Генератор за HTML към PDF
     pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt} / 100 км</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
     
     for _, row in df_trip.iterrows():
@@ -776,6 +696,7 @@ else:
     )
 
     st.markdown("---")
+
 
 
 
