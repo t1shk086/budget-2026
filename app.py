@@ -656,42 +656,46 @@ else:
     period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
     # Проверяваме дали пътуването е приключило, за да отключим кръговите уреди
+    # Проверяваме дали пътуването е приключило, за да отключим кръговите уреди
     if is_trip_finished:
-        circle_dashboard_html = f'''
-        <div style="background: linear-gradient(135deg, #242731 0%, #15161c 100%); border-top: 1px solid rgba(255,255,255,0.15); border-left: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 25px 15px; margin-bottom: 28px; box-shadow: 0px 15px 35px rgba(0,0,0,0.6), inset 0px 1px 0px rgba(255,255,255,0.1); display: flex; justify-content: space-around; align-items: center; text-align: center;">
+        # Изграждаме чист HTML блок с предварително изчислени променливи, за да избегнем синтактични конфликти
+        st.markdown(
+            f'<div style="background: linear-gradient(135deg, #242731 0%, #15161c 100%); '
+            f'border-top: 1px solid rgba(255,255,255,0.15); border-left: 1px solid rgba(255,255,255,0.1); '
+            f'border-radius: 20px; padding: 25px 15px; margin-bottom: 28px; '
+            f'box-shadow: 0px 15px 35px rgba(0,0,0,0.6), inset 0px 1px 0px rgba(255,255,255,0.1); '
+            f'display: flex; justify-content: space-around; align-items: center; text-align: center;">'
             
-            <!-- Кръгов Километраж 1: РЕАЛЕН РАЗХОД -->
-            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-                <div style="font-size: 10px; font-weight: 800; color: #6a6f80; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; text-shadow: 1px 1px 0px #000;">⚡ РЕАЛЕН РАЗХОД</div>
-                <div style="position: relative; width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(#00f2fe 0% {deg_curr}%, #1a1c23 {deg_curr}% 100%); display: flex; justify-content: center; align-items: center; box-shadow: 0px 8px 20px rgba(0,0,0,0.5), inset 0px 2px 5px rgba(255,255,255,0.05);">
-                    <div style="position: absolute; width: 104px; height: 104px; border-radius: 50%; background: #0d0e12; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0px 4px 10px rgba(0,0,0,0.8);">
-                        <span style="font-size: 24px; font-weight: 900; color: #00f2fe; text-shadow: 0px 0px 8px rgba(0, 242, 254, 0.5); font-family: monospace;">{current_con_txt}</span>
-                        <span style="font-size: 10px; color: #434856; font-weight: 700; margin-top: -2px;">л/100 км</span>
-                    </div>
-                </div>
-            </div>
+            f'<!-- Кръг 1: РЕАЛЕН РАЗХОД -->'
+            f'<div style="flex: 1; display: flex; flex-direction: column; align-items: center;">'
+            f'<div style="font-size: 10px; font-weight: 800; color: #6a6f80; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; text-shadow: 1px 1px 0px #000;">⚡ РЕАЛЕН РАЗХОД</div>'
+            f'<div style="position: relative; width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(#00f2fe 0% {deg_curr}%, #1a1c23 {deg_curr}% 100%); display: flex; justify-content: center; align-items: center; box-shadow: 0px 8px 20px rgba(0,0,0,0.5), inset 0px 2px 5px rgba(255,255,255,0.05);">'
+            f'<div style="position: absolute; width: 104px; height: 104px; border-radius: 50%; background: #0d0e12; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0px 4px 10px rgba(0,0,0,0.8);">'
+            f'<span style="font-size: 24px; font-weight: 900; color: #00f2fe; text-shadow: 0px 0px 8px rgba(0, 242, 254, 0.5); font-family: monospace;">{current_con_txt}</span>'
+            f'<span style="font-size: 10px; color: #434856; font-weight: 700; margin-top: -2px;">л/100 км</span>'
+            f'</div></div></div>'
 
-            <!-- Кръгов Километраж 2: СРЕДЕН РАЗХОД -->
-            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-                <div style="font-size: 10px; font-weight: 800; color: #6a6f80; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; text-shadow: 1px 1px 0px #000;">📊 СРЕДЕН РАЗХОД</div>
-                <div style="position: relative; width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(#ff4b4b 0% {deg_avg}%, #1a1c23 {deg_avg}% 100%); display: flex; justify-content: center; align-items: center; box-shadow: 0px 8px 20px rgba(0,0,0,0.5), inset 0px 2px 5px rgba(255,255,255,0.05);">
-                    <div style="position: absolute; width: 104px; height: 104px; border-radius: 50%; background: #0d0e12; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0px 4px 10px rgba(0,0,0,0.8);">
-                        <span style="font-size: 24px; font-weight: 900; color: #ff4b4b; text-shadow: 0px 0px 8px rgba(255, 75, 75, 0.5); font-family: monospace;">{avg_con_txt}</span>
-                        <span style="font-size: 10px; color: #434856; font-weight: 700; margin-top: -2px;">л/100 км</span>
-                    </div>
-                </div>
-            </div>
+            f'<!-- Кръг 2: СРЕДЕН РАЗХОД -->'
+            f'<div style="flex: 1; display: flex; flex-direction: column; align-items: center;">'
+            f'<div style="font-size: 10px; font-weight: 800; color: #6a6f80; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; text-shadow: 1px 1px 0px #000;">📊 СРЕДЕН РАЗХОД</div>'
+            f'<div style="position: relative; width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(#ff4b4b 0% {deg_avg}%, #1a1c23 {deg_avg}% 100%); display: flex; justify-content: center; align-items: center; box-shadow: 0px 8px 20px rgba(0,0,0,0.5), inset 0px 2px 5px rgba(255,255,255,0.05);">'
+            f'<div style="position: absolute; width: 104px; height: 104px; border-radius: 50%; background: #0d0e12; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0px 4px 10px rgba(0,0,0,0.8);">'
+            f'<span style="font-size: 24px; font-weight: 900; color: #ff4b4b; text-shadow: 0px 0px 8px rgba(255, 75, 75, 0.5); font-family: monospace;">{avg_con_txt}</span>'
+            f'<span style="font-size: 10px; color: #434856; font-weight: 700; margin-top: -2px;">л/100 км</span>'
+            f'</div></div></div>'
             
-        </div>
-        '''
-        st.markdown(circle_dashboard_html, unsafe_allow_html=True)
+            f'</div>', 
+            unsafe_allow_html=True
+        )
     else:
-        # Ако пътуването е отворено, показваме само малък ненатрапчив статус панел
-        st.markdown(f'''
-            <div style="background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); padding: 12px; text-align: center; border-radius: 12px; margin-bottom: 20px; font-size: 13px; color: #888;">
-                ℹ️ 3D Кръговите километражи за крайния разход ще се генерират автоматично, когато <b>заключите и приключите пътуването</b>.
-            </div>
-        ''', unsafe_allow_html=True)
+        # Панел, когато пътуването е в ход
+        st.markdown(
+            '<div style="background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); '
+            'padding: 12px; text-align: center; border-radius: 12px; margin-bottom: 20px; font-size: 13px; color: #888;">'
+            'ℹ️ 3D Кръговите километражи за крайния разход ще се генерират автоматично, когато <b>заключите и приключите пътуването</b>.'
+            '</div>', 
+            unsafe_allow_html=True
+        )
 
     # Генератор за HTML към PDF
     pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt} / 100 км</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
@@ -721,6 +725,7 @@ else:
     )
 
     st.markdown("---")
+
 
 
 
