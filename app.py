@@ -453,7 +453,7 @@ else:
         v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1, disabled=is_trip_finished)
         new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, disabled=is_trip_finished)
         
-        # ФИКСИРАНО: Полето винаги стартира от 0.0, вместо да показва стария общ сбор
+        # Полето винаги стартира от 0.0 за чисто ново добавяне
         new_mf = st.number_input("Добави пропуснато гориво (л):", value=0.0, disabled=is_trip_finished)
         
         has_cash_expense = st.checkbox("💵 Има ли финансов разход за добавеното гориво?") if (new_mf and new_mf > 0 and not is_trip_finished) else False
@@ -468,12 +468,12 @@ else:
             sk_val = float(new_sk) if new_sk is not None else 0.0
             added_liters = float(new_mf) if new_mf is not None else 0.0
             
-            # Натрупваме въведените нови литри директно към стария m_fuel в базата
+            # Натрупваме въведените нови литри към стария m_fuel в базата данни
             mf_val = m_fuel + added_liters
 
-            # Сигурно извличане на стринговите дати чрез индексиране на списъка
+            # ФИКСИРАНО: Правилно извличане на стринговите дати чрез индексиране на елементите в списъка
             if isinstance(edit_range, (list, tuple)):
-                s_d_str = edit_range.strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
+                s_d_str = edit_range[0].strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
                 e_d_str = edit_range[-1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
             elif hasattr(edit_range, "strftime"):
                 s_d_str = edit_range.strftime("%d.%m.%Y")
@@ -481,7 +481,7 @@ else:
             else:
                 s_d_str, e_d_str = st_date, en_date
 
-            # Запис на финансовия разход за пропуснатото гориво в CSV лога (само ако наистина се добавят литри в момента)
+            # Запис на финансовия разход за пропуснатото гориво в CSV лога
             if has_cash_expense and manual_cash_amt and manual_cash_amt > 0 and added_liters > 0: 
                 add_expense(trip_id, manual_cash_amt, "Транспорт", f"[ПРОПУСНАТО ГОРИВО] Добавени {added_liters:.1f} литра", False, 0.0, 0.0)
             
@@ -509,6 +509,7 @@ else:
     else:
         if st.button("🚗 Добави автомобил към пътуването", use_container_width=True): 
             edit_car_modal()
+
 
 
 
