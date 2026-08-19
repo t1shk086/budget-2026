@@ -454,7 +454,7 @@ else:
         new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, disabled=is_trip_finished)
         
         # Полето приема само положителни числа за сигурност
-        new_mf = st.number_input("Добави пропуснато гориво (л):", value=None, min_value=0.0, disabled=is_trip_finished)
+        new_mf = st.number_input("Добави пропуснато гориво (л):", value=0.0, min_value=0.0, disabled=is_trip_finished)
         
         has_cash_expense = st.checkbox("💵 Има ли финансов разход за добавеното гориво?") if (new_mf and new_mf > 0 and not is_trip_finished) else False
         manual_cash_amt = st.number_input("Въведете платена сума (EUR):", value=None, format="%.2f") if has_cash_expense else 0.0
@@ -476,9 +476,10 @@ else:
             added_liters = float(new_mf) if new_mf is not None else 0.0
             mf_val = max(0.0, m_fuel + added_liters)
 
-            if isinstance(edit_range, (list, tuple)):
-                s_d_str = edit_range.strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
-                e_d_str = edit_range[-1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
+            # БЕЗОПАСЕН ФИКС: Извикваме .strftime() САМО върху отделните обекти в списъка
+            if isinstance(edit_range, (list, tuple)) and len(edit_range) > 0:
+                s_d_str = edit_range[0].strftime("%d.%m.%Y") if hasattr(edit_range[0], "strftime") else st_date
+                e_d_str = edit_range[-1].strftime("%d.%m.%Y") if (len(edit_range) > 1 and hasattr(edit_range[-1], "strftime")) else s_d_str
             elif hasattr(edit_range, "strftime"):
                 s_d_str = edit_range.strftime("%d.%m.%Y")
                 e_d_str = s_d_str
@@ -492,7 +493,7 @@ else:
             st.session_state["form_version"] += 1
             st.rerun()
             
-        # АВТОМАТИЗИРАНО: Бутонът нулира литрите в настройките И премахва паричните записи от хронологията
+        # Автоматизирано нулиране на литри И премахване на паричните записи от хронологията
         if m_fuel > 0 and not is_trip_finished:
             if st.button("🗑️ Изчисти натрупаните ръчни литри и разходи", use_container_width=True):
                 # 1. Нулиране на литрите в SETTINGS_FILE
@@ -501,7 +502,6 @@ else:
                 # 2. Изчистване на съответните финансови записи от DATA_FILE
                 try:
                     df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                    # Филтрираме и премахваме редовете за това пътуване, които съдържат маркера за пропуснато гориво
                     mask_to_delete = (df_all["trip_id"] == trip_id) & (df_all["description"].astype(str).str.contains(r"\[ПРОПУСНАТО ГОРИВО\]"))
                     df_clean = df_all[~mask_to_delete]
                     df_clean.to_csv(DATA_FILE, index=False, encoding="utf-8")
@@ -525,7 +525,7 @@ else:
     if car_trip == "Да":
         col_manage1, col_manage2 = st.columns(2)
         with col_manage1: 
-            st.button("🔒 Заключени настройки" if is_trip_finished else "⚙️ Настройки автомобил", use_container_width=True, disabled=is_trip_finished, on_click=edit_car_modal)
+            st.button("🔒 Заключени настройки" if is_trip_finished else "⚙️ Настройки кола", use_container_width=True, disabled=is_trip_finished, on_click=edit_car_modal)
         with col_manage2: 
             st.button("🏁 Пътуването е приключено 🔒" if is_trip_finished else "🏁 Край на пътуването", use_container_width=True, disabled=is_trip_finished, on_click=finish_trip_modal)
     else:
