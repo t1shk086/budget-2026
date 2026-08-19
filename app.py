@@ -1027,105 +1027,110 @@ else:
             """, unsafe_allow_html=True)
 
 # =====================================================================
-# 🛸 АВТОМАТИЧЕН МАСТЪР-СИНХРОНИЗАТОР НА CSV БАЗИТЕ КЪМ ОБЛАКА
+# 🛸 РЪЧЕН МАСТЪР-СИНХРОНИЗАТОР С ВИЗУАЛЕН КОНТРОЛ (В САМИЯ КРАЙ)
 # =====================================================================
 import requests
 import os
 import pandas as pd
 import streamlit as st
 
-def run_master_cloud_sync():
-    # Проверяваме дали новите Secrets от Streamlit Cloud са заредени
-    if "supabase" not in st.secrets:
-        return
-        
-    url_base = st.secrets["supabase"].get("url")
-    # Ползваме сигурния дълъг JWT ключ, който записахме в Secrets
-    jwt_key = st.secrets["supabase"].get("jwt_key")
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("### ☁️ Облачна синхронизация")
     
-    if not url_base or not jwt_key:
-        return
-        
-    headers = {
-        "apikey": jwt_key,
-        "Authorization": f"Bearer {jwt_key}",
-        "Content-Type": "application/json"
-    }
-
-    # -----------------------------------------------------------------
-    # 1. СИНХРОНИЗАЦИЯ НА РАЗХОДИТЕ (budget_data_2026.csv)
-    # -----------------------------------------------------------------
-    if os.path.exists("budget_data_2026.csv"):
-        try:
-            df_local = pd.read_csv("budget_data_2026.csv", encoding="utf-8")
-            if not df_local.empty:
-                res = requests.get(f"{url_base}/rest/v1/budget_data?select=trip_id,amount,date", headers=headers, timeout=3)
-                cloud_keys = set()
-                if res.status_code == 200 and res.json():
-                    for r in res.json():
-                        cloud_keys.add(f"{r.get('trip_id')}_{r.get('amount')}_{r.get('date')}")
+    if st.button("🔄 СИНХРОНИЗИРАЙ ВСИЧКИ ДАННИ СЕГА"):
+        if "supabase" not in st.secrets:
+            st.error("❌ Грешка: Липсва секция [supabase] в Secrets на Streamlit Cloud!")
+        else:
+            url_base = st.secrets["supabase"].get("url")
+            jwt_key = st.secrets["supabase"].get("jwt_key")
+            
+            if not url_base or not jwt_key:
+                st.error("❌ Грешка: Липсва url или jwt_key в настройките на Secrets!")
+            else:
+                headers = {"apikey": jwt_key, "Authorization": f"Bearer {jwt_key}", "Content-Type": "application/json"}
+                качени_разходи = 0
+                качени_пинове = 0
+                качени_настройки = 0
                 
-                for _, row in df_local.iterrows():
-                    t_id = str(row.get("trip_id", ""))
-                    amt = float(row.get("amount", 0.0))
-                    dt = str(row.get("date", ""))
-                    if f"{t_id}_{amt}_{dt}" not in cloud_keys and amt > 0:
-                        payload = {
-                            "trip_id": t_id, "date": dt, "amount": amt,
-                            "category": str(row.get("category", "Други")),
-                            "description": str(row.get("description", "Без описание")),
-                            "type": str(row.get("type", "expense")),
-                            "liters": float(row.get("liters", 0.0)) if "liters" in row else 0.0,
-                            "current_km": float(row.get("current_km", 0.0)) if "current_km" in row else 0.0
-                        }
-                        requests.post(f"{url_base}/rest/v1/budget_data", json=payload, headers=headers, timeout=3)
-        except: pass
+                # 1. Синхронизация на разходите
+                if os.path.exists("budget_data_2026.csv"):
+                    try:
+                        df_local = pd.read_csv("budget_data_2026.csv", encoding="utf-8")
+                        if not df_local.empty:
+                            res = requests.get(f"{url_base}/rest/v1/budget_data?select=trip_id,amount,date", headers=headers, timeout=4)
+                            cloud_keys = set()
+                            if res.status_code == 200 and res.json():
+                                for r in res.json():
+                                    cloud_keys.add(f"{r.get('trip_id')}_{r.get('amount')}_{r.get('date')}")
+                            
+                            for _, row in df_local.iterrows():
+                                t_id = str(row.get("trip_id", ""))
+                                amt = float(row.get("amount", 0.0))
+                                dt = str(row.get("date", ""))
+                                if f"{t_id}_{amt}_{dt}" not in cloud_keys and amt > 0:
+                                    payload = {
+                                        "trip_id": t_id, "date": dt, "amount": amt,
+                                        "category": str(row.get("category", "Други")),
+                                        "description": str(row.get("description", "Без описание")),
+                                        "type": str(row.get("type", "expense")),
+                                        "liters": float(row.get("liters", 0.0)) if "liters" in row else 0.0,
+                                        "current_km": float(row.get("current_km", 0.0)) if "current_km" in row else 0.0
+                                    }
+                                    r_post = requests.post(f"{url_base}/rest/v1/budget_data", json=payload, headers=headers, timeout=4)
+                                    if r_post.status_code in:
+                                        качени_разходи += 1
+                    except Exception as e:
+                        st.warning(f"Грешка разходи: {e}")
 
-    # -----------------------------------------------------------------
-    # 2. СИНХРОНИЗАЦИЯ НА КАРТАТА (trip_map_points_2026.csv)
-    # -----------------------------------------------------------------
-    if os.path.exists("trip_map_points_2026.csv"):
-        try:
-            df_map = pd.read_csv("trip_map_points_2026.csv", encoding="utf-8")
-            if not df_map.empty:
-                res = requests.get(f"{url_base}/rest/v1/map_points?select=trip_id,lat,lon", headers=headers, timeout=3)
-                cloud_maps = set()
-                if res.status_code == 200 and res.json():
-                    for r in res.json():
-                        cloud_maps.add(f"{r.get('trip_id')}_{r.get('lat'):.4f}_{r.get('lon'):.4f}")
-                
-                for _, row in df_map.iterrows():
-                    t_id = str(row.get("trip_id", ""))
-                    lat = float(row.get("lat", 0.0))
-                    lon = float(row.get("lon", 0.0))
-                    if f"{t_id}_{lat:.4f}_{lon:.4f}" not in cloud_maps:
-                        payload = {"trip_id": t_id, "lat": lat, "lon": lon, "title": str(row.get("title", "Спирка")), "color": str(row.get("color", "blue"))}
-                        requests.post(f"{url_base}/rest/v1/map_points", json=payload, headers=headers, timeout=3)
-        except: pass
+                # 2. Синхронизация на картата
+                if os.path.exists("trip_map_points_2026.csv"):
+                    try:
+                        df_map = pd.read_csv("trip_map_points_2026.csv", encoding="utf-8")
+                        if not df_map.empty:
+                            res = requests.get(f"{url_base}/rest/v1/map_points?select=trip_id,lat,lon", headers=headers, timeout=4)
+                            cloud_maps = set()
+                            if res.status_code == 200 and res.json():
+                                for r in res.json():
+                                    cloud_maps.add(f"{r.get('trip_id')}_{r.get('lat'):.4f}_{r.get('lon'):.4f}")
+                            
+                            for _, row in df_map.iterrows():
+                                t_id = str(row.get("trip_id", ""))
+                                lat = float(row.get("lat", 0.0))
+                                lon = float(row.get("lon", 0.0))
+                                if f"{t_id}_{lat:.4f}_{lon:.4f}" not in cloud_maps:
+                                    payload = {"trip_id": t_id, "lat": lat, "lon": lon, "title": str(row.get("title", "Спирка")), "color": str(row.get("color", "blue"))}
+                                    r_post = requests.post(f"{url_base}/rest/v1/map_points", json=payload, headers=headers, timeout=4)
+                                    if r_post.status_code in:
+                                        качени_пинове += 1
+                    except Exception as e:
+                        st.warning(f"Грешка карта: {e}")
 
-    # -----------------------------------------------------------------
-    # 3. СИНХРОНИЗАЦИЯ НА НАСТРОЙКИТЕ ЗА КОЛАТА (trip_settings_2026.csv)
-    # -----------------------------------------------------------------
-    if os.path.exists("trip_settings_2026.csv"):
-        try:
-            df_settings = pd.read_csv("trip_settings_2026.csv", encoding="utf-8")
-            if not df_settings.empty:
-                res = requests.get(f"{url_base}/rest/v1/trip_settings?select=trip_id", headers=headers, timeout=3)
-                cloud_settings = set([r.get("trip_id") for r in res.json()]) if res.status_code == 200 and res.json() else set()
-                
-                for _, row in df_settings.iterrows():
-                    t_id = str(row.get("trip_id", ""))
-                    if t_id not in cloud_settings:
-                        payload = {
-                            "trip_id": t_id, "car_trip": str(row.get("car_trip", "Не")), "track_fuel": str(row.get("track_fuel", "Не")),
-                            "start_km": float(row.get("start_km", 0.0)), "end_km": float(row.get("end_km", 0.0)), "manual_fuel": float(row.get("manual_fuel", 0.0)),
-                            "start_date": str(row.get("start_date", "")), "end_date": str(row.get("end_date", ""))
-                        }
-                        # Използваме сигурен запис без дублиране
-                        headers_upsert = headers.copy()
-                        headers_upsert["Prefer"] = "resolution=merge-duplicates"
-                        requests.post(f"{url_base}/rest/v1/trip_settings", json=payload, headers=headers_upsert, timeout=3)
-        except: pass
+                # 3. Синхронизация на настройките
+                if os.path.exists("trip_settings_2026.csv"):
+                    try:
+                        df_settings = pd.read_csv("trip_settings_2026.csv", encoding="utf-8")
+                        if not df_settings.empty:
+                            res = requests.get(f"{url_base}/rest/v1/trip_settings?select=trip_id", headers=headers, timeout=4)
+                            cloud_settings = set([r.get("trip_id") for r in res.json()]) if res.status_code == 200 and res.json() else set()
+                            
+                            for _, row in df_settings.iterrows():
+                                t_id = str(row.get("trip_id", ""))
+                                if t_id not in cloud_settings:
+                                    payload = {
+                                        "trip_id": t_id, "car_trip": str(row.get("car_trip", "Не")), "track_fuel": str(row.get("track_fuel", "Не")),
+                                        "start_km": float(row.get("start_km", 0.0)), "end_km": float(row.get("end_km", 0.0)), "manual_fuel": float(row.get("manual_fuel", 0.0)),
+                                        "start_date": str(row.get("start_date", "")), "end_date": str(row.get("end_date", ""))
+                                    }
+                                    headers_upsert = headers.copy()
+                                    headers_upsert["Prefer"] = "resolution=merge-duplicates"
+                                    r_post = requests.post(f"{url_base}/rest/v1/trip_settings", json=payload, headers=headers_upsert, timeout=4)
+                                    if r_post.status_code in:
+                                        качени_настройки += 1
+                    except Exception as e:
+                        st.warning(f"Грешка настройки: {e}")
+
+                st.success(f"📊 Готово! Качени: {качени_разходи} разхода, {качени_пинове} пина, {качени_настройки} настройки.")
 
 # Задействаме пълната синхронизация на данните в заден фон
 run_master_cloud_sync()
