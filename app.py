@@ -945,6 +945,77 @@ else:
                 </div>
             """, unsafe_allow_html=True)
 
+        # =========================================================
+        # 📦 СИСТЕМА ЗА РЕЗЕРВНО КОПИЕ (БЕКАП) И ВЪЗСТАНОВЯВАНЕ
+        # =========================================================
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown("### 📦 Архивиране и Възстановяване на данни")
+        st.markdown("<small>Използвайте тази секция, за да свалите вашите данни локално или да ги качите обратно, ако сървърът се рестартира.</small>", unsafe_allow_html=True)
+        
+        col_backup1, col_backup2 = st.columns(2)
+        
+        with col_backup1:
+            st.markdown("#### 📥 Сваляне на архив")
+            try:
+                import zipfile
+                import io
+                
+                # Създаваме ZIP архив в паметта, за да не пълним диска
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    # Проверяваме и добавяме всеки от трите файла, ако съществува
+                    for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE]:
+                        if os.path.exists(file_name):
+                            zip_file.write(file_name, arcname=file_name)
+                
+                # Подаваме готовия ZIP на бутона за теглене
+                st.download_button(
+                    label="📥 Свали всички CSV логове (.ZIP)",
+                    data=zip_buffer.getvalue(),
+                    file_name=f"Backup_PixelApp_{datetime.date.today().strftime('%d_%m_%Y')}.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    key="download_all_csv_backup_btn"
+                )
+            except:
+                st.error("Грешка при генериране на архива.")
+                
+        with col_backup2:
+            st.markdown("#### 📤 Качване на архив")
+            uploaded_zip = st.file_uploader(
+                "Качете сваления по-горе .ZIP файл тук:", 
+                type=["zip"], 
+                key="restore_all_csv_backup_uploader",
+                label_visibility="collapsed"
+            )
+            
+            if uploaded_zip is not None:
+                if st.button("🔄 ВЪЗСТАНОВИ ДАННИТЕ СЕГА", use_container_width=True, type="primary", key="trigger_restore_data_btn"):
+                    try:
+                        import zipfile
+                        # Отваряме качения файл и извличаме CSV файловете
+                        with zipfile.ZipFile(uploaded_zip) as zip_file:
+                            # Проверяваме дали вътре са нашите файлове
+                            namelist = zip_file.namelist()
+                            restored_count = 0
+                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE]:
+                                if f_name in namelist:
+                                    # Извличаме го и пренаписваме стария (или липсващия) файл
+                                    with open(f_name, "wb") as f_out:
+                                        f_out.write(zip_file.read(f_name))
+                                    restored_count += 1
+                            
+                            if restored_count > 0:
+                                st.success("🎉 Данните бяха възстановени успешно! Приложението се рестартира...")
+                                import time
+                                time.sleep(1.5)
+                                st.session_state["current_trip"] = None  # Връщаме в главното меню за опресняване
+                                st.rerun()
+                            else:
+                                st.error("В ZIP архива не бяха открити валидни бази данни на PixelApp.")
+                    except:
+                        st.error("Конфликт при разархивирането. Уверете се, че качвате правилния файл.")
 
 
 
