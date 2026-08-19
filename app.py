@@ -307,6 +307,21 @@ else:
         with col2: o_input = st.text_input("Описание", key=f"op_{v_id}")
         is_trip_finished = (e_km > 0.0)
 
+               # 1. Изчисляване на прогресивния разход (метод "до горе")
+        progressive_avg_con, has_progressive_data = 0.0, False
+        try:
+            df_trans_fuel = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["current_km"] > s_km)].sort_index()
+            df_full_points = df_trans_fuel[df_trans_fuel["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
+            if not df_full_points.empty:
+                last_full_km = float(df_full_points.iloc[-1]["current_km"])
+                total_dist = last_full_km - s_km
+                total_liters = float(df_trans_fuel[df_trans_fuel["current_km"] <= last_full_km]["liters"].sum()) + m_fuel
+                if total_dist > 0 and total_liters > 0:
+                    progressive_avg_con = (total_liters / total_dist * 100)
+                    has_progressive_data = True
+        except: pass
+
+        # 2. Модален прозорец за зареждане на гориво
         @st.dialog("⛽ Зареждане на гориво")
         def fuel_modal(amount, category, description, is_dep):
             liters = st.number_input("Литри:", value=None, step=0.1)
@@ -315,8 +330,10 @@ else:
             if st.button("💾 Запиши зареждането", use_container_width=True, type="primary"):
                 lit, ckm = (float(liters) if liters else 0.0), (float(km_input) if km_input else 0.0)
                 full_desc = f"[{'ПЪЛНО' if 'до горе' in fuel_type.lower() else 'ЧАСТИЧНО'} ЗАРЕЖДАНЕ] {description}"
-                if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): st.session_state["form_version"] += 1; st.rerun()
+                if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): 
+                    st.session_state["form_version"] += 1; st.rerun()
 
+        # 3. Обработка на избор на категория и запис на разход
         if o_input.strip() and s_input and s_input > 0:
             with ekran_za_kategorii.container():
                 st.markdown("<div style='text-align: center; margin: 10px 0 20px 0;'><h3 style='color: #00f2fe;'>🎯 ИЗБЕРЕТЕ КАТЕГОРИЯ</h3></div>", unsafe_allow_html=True)
@@ -325,10 +342,13 @@ else:
                     with grid[i % 3]:
                         if st.button(kat, use_container_width=True, key=f"bt_{i}"):
                             desc = o_input.strip()
-                            if kat == "Транспорт" and any(k in desc.lower() for k in ["газ", "гориво", "зареждане", "бензин", "дизел"]): fuel_modal(s_input, kat, desc, False)
+                            if kat == "Транспорт" and any(k in desc.lower() for k in ["газ", "гориво", "зареждане", "бензин", "дизел"]): 
+                                fuel_modal(s_input, kat, desc, False)
                             else:
-                                if add_expense(trip_id, s_input, kat, desc, (kat == "Депозит/Резервация")): st.session_state["form_version"] += 1; st.rerun()
+                                if add_expense(trip_id, s_input, kat, desc, (kat == "Депозит/Резервация")): 
+                                    st.session_state["form_version"] += 1; st.rerun()
             st.stop()
+        # 4. Изчисление на средния етапен разход и прогрес за автомобила
         if car_trip == "Да":
             val_to_show, is_final_status = 0.0, False
             try:
@@ -344,23 +364,28 @@ else:
                             total_valid_dist += stage_dist; total_valid_liters += temp_liters
                             temp_liters, prev_km = 0.0, current_entry_km
                 total_valid_liters += m_fuel
-                if total_valid_dist > 0 and total_valid_liters > 0: val_to_show = (total_valid_liters / total_valid_dist) * 100
+                if total_valid_dist > 0 and total_valid_liters > 0: 
+                    val_to_show = (total_valid_liters / total_valid_dist) * 100
                 if e_km > s_km:
                     is_final_status = True
-                    if val_to_show == 0.0 and total_liters_calculated > 0: val_to_show = (total_liters_calculated / dist) * 100
+                    if val_to_show == 0.0 and total_liters_calculated > 0: 
+                        val_to_show = (total_liters_calculated / dist) * 100
             except: pass
 
             km_progress_pct = 100 if is_final_status else min(100, max(0, (dist / 1000 * 100))) if dist > 0 else 0
             finish_icon_html = f"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; left: calc({km_progress_pct}% - 10px); top: -12px; font-size: 16px;'>🚗</div>"
+            
             val_to_show = progressive_avg_con if is_trip_finished else val_to_show
             label_to_show = "финален среден разход" if is_trip_finished else "последен затворен етап"
             color_gauge = "#00f2fe" if val_to_show < 6.0 else ("#ffa500" if val_to_show < 8.5 else "#ff4b4b")
             transport_liters = float(df_expenses[df_expenses['category'] == 'Транспорт']['liters'].sum()) + m_fuel
 
+            # Рисуване на премиум таблото за колата
             st.markdown(f"### 🚗 Данни за километраж и пробег")
             st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 СЛЕДЕНЕ НА ПРОБЕГА</span></div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{eff_end_km:.0f} км</b></div></div></div>", unsafe_allow_html=True)
             st.markdown(f"<div style='display: flex; flex-wrap: wrap; gap: 15px; width: 100%;'><div style='flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;'><div style='color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 15px;'>ТЕКУЩ РАЗХОД</div><div style='width: 110px; height: 110px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px;'><div style='color: white; font-size: 28px; font-weight: 900; line-height: 1.1;'>{val_to_show:.1f}</div><div style='color: #666; font-size: 10px; font-weight: bold; margin-top: 2px;'>л/100км</div></div><div style='color: #666; font-size: 11px;'>{label_to_show}</div></div><div style='flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 25px 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);'><div style='margin-bottom: 25px; width: 100%; text-align: center;'><div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 8px;'>💧 ОБЩО ЗАРЕДЕНО ГОРИВО</div><div style='color: white; font-size: 28px; font-weight: 800;'>{transport_liters:.1f} <span style='font-size: 14px; color: #666; font-weight: normal;'>литра</span></div></div><div style='padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); width: 100%; text-align: center;'><div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 8px;'>💰 ОБЩА СТОЙНОСТ ТРАНСПОРТ</div><div style='color: white; font-size: 28px; font-weight: 800;'>{auto_fuel_money:.2f} <span style='font-size: 14px; color: #666; font-weight: normal;'>EUR</span></div></div></div></div><br>", unsafe_allow_html=True)
 
+        # 5. Секция Хронология и Генератор на PDF Отчети
         if not df_trip.empty:
             st.markdown("---")
             @st.dialog("📜 Хронология на плащанията", width="large")
@@ -378,25 +403,23 @@ else:
                             col_rec, col_del = st.columns([0.88, 0.12])
                             with col_rec: st.markdown(f'''<div class="premium-expense-card"><div style="display: flex; justify-content: space-between; align-items: center; width: 100%;"><div style="font-size: 16px; font-weight: 600; color: #fafafa;"><span>{get_emoji(r["category"])}</span> {r["category"]}</div><div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">-{r["amount"]:.2f} EUR</div></div><div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}</div></div>''', unsafe_allow_html=True)
                             with col_del:
-                                if st.button("🗑️", key=f"dl_{idx}", use_container_width=True): st.session_state["delete_idx"] = idx; confirm_delete_dialog()
+                                if st.button("🗑️", key=f"dl_{idx}", use_container_width=True): 
+                                    st.session_state["delete_idx"] = idx; confirm_delete_dialog()
                 except: st.error("Грешка при зареждане на хронологията.")
                 st.markdown("---")
                 if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"): st.rerun()
 
             if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"): 
                 hronologia_popup_dialog()
-
+            # 6. Изграждане на PDF/HTML отчета
             avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
             grand_total = depozit_hotel + total_on_site
             period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
             dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
-            
             pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
-            
             for _, row in df_trip.iterrows():
                 desc_val = str(row['description'])
-                if "Моментен разход:" in desc_val: 
-                    desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
+                if "Моментен разход:" in desc_val: desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
                 cur_km_val = float(row.get('current_km', 0.0))
                 km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
                 pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
@@ -405,13 +428,14 @@ else:
             st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
             st.download_button(label="Отчет в PDF", data=pdf_html, file_name=f"Otchet_{trip_id}_2026.html", mime="text/html", use_container_width=True, key="st_premium_report_download_btn")
             st.markdown("---")
+
+        # 7. Карта на спирките и дестинациите (Folium)
         st.subheader("🗺️ Карта на спирките и дестинациите")
         df_points = get_map_points(trip_id)
         c_lat, c_lon = (df_points["lat"].mean(), df_points["lon"].mean()) if not df_points.empty else (42.7339, 25.4858)
         m = folium.Map(location=[c_lat, c_lon], zoom_start=6)
         m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
         folium.LatLngPopup().add_to(m)
-        
         for _, pt in df_points.iterrows(): 
             folium.Marker(location=[pt["lat"], pt["lon"]], popup=pt["title"], icon=folium.Icon(color=pt["color"], icon="info-sign")).add_to(m)
         
@@ -434,6 +458,8 @@ else:
                         st.session_state["active_click"] = None; st.rerun()
             with cb2:
                 if st.button("❌ Отказ", use_container_width=True): st.session_state["active_click"] = None; st.rerun()
+
+        # 8. Списък на любимите места
         if not df_points.empty:
             st.markdown("#### 📍 Любими места от пътуването")
             st.markdown("---")
@@ -454,29 +480,8 @@ else:
         if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"): 
             confirm_delete_trip_dialog()
             
-        st.markdown("""
-            <style>
-                html { scroll-behavior: smooth !important; }
-                .twin-premium-3d-btn {
-                    display: inline-flex !important; align-items: center !important; justify-content: center !important;
-                    width: 100% !important; height: 38.4px !important;
-                    background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important; color: #ffffff !important; 
-                    border: 1px solid rgba(255, 255, 255, 0.12) !important; padding: 0.25rem 0.75rem !important;
-                    font-weight: 600 !important; font-size: 14px !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-                    border-radius: 0.5rem !important; cursor: pointer !important; user-select: none !important;
-                    box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important; transition: all 0.15s ease-in-out !important;
-                }
-                .twin-premium-3d-btn:hover {
-                    background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important; border-color: rgba(255, 255, 255, 0.3) !important;
-                    box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.45) !important;
-                }
-                .twin-premium-3d-btn:active {
-                    transform: translateY(2px) !important; box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important; transition: all 0.05s ease !important;
-                }
-                .twin-grid-wrapper a { text-decoration: none !important; width: 100% !important; display: block !important; }
-            </style>
-        """, unsafe_allow_html=True)
-
+        # 9. Стилизиране и долни 3D бутони за навигация
+        st.markdown("<style>html { scroll-behavior: smooth !important; } .twin-premium-3d-btn { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 100% !important; height: 38.4px !important; background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.12) !important; padding: 0.25rem 0.75rem !important; font-weight: 600 !important; font-size: 14px !important; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif !important; border-radius: 0.5rem !important; cursor: pointer !important; user-select: none !important; box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important; transition: all 0.15s ease-in-out !important; } .twin-premium-3d-btn:hover { background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important; border-color: rgba(255, 255, 255, 0.3) !important; box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.45) !important; } .twin-premium-3d-btn:active { transform: translateY(2px) !important; box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important; transition: all 0.05s ease !important; } .twin-grid-wrapper a { text-decoration: none !important; width: 100% !important; display: block !important; } </style>", unsafe_allow_html=True)
         st.markdown("<br><br>", unsafe_allow_html=True)
         bottom_cols = st.columns(2)
         with bottom_cols[0]:
