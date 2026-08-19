@@ -1027,265 +1027,106 @@ else:
             """, unsafe_allow_html=True)
 
 # =====================================================================
-# 🚀 ЕДИНЕН ОБЛАЧЕН БЛОК: РАЗХОДИ, ПИНОВЕ И СНИМКИ С ПРАВИЛЕН КЛЮЧ
-# =====================================================================
-import requests
-import datetime
-
-# Класическа конфигурация със сигурния JWT ключ
-SUPABASE_JWT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudXFwenpvcmNuanJidHd3b3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNDA2OTEsImV4cCI6MjEwMjcxNjY5MX0.Kjim-3myqk53OnB6RiilKYxG1R3xnLsaNJb04FtrShM"
-
-def background_supabase_log(t_id, amt, cat, desc, is_dep=False):
-    """Изпраща копие от разхода към Supabase тихомълком в заден фон."""
-    try:
-        url = "https://supabase.co"
-        headers = {
-            "apikey": SUPABASE_JWT_KEY,
-            "Authorization": f"Bearer {SUPABASE_JWT_KEY}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "trip_id": str(t_id),
-            "date": datetime.datetime.now().strftime("%d.%m %H:%M"),
-            "amount": float(amt),
-            "category": str(cat),
-            "description": str(desc) if desc else "Без описание",
-            "type": "deposit" if is_dep else "expense",
-            "liters": 0.0,
-            "current_km": 0.0
-        }
-        requests.post(url, json=payload, headers=headers, timeout=3)
-    except: pass
-
-def background_supabase_upload_photo(bucket_name, file_name, file_bytes):
-    """Качва снимка в Supabase Storage тихомълком в заден фон."""
-    try:
-        url = f"https://supabase.co{bucket_name}/{file_name}"
-        headers = {
-            "apikey": SUPABASE_JWT_KEY,
-            "Authorization": f"Bearer {SUPABASE_JWT_KEY}"
-        }
-        requests.post(url, data=file_bytes, headers=headers, timeout=5)
-    except: pass
-
-# 1. Автоматично прихващане на качените СНИМКИ през фабричния уиджет
-if "current_trip" in st.session_state and st.session_state["current_trip"] is not None:
-    t_id = st.session_state["current_trip"]
-    widget_key = f"u_{t_id}_gallery"
-    if widget_key in st.session_state and st.session_state[widget_key] is not None:
-        uploaded_files = st.session_state[widget_key]
-        if isinstance(uploaded_files, list) and len(uploaded_files) > 0:
-            for f in uploaded_files:
-                upload_tracker_key = f"uploaded_cloud_{t_id}_{f.name}"
-                if not st.session_state.get(upload_tracker_key, False):
-                    try:
-                        bytes_data = f.getvalue()
-                        background_supabase_upload_photo("snimki", f"{t_id}_{f.name}", bytes_data)
-                        st.session_state[upload_tracker_key] = True
-                    except: pass
-
-# 2. Автоматично прихващане на ПИНОВЕТЕ от картата, когато се запише локална точка
-if 'map_data' in locals() and map_data and map_data.get("last_clicked") and 'title_in' in locals() and title_in:
-    click_coords = map_data["last_clicked"]
-    pin_tracker_key = f"pin_cloud_{click_coords['lat']}_{click_coords['lng']}"
-    if not st.session_state.get(pin_tracker_key, False):
-        try:
-            pin_url = "https://supabase.co"
-            pin_headers = {"apikey": SUPABASE_JWT_KEY, "Authorization": f"Bearer {SUPABASE_JWT_KEY}", "Content-Type": "application/json"}
-            pin_payload = {"trip_id": str(t_id), "lat": float(click_coords['lat']), "lon": float(click_coords['lng']), "title": str(title_in), "color": "blue"}
-            requests.post(pin_url, json=pin_payload, headers=pin_headers, timeout=3)
-            st.session_state[pin_tracker_key] = True
-        except: pass
-
-# 3. Спасителен филтър за ХРОНОЛОГИЯТА, за да няма празни сривове на екрана
-if 'df_trip' not in locals() or df_trip is None or (isinstance(df_trip, pd.DataFrame) and df_trip.empty):
-    try:
-        df_trip = pd.DataFrame(columns=["id", "trip_id", "date", "amount", "category", "description", "type", "liters", "current_km"])
-        if 'DATA_FILE' in locals() and os.path.exists(DATA_FILE):
-            локален_df = pd.read_csv(DATA_FILE, encoding="utf-8")
-            if not локален_df.empty and 'trip_id' in locals():
-                df_trip = локален_df[локален_df["trip_id"] == t_id]
-    except: pass
-# =====================================================================
-# 🛡️ АВТОМАТИЧЕН КЛИЕНТСКИ ПРИХВАЩАЧ ЗА БУТОНИТЕ (В САМИЯ КРАЙ)
-# =====================================================================
-import requests
-import datetime
-
-# Проверяваме дали оригиналната функция add_expense съществува в кода Ви
-if "add_expense" in globals():
-    # Запазваме Вашата оригинална работеща локална функция под друго име
-    stari_add_expense = globals()["add_expense"]
-    
-    # Дефинираме новата комбинирана функция за бутоните
-    def custom_intercepted_add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
-        # 1. Първо изпълняваме Вашия оригинален локален запис (за да работи хронологията)
-        uspeh_lokalno = stari_add_expense(t_id, amt, cat, desc, is_dep, lit, c_km)
-        
-        # 2. Ако локалният запис е успешен, изстрелваме копие и към Supabase
-        if uspeh_lokalno:
-            try:
-                url = "https://supabase.co"
-                jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudXFwenpvcmNuanJidHd3b3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNDA2OTEsImV4cCI6MjEwMjcxNjY5MX0.Kjim-3myqk53OnB6RiilKYxG1R3xnLsaNJb04FtrShM"
-                headers = {
-                    "apikey": jwt_key,
-                    "Authorization": f"Bearer {jwt_key}",
-                    "Content-Type": "application/json"
-                }
-                payload = {
-                    "trip_id": str(t_id),
-                    "date": datetime.datetime.now().strftime("%d.%m %H:%M"),
-                    "amount": float(amt),
-                    "category": str(cat),
-                    "description": str(desc) if desc else "Без описание",
-                    "type": "deposit" if is_dep else "expense",
-                    "liters": float(lit),
-                    "current_km": float(c_km)
-                }
-                requests.post(url, json=payload, headers=headers, timeout=3)
-            except:
-                pass
-        return uspeh_lokalno
-
-    # Заменяме глобално функцията, така че бутоните Ви да викат новия прихващач
-    globals()["add_expense"] = custom_intercepted_add_expense
-# =====================================================================
-# 🚨 ПРИНУДИТЕЛЕН БУТОН ЗА ТЕСТ НА ЗАПИСА В SUPABASE (В САМИЯ КРАЙ)
-# =====================================================================
-with st.sidebar:
-    st.markdown("---")
-    st.markdown("### 🧪 Тест на базата данни")
-    if st.button("🚀 Изпрати ТЕСТОВ РАЗХОД в облака"):
-        try:
-            url = "https://supabase.co"
-            jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudXFwenpvcmNuanJidHd3b3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNDA2OTEsImV4cCI6MjEwMjcxNjY5MX0.Kjim-3myqk53OnB6RiilKYxG1R3xnLsaNJb04FtrShM"
-            headers = {
-                "apikey": jwt_key,
-                "Authorization": f"Bearer {jwt_key}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal"
-            }
-            payload = {
-                "trip_id": "TEST_ROUTINE",
-                "date": "19.08 19:15",
-                "amount": 9.99,
-                "category": "Други",
-                "description": "Принудителен тест от страничното меню",
-                "type": "expense",
-                "liters": 0.0,
-                "current_km": 0.0
-            }
-            res = requests.post(url, json=payload, headers=headers, timeout=5)
-            
-            if res.status_code == 200 or res.status_code == 201:
-                st.success("✅ СУПЕР! Записът премина успешно през интернет!")
-            else:
-                st.error(f"❌ Supabase отказа (Код {res.status_code}): {res.text}")
-        except Exception as e:
-            st.error(f"💥 Грешка: {e}")
-
-# =====================================================================
-# 🔍 ИНТЕЛЕГЕНТЕН СЕНЗОР: АВТОМАТИЧНО ТЪРСЕНЕ И КАЧВАНЕ НА РАЗХОДИТЕ
+# 🛸 АВТОМАТИЧЕН МАСТЪР-СИНХРОНИЗАТОР НА CSV БАЗИТЕ КЪМ ОБЛАКА
 # =====================================================================
 import requests
 import os
-import glob
 import pandas as pd
-
-def smart_supabase_sync():
-    try:
-        # Настройки на новата Ви база данни
-        url = "https://supabase.co"
-        jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVidW5xcWtrZWN6andtZW1kdW95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTE4MDEsImV4cCI6MjEwMjcyNzgwMX0.tOn9YEJ5iM8BCxDdHscFTCzcWkAcLl7H1n3ASZngwMk"
-        headers = {
-            "apikey": jwt_key,
-            "Authorization": f"Bearer {jwt_key}",
-            "Content-Type": "application/json"
-        }
-
-        # 1. Търсим ВСИЧКИ CSV файлове в проекта, за да открием правилния
-        csv_files = glob.glob("*.csv") + glob.glob("**/*.csv")
-        
-        target_file = None
-        for file in csv_files:
-            try:
-                test_df = pd.read_csv(file, encoding="utf-8", nrows=3)
-                # Проверяваме дали това е файлът с разходи по ключовите колони
-                if "amount" in test_df.columns or "category" in test_df.columns:
-                    target_file = file
-                    break
-            except: pass
-
-        # Ако не открием файл по колони, търсим по подразбиране
-        if not target_file:
-            for f_name in ["budget_data.csv", "expenses.csv", "data.csv"]:
-                if os.path.exists(f_name):
-                    target_file = f_name
-                    break
-
-        # 2. Ако открием файла, вземаме данните и ги синхронизираме
-        if target_file and os.path.exists(target_file):
-            df_local = pd.read_csv(target_file, encoding="utf-8")
-            if df_local.empty: return
-
-            # Проверяваме какво вече има в Supabase, за да няма дублиране
-            res = requests.get(f"{url}?select=trip_id,amount,date", headers=headers, timeout=3)
-            cloud_keys = set()
-            if res.status_code == 200 and res.json():
-                for r in res.json():
-                    cloud_keys.add(f"{r.get('trip_id')}_{r.get('amount')}_{r.get('date')}")
-
-            # 3. Изстрелваме редовете към облака
-            for _, row in df_local.iterrows():
-                t_id = str(row.get("trip_id", row.get("Destination", "Trip")))
-                amt = float(row.get("amount", row.get("Сума", row.get("Amount", 0.0))))
-                dt = str(row.get("date", row.get("Дата", row.get("Date", ""))))
-                
-                match_key = f"{t_id}_{amt}_{dt}"
-                
-                if match_key not in cloud_keys and amt > 0:
-                    payload = {
-                        "trip_id": t_id,
-                        "date": dt,
-                        "amount": amt,
-                        "category": str(row.get("category", row.get("Категория", "Други"))),
-                        "description": str(row.get("description", row.get("Описание", "Без описание"))),
-                        "type": str(row.get("type", "expense")),
-                        "liters": float(row.get("liters", 0.0)) if "liters" in row else 0.0,
-                        "current_km": float(row.get("current_km", 0.0)) if "current_km" in row else 0.0
-                    }
-                    requests.post(url, json=payload, headers=headers, timeout=3)
-    except: pass
-
-# Стартираме интелигентното търсене
-smart_supabase_sync()
-
-# =====================================================================
-# 🕵️ СИСТЕМЕН СКЕНЕР НА SECRETS И ЛОКАЛНИ ФАЙЛОВЕ (В САМИЯ КРАЙ)
-# =====================================================================
-import os
 import streamlit as st
 
-with st.sidebar:
-    st.markdown("---")
-    st.markdown("### 🛠️ Системна диагностика")
+def run_master_cloud_sync():
+    # Проверяваме дали новите Secrets от Streamlit Cloud са заредени
+    if "supabase" not in st.secrets:
+        return
+        
+    url_base = st.secrets["supabase"].get("url")
+    # Ползваме сигурния дълъг JWT ключ, който записахме в Secrets
+    jwt_key = st.secrets["supabase"].get("jwt_key")
     
-    # 1. Проверяваме как точно се казват променливите в Secrets
-    try:
-        if st.secrets:
-            # Изкарваме само ключовете (имената), без самите пароли за сигурност
-            st.write("🔑 Открити имена в Secrets:", list(st.secrets.keys()))
-            for k in st.secrets.keys():
-                if isinstance(st.secrets[k], dict):
-                    st.write(f"📁 Под-меню [{k}]:", list(st.secrets[k].keys()))
-        else:
-            st.write("❌ Менюто Secrets е напълно празно!")
-    except Exception as e:
-        st.write("Грешка при Secrets:", e)
+    if not url_base or not jwt_key:
+        return
+        
+    headers = {
+        "apikey": jwt_key,
+        "Authorization": f"Bearer {jwt_key}",
+        "Content-Type": "application/json"
+    }
 
-    # 2. Търсим всички CSV файлове, за да разберем къде отиват разходите Ви
-    try:
-        файлове = [f for f in os.listdir('.') if f.endswith('.csv')]
-        st.write("📊 Налични CSV бази на сървъра:", файлове)
-    except Exception as e:
-        st.write("Грешка при файловете:", e)
+    # -----------------------------------------------------------------
+    # 1. СИНХРОНИЗАЦИЯ НА РАЗХОДИТЕ (budget_data_2026.csv)
+    # -----------------------------------------------------------------
+    if os.path.exists("budget_data_2026.csv"):
+        try:
+            df_local = pd.read_csv("budget_data_2026.csv", encoding="utf-8")
+            if not df_local.empty:
+                res = requests.get(f"{url_base}/rest/v1/budget_data?select=trip_id,amount,date", headers=headers, timeout=3)
+                cloud_keys = set()
+                if res.status_code == 200 and res.json():
+                    for r in res.json():
+                        cloud_keys.add(f"{r.get('trip_id')}_{r.get('amount')}_{r.get('date')}")
+                
+                for _, row in df_local.iterrows():
+                    t_id = str(row.get("trip_id", ""))
+                    amt = float(row.get("amount", 0.0))
+                    dt = str(row.get("date", ""))
+                    if f"{t_id}_{amt}_{dt}" not in cloud_keys and amt > 0:
+                        payload = {
+                            "trip_id": t_id, "date": dt, "amount": amt,
+                            "category": str(row.get("category", "Други")),
+                            "description": str(row.get("description", "Без описание")),
+                            "type": str(row.get("type", "expense")),
+                            "liters": float(row.get("liters", 0.0)) if "liters" in row else 0.0,
+                            "current_km": float(row.get("current_km", 0.0)) if "current_km" in row else 0.0
+                        }
+                        requests.post(f"{url_base}/rest/v1/budget_data", json=payload, headers=headers, timeout=3)
+        except: pass
+
+    # -----------------------------------------------------------------
+    # 2. СИНХРОНИЗАЦИЯ НА КАРТАТА (trip_map_points_2026.csv)
+    # -----------------------------------------------------------------
+    if os.path.exists("trip_map_points_2026.csv"):
+        try:
+            df_map = pd.read_csv("trip_map_points_2026.csv", encoding="utf-8")
+            if not df_map.empty:
+                res = requests.get(f"{url_base}/rest/v1/map_points?select=trip_id,lat,lon", headers=headers, timeout=3)
+                cloud_maps = set()
+                if res.status_code == 200 and res.json():
+                    for r in res.json():
+                        cloud_maps.add(f"{r.get('trip_id')}_{r.get('lat'):.4f}_{r.get('lon'):.4f}")
+                
+                for _, row in df_map.iterrows():
+                    t_id = str(row.get("trip_id", ""))
+                    lat = float(row.get("lat", 0.0))
+                    lon = float(row.get("lon", 0.0))
+                    if f"{t_id}_{lat:.4f}_{lon:.4f}" not in cloud_maps:
+                        payload = {"trip_id": t_id, "lat": lat, "lon": lon, "title": str(row.get("title", "Спирка")), "color": str(row.get("color", "blue"))}
+                        requests.post(f"{url_base}/rest/v1/map_points", json=payload, headers=headers, timeout=3)
+        except: pass
+
+    # -----------------------------------------------------------------
+    # 3. СИНХРОНИЗАЦИЯ НА НАСТРОЙКИТЕ ЗА КОЛАТА (trip_settings_2026.csv)
+    # -----------------------------------------------------------------
+    if os.path.exists("trip_settings_2026.csv"):
+        try:
+            df_settings = pd.read_csv("trip_settings_2026.csv", encoding="utf-8")
+            if not df_settings.empty:
+                res = requests.get(f"{url_base}/rest/v1/trip_settings?select=trip_id", headers=headers, timeout=3)
+                cloud_settings = set([r.get("trip_id") for r in res.json()]) if res.status_code == 200 and res.json() else set()
+                
+                for _, row in df_settings.iterrows():
+                    t_id = str(row.get("trip_id", ""))
+                    if t_id not in cloud_settings:
+                        payload = {
+                            "trip_id": t_id, "car_trip": str(row.get("car_trip", "Не")), "track_fuel": str(row.get("track_fuel", "Не")),
+                            "start_km": float(row.get("start_km", 0.0)), "end_km": float(row.get("end_km", 0.0)), "manual_fuel": float(row.get("manual_fuel", 0.0)),
+                            "start_date": str(row.get("start_date", "")), "end_date": str(row.get("end_date", ""))
+                        }
+                        # Използваме сигурен запис без дублиране
+                        headers_upsert = headers.copy()
+                        headers_upsert["Prefer"] = "resolution=merge-duplicates"
+                        requests.post(f"{url_base}/rest/v1/trip_settings", json=payload, headers=headers_upsert, timeout=3)
+        except: pass
+
+# Задействаме пълната синхронизация на данните в заден фон
+run_master_cloud_sync()
+
