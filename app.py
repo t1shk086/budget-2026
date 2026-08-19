@@ -163,7 +163,7 @@ if st.session_state["current_trip"] is None:
     if existing:
         opts = [t.replace("_", " ") for t in existing]
         choice = st.selectbox("Изберете пътуване до:", opts)
-        if st.button("✔️ Зареди", use_container_width=True):
+        if st.button("✔️ ЗАРЕДИ ПЪТУВАНЕ", use_container_width=True):
             st.session_state["current_trip"] = choice.replace(" ", "_"); st.rerun()
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Все още нямате записани почивки. Създайте първото си приключение по-долу!</div>", unsafe_allow_html=True)
@@ -337,80 +337,14 @@ else:
         
                    
     else:
-        # =========================================================
-        # 👑 ИЗОЛИРАН ДЕСЕН БУТОН ЗА ГАЛЕРИЯ (БЕЗ ДА БЪРКА БУТОНА НАЗАД)
-        # =========================================================
-        st.markdown("""
-            <style>
-                /* Използваме селектор, който филтрира бутоните по съдържание на текст */
-                /* Хващаме контейнера на бутона, само ако вътре има КЛЮЧА за Галерия */
-                div[data-testid="stColumn"]:nth-of-type(2):has(button[key="open_gallery_top_header_2026"]) {
-                    display: flex !important;
-                    justify-content: flex-end !important;
-                    align-items: center !important;
-                    width: 100% !important;
-                }
-                
-                /* Стилизираме САМО бутона за Галерия – напълно прозрачен и стъклен */
-                button[key="open_gallery_top_header_2026"] {
-                    display: inline-block !important;
-                    width: auto !important;
-                    min-width: unset !important;
-                    background: rgba(22, 25, 31, 0.6) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-                    color: #ffffff !important;
-                    padding: 4px 12px !important;
-                    font-size: 12px !important;
-                    font-weight: 600 !important;
-                    border-radius: 8px !important;
-                    backdrop-filter: blur(8px) !important;
-                    -webkit-backdrop-filter: blur(8px) !important;
-                    transition: all 0.2s ease-in-out !important;
-                }
-                
-                button[key="open_gallery_top_header_2026"]:hover {
-                    background: rgba(0, 242, 254, 0.12) !important;
-                    border-color: rgba(0, 242, 254, 0.5) !important;
-                }
-                
-                /* БОНУС: Гарантираме, че ако се появи бутонът "Назад към разходите", */
-                /* той ще си запази оригиналния фабричен стил без да се мести в десния ъгъл! */
-                button:not([key="open_gallery_top_header_2026"]) {
-                    position: static !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
-
-        # Ред 1: Разделяне за перфектно дясно позициониране на Галерията
-        col_space_top, col_btn_top = st.columns([0.7, 0.3])
-        
-        with col_btn_top:
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
-                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
-                st.session_state["view_photos"] = True
-                st.rerun()
-
-        # Ред 2: Перфектно центрираното заглавие и датите отдолу
-        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-        st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
-        
+        date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+        st.markdown(f"<div style='text-align: center; margin-top: 5px; margin-bottom: 15px;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 28px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         st.markdown("---")
-
-
-
-
-
-
-
-
-
 
         # 🌟 КОПИРАЙ И СЛОЖИ ТОЗИ РЕД ТУК (за да знае браузърът къде е "най-горе"):
         st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
         
         ekran_za_kategorii = st.empty()
-
 
         if st.button("🔙 НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): 
             st.session_state["current_trip"] = None
@@ -530,6 +464,25 @@ else:
                 st.stop()
 
 
+        st.markdown("### 📊 Анализ на разходите")
+        stat_grid = st.columns(2)
+        for idx, (kat, s_value) in enumerate(categories_totals.items()):
+            with stat_grid[idx % 2]:
+                pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
+                
+                st.markdown(f"""
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
+                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
         if car_trip == "Да":
             val_to_show, is_final_status = 0.0, False
             try:
@@ -551,13 +504,16 @@ else:
                     if val_to_show == 0.0 and total_liters_calculated > 0: val_to_show = (total_liters_calculated / dist) * 100
             except: pass
 
+            color_gauge = "#666" if val_to_show == 0.0 else "#00ffcc" if val_to_show <= 5.5 else "#00f2fe" if val_to_show <= 8.0 else "#ffa500" if val_to_show <= 11.0 else "#ff4b4b"
             km_progress_pct = 100 if is_final_status else min(100, max(0, (dist / 1000 * 100))) if dist > 0 else 0
             finish_icon_html = f"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; left: calc({km_progress_pct}% - 10px); top: -12px; font-size: 16px;'>🚗</div>"
 
+            # 1. АВТОМАТИЧНА ЛОГИКА ЗА ИЗЧИСЛЯВАНЕ НА РАЗХОДА (С интелигентна защита за само частични зареждания)
             val_to_show = 0.0
             label_to_show = "последен затворен етап"
             
             if is_trip_finished:
+                # Ако пътуването е приключено, показваме финалния глобален разход
                 val_to_show = progressive_avg_con if 'progressive_avg_con' in locals() else 0.0
                 label_to_show = "финален среден разход"
             else:
@@ -566,6 +522,7 @@ else:
                     df_only_full = df_trans_fuel[df_trans_fuel["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
                     
                     if not df_only_full.empty:
+                        # ПЛАН А: Има зареждане до горе -> взимаме неговия реален разход
                         last_full_row = df_only_full.iloc[-1]["description"]
                         import re
                         match = re.search(r"(?:Реален разход:|Разход:)\s*([0-9.]+)", last_full_row)
@@ -574,6 +531,7 @@ else:
                         else:
                             val_to_show = progressive_avg_con if 'progressive_avg_con' in locals() else 0.0
                     else:
+                        # ПЛАН Б: Няма нито едно пълно зареждане! Смятаме общ среден разход от старта до момента
                         if not df_trans_fuel.empty:
                             current_dist = float(df_trans_fuel.iloc[-1]["current_km"]) - s_km
                             current_liters = float(df_trans_fuel["liters"].sum()) + m_fuel
@@ -587,19 +545,21 @@ else:
                 except:
                     val_to_show = 0.0
 
+            # Определяне на динамичен цвят за кръга спрямо разхода
             color_gauge = "#00f2fe" if val_to_show < 6.0 else ("#ffa500" if val_to_show < 8.5 else "#ff4b4b")
+
+            # Изчисляване на общите литри
             transport_liters = float(df_expenses[df_expenses['category'] == 'Транспорт']['liters'].sum()) + m_fuel
 
-            # Изчертаване на Данните за Пробега най-отгоре
-            st.markdown(f"### 🚗 Данни за километраж и пробег")
+            # 2. ВИЗУАЛИЗАЦИЯ: Линия за следене на пробега
             st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 СЛЕДЕНЕ НА ПРОБЕГА</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
+            
+            # 3. ВИЗУАЛИЗАЦИЯ: Двете центрирани кубчета едно до едно с динамичен етикет
             st.markdown(f"<div style='display: flex; flex-wrap: wrap; gap: 15px; width: 100%;'><div style='flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;'><div style='color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 15px;'>ТЕКУЩ РАЗХОД</div><div style='width: 110px; height: 110px; border-radius: 50%; border: 4px dashed {color_gauge}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px;'><div style='color: white; font-size: 28px; font-weight: 900; line-height: 1.1;'>{val_to_show:.1f}</div><div style='color: #666; font-size: 10px; font-weight: bold; margin-top: 2px;'>л/100км</div></div><div style='color: #666; font-size: 11px;'>{label_to_show}</div></div><div style='flex: 1; min-width: 280px; background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 25px 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; box-shadow: 4px 4px 12px rgba(0,0,0,0.3);'><div style='margin-bottom: 25px; width: 100%; text-align: center;'><div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 8px;'>💧 ОБЩО ЗАРЕДЕНО ГОРИВО</div><div style='color: white; font-size: 28px; font-weight: 800;'>{transport_liters:.1f} <span style='font-size: 14px; color: #666; font-weight: normal;'>литра</span></div></div><div style='padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); width: 100%; text-align: center;'><div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 8px;'>💰 ОБЩА СТОЙНОСТ ТРАНСПОРТ</div><div style='color: white; font-size: 28px; font-weight: 800;'>{auto_fuel_money:.2f} <span style='font-size: 14px; color: #666; font-weight: normal;'>EUR</span></div></div></div></div><br>", unsafe_allow_html=True)
-        # Сега изграждаме Анализа на разходите отдолу
-        # =========================================================
-        # ⚙️ БУТОНИ ЗА УПРАВЛЕНИЕ НА КОЛАТА (СЕГА СА НАД АНАЛИЗА)
-        # =========================================================
+
+
         st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
-        @st.dialog("⚙️ Настройки за автомобил и период")
+        @st.dialog("⚙️ Настройки на превозно средство и период")
         def edit_car_modal():
             v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1, disabled=is_trip_finished)
             new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, disabled=is_trip_finished)
@@ -632,158 +592,173 @@ else:
         else:
             if st.button("🚗 Добави автомобил към пътуването", use_container_width=True): edit_car_modal()
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # =========================================================
-        # 📊 АНАЛИЗ НА РАЗХОДИТЕ (СЕГА Е ПОД БУТОНИТЕ)
-        # =========================================================
-        st.markdown("### 📊 Анализ на разходите")
-        stat_grid = st.columns(2)
-        for idx, (kat, s_value) in enumerate(categories_totals.items()):
-            with stat_grid[idx % 2]:
-                pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
-                
-                st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
-                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
-                    </div>
-                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
-                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
+        st.markdown("---")
         col_st1, col_st2 = st.columns(2)
         with col_st1:
-            st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} <span style='font-size: 14px; font-weight: 500; color: #7e8494;'>EUR</span></h2></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} EUR</h2></div>", unsafe_allow_html=True)
         with col_st2:
-            st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>💰 НА МЯСТО</small><h2 style='color:#00f2fe; margin:5px 0;'>{total_on_site:.2f} <span style='font-size: 14px; font-weight: 500; color: #7e8494;'>EUR</span></h2></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>💰 НА МЯСТО</small><h2 style='color:#00f2fe; margin:5px 0;'>{total_on_site:.2f} EUR</h2></div>", unsafe_allow_html=True)
 
         if not df_trip.empty:
             st.markdown("---")
-
-            # =========================================================
-            # 📜 ДЕФИНИЦИЯ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ ЗА ХРОНОЛОГИЯ
-            # =========================================================
-            @st.dialog("📜 Хронология на плащанията", width="large")
-            def hronologia_popup_dialog():
-                st.markdown("<p style='color: #888; margin-bottom: 20px;'>Всички записани разходи за текущото пътуване по категории и дати:</p>", unsafe_allow_html=True)
-                
-                st.markdown("""
-                    <style>
-                        .premium-expense-card {
-                            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
-                            padding: 14px 18px !important;
-                            border-radius: 12px !important;
-                            border: 1px solid rgba(250, 250, 250, 0.2) !important;
-                            box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
-                            margin-bottom: 2px !important;
-                            min-height: 52px !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                            justify-content: center !important;
-                        }
-                        .expense-delete-wrapper {
-                            display: flex !important;
-                            align-items: center !important;
-                            justify-content: center !important;
-                            height: 100% !important;
-                            margin-top: 10px !important;
-                        }
-                    </style>
-                """, unsafe_allow_html=True)
-                
-                try:
-                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                    valid_expenses = df_all[df_all["trip_id"] == trip_id].index.tolist()
+            st.subheader("📋 Хронология на плащанията")
+            
+            # Инжектираме стилове за премиум 3D карти и уеднаквени кошчета
+            st.markdown("""
+                <style>
+                    /* Луксозна кутия за всеки отделен разход */
+                    .premium-expense-card {
+                        background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
+                        padding: 14px 18px !important;
+                        border-radius: 12px !important;
+                        border: 1px solid rgba(250, 250, 250, 0.2) !important; /* Същият сив контур като бутоните */
+                        box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
+                        margin-bottom: 2px !important;
+                        min-height: 52px !important; /* Автоматично разпъване за дълги текстове */
+                        display: flex !important;
+                        flex-direction: column !important;
+                        justify-content: center !important;
+                    }
                     
-                    if not valid_expenses:
-                        st.info("Няма регистрирани разходи за това пътуване.")
-                    else:
-                        for idx in reversed(valid_expenses):
-                            r = df_all.loc[idx]
-                            l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
-                            
-                            col_rec, col_del = st.columns([0.88, 0.12])
-                            
-                            with col_rec:
-                                st.markdown(f'''
-                                    <div class="premium-expense-card">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                            <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
-                                                <span>{get_emoji(r["category"])}</span> {r["category"]}
-                                            </div>
-                                            <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
-                                                -{r["amount"]:.2f} EUR
-                                            </div>
-                                        </div>
-                                        <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
-                                            📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
-                                        </div>
+                    /* Стил за контейнера на иконата за триене, за да застане на перфектно хоризонтално ниво */
+                    .expense-delete-wrapper {
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        height: 100% !important;
+                        margin-top: 10px !important; /* Спуска кошчето на нивото на сумата */
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+            
+            try:
+                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                for idx in reversed(df_all[df_all["trip_id"] == trip_id].index.tolist()):
+                    r = df_all.loc[idx]
+                    l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
+                    
+                    # Разделяме в съотношение 88% за разхода и 12% за 3D бутона за изтриване
+                    col_rec, col_del = st.columns([0.88, 0.12])
+                    
+                    with col_rec:
+                        # Създаваме чистата уеб карта за разход с автоматично напасване на височината
+                        st.markdown(f'''
+                            <div class="premium-expense-card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
+                                        <span>{get_emoji(r["category"])}</span> {r["category"]}
                                     </div>
-                                ''', unsafe_allow_html=True)
-                                
-                            with col_del:
-                                st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
-                                if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий този разход"):
-                                    st.session_state["delete_idx"] = idx
-                                    confirm_delete_dialog()
-                                st.markdown('</div>', unsafe_allow_html=True)
-                except:
-                    st.error("Грешка при зареждане на хронологията.")
+                                    <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
+                                        -{r["amount"]:.2f} EUR
+                                    </div>
+                                </div>
+                                <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
+                                    📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
+                                </div>
+                            </div>
+                        ''', unsafe_allow_html=True)
+                        
+                    with col_del:
+                        # Вграждаме кошчето в уеб обвивка за идеално центриране спрямо кутията отляво
+                        st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
+                        # Използваме чист фабричен бутон с емоджи, за да хлътва в 3D и да е съвместим с диdialog прозореца ти
+                        if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий този разход"):
+                            st.session_state["delete_idx"] = idx
+                            confirm_delete_dialog()
+                        st.markdown('</div>', unsafe_allow_html=True)
+            except:
+                pass
+
+        st.markdown("---")
+        
+        # Уверяваме се, че състоянието съществува
+        if "view_photos" not in st.session_state:
+            st.session_state["view_photos"] = False
+
+        # 1. Скрит линк-котва, който телефонът ще активира при клик
+        st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+
+        # 2. Истински Streamlit бутон с модерен Glassmorphic дизайн и вграден скрол в клика
+        if st.button("📸 Снимки и спомени", use_container_width=True, key="open_gallery_final_2026"):
+            # Този JavaScript се задейства моментално при клик в браузъра
+            st.components.v1.html("""
+                <script>
+                    window.parent.document.getElementById('click_scroll_trigger').click();
+                </script>
+            """, height=0)
+            st.session_state["view_photos"] = True
+            st.rerun()
+
+
+
+
+
+        st.markdown("---")
+        avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
+        grand_total = depozit_hotel + total_on_site
+        pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{f' | <b>Период:</b> {st_date} - {en_date}' if st_date and st_date != 'nan' else ''}{f' | <b>Общо изминати км. :</b> {dist:.0f} км' if dist > 0 else ''}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
+        
+        for _, row in df_trip.iterrows():
+            desc_val = str(row['description'])
+            if "Моментен разход:" in desc_val:
+                desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
+            cur_km_val = float(row.get('current_km', 0.0))
+            km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
+            pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
+            
+        pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
+        
+        b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
+
+        # 1. Кодираме данните за директно изтегляне през уеб браузъра
+        b64_html_data = base64.b64encode(pdf_html.encode("utf-8")).decode("utf-8")
+        
+        # 2. 👑 ЧИСТ CSS ЗА ХОУВЪР ЕФЕКТ И ПЛАВНО ПРЕЛИВАНЕ (Заобикаля всички блокировки)
+        st.markdown("""
+            <style>
+                /* Основен стил на бутона */
+                .premium-3d-btn {
+                    width: 100%; 
+                    background: linear-gradient(to bottom, #5d6675 0%, #383e4a 50%, #252932 100%) !important;
+                    color: #FFFFFF !important; 
+                    border: 1px solid rgba(0, 242, 254, 0.4) !important;
+                    padding: 12px; 
+                    font-weight: 900 !important;
+                    font-size: 14px !important;
+                    letter-spacing: 0.8px !important;
+                    border-radius: 10px !important; 
+                    cursor: pointer !important;
+                    box-shadow: inset 0px 1px 0px rgba(255,255,255,0.3), 0px 4px 0px #15171c, 0px 8px 15px rgba(0, 0, 0, 0.5) !important;
+                    transition: all 0.2s ease-in-out !important; /* 🌟 ПРАВИ ЕФЕКТА ПЛАВЕН */
+                    text-shadow: 0px -1px 0px rgba(0,0,0,0.5);
+                }
                 
-                st.markdown("---")
-                if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
-                    st.rerun()
-            # =========================================================
-            # 📊 ПОДГОТОВКА НА ДАННИТЕ ЗА КРАЙНИЯ ОТЧЕТ
-            # =========================================================
-            avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
-            grand_total = depozit_hotel + total_on_site
-            period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
-            dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
-            
-            pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
-            
-            for _, row in df_trip.iterrows():
-                desc_val = str(row['description'])
-                if "Моментен разход:" in desc_val:
-                    desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
-                cur_km_val = float(row.get('current_km', 0.0))
-                km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
-                pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
+                /* 🌟 ХОУВЪР ЕФЕКТ: Светва нежно и плавно, когато минеш с мишката */
+                .premium-3d-btn:hover {
+                    background: linear-gradient(to bottom, #6b7586 0%, #414856 50%, #2c313c 100%) !important;
+                    border-color: rgba(0, 242, 254, 0.8) !important;
+                    box-shadow: inset 0px 1px 0px rgba(255,255,255,0.4), 0px 4px 0px #15171c, 0px 10px 20px rgba(0, 242, 254, 0.15) !important;
+                    filter: brightness(1.05);
+                }
                 
-            pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
-            # =========================================================
-            # 👑 ОБЕДИНЕН ЧИСТ STREAMLIT БЛОК С БУТОНИ
-            # =========================================================
-            
-            
-            # Изместваме скрития HTML маркер извън блока с бутоните, за да не отваря празно място
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            
-            # 1. Оригинален бутон за Хронология
-            if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
-                hronologia_popup_dialog()
+                /* 3D Потъване при реален натиск */
+                .premium-3d-btn:active {
+                    transform: translateY(3px) !important;
+                    box-shadow: inset 0px 1px 0px rgba(255,255,255,0.2), 0px 1px 0px #15171c, 0px 3px 6px rgba(0,0,0,0.3) !important;
+                    transition: all 0.05s ease !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
 
-            # 2. Фабричен бутон за изтегляне (Download Button) на Streamlit
-            st.download_button(
-                label="Отчет в PDF",
-                data=pdf_html,
-                file_name=f"Otchet_{trip_id}_2026.html",
-                mime="text/html",
-                use_container_width=True,
-                key="st_premium_report_download_btn"
-            )
-
-
-            st.markdown("---") # Крайна обща линия след пакета с бутони
-
-
-
+        # 3. Самият чист HTML бутон, използващ горния CSS клас
+        st.markdown(f'''
+            <a href="data:text/html;base64,{b64_html_data}" download="Otchet_{trip_id}_2026.html" style="text-decoration:none;">
+                <button class="premium-3d-btn">
+                    📄 СВАЛИ ПЪЛЕН ОТЧЕТ (PDF/HTML)
+                </button>
+            </a>
+        ''', unsafe_allow_html=True)
+        st.markdown("---")
 
 
 
@@ -825,7 +800,7 @@ else:
             
             cb1, cb2 = st.columns([0.7, 0.3])
             with cb1:
-                if st.button("💾 Запис", use_container_width=True, type="primary") and title_in:
+                if st.button("💾 ЗАПИШИ ПИНЧЕТО НА КАРТАТА", use_container_width=True, type="primary") and title_in:
                     if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in):
                         st.session_state["active_click"] = None
                         st.rerun()
@@ -836,7 +811,6 @@ else:
 
         if not df_points.empty:
             st.markdown("#### 📍 Любими места от пътуването")
-            st.markdown("---")
             try:
                 df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
                 color_emojis = {"blue": "🔵", "green": "🟢", "red": "🔴", "purple": "🟣", "orange": "🟠"}
