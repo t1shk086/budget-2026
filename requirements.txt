@@ -6,3 +6,5 @@ streamlit-folium
 geopy
 st-supabase-connection
 requests
+google-api-python-client
+google-auth-httplib2
