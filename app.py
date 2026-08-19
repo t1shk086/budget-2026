@@ -1100,4 +1100,47 @@ if 'df_trip' not in locals() or df_trip is None or (isinstance(df_trip, pd.DataF
             if not локален_df.empty and 'trip_id' in locals():
                 df_trip = локален_df[локален_df["trip_id"] == t_id]
     except: pass
+# =====================================================================
+# 🛡️ АВТОМАТИЧЕН КЛИЕНТСКИ ПРИХВАЩАЧ ЗА БУТОНИТЕ (В САМИЯ КРАЙ)
+# =====================================================================
+import requests
+import datetime
+
+# Проверяваме дали оригиналната функция add_expense съществува в кода Ви
+if "add_expense" in globals():
+    # Запазваме Вашата оригинална работеща локална функция под друго име
+    stari_add_expense = globals()["add_expense"]
+    
+    # Дефинираме новата комбинирана функция за бутоните
+    def custom_intercepted_add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
+        # 1. Първо изпълняваме Вашия оригинален локален запис (за да работи хронологията)
+        uspeh_lokalno = stari_add_expense(t_id, amt, cat, desc, is_dep, lit, c_km)
+        
+        # 2. Ако локалният запис е успешен, изстрелваме копие и към Supabase
+        if uspeh_lokalno:
+            try:
+                url = "https://supabase.co"
+                jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudXFwenpvcmNuanJidHd3b3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNDA2OTEsImV4cCI6MjEwMjcxNjY5MX0.Kjim-3myqk53OnB6RiilKYxG1R3xnLsaNJb04FtrShM"
+                headers = {
+                    "apikey": jwt_key,
+                    "Authorization": f"Bearer {jwt_key}",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "trip_id": str(t_id),
+                    "date": datetime.datetime.now().strftime("%d.%m %H:%M"),
+                    "amount": float(amt),
+                    "category": str(cat),
+                    "description": str(desc) if desc else "Без описание",
+                    "type": "deposit" if is_dep else "expense",
+                    "liters": float(lit),
+                    "current_km": float(c_km)
+                }
+                requests.post(url, json=payload, headers=headers, timeout=3)
+            except:
+                pass
+        return uspeh_lokalno
+
+    # Заменяме глобално функцията, така че бутоните Ви да викат новия прихващач
+    globals()["add_expense"] = custom_intercepted_add_expense
 
