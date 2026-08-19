@@ -696,31 +696,6 @@ else:
                     </style>
                 """, unsafe_allow_html=True)
                 
-                # Инициализиране на състояние за бързо потвърждение на изтриването
-                if "quick_delete_idx" not in st.session_state:
-                    st.session_state["quick_delete_idx"] = None
-
-                # Показване на съобщение за потвърждение най-горе в прозореца, ако е натиснат бутон
-                if st.session_state["quick_delete_idx"] is not None:
-                    q_idx = st.session_state["quick_delete_idx"]
-                    st.warning("⚠️ Сигурни ли сте, че искате да изтриете този разход?")
-                    c_del1, c_del2 = st.columns(2)
-                    with c_del1:
-                        if st.button("✔️ ДА, ИЗТРИЙ", use_container_width=True, type="primary", key="confirm_quick_del_btn"):
-                            try:
-                                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                                df_all.drop(q_idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
-                                st.session_state["quick_delete_idx"] = None
-                                st.session_state["form_version"] += 1
-                                st.rerun()
-                            except:
-                                st.error("Грешка при изтриването.")
-                    with c_del2:
-                        if st.button("✖️ ОТКАЗ", use_container_width=True, key="cancel_quick_del_btn"):
-                            st.session_state["quick_delete_idx"] = None
-                            st.rerun()
-                    st.markdown("---")
-
                 try:
                     df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
                     valid_expenses = df_all[df_all["trip_id"] == trip_id].index.tolist()
@@ -753,8 +728,10 @@ else:
                                 
                             with col_del:
                                 st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
-                                if st.button("🗑️", key=f"dl_{idx}", use_container_width=True, help="Изтрий този разход"):
-                                    st.session_state["quick_delete_idx"] = idx
+                                # Директно триене при натискане - спестява междинното презареждане и грешките
+                                if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True, help="Изтрий веднага"):
+                                    df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
+                                    st.session_state["form_version"] += 1
                                     st.rerun()
                                 st.markdown('</div>', unsafe_allow_html=True)
                 except:
@@ -762,8 +739,8 @@ else:
                 
                 st.markdown("---")
                 if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
-                    st.session_state["quick_delete_idx"] = None
                     st.rerun()
+
 
             # =========================================================
             # 📊 ПОДГОТОВКА НА ДАННИТЕ ЗА КРАЙНИЯ ОТЧЕТ
