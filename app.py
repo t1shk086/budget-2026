@@ -1001,4 +1001,29 @@ if "current_trip" in st.session_state and st.session_state["current_trip"] is no
                         pass
 
 
+def background_supabase_log(t_id, amt, cat, desc, is_dep=False):
+    """Изпраща копие от разхода към Supabase и показва грешката на екрана."""
+    try:
+        url = "https://supabase.co"
+        headers = {
+            "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
+            "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "trip_id": str(t_id),
+            "date": datetime.datetime.now().strftime("%d.%m %H:%M"),
+            "amount": float(amt),
+            "category": str(cat),
+            "description": str(desc) if desc else "Без описание",
+            "type": "deposit" if is_dep else "expense",
+            "liters": 0.0,
+            "current_km": 0.0
+        }
+        res = requests.post(url, json=payload, headers=headers, timeout=3)
+        # Проверяваме дали статус кодът е различен от успешните 200 и 201
+        if res.status_code != 200 and res.status_code != 201:
+            st.error(f"Фонов лог отказан от Supabase (Код {res.status_code}): {res.text}")
+    except Exception as ex:
+        st.error(f"Грешка във фоновата връзка: {ex}")
 
