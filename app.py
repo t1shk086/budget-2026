@@ -1147,4 +1147,38 @@ if "add_expense" in globals():
 
     # Заменяме глобално функцията, така че бутоните Ви да викат новия прихващач
     globals()["add_expense"] = custom_intercepted_add_expense
+# =====================================================================
+# 🚨 ПРИНУДИТЕЛЕН БУТОН ЗА ТЕСТ НА ЗАПИСА В SUPABASE (В САМИЯ КРАЙ)
+# =====================================================================
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("### 🧪 Тест на базата данни")
+    if st.button("🚀 Изпрати ТЕСТОВ РАЗХОД в облака"):
+        try:
+            url = "https://supabase.co"
+            jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudXFwenpvcmNuanJidHd3b3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNDA2OTEsImV4cCI6MjEwMjcxNjY5MX0.Kjim-3myqk53OnB6RiilKYxG1R3xnLsaNJb04FtrShM"
+            headers = {
+                "apikey": jwt_key,
+                "Authorization": f"Bearer {jwt_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+            }
+            payload = {
+                "trip_id": "TEST_ROUTINE",
+                "date": "19.08 19:15",
+                "amount": 9.99,
+                "category": "Други",
+                "description": "Принудителен тест от страничното меню",
+                "type": "expense",
+                "liters": 0.0,
+                "current_km": 0.0
+            }
+            res = requests.post(url, json=payload, headers=headers, timeout=5)
+            
+            if res.status_code == 200 or res.status_code == 201:
+                st.success("✅ СУПЕР! Записът премина успешно през интернет!")
+            else:
+                st.error(f"❌ Supabase отказа (Код {res.status_code}): {res.text}")
+        except Exception as e:
+            st.error(f"💥 Грешка: {e}")
 
