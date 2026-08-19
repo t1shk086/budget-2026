@@ -798,30 +798,57 @@ else:
 
 
 
-        # 🗺️ КАРТАТА Е ВЪЗСТАНОВЕНА И СИНТАКТИЧНО ПЕРФЕКТНА
+        # 7. Карта на спирките и дестинациите (Folium) с памет за зуум и позиция
         st.subheader("🗺️ Карта на спирките и дестинациите")
         df_points = get_map_points(trip_id)
-        c_lat, c_lon = (df_points["lat"].mean(), df_points["lon"].mean()) if not df_points.empty else (42.7339, 25.4858)
         
-        m = folium.Map(location=[c_lat, c_lon], zoom_start=6)
+        # Инициализиране на памет за позицията и зуума на картата в сесията
+        if "map_center" not in st.session_state:
+            if not df_points.empty:
+                st.session_state["map_center"] = [df_points["lat"].mean(), df_points["lon"].mean()]
+            else:
+                st.session_state["map_center"] = [42.7339, 25.4858] # Център на България
+                
+        if "map_zoom" not in st.session_state:
+            st.session_state["map_zoom"] = 6
+
+        # Генериране на картата с последно запазените координати и зуум
+        m = folium.Map(
+            location=st.session_state["map_center"], 
+            zoom_start=st.session_state["map_zoom"]
+        )
         m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
         folium.LatLngPopup().add_to(m)
         
-        for _, pt in df_points.iterrows():
-            folium.Marker(location=[pt["lat"], pt["lon"]], popup=pt["title"], icon=folium.Icon(color=pt["color"], icon="info-sign")).add_to(m)
-            
-        # Статичен ключ и връщане само на клика, за да няма премигвания
+        # Рисуване на съществуващите маркери
+        for _, pt in df_points.iterrows(): 
+            folium.Marker(
+                location=[pt["lat"], pt["lon"]], 
+                popup=pt["title"], 
+                icon=folium.Icon(color=pt["color"], icon="info-sign")
+            ).add_to(m)
+        
+        # Връщаме разширени обекти от картата, за да уловим местенето и зуумването
         map_data = st_folium(
             m, 
             width=700, 
             height=400, 
             key="static_folium_trip_map", 
-            returned_objects=["last_clicked"]
+            returned_objects=["last_clicked", "center", "zoom"]
         )
-        
+
+        # Веднага щом потребителят премести или зуумне картата, записваме новото положение
+        if map_data:
+            if map_data.get("center") is not None:
+                # Пазим центъра като списък [lat, lng]
+                st.session_state["map_center"] = [map_data["center"]["lat"], map_data["center"]["lng"]]
+            if map_data.get("zoom") is not None:
+                st.session_state["map_zoom"] = map_data["zoom"]
+
+        # Обработка на клик върху картата за добавяне на нова точка
         if map_data and map_data.get("last_clicked"):
             new_click = map_data["last_clicked"]
-            if st.session_state.get("active_click") != new_click:
+            if st.session_state.get("active_click") != new_click: 
                 st.session_state["active_click"] = new_click
                 st.rerun()
                 
@@ -829,21 +856,19 @@ else:
             click_coords = st.session_state["active_click"]
             st.markdown(f"📌 **Избрано място:** Ширина: `{click_coords['lat']:.4f}`, Дължина: `{click_coords['lng']:.4f}`")
             c_m1, c_m2 = st.columns([0.7, 0.3])
-            with c_m1:
-                title_in = st.text_input("Име на новата спирка:", placeholder="напр. Хотел...", key="map_title_click")
-            with c_m2:
-                color_in = st.selectbox("Цвят:", ["blue", "green", "red", "purple", "orange"], key="map_color_click")
-            
+            with c_m1: title_in = st.text_input("Име на новата спирка:", placeholder="напр. Хотел...", key="map_title_click")
+            with c_m2: color_in = st.selectbox("Цвят:", ["blue", "green", "red", "purple", "orange"], key="map_color_click")
             cb1, cb2 = st.columns([0.7, 0.3])
             with cb1:
                 if st.button("💾 Запис", use_container_width=True, type="primary") and title_in:
-                    if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in):
+                    if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in): 
                         st.session_state["active_click"] = None
                         st.rerun()
             with cb2:
-                if st.button("❌ Отказ", use_container_width=True):
+                if st.button("❌ Отказ", use_container_width=True): 
                     st.session_state["active_click"] = None
                     st.rerun()
+
 
         if not df_points.empty:
             st.markdown("#### 📍 Любими места от пътуването")
