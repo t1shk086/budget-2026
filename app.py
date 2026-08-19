@@ -291,117 +291,19 @@ else:
         if not os.path.exists(papka_snimki): 
             os.makedirs(papka_snimki)
         
-        # 2. Компонент за качване на снимки - веднага под бутона Назад
-        up = st.file_uploader("Добавете нови спомени в албума:", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key=f"u_{trip_id}_gallery")
-        if up:
-            for f in up:
-                if not os.path.exists(os.path.join(papka_snimki, f.name)):
-                    with open(os.path.join(papka_snimki, f.name), "wb") as out: 
-                        out.write(f.getbuffer())
-            st.rerun()
-            
-        st.markdown("---")
-        
-        # Инициализираме състояние за показване на снимките на телефона, за да не се зареждат веднага
-        if "show_images_grid" not in st.session_state:
-            st.session_state["show_images_grid"] = False
-            
-        # 3. Бутон за разгъване на снимките - спасява телефона от грешен скрол
-        if not st.session_state["show_images_grid"]:
-            if st.button("👁️ ПОКАЖИ ЗАПАЗЕНИТЕ СНИМКИ", use_container_width=True, type="primary"):
-                st.session_state["show_images_grid"] = True
-                st.rerun()
-        else:
-            if st.button("🙈 СКРИЙ СНИМКИТЕ", use_container_width=True):
-                st.session_state["show_images_grid"] = False
-                st.rerun()
-                
-            # 4. Показване на снимките в решетка (само ако потребителят е натиснал бутона)
-            saved = glob.glob(os.path.join(papka_snimki, "*"))
-            if saved:
-                st.markdown("<br>", unsafe_allow_html=True)
-                img_grid = st.columns(2)
-                for idx, p in enumerate(saved):
-                    with img_grid[idx % 2]:
-                        st.image(p, use_container_width=True)
-                        if st.button("❌ Изтрий", key=f"di_{idx}", use_container_width=True): 
-                            os.remove(p)
-                            st.rerun()
-            else: 
-                st.markdown("<div style='text-align:center; margin-top:20px; margin-bottom:20px; color:#666;'>Все още няма снимки.</div>", unsafe_allow_html=True)
 
 
 
 
 
         
-                   
-    else:
-        # =========================================================
-        # 👑 ИЗОЛИРАН ДЕСЕН БУТОН ЗА ГАЛЕРИЯ (БЕЗ ДА БЪРКА БУТОНА НАЗАД)
-        # =========================================================
-        st.markdown("""
-            <style>
-                /* Използваме селектор, който филтрира бутоните по съдържание на текст */
-                /* Хващаме контейнера на бутона, само ако вътре има КЛЮЧА за Галерия */
-                div[data-testid="stColumn"]:nth-of-type(2):has(button[key="open_gallery_top_header_2026"]) {
-                    display: flex !important;
-                    justify-content: flex-end !important;
-                    align-items: center !important;
-                    width: 100% !important;
-                }
-                
-                /* Стилизираме САМО бутона за Галерия – напълно прозрачен и стъклен */
-                button[key="open_gallery_top_header_2026"] {
-                    display: inline-block !important;
-                    width: auto !important;
-                    min-width: unset !important;
-                    background: rgba(22, 25, 31, 0.6) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-                    color: #ffffff !important;
-                    padding: 4px 12px !important;
-                    font-size: 12px !important;
-                    font-weight: 600 !important;
-                    border-radius: 8px !important;
-                    backdrop-filter: blur(8px) !important;
-                    -webkit-backdrop-filter: blur(8px) !important;
-                    transition: all 0.2s ease-in-out !important;
-                }
-                
-                button[key="open_gallery_top_header_2026"]:hover {
-                    background: rgba(0, 242, 254, 0.12) !important;
-                    border-color: rgba(0, 242, 254, 0.5) !important;
-                }
-                
-                /* БОНУС: Гарантираме, че ако се появи бутонът "Назад към разходите", */
-                /* той ще си запази оригиналния фабричен стил без да се мести в десния ъгъл! */
-                button:not([key="open_gallery_top_header_2026"]) {
-                    position: static !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
-
-        # Ред 1: Разделяне за перфектно дясно позициониране на Галерията
-        col_space_top, col_btn_top = st.columns([0.7, 0.3])
-        
-        with col_btn_top:
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            if st.button("📸 Галерия", key="open_gallery_top_header_2026"):
-                st.components.v1.html("<script>window.parent.document.getElementById('click_scroll_trigger').click();</script>", height=0)
-                st.session_state["view_photos"] = True
-                st.rerun()
+ 
 
         # Ред 2: Перфектно центрираното заглавие и датите отдолу
         date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
         st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
         
         st.markdown("---")
-
-
-
-
-
-
 
 
 
