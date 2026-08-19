@@ -20,7 +20,14 @@ st.markdown("""
 
 # --- ИНИЦИАЛИЗАЦИЯ НА ОБЛАЧНАТА ВРЪЗКА ---
 # Автоматично взима credentials от Streamlit Secrets
-conn = st.connection("supabase", type=SupabaseConnection)
+# --- ИНИЦИАЛИЗАЦИЯ НА ОБЛАЧНАТА ВРЪЗКА (ДИРЕКТЕН МЕТОД) ---
+conn = st.connection(
+    "supabase",
+    type=SupabaseConnection,
+    url="https://supabase.co",
+    key="sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7"
+)
+
 
 # --- НОВИТЕ ОПТИМИЗИРАНИ ФУНКЦИИ КЪМ БАЗАТА ДАННИ ---
 
