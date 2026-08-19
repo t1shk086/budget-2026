@@ -798,22 +798,23 @@ else:
 
 
 
-        # 7. Карта на спирките и дестинациите (Folium) - Стабилна версия без премигване
+        # 7. Карта на спирките и дестинациите (Folium) - Стабилна и с памет за конкретното пътуване
         st.subheader("🗺️ Карта на спирките и дестинациите")
         df_points = get_map_points(trip_id)
         
-        # Базови координати - изчисляват се само веднъж при зареждане
-        if "stable_lat" not in st.session_state or "stable_lon" not in st.session_state:
+        # СЛЕДЕНЕ ЗА СМЯНА НА ПЪТУВАНЕТО: Ако сесията е празна или сме сменили дестинацията, рестартираме центъра
+        if "map_current_trip_id" not in st.session_state or st.session_state["map_current_trip_id"] != trip_id:
+            st.session_state["map_current_trip_id"] = trip_id
             if not df_points.empty:
                 st.session_state["stable_lat"] = float(df_points["lat"].mean())
                 st.session_state["stable_lon"] = float(df_points["lon"].mean())
-                st.session_state["stable_zoom"] = 8  # По-близък зуум, ако има точки
+                st.session_state["stable_zoom"] = 8
             else:
                 st.session_state["stable_lat"] = 42.7339
                 st.session_state["stable_lon"] = 25.4858
                 st.session_state["stable_zoom"] = 6
 
-        # Създаваме чист Folium обект
+        # Създаваме чист Folium обект с актуалните за това пътуване координати
         m = folium.Map(
             location=[st.session_state["stable_lat"], st.session_state["stable_lon"]], 
             zoom_start=st.session_state["stable_zoom"]
@@ -829,7 +830,7 @@ else:
                 icon=folium.Icon(color=pt["color"], icon="info-sign")
             ).add_to(m)
         
-        # ВАЖНО: Връщаме САМО last_clicked. Премахваме "center" и "zoom", които причиняваха черния екран!
+        # Връщаме само натиснатия маркер, за да няма премигвания
         map_data = st_folium(
             m, 
             width=700, 
@@ -842,11 +843,10 @@ else:
         if map_data and map_data.get("last_clicked"):
             new_click = map_data["last_clicked"]
             if st.session_state.get("active_click") != new_click: 
-                # Преди да презаредим, запазваме текущите координати на клика като нов временен център,
-                # за да може след записа картата да се отвори точно на това място!
+                # Запазваме мястото на клика като нов център само за текущото пътуване
                 st.session_state["stable_lat"] = new_click["lat"]
                 st.session_state["stable_lon"] = new_click["lng"]
-                st.session_state["stable_zoom"] = 13  # Автоматично приближава до мястото на клика
+                st.session_state["stable_zoom"] = 13
                 
                 st.session_state["active_click"] = new_click
                 st.rerun()
