@@ -70,12 +70,90 @@ st.markdown("""
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 
-conn = st.connection(
-    "supabase",
-    type=SupabaseConnection,
-    url="https://supabase.co",
-    anon_key="sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7"
-)
+import requests
+
+# Конфигурация за директни HTTP заявки към Supabase
+SUPABASE_URL = "https://supabase.co"
+SUPABASE_HEADERS = {
+    "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
+    "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+}
+
+def get_trip_data(t_id):
+    try:
+        url = f"{SUPABASE_URL}/budget_data?trip_id=eq.{t_id}"
+        res = requests.get(url, headers=SUPABASE_HEADERS)
+        if res.status_code == 200 and res.json():
+            r = pd.DataFrame(res.json())
+            if "liters" not in r.columns: r["liters"] = 0.0
+            if "current_km" not in r.columns: r["current_km"] = 0.0
+            return r
+    except: pass
+    return pd.DataFrame(columns=["id","trip_id","date","amount","category","description","type","liters","current_km"])
+
+def get_trip_settings(t_id):
+    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
+    try:
+        url = f"{SUPABASE_URL}/trip_settings?trip_id=eq.{t_id}"
+        res = requests.get(url, headers=SUPABASE_HEADERS)
+        if res.status_code == 200 and res.json() and len(res.json()) > 0:
+            return res.json()[0]
+    except: pass
+    return d
+def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
+    try:
+        url = f"{SUPABASE_URL}/trip_settings"
+        payload = {
+            "trip_id": str(t_id), "car_trip": str(c_t), "track_fuel": str(t_f),
+            "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f),
+            "start_date": str(s_d), "end_date": str(e_d)
+        }
+        # Използваме upsert през HTTP за избягване на дублиране
+        headers = SUPABASE_HEADERS.copy()
+        headers["Prefer"] = "resolution=merge-duplicates"
+        requests.post(url, json=payload, headers=headers)
+    except Exception as e:
+        st.error(f"Грешка настройки: {e}")
+
+def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
+    try:
+        url = f"{SUPABASE_URL}/budget_data"
+        payload = {
+            "trip_id": str(t_id), "date": datetime.datetime.now().strftime("%d.%m %H:%M"),
+            "amount": float(amt), "category": str(cat), "description": str(desc) if desc else "Без описание",
+            "type": "deposit" if is_dep else "expense", "liters": float(lit), "current_km": float(c_km)
+        }
+        res = requests.post(url, json=payload, headers=SUPABASE_HEADERS)
+        if res.status_code in:
+            return True
+        else:
+            st.error(f"Грешка при запис в базата: {res.text}")
+            return False
+    except Exception as e:
+        st.error(f"Грешка връзка: {e}")
+        return False
+
+def get_map_points(t_id):
+    try:
+        url = f"{SUPABASE_URL}/map_points?trip_id=eq.{t_id}"
+        res = requests.get(url, headers=SUPABASE_HEADERS)
+        if res.status_code == 200 and res.json():
+            return pd.DataFrame(res.json())
+    except: pass
+    return pd.DataFrame(columns=["id", "trip_id", "lat", "lon", "title", "color"])
+
+def add_map_point(t_id, lat, lon, title, color="blue"):
+    try:
+        url = f"{SUPABASE_URL}/map_points"
+        payload = {
+            "trip_id": str(t_id), "lat": float(lat), "lon": float(lon), "title": str(title), "color": str(color)
+        }
+        requests.post(url, json=payload, headers=SUPABASE_HEADERS)
+        return True
+    except: return False
+
 
 
 
