@@ -1185,64 +1185,77 @@ with st.sidebar:
             st.error(f"💥 Грешка: {e}")
 
 # =====================================================================
-# 🛸 АВТОМАТИЧЕН СИНХРОНИЗАТОР НА CSV ФАЙЛА КЪМ ОБЛАКА (В САМИЯ КРАЙ)
+# 🔍 ИНТЕЛЕГЕНТЕН СЕНЗОР: АВТОМАТИЧНО ТЪРСЕНЕ И КАЧВАНЕ НА РАЗХОДИТЕ
 # =====================================================================
 import requests
 import os
+import glob
 import pandas as pd
 
-def sync_local_csv_to_supabase():
-    """Сверява локалния CSV файл и качва липсващите редове в Supabase."""
-    # Име на Вашия локален файл с разходи (променете го, ако се казва различно)
-    LOCAL_FILE = "budget_data.csv"
-    
-    if os.path.exists(LOCAL_FILE):
-        try:
-            # 1. Зареждаме локалните разходи от телефона
-            df_local = pd.read_csv(LOCAL_FILE, encoding="utf-8")
-            if df_local.empty:
-                return
+def smart_supabase_sync():
+    try:
+        # Настройки на новата Ви база данни
+        url = "https://supabase.co"
+        jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVidW5xcWtrZWN6andtZW1kdW95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTE4MDEsImV4cCI6MjEwMjcyNzgwMX0.tOn9YEJ5iM8BCxDdHscFTCzcWkAcLl7H1n3ASZngwMk"
+        headers = {
+            "apikey": jwt_key,
+            "Authorization": f"Bearer {jwt_key}",
+            "Content-Type": "application/json"
+        }
 
-            # Настройки на новата Ви работеща база данни
-            url = "https://supabase.co"
-            jwt_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVidW5xcWtrZWN6andtZW1kdW95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTE4MDEsImV4cCI6MjEwMjcyNzgwMX0.tOn9YEJ5iM8BCxDdHscFTCzcWkAcLl7H1n3ASZngwMk"
-            headers = {
-                "apikey": jwt_key,
-                "Authorization": f"Bearer {jwt_key}",
-                "Content-Type": "application/json"
-            }
+        # 1. Търсим ВСИЧКИ CSV файлове в проекта, за да открием правилния
+        csv_files = glob.glob("*.csv") + glob.glob("**/*.csv")
+        
+        target_file = None
+        for file in csv_files:
+            try:
+                test_df = pd.read_csv(file, encoding="utf-8", nrows=3)
+                # Проверяваме дали това е файлът с разходи по ключовите колони
+                if "amount" in test_df.columns or "category" in test_df.columns:
+                    target_file = file
+                    break
+            except: pass
 
-            # 2. Проверяваме какво вече има в Supabase, за да не повтаряме редове
-            res = requests.get(f"{url}?select=trip_id,amount,date,description", headers=headers, timeout=3)
+        # Ако не открием файл по колони, търсим по подразбиране
+        if not target_file:
+            for f_name in ["budget_data.csv", "expenses.csv", "data.csv"]:
+                if os.path.exists(f_name):
+                    target_file = f_name
+                    break
+
+        # 2. Ако открием файла, вземаме данните и ги синхронизираме
+        if target_file and os.path.exists(target_file):
+            df_local = pd.read_csv(target_file, encoding="utf-8")
+            if df_local.empty: return
+
+            # Проверяваме какво вече има в Supabase, за да няма дублиране
+            res = requests.get(f"{url}?select=trip_id,amount,date", headers=headers, timeout=3)
             cloud_keys = set()
             if res.status_code == 200 and res.json():
                 for r in res.json():
-                    # Създаваме уникален ключ за всеки разход
                     cloud_keys.add(f"{r.get('trip_id')}_{r.get('amount')}_{r.get('date')}")
 
-            # 3. Превъртаме локалните разходи и качваме само новите
+            # 3. Изстрелваме редовете към облака
             for _, row in df_local.iterrows():
-                t_id = str(row.get("trip_id", ""))
-                amt = float(row.get("amount", 0.0))
-                dt = str(row.get("date", ""))
+                t_id = str(row.get("trip_id", row.get("Destination", "Trip")))
+                amt = float(row.get("amount", row.get("Сума", row.get("Amount", 0.0))))
+                dt = str(row.get("date", row.get("Дата", row.get("Date", ""))))
                 
                 match_key = f"{t_id}_{amt}_{dt}"
                 
-                # Ако този разход го няма в облака, го изпращаме веднага
-                if match_key not in cloud_keys:
+                if match_key not in cloud_keys and amt > 0:
                     payload = {
                         "trip_id": t_id,
                         "date": dt,
                         "amount": amt,
-                        "category": str(row.get("category", "Други")),
-                        "description": str(row.get("description", "Без описание")),
+                        "category": str(row.get("category", row.get("Категория", "Други"))),
+                        "description": str(row.get("description", row.get("Описание", "Без описание"))),
                         "type": str(row.get("type", "expense")),
                         "liters": float(row.get("liters", 0.0)) if "liters" in row else 0.0,
                         "current_km": float(row.get("current_km", 0.0)) if "current_km" in row else 0.0
                     }
                     requests.post(url, json=payload, headers=headers, timeout=3)
-        except:
-            pass
+    except: pass
 
-# Изпълняваме автоматичната синхронизация при всяко раздвижване/зареждане на екрана
-sync_local_csv_to_supabase()
+# Стартираме интелигентното търсене
+smart_supabase_sync()
