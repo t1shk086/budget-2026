@@ -463,8 +463,17 @@ else:
         edit_range = st.date_input("Изберете нови дати:", value=[current_start, current_end], key="edit_dates_cal")
         if st.button("💾 Обнови", use_container_width=True, type="primary", disabled=is_trip_finished):
             sk_val, mf_val = (float(new_sk) if new_sk is not None else 0.0), (float(new_mf) if new_mf is not None else 0.0)
-            s_d_str = edit_range.strftime("%d.%m.%Y") if (isinstance(edit_range, (list, tuple)) and len(edit_range) > 0) else st_date
-            e_d_str = edit_range[-1].strftime("%d.%m.%Y") if (isinstance(edit_range, (list, tuple)) and len(edit_range) > 1) else s_d_str
+            
+            # Коригирана логика за сигурно извличане на датите от списъка/кортежа
+            if isinstance(edit_range, (list, tuple)):
+                s_d_str = edit_range[0].strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
+                e_d_str = edit_range[-1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
+            elif hasattr(edit_range, "strftime"):
+                s_d_str = edit_range.strftime("%d.%m.%Y")
+                e_d_str = s_d_str
+            else:
+                s_d_str, e_d_str = st_date, en_date
+
             if has_cash_expense and manual_cash_amt and manual_cash_amt > 0: 
                 add_expense(trip_id, manual_cash_amt, "Транспорт", f"[ПРОПУСНАТО ГОРИВО] Добавени {mf_val:.1f} литра", False, 0.0, 0.0)
             save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, s_d_str, e_d_str)
@@ -491,6 +500,7 @@ else:
     else:
         if st.button("🚗 Добави автомобил към пътуването", use_container_width=True): 
             edit_car_modal()
+
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### 📊 Анализ на разходите")
     
