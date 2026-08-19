@@ -464,7 +464,7 @@ else:
         if st.button("💾 Обнови", use_container_width=True, type="primary", disabled=is_trip_finished):
             sk_val, mf_val = (float(new_sk) if new_sk is not None else 0.0), (float(new_mf) if new_mf is not None else 0.0)
             
-            # Коригирана логика за сигурно извличане на датите от списъка/кортежа
+            # Сигурно извличане на стринговите дати чрез индексиране на списъка
             if isinstance(edit_range, (list, tuple)):
                 s_d_str = edit_range[0].strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
                 e_d_str = edit_range[-1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
@@ -474,8 +474,10 @@ else:
             else:
                 s_d_str, e_d_str = st_date, en_date
 
+            # Запис на финансовия разход за пропуснатото гориво в CSV лога
             if has_cash_expense and manual_cash_amt and manual_cash_amt > 0: 
                 add_expense(trip_id, manual_cash_amt, "Транспорт", f"[ПРОПУСНАТО ГОРИВО] Добавени {mf_val:.1f} литра", False, 0.0, 0.0)
+            
             save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, s_d_str, e_d_str)
             st.session_state["form_version"] += 1
             st.rerun()
@@ -500,6 +502,7 @@ else:
     else:
         if st.button("🚗 Добави автомобил към пътуването", use_container_width=True): 
             edit_car_modal()
+
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### 📊 Анализ на разходите")
