@@ -798,29 +798,30 @@ else:
 
 
 
-        # 7. Карта на спирките и дестинациите (Folium) с памет за зуум и позиция
+        # 7. Карта на спирките и дестинациите (Folium) - Стабилна версия без премигване
         st.subheader("🗺️ Карта на спирките и дестинациите")
         df_points = get_map_points(trip_id)
         
-        # Инициализиране на памет за позицията и зуума на картата в сесията
-        if "map_center" not in st.session_state:
+        # Базови координати - изчисляват се само веднъж при зареждане
+        if "stable_lat" not in st.session_state or "stable_lon" not in st.session_state:
             if not df_points.empty:
-                st.session_state["map_center"] = [df_points["lat"].mean(), df_points["lon"].mean()]
+                st.session_state["stable_lat"] = float(df_points["lat"].mean())
+                st.session_state["stable_lon"] = float(df_points["lon"].mean())
+                st.session_state["stable_zoom"] = 8  # По-близък зуум, ако има точки
             else:
-                st.session_state["map_center"] = [42.7339, 25.4858] # Център на България
-                
-        if "map_zoom" not in st.session_state:
-            st.session_state["map_zoom"] = 6
+                st.session_state["stable_lat"] = 42.7339
+                st.session_state["stable_lon"] = 25.4858
+                st.session_state["stable_zoom"] = 6
 
-        # Генериране на картата с последно запазените координати и зуум
+        # Създаваме чист Folium обект
         m = folium.Map(
-            location=st.session_state["map_center"], 
-            zoom_start=st.session_state["map_zoom"]
+            location=[st.session_state["stable_lat"], st.session_state["stable_lon"]], 
+            zoom_start=st.session_state["stable_zoom"]
         )
         m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
         folium.LatLngPopup().add_to(m)
         
-        # Рисуване на съществуващите маркери
+        # Рисуване на маркерите
         for _, pt in df_points.iterrows(): 
             folium.Marker(
                 location=[pt["lat"], pt["lon"]], 
@@ -828,27 +829,25 @@ else:
                 icon=folium.Icon(color=pt["color"], icon="info-sign")
             ).add_to(m)
         
-        # Връщаме разширени обекти от картата, за да уловим местенето и зуумването
+        # ВАЖНО: Връщаме САМО last_clicked. Премахваме "center" и "zoom", които причиняваха черния екран!
         map_data = st_folium(
             m, 
             width=700, 
             height=400, 
             key="static_folium_trip_map", 
-            returned_objects=["last_clicked", "center", "zoom"]
+            returned_objects=["last_clicked"]
         )
 
-        # Веднага щом потребителят премести или зуумне картата, записваме новото положение
-        if map_data:
-            if map_data.get("center") is not None:
-                # Пазим центъра като списък [lat, lng]
-                st.session_state["map_center"] = [map_data["center"]["lat"], map_data["center"]["lng"]]
-            if map_data.get("zoom") is not None:
-                st.session_state["map_zoom"] = map_data["zoom"]
-
-        # Обработка на клик върху картата за добавяне на нова точка
+        # Обработка на клик за нова точка
         if map_data and map_data.get("last_clicked"):
             new_click = map_data["last_clicked"]
             if st.session_state.get("active_click") != new_click: 
+                # Преди да презаредим, запазваме текущите координати на клика като нов временен център,
+                # за да може след записа картата да се отвори точно на това място!
+                st.session_state["stable_lat"] = new_click["lat"]
+                st.session_state["stable_lon"] = new_click["lng"]
+                st.session_state["stable_zoom"] = 13  # Автоматично приближава до мястото на клика
+                
                 st.session_state["active_click"] = new_click
                 st.rerun()
                 
@@ -868,6 +867,7 @@ else:
                 if st.button("❌ Отказ", use_container_width=True): 
                     st.session_state["active_click"] = None
                     st.rerun()
+
 
 
         if not df_points.empty:
