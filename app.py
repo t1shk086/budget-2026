@@ -121,9 +121,14 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
         url = f"{SUPABASE_URL}/budget_data"
         payload = {
-            "trip_id": str(t_id), "date": datetime.datetime.now().strftime("%d.%m %H:%M"),
-            "amount": float(amt), "category": str(cat), "description": str(desc) if desc else "Без описание",
-            "type": "deposit" if is_dep else "expense", "liters": float(lit), "current_km": float(c_km)
+            "trip_id": str(t_id), 
+            "date": datetime.datetime.now().strftime("%d.%m %H:%M"),
+            "amount": float(amt), 
+            "category": str(cat), 
+            "description": str(desc) if desc else "Без описание",
+            "type": "deposit" if is_dep else "expense", 
+            "liters": float(lit), 
+            "current_km": float(c_km)
         }
         res = requests.post(url, json=payload, headers=SUPABASE_HEADERS)
         if res.status_code in:
@@ -134,6 +139,7 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     except Exception as e:
         st.error(f"Грешка връзка: {e}")
         return False
+
 
 def get_map_points(t_id):
     try:
