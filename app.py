@@ -7,6 +7,31 @@ import base64
 import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
+import requests
+
+def background_supabase_log(t_id, amt, cat, desc, is_dep=False):
+    """Изпраща копие от разхода към Supabase тихомълком в заден фон."""
+    try:
+        url = "https://supabase.co"
+        headers = {
+            "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
+            "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "trip_id": str(t_id),
+            "date": datetime.datetime.now().strftime("%d.%m %H:%M"),
+            "amount": float(amt),
+            "category": str(cat),
+            "description": str(desc) if desc else "Без описание",
+            "type": "deposit" if is_dep else "expense",
+            "liters": 0.0,
+            "current_km": 0.0
+        }
+        # timeout=2 гарантира, че ако Supabase се забави, приложението няма да замръзне
+        requests.post(url, json=payload, headers=headers, timeout=2)
+    except:
+        pass
 
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
@@ -132,9 +157,14 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
         if "current_km" not in df.columns: df["current_km"] = 0.0
         row = {"trip_id": t_id, "date": datetime.datetime.now().strftime("%d.%m %H:%M"), "amount": float(amt), "category": cat, "description": desc if desc else "Без описание", "type": "deposit" if is_dep else "expense", "liters": float(lit), "current_km": float(c_km)}
         pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(DATA_FILE, index=False, encoding="utf-8")
+        
+        # 🌟 ЕДИНСТВЕНИЯТ НОВ РЕД: Праща лог към Supabase тихомълком в бекграунда!
+        background_supabase_log(t_id, amt, cat, desc, is_dep)
+        
         return True
     except: 
         return False
+
 
 def get_map_points(t_id):
     try:
