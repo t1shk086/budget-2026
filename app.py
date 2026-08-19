@@ -140,8 +140,8 @@ def create_trip_modal():
         new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
     if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
         s_d_str, e_d_str = "", ""
-        if isinstance(d_range, (list, tuple)):
-            s_d_str = d_range.strftime("%d.%m.%Y") if len(d_range) > 0 else ""
+        if isinstance(d_range, (list, tuple)) and len(d_range) > 0:
+            s_d_str = d_range[0].strftime("%d.%m.%Y")
             e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
         elif hasattr(d_range, "strftime"):
             s_d_str = d_range.strftime("%d.%m.%Y")
@@ -155,6 +155,7 @@ def create_trip_modal():
             if location: add_map_point(target_id, location.latitude, location.longitude, f"🏁 Център: {txt}", "red")
         except: pass
         st.session_state["current_trip"] = target_id; st.rerun()
+
 if st.session_state["current_trip"] is None:
     st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: 4px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
     existing = []
