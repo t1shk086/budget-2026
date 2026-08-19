@@ -94,7 +94,7 @@ def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
         }
         conn.table("trip_settings").upsert(row_data).execute()
     except Exception as e:
-        st.sidebar.error(f"Грешка настройки: {e}")
+        st.error(f"Supabase Грешка (Настройки): {e}")
 
 def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
@@ -108,11 +108,10 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
             "liters": float(lit), 
             "current_km": float(c_km)
         }
-        # Използваме директен insert без подаване на празно или ръчно ID
         conn.table("budget_data").insert(row).execute()
         return True
     except Exception as e:
-        st.sidebar.error(f"Грешка разход: {e}")
+        st.error(f"Supabase Грешка (Разход): {e}")
         return False
 
 def add_map_point(t_id, lat, lon, title, color="blue"):
@@ -127,8 +126,9 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
         conn.table("map_points").insert(row).execute()
         return True
     except Exception as e:
-        st.sidebar.error(f"Грешка карта: {e}")
+        st.error(f"Supabase Грешка (Карта): {e}")
         return False
+
 
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
