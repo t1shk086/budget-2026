@@ -454,7 +454,7 @@ else:
         new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, disabled=is_trip_finished)
         
         # Полето приема само положителни числа за сигурност
-        new_mf = st.number_input("Добави пропуснато гориво (л):", value=0.0, min_value=0.0, disabled=is_trip_finished)
+        new_mf = st.number_input("Добави пропуснато гориво (л):", value=None, min_value=0.0, disabled=is_trip_finished)
         
         has_cash_expense = st.checkbox("💵 Има ли финансов разход за добавеното гориво?") if (new_mf and new_mf > 0 and not is_trip_finished) else False
         manual_cash_amt = st.number_input("Въведете платена сума (EUR):", value=None, format="%.2f") if has_cash_expense else 0.0
