@@ -9,6 +9,62 @@ from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import requests
 
+import os
+import datetime
+import pandas as pd
+import requests
+
+# Вграждаме правилния ключ и адреси директно тук
+SUPABASE_JWT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudXFwenpvcmNuanJidHd3b3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNDA2OTEsImV4cCI6MjEwMjcxNjY5MX0.Kjim-3myqk53OnB6RiilKYxG1R3xnLsaNJb04FtrShM"
+DATA_FILE = "budget_data.csv"
+
+def get_trip_data(t_id):
+    if os.path.exists(DATA_FILE):
+        try:
+            df = pd.read_csv(DATA_FILE, encoding="utf-8")
+            if not df.empty and "trip_id" in df.columns:
+                return df[df["trip_id"] == t_id]
+        except: pass
+    return pd.DataFrame(columns=["id", "trip_id", "date", "amount", "category", "description", "type", "liters", "current_km"])
+
+def get_trip_settings(t_id):
+    return {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
+
+def get_map_points(t_id):
+    return pd.DataFrame(columns=["id", "trip_id", "lat", "lon", "title", "color"])
+
+# 🔥 МОЩЕН ПРЕНАСОЧВАЩ ХУК – ПРЕПИСВА ОРИГИНАЛНАТА ФУНКЦИЯ ЗА ЗАПИС:
+def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
+    try:
+        # 1. СВЕТКАВИЧЕН ЛОКАЛЕН ЗАПИС (За да работи хронологията Ви)
+        df = pd.read_csv(DATA_FILE, encoding="utf-8") if os.path.exists(DATA_FILE) else pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters","current_km"])
+        row = {
+            "trip_id": str(t_id), 
+            "date": datetime.datetime.now().strftime("%d.%m %H:%M"), 
+            "amount": float(amt), 
+            "category": str(cat), 
+            "description": str(desc) if desc else "Без описание", 
+            "type": "deposit" if is_dep else "expense", 
+            "liters": float(lit), 
+            "current_km": float(c_km)
+        }
+        pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(DATA_FILE, index=False, encoding="utf-8")
+        
+        # 2. МОМЕНТАЛЕН СИНХРОНЕН ЗАПИС В SUPABASE (Вече няма как да се пропусне)
+        url = "https://supabase.co"
+        headers = {
+            "apikey": SUPABASE_JWT_KEY,
+            "Authorization": f"Bearer {SUPABASE_JWT_KEY}",
+            "Content-Type": "application/json"
+        }
+        requests.post(url, json=row, headers=headers, timeout=4)
+        return True
+    except Exception as e:
+        # Ако нещо се обърка, показваме точната грешка на екрана, за да я хванем
+        st.error(f"Грешка при запис: {e}")
+        return False
+
+
 def background_supabase_log(t_id, amt, cat, desc, is_dep=False):
     """Изпраща копие от разхода към Supabase тихомълком в заден фон."""
     try:
