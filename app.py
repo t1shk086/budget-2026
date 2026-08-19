@@ -452,7 +452,10 @@ else:
     def edit_car_modal():
         v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1, disabled=is_trip_finished)
         new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, disabled=is_trip_finished)
-        new_mf = st.number_input("Добави пропуснато гориво (л):", value=None if m_fuel == 0.0 else m_fuel, disabled=is_trip_finished)
+        
+        # ФИКСИРАНО: Полето винаги стартира от 0.0, вместо да показва стария общ сбор
+        new_mf = st.number_input("Добави пропуснато гориво (л):", value=0.0, disabled=is_trip_finished)
+        
         has_cash_expense = st.checkbox("💵 Има ли финансов разход за добавеното гориво?") if (new_mf and new_mf > 0 and not is_trip_finished) else False
         manual_cash_amt = st.number_input("Въведете платена сума (EUR):", value=None, format="%.2f") if has_cash_expense else 0.0
         try:
@@ -463,27 +466,14 @@ else:
         edit_range = st.date_input("Изберете нови дати:", value=[current_start, current_end], key="edit_dates_cal")
         if st.button("💾 Обнови", use_container_width=True, type="primary", disabled=is_trip_finished):
             sk_val = float(new_sk) if new_sk is not None else 0.0
-            input_mf_val = float(new_mf) if new_mf is not None else 0.0
+            added_liters = float(new_mf) if new_mf is not None else 0.0
             
-            # ФИКСИРАНО: Ако потребителят въвежда нова стойност, различна от текущата, я сумираме
-            if input_mf_val != m_fuel and input_mf_val > 0:
-                # Ако стойността е променена спрямо стария m_fuel, приемаме разликата като ново натрупване
-                # За да работи чистият "добави" подход: потребителят пише колко ДОБАВЯ, а ние го събираме със старото
-                if m_fuel > 0 and input_mf_val == (m_fuel): 
-                    # Потребителят не е променил полето (останало е старото)
-                    added_liters = 0.0
-                    mf_val = m_fuel
-                else:
-                    # Потребителят е написал ново число в полето
-                    added_liters = input_mf_val
-                    mf_val = m_fuel + added_liters
-            else:
-                added_liters = 0.0
-                mf_val = m_fuel
+            # Натрупваме въведените нови литри директно към стария m_fuel в базата
+            mf_val = m_fuel + added_liters
 
             # Сигурно извличане на стринговите дати чрез индексиране на списъка
             if isinstance(edit_range, (list, tuple)):
-                s_d_str = edit_range[0].strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
+                s_d_str = edit_range.strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
                 e_d_str = edit_range[-1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
             elif hasattr(edit_range, "strftime"):
                 s_d_str = edit_range.strftime("%d.%m.%Y")
@@ -491,7 +481,7 @@ else:
             else:
                 s_d_str, e_d_str = st_date, en_date
 
-            # Запис на финансовия разход за пропуснатото гориво в CSV лога (само за НОВОТО добавено количество)
+            # Запис на финансовия разход за пропуснатото гориво в CSV лога (само ако наистина се добавят литри в момента)
             if has_cash_expense and manual_cash_amt and manual_cash_amt > 0 and added_liters > 0: 
                 add_expense(trip_id, manual_cash_amt, "Транспорт", f"[ПРОПУСНАТО ГОРИВО] Добавени {added_liters:.1f} литра", False, 0.0, 0.0)
             
@@ -519,6 +509,7 @@ else:
     else:
         if st.button("🚗 Добави автомобил към пътуването", use_container_width=True): 
             edit_car_modal()
+
 
 
 
