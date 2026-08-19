@@ -280,17 +280,7 @@ else:
         pass
 
 
-    if st.session_state["view_photos"]:
-        # 1. Бутонът за връщане назад е НАЙ-ОТГОРЕ
-        if st.button("🔙 ВРЪЩАНЕ КЪМ РАЗХОДИТЕ", use_container_width=True, key="clean_gallery_back_btn"):
-            st.session_state["view_photos"] = False
-            st.rerun()
 
-        st.markdown("---")
-
-        if not os.path.exists(papka_snimki): 
-            os.makedirs(papka_snimki)
-        
 
 
 
