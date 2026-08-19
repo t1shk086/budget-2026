@@ -704,6 +704,10 @@ else:
                         st.info("Няма регистрирани разходи за това пътуване.")
                     else:
                         for idx in reversed(valid_expenses):
+                            # Сигурна проверка: Ако индексът случайно е изтрит в рамките на текущия цикъл, го прескачаме без грешка
+                            if idx not in df_all.index:
+                                continue
+                                
                             r = df_all.loc[idx]
                             l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
                             
@@ -728,18 +732,21 @@ else:
                                 
                             with col_del:
                                 st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
-                                # Директно триене при натискане - спестява междинното презареждане и грешките
                                 if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True, help="Изтрий веднага"):
-                                    df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
+                                    # Първо прочитаме наново за абсолютна сигурност, трием и записваме
+                                    df_fresh = pd.read_csv(DATA_FILE, encoding="utf-8")
+                                    df_fresh.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
                                     st.session_state["form_version"] += 1
+                                    # Моментално прекратяваме изпълнението, за да не се счупи цикъла отдолу!
                                     st.rerun()
                                 st.markdown('</div>', unsafe_allow_html=True)
-                except:
+                except Exception as e:
                     st.error("Грешка при зареждане на хронологията.")
                 
                 st.markdown("---")
                 if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
                     st.rerun()
+
 
 
             # =========================================================
