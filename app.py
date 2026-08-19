@@ -1259,3 +1259,33 @@ def smart_supabase_sync():
 
 # Стартираме интелигентното търсене
 smart_supabase_sync()
+
+# =====================================================================
+# 🕵️ СИСТЕМЕН СКЕНЕР НА SECRETS И ЛОКАЛНИ ФАЙЛОВЕ (В САМИЯ КРАЙ)
+# =====================================================================
+import os
+import streamlit as st
+
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("### 🛠️ Системна диагностика")
+    
+    # 1. Проверяваме как точно се казват променливите в Secrets
+    try:
+        if st.secrets:
+            # Изкарваме само ключовете (имената), без самите пароли за сигурност
+            st.write("🔑 Открити имена в Secrets:", list(st.secrets.keys()))
+            for k in st.secrets.keys():
+                if isinstance(st.secrets[k], dict):
+                    st.write(f"📁 Под-меню [{k}]:", list(st.secrets[k].keys()))
+        else:
+            st.write("❌ Менюто Secrets е напълно празно!")
+    except Exception as e:
+        st.write("Грешка при Secrets:", e)
+
+    # 2. Търсим всички CSV файлове, за да разберем къде отиват разходите Ви
+    try:
+        файлове = [f for f in os.listdir('.') if f.endswith('.csv')]
+        st.write("📊 Налични CSV бази на сървъра:", файлове)
+    except Exception as e:
+        st.write("Грешка при файловете:", e)
