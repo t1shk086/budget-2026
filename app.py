@@ -577,7 +577,7 @@ else:
                     margin-bottom: 2px !important;
                     min-height: 52px !important;
                     display: flex !important;
-                    flex-direction: column;
+                    flex-direction: column !important;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -620,6 +620,7 @@ else:
                             target_row = df_fresh.loc[idx]
                             desc_str = str(target_row["description"])
                             
+                            # Ако изтриваме ръчно добавено пропуснато гориво
                             if "[ПРОПУСНАТО ГОРИВО]" in desc_str:
                                 import re
                                 match = re.search(r"Добавени\s*([0-9.]+)\s*литра", desc_str)
@@ -628,6 +629,8 @@ else:
                                     new_m_fuel = max(0.0, m_fuel - liters_to_subtract)
                                     save_trip_settings(trip_id, car_trip, t_fuel, s_km, e_km, new_m_fuel, st_date, en_date)
                             
+                            # Ако е нормално гориво от категория "Транспорт", .drop() автоматично
+                            # ще намали сбора при следващото калкулиране на transport_liters
                             df_fresh = df_fresh.drop(idx)
                             df_fresh.to_csv(DATA_FILE, index=False, encoding="utf-8")
                             st.session_state["form_version"] += 1
@@ -640,65 +643,12 @@ else:
         if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
             st.rerun()
 
-    # Математически изчисления за крайните разходи
-    raw_avg = (total_liters_calculated / dist * 100) if dist > 0 else 0.0
-    avg_con_txt = f"{raw_avg:.1f}" if dist > 0 else "0.0"
-    
-    # Реалният разход се базира на общото реално изгорено гориво, изчислено по формула в кода ви
-    raw_current = progressive_avg_con if has_progressive_data else raw_avg
-    current_con_txt = f"{raw_current:.1f}"
-
-    # Изчисляване на процента за запълване на кръговете (лимитиран до макс 20 литра / 100 км за визуализацията)
-    deg_avg = min(100, int((raw_avg / 20.0) * 100)) if raw_avg > 0 else 0
-    deg_curr = min(100, int((raw_current / 20.0) * 100)) if raw_current > 0 else 0
-
+    avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
     grand_total = depozit_hotel + total_on_site
     period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
-    # Проверяваме дали пътуването е приключило, за да отключим кръговите уреди
-    # Проверяваме дали пътуването е приключило, за да отключим кръговите уреди
-    if is_trip_finished:
-        # Изграждаме чист HTML блок с предварително изчислени променливи, за да избегнем синтактични конфликти
-        st.markdown(
-            f'<div style="background: linear-gradient(135deg, #242731 0%, #15161c 100%); '
-            f'border-top: 1px solid rgba(255,255,255,0.15); border-left: 1px solid rgba(255,255,255,0.1); '
-            f'border-radius: 20px; padding: 25px 15px; margin-bottom: 28px; '
-            f'box-shadow: 0px 15px 35px rgba(0,0,0,0.6), inset 0px 1px 0px rgba(255,255,255,0.1); '
-            f'display: flex; justify-content: space-around; align-items: center; text-align: center;">'
-            
-            f'<!-- Кръг 1: РЕАЛЕН РАЗХОД -->'
-            f'<div style="flex: 1; display: flex; flex-direction: column; align-items: center;">'
-            f'<div style="font-size: 10px; font-weight: 800; color: #6a6f80; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; text-shadow: 1px 1px 0px #000;">⚡ РЕАЛЕН РАЗХОД</div>'
-            f'<div style="position: relative; width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(#00f2fe 0% {deg_curr}%, #1a1c23 {deg_curr}% 100%); display: flex; justify-content: center; align-items: center; box-shadow: 0px 8px 20px rgba(0,0,0,0.5), inset 0px 2px 5px rgba(255,255,255,0.05);">'
-            f'<div style="position: absolute; width: 104px; height: 104px; border-radius: 50%; background: #0d0e12; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0px 4px 10px rgba(0,0,0,0.8);">'
-            f'<span style="font-size: 24px; font-weight: 900; color: #00f2fe; text-shadow: 0px 0px 8px rgba(0, 242, 254, 0.5); font-family: monospace;">{current_con_txt}</span>'
-            f'<span style="font-size: 10px; color: #434856; font-weight: 700; margin-top: -2px;">л/100 км</span>'
-            f'</div></div></div>'
-
-            f'<!-- Кръг 2: СРЕДЕН РАЗХОД -->'
-            f'<div style="flex: 1; display: flex; flex-direction: column; align-items: center;">'
-            f'<div style="font-size: 10px; font-weight: 800; color: #6a6f80; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; text-shadow: 1px 1px 0px #000;">📊 СРЕДЕН РАЗХОД</div>'
-            f'<div style="position: relative; width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(#ff4b4b 0% {deg_avg}%, #1a1c23 {deg_avg}% 100%); display: flex; justify-content: center; align-items: center; box-shadow: 0px 8px 20px rgba(0,0,0,0.5), inset 0px 2px 5px rgba(255,255,255,0.05);">'
-            f'<div style="position: absolute; width: 104px; height: 104px; border-radius: 50%; background: #0d0e12; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0px 4px 10px rgba(0,0,0,0.8);">'
-            f'<span style="font-size: 24px; font-weight: 900; color: #ff4b4b; text-shadow: 0px 0px 8px rgba(255, 75, 75, 0.5); font-family: monospace;">{avg_con_txt}</span>'
-            f'<span style="font-size: 10px; color: #434856; font-weight: 700; margin-top: -2px;">л/100 км</span>'
-            f'</div></div></div>'
-            
-            f'</div>', 
-            unsafe_allow_html=True
-        )
-    else:
-        # Панел, когато пътуването е в ход
-        st.markdown(
-            '<div style="background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); '
-            'padding: 12px; text-align: center; border-radius: 12px; margin-bottom: 20px; font-size: 13px; color: #888;">'
-            'ℹ️ 3D Кръговите километражи за крайния разход ще се генерират автоматично, когато <b>заключите и приключите пътуването</b>.'
-            '</div>', 
-            unsafe_allow_html=True
-        )
-
-    # Генератор за HTML към PDF
-    pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt} / 100 км</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
+    
+    pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
     
     for _, row in df_trip.iterrows():
         desc_val = str(row['description'])
@@ -725,9 +675,6 @@ else:
     )
 
     st.markdown("---")
-
-
-
 
 
 
@@ -952,5 +899,4 @@ else:
                         st.session_state["show_admin_panel"] = False
                         st.session_state["current_trip"] = None
                         st.rerun()
-
 
