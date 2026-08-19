@@ -1027,3 +1027,38 @@ def background_supabase_log(t_id, amt, cat, desc, is_dep=False):
     except Exception as ex:
         st.error(f"Грешка във фоновата връзка: {ex}")
 
+# =====================================================================
+# 🛡️ ИЗОЛИРАН БЛОК: СПАСЯВАНЕ НА ХРОНОЛОГИЯТА И ИЗОЛИРАНЕ НА SUPABASE
+# =====================================================================
+import requests
+
+# Пълно подсигуряване, че ако Supabase върне празен отговор, локалното приложение няма да се счупи
+if 'df_trip' in locals() and (df_trip is None or (isinstance(df_trip, pd.DataFrame) and df_trip.empty)):
+    try:
+        # Принудително зареждаме локалния CSV файл, за да тръгне хронологията Ви веднага
+        if os.path.exists(DATA_FILE):
+            df_trip = pd.read_csv(DATA_FILE, encoding="utf-8")
+            if "trip_id" in df_trip.columns and 'trip_id' in locals():
+                df_trip = df_trip[df_trip["trip_id"] == trip_id]
+    except:
+        pass
+
+# Създаваме скрито меню встрани за проверка на връзката, без да пречи на главния екран
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("### 🔌 Диагностика на Облака")
+    if st.button("🔍 Тествай връзката със Supabase"):
+        try:
+            test_url = "https://supabase.co*"
+            test_headers = {
+                "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
+                "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7"
+            }
+            res = requests.get(test_url, headers=test_headers, timeout=4)
+            if res.status_code == 200:
+                st.success("✅ Връзката е успешна! Базата данни отговаря.")
+            else:
+                st.error(f"❌ Грешка {res.status_code}: {res.text}")
+        except Exception as err:
+            st.error(f"💥 Срив при свързване: {err}")
+
