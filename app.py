@@ -1049,7 +1049,7 @@ with st.sidebar:
     st.markdown("### 🔌 Диагностика на Облака")
     if st.button("🔍 Тествай връзката със Supabase"):
         try:
-            test_url = "https://supabase.co*"
+            test_url = "https://supabase.co"
             test_headers = {
                 "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
                 "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7"
