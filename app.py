@@ -453,8 +453,8 @@ else:
         v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1, disabled=is_trip_finished)
         new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, disabled=is_trip_finished)
         
-        # Полето винаги стартира от 0.0 за чисто ново добавяне
-        new_mf = st.number_input("Добави пропуснато гориво (л):", value=None, disabled=is_trip_finished)
+        # Полето приема само положителни числа за сигурност
+        new_mf = st.number_input("Добави пропуснато гориво (л):", value=0.0, min_value=0.0, disabled=is_trip_finished)
         
         has_cash_expense = st.checkbox("💵 Има ли финансов разход за добавеното гориво?") if (new_mf and new_mf > 0 and not is_trip_finished) else False
         manual_cash_amt = st.number_input("Въведете платена сума (EUR):", value=None, format="%.2f") if has_cash_expense else 0.0
@@ -464,14 +464,18 @@ else:
         except: 
             current_start, current_end = datetime.date.today(), datetime.date.today() + datetime.timedelta(days=5)
         edit_range = st.date_input("Изберете нови дати:", value=[current_start, current_end], key="edit_dates_cal")
-        if st.button("💾 Обнови", use_container_width=True, type="primary", disabled=is_trip_finished):
+        
+        # Показваме колко литра има натрупани в момента за информация
+        if m_fuel > 0:
+            st.info(f"📋 Текущо натрупано пропуснато гориво: {m_fuel:.1f} л.")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        if st.button("💾 Обнови настройките", use_container_width=True, type="primary", disabled=is_trip_finished):
             sk_val = float(new_sk) if new_sk is not None else 0.0
             added_liters = float(new_mf) if new_mf is not None else 0.0
-            
-            # Натрупваме въведените нови литри към стария m_fuel в базата данни
-            mf_val = m_fuel + added_liters
+            mf_val = max(0.0, m_fuel + added_liters)
 
-            # ФИКСИРАНО: Правилно извличане на стринговите дати чрез индексиране на елементите в списъка
             if isinstance(edit_range, (list, tuple)):
                 s_d_str = edit_range[0].strftime("%d.%m.%Y") if len(edit_range) > 0 else st_date
                 e_d_str = edit_range[-1].strftime("%d.%m.%Y") if len(edit_range) > 1 else s_d_str
@@ -481,13 +485,19 @@ else:
             else:
                 s_d_str, e_d_str = st_date, en_date
 
-            # Запис на финансовия разход за пропуснатото гориво в CSV лога
             if has_cash_expense and manual_cash_amt and manual_cash_amt > 0 and added_liters > 0: 
                 add_expense(trip_id, manual_cash_amt, "Транспорт", f"[ПРОПУСНАТО ГОРИВО] Добавени {added_liters:.1f} литра", False, 0.0, 0.0)
             
             save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, s_d_str, e_d_str)
             st.session_state["form_version"] += 1
             st.rerun()
+            
+        # НОВА ФУНКЦИОНАЛНОСТ: Бутон за пълно нулиране на грешни литри, въведени БЕЗ финансов разход
+        if m_fuel > 0 and not is_trip_finished:
+            if st.button("🗑️ Изчисти натрупаните ръчни литри (Нулиране)", use_container_width=True):
+                save_trip_settings(trip_id, car_trip, "Да", s_km, e_km, 0.0, st_date, en_date)
+                st.session_state["form_version"] += 1
+                st.rerun()
 
     @st.dialog("🏁 Край на пътуването")
     def finish_trip_modal():
@@ -556,14 +566,6 @@ else:
                     min-height: 52px !important;
                     display: flex !important;
                     flex-direction: column !important;
-                    justify-content: center !important;
-                }
-                .expense-delete-wrapper {
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    height: 100% !important;
-                    margin-top: 10px !important;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -593,7 +595,7 @@ else:
                                         -{r["amount"]:.2f} EUR
                                     </div>
                                 </div>
-                                <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
+                                <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5);">
                                     📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
                                 </div>
                             </div>
@@ -605,9 +607,8 @@ else:
                             df_fresh = pd.read_csv(DATA_FILE, encoding="utf-8")
                             target_row = df_fresh.loc[idx]
                             desc_str = str(target_row["description"])
-                            cat_str = str(target_row["category"])
                             
-                            # СИНХРОНИЗАЦИЯ 1: Ако трием РЪЧНО добавено гориво от Настройките
+                            # Ако изтриваме ръчно добавено пропуснато гориво
                             if "[ПРОПУСНАТО ГОРИВО]" in desc_str:
                                 import re
                                 match = re.search(r"Добавени\s*([0-9.]+)\s*литра", desc_str)
@@ -616,12 +617,8 @@ else:
                                     new_m_fuel = max(0.0, m_fuel - liters_to_subtract)
                                     save_trip_settings(trip_id, car_trip, t_fuel, s_km, e_km, new_m_fuel, st_date, en_date)
                             
-                            # СИНХРОНИЗАЦИЯ 2: Ако трием СТАНДАРТЕН разход за бензин/дизел от категориите
-                            elif cat_str == "Транспорт" and "liters" in target_row and float(target_row["liters"]) > 0:
-                                # Тъй като стандартните литри се сумират динамично от DATA_FILE чрез .sum(),
-                                # премахването на този ред автоматично ще актуализира `transport_liters` на екрана!
-                                pass
-                            
+                            # Ако е нормално гориво от категория "Транспорт", .drop() автоматично
+                            # ще намали сбора при следващото калкулиране на transport_liters
                             df_fresh = df_fresh.drop(idx)
                             df_fresh.to_csv(DATA_FILE, index=False, encoding="utf-8")
                             st.session_state["form_version"] += 1
@@ -666,6 +663,7 @@ else:
     )
 
     st.markdown("---")
+
 
 
     st.subheader("🗺️ Карта на спирките и дестинациите")
