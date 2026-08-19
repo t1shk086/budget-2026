@@ -198,7 +198,7 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): create_trip_modal()
 else:
     trip_id = st.session_state["current_trip"]
-    papka_snimki = f"snimki_{trip_id}_2026"
+    
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
@@ -233,9 +233,7 @@ else:
                 try:
                     pd.read_csv(DATA_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
                     pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(papka_snimki):
-                        for p in glob.glob(os.path.join(papka_snimki, "*")): os.remove(p)
-                        os.rmdir(papka_snimki)
+                   
                 except: pass
                 st.session_state["current_trip"] = None; st.rerun()
         with c_tr2:
