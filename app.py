@@ -318,10 +318,6 @@ else:
         
         is_trip_finished = (e_km > 0.0)
 
-        
-        is_trip_finished = (e_km > 0.0)
-
-
 
         @st.dialog("⛽ Зареждане на гориво")
         def fuel_modal(amount, category, description, is_dep):
@@ -555,133 +551,124 @@ else:
         if not df_trip.empty:
             st.markdown("---")
 
-            # =========================================================
-            # 📜 ДЕФИНИЦИЯ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ ЗА ХРОНОЛОГИЯ
-            # =========================================================
-            @st.dialog("📜 Хронология на плащанията", width="large")
-            def hronologia_popup_dialog():
-                st.markdown("<p style='color: #888; margin-bottom: 20px;'>Всички записани разходи за текущото пътуване по категории и дати:</p>", unsafe_allow_html=True)
+        # Премахната грешната проверка, за да се зареждат инструментите и при празни пътувания
+        # =========================================================
+        # 📜 ДЕФИНИЦИЯ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ ЗА ХРОНОЛОГИЯ
+        # =========================================================
+        @st.dialog("📜 Хронология на плащанията", width="large")
+        def hronologia_popup_dialog():
+            st.markdown("<p style='color: #888; margin-bottom: 20px;'>Всички записани разходи за текущото пътуване по категории и дати:</p>", unsafe_allow_html=True)
+            
+            st.markdown("""
+                <style>
+                    .premium-expense-card {
+                        background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
+                        padding: 14px 18px !important;
+                        border-radius: 12px !important;
+                        border: 1px solid rgba(250, 250, 250, 0.2) !important;
+                        box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
+                        margin-bottom: 2px !important;
+                        min-height: 52px !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        justify-content: center !important;
+                    }
+                    .expense-delete-wrapper {
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        height: 100% !important;
+                        margin-top: 10px !important;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+            
+            try:
+                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                valid_expenses = df_all[df_all["trip_id"] == trip_id].index.tolist()
                 
-                st.markdown("""
-                    <style>
-                        .premium-expense-card {
-                            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
-                            padding: 14px 18px !important;
-                            border-radius: 12px !important;
-                            border: 1px solid rgba(250, 250, 250, 0.2) !important;
-                            box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
-                            margin-bottom: 2px !important;
-                            min-height: 52px !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                            justify-content: center !important;
-                        }
-                        .expense-delete-wrapper {
-                            display: flex !important;
-                            align-items: center !important;
-                            justify-content: center !important;
-                            height: 100% !important;
-                            margin-top: 10px !important;
-                        }
-                    </style>
-                """, unsafe_allow_html=True)
-                
-                try:
-                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                    valid_expenses = df_all[df_all["trip_id"] == trip_id].index.tolist()
-                    
-                    if not valid_expenses:
-                        st.info("Няма регистрирани разходи за това пътуване.")
-                    else:
-                        for idx in reversed(valid_expenses):
-                            # Сигурна проверка: Ако индексът случайно е изтрит в рамките на текущия цикъл, го прескачаме без грешка
-                            if idx not in df_all.index:
-                                continue
-                                
-                            r = df_all.loc[idx]
-                            l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
+                if not valid_expenses:
+                    st.info("Няма регистрирани разходи за това пътуване.")
+                else:
+                    for idx in reversed(valid_expenses):
+                        if idx not in df_all.index:
+                            continue
                             
-                            col_rec, col_del = st.columns([0.88, 0.12])
-                            
-                            with col_rec:
-                                st.markdown(f'''
-                                    <div class="premium-expense-card">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                            <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
-                                                <span>{get_emoji(r["category"])}</span> {r["category"]}
-                                            </div>
-                                            <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
-                                                -{r["amount"]:.2f} EUR
-                                            </div>
+                        r = df_all.loc[idx]
+                        l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
+                        col_rec, col_del = st.columns([0.88, 0.12])
+                        
+                        with col_rec:
+                            st.markdown(f'''
+                                <div class="premium-expense-card">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                        <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
+                                            <span>{get_emoji(r["category"])}</span> {r["category"]}
                                         </div>
-                                        <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
-                                            📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
+                                        <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
+                                            -{r["amount"]:.2f} EUR
                                         </div>
                                     </div>
-                                ''', unsafe_allow_html=True)
-                                
-                            with col_del:
-                                st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
-                                if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True, help="Изтрий веднага"):
-                                    # Първо прочитаме наново за абсолютна сигурност, трием и записваме
-                                    df_fresh = pd.read_csv(DATA_FILE, encoding="utf-8")
-                                    df_fresh.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
-                                    st.session_state["form_version"] += 1
-                                    # Моментално прекратяваме изпълнението, за да не се счупи цикъла отдолу!
-                                    st.rerun()
-                                st.markdown('</div>', unsafe_allow_html=True)
-                except Exception as e:
-                    st.error("Грешка при зареждане на хронологията.")
-                
-                st.markdown("---")
-                if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
-                    st.rerun()
-
-
-
-            # =========================================================
-            # 📊 ПОДГОТОВКА НА ДАННИТЕ ЗА КРАЙНИЯ ОТЧЕТ
-            # =========================================================
-            avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
-            grand_total = depozit_hotel + total_on_site
-            period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
-            dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
+                                    <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5); font-family: sans-serif;">
+                                        📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
+                                    </div>
+                                </div>
+                            ''', unsafe_allow_html=True)
+                            
+                        with col_del:
+                            st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
+                            if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True, help="Изтрий веднага"):
+                                df_fresh = pd.read_csv(DATA_FILE, encoding="utf-8")
+                                df_fresh.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
+                                st.session_state["form_version"] += 1
+                                st.rerun()
+                            st.markdown('</div>', unsafe_allow_html=True)
+            except Exception as e:
+                st.error("Грешка при зареждане на хронологията.")
             
-            pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
-            
-            for _, row in df_trip.iterrows():
-                desc_val = str(row['description'])
-                if "Моментен разход:" in desc_val:
-                    desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
-                cur_km_val = float(row.get('current_km', 0.0))
-                km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
-                pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
-                
-            pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
-            # =========================================================
-            # 👑 ОБЕДИНЕН ЧИСТ STREAMLIT БЛОК С БУТОНИ
-            # =========================================================
-            
-            
-            # Изместваме скрития HTML маркер извън блока с бутоните, за да не отваря празно място
-            st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-            
-            # 1. Оригинален бутон за Хронология
-            if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
-                hronologia_popup_dialog()
+            st.markdown("---")
+            if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
+                st.rerun()
 
-            # 2. Фабричен бутон за изтегляне (Download Button) на Streamlit
-            st.download_button(
-                label="Отчет в PDF",
-                data=pdf_html,
-                file_name=f"Otchet_{trip_id}_2026.html",
-                mime="text/html",
-                use_container_width=True,
-                key="st_premium_report_download_btn"
-            )
+        # =========================================================
+        # 📊 ПОДГОТОВКА НА ДАННИТЕ ЗА КРАЙНИЯ ОТЧЕТ
+        # =========================================================
+        avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
+        grand_total = depozit_hotel + total_on_site
+        period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
+        dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
+        
+        pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
+        
+        for _, row in df_trip.iterrows():
+            desc_val = str(row['description'])
+            if "Моментен разход:" in desc_val:
+                desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
+            cur_km_val = float(row.get('current_km', 0.0))
+            km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
+            pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
+            
+        pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
+        
+        # =========================================================
+        # 👑 ОБЕДИНЕН ЧИСТ STREAMLIT БЛОК С БУТОНИ
+        # =========================================================
+        st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+        
+        if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
+            hronologia_popup_dialog()
 
+        st.download_button(
+            label="Отчет in PDF",
+            data=pdf_html,
+            file_name=f"Otchet_{trip_id}_2026.html",
+            mime="text/html",
+            use_container_width=True,
+            key="st_premium_report_download_btn"
+        )
 
-            st.markdown("---") # Крайна обща линия след пакета с бутони
+        st.markdown("---")
+
 
 
 
