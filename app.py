@@ -945,7 +945,7 @@ else:
                 </div>
             """, unsafe_allow_html=True)
 
-            # =========================================================
+        # =========================================================
         # 🛠️ СКРИТИ АДМИНИСТРАТИВНИ ИНСТРУМЕНТИ (БЕКАП И ВЪЗСТАНОВЯВАНЕ)
         # =========================================================
         st.markdown("<br><br>", unsafe_allow_html=True)
@@ -980,11 +980,12 @@ else:
                             if os.path.exists(file_name):
                                 zip_file.write(file_name, arcname=file_name)
                     
+                    # Фиксирано име на файла и маркер за презаписване от браузъра
                     st.download_button(
                         label="📥 Свали всички CSV логове (.ZIP)",
                         data=zip_buffer.getvalue(),
-                        file_name=f"Backup_PixelApp_{datetime.date.today().strftime('%d_%m_%Y')}.zip",
-                        mime="application/zip",
+                        file_name="PixelApp_Data_Backup.zip",
+                        mime="application/octet-stream",
                         use_container_width=True,
                         key="download_all_csv_backup_btn"
                     )
@@ -1002,7 +1003,6 @@ else:
                 
                 if uploaded_zip is not None:
                     if st.button("🔄 ВЪЗСТАНОВИ ДАННИТЕ СЕГА", use_container_width=True, type="primary", key="trigger_restore_data_btn"):
-                        # Създаваме изолиран блок само за разархивирането, за да не лови излишни грешки
                         success_extract = False
                         try:
                             import zipfile
@@ -1021,11 +1021,11 @@ else:
                         except:
                             st.error("Конфликт при разархивирането. Уверете се, че качвате правилния файл.")
                         
-                        # Ако всичко е наред, зачистваме панела и рестартираме чисто без забавяне
                         if success_extract:
                             st.success("🎉 Данните са възстановени успешно!")
                             st.session_state["show_admin_panel"] = False
                             st.session_state["current_trip"] = None
                             st.rerun()
+
 
 
