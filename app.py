@@ -964,20 +964,22 @@ else:
                 </div>
             """, unsafe_allow_html=True)
 
-
 # =====================================================================
-# 🚀 ФИНАЛЕН РАБОТЕЩ БЛОК ЗА ФОНОВ ЗАПИС НА РАЗХОДИ И СНИМКИ
+# 🚀 ЕДИНЕН ОБЛАЧЕН БЛОК: РАЗХОДИ, ПИНОВЕ И СНИМКИ С ПРАВИЛЕН КЛЮЧ
 # =====================================================================
 import requests
 import datetime
+
+# Класическа конфигурация със сигурния JWT ключ
+SUPABASE_JWT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudXFwenpvcmNuanJidHd3b3VuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNDA2OTEsImV4cCI6MjEwMjcxNjY5MX0.Kjim-3myqk53OnB6RiilKYxG1R3xnLsaNJb04FtrShM"
 
 def background_supabase_log(t_id, amt, cat, desc, is_dep=False):
     """Изпраща копие от разхода към Supabase тихомълком в заден фон."""
     try:
         url = "https://supabase.co"
         headers = {
-            "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
-            "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
+            "apikey": SUPABASE_JWT_KEY,
+            "Authorization": f"Bearer {SUPABASE_JWT_KEY}",
             "Content-Type": "application/json"
         }
         payload = {
@@ -991,22 +993,20 @@ def background_supabase_log(t_id, amt, cat, desc, is_dep=False):
             "current_km": 0.0
         }
         requests.post(url, json=payload, headers=headers, timeout=3)
-    except:
-        pass
+    except: pass
 
 def background_supabase_upload_photo(bucket_name, file_name, file_bytes):
     """Качва снимка в Supabase Storage тихомълком в заден фон."""
     try:
         url = f"https://supabase.co{bucket_name}/{file_name}"
         headers = {
-            "apikey": "sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7",
-            "Authorization": "Bearer sb_publishable_OuX6KWlKNzCtiFhGkwmfhA_3ibPLwT7"
+            "apikey": SUPABASE_JWT_KEY,
+            "Authorization": f"Bearer {SUPABASE_JWT_KEY}"
         }
         requests.post(url, data=file_bytes, headers=headers, timeout=5)
-    except:
-        pass
+    except: pass
 
-# Автоматично прихващане на качените снимки през фабричния уиджети
+# 1. Автоматично прихващане на качените СНИМКИ през фабричния уиджет
 if "current_trip" in st.session_state and st.session_state["current_trip"] is not None:
     t_id = st.session_state["current_trip"]
     widget_key = f"u_{t_id}_gallery"
@@ -1018,8 +1018,30 @@ if "current_trip" in st.session_state and st.session_state["current_trip"] is no
                 if not st.session_state.get(upload_tracker_key, False):
                     try:
                         bytes_data = f.getvalue()
-                        cloud_name = f"{t_id}_{f.name}"
-                        background_supabase_upload_photo("snimki", cloud_name, bytes_data)
+                        background_supabase_upload_photo("snimki", f"{t_id}_{f.name}", bytes_data)
                         st.session_state[upload_tracker_key] = True
-                    except:
-                        pass
+                    except: pass
+
+# 2. Автоматично прихващане на ПИНОВЕТЕ от картата, когато се запише локална точка
+if 'map_data' in locals() and map_data and map_data.get("last_clicked") and 'title_in' in locals() and title_in:
+    click_coords = map_data["last_clicked"]
+    pin_tracker_key = f"pin_cloud_{click_coords['lat']}_{click_coords['lng']}"
+    if not st.session_state.get(pin_tracker_key, False):
+        try:
+            pin_url = "https://supabase.co"
+            pin_headers = {"apikey": SUPABASE_JWT_KEY, "Authorization": f"Bearer {SUPABASE_JWT_KEY}", "Content-Type": "application/json"}
+            pin_payload = {"trip_id": str(t_id), "lat": float(click_coords['lat']), "lon": float(click_coords['lng']), "title": str(title_in), "color": "blue"}
+            requests.post(pin_url, json=pin_payload, headers=pin_headers, timeout=3)
+            st.session_state[pin_tracker_key] = True
+        except: pass
+
+# 3. Спасителен филтър за ХРОНОЛОГИЯТА, за да няма празни сривове на екрана
+if 'df_trip' not in locals() or df_trip is None or (isinstance(df_trip, pd.DataFrame) and df_trip.empty):
+    try:
+        df_trip = pd.DataFrame(columns=["id", "trip_id", "date", "amount", "category", "description", "type", "liters", "current_km"])
+        if 'DATA_FILE' in locals() and os.path.exists(DATA_FILE):
+            локален_df = pd.read_csv(DATA_FILE, encoding="utf-8")
+            if not локален_df.empty and 'trip_id' in locals():
+                df_trip = локален_df[локален_df["trip_id"] == t_id]
+    except: pass
+
