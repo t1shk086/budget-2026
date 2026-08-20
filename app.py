@@ -10,7 +10,7 @@ from geopy.geocoders import Nominatim
 # 1. Конфигуриране на страницата (Задължително на първо място)
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
-# 2. Вашият оригинален и автентичен CSS дизайн
+# 2. Вашият оригинален CSS дизайн с вградено лого най-горе
 st.markdown("""
 <style>
     html, body, [data-testid="stAppViewContainer"] {
@@ -55,19 +55,15 @@ st.markdown("""
     }
     small { color: #7e8494 !important; }
 </style>
+
+<!-- Хедър контейнер, който центрира логото автоматично -->
+<div style="text-align: center; width: 100%; margin-bottom: 20px; padding-top: 10px;">
+    <img src="app/static/logo.png" style="max-width: 100%; width: 280px; height: auto; display: block; margin: 0 auto;" onerror="this.style.display='none'; document.getElementById('alt-title').style.display='block';">
+    <h1 id="alt-title" style="display: none; text-align: center; color: #00f2fe; font-family: sans-serif; margin: 0;">PixelApp 🐾</h1>
+</div>
+<hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin-bottom: 30px;">
 """, unsafe_allow_html=True)
 
-# 3. Вграждане и перфектно центриране на логото веднага след стила
-logo_path = "logo.png"
-col_left, col_logo, col_right = st.columns([1, 2, 1]) # 2-ката осигурява идеален мащаб
-
-with col_logo:
-    if os.path.exists(logo_path):
-        st.image(logo_path, use_container_width=True)
-    else:
-        st.markdown("<h1 style='text-align: center; color: #00f2fe;'>PixelApp 🐾</h1>", unsafe_allow_html=True)
-
-st.markdown("---")
 
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
