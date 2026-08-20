@@ -699,7 +699,52 @@ else:
         km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
         pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
         
-    pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
+    pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table>"
+
+    # =========================================================================
+    # АВТОМАТИЧНО ИЗЧИСЛЯВАНЕ НА КАРТА С ПЕРФЕКТЕН ЗУУМ (OPENSTREETMAP)
+    # =========================================================================
+    try:
+        # Взимаме само редовете с реални GPS координати от текущия трип
+        df_gps = df_trip[df_trip['latitude'].notna() & df_trip['longitude'].notna()]
+        if not df_gps.empty:
+            lats = df_gps['latitude'].astype(float).tolist()
+            lons = df_gps['longitude'].astype(float).tolist()
+            
+            # 1. Изчисляваме географския център на всички пинове
+            center_lat = sum(lats) / len(lats)
+            center_lon = sum(lons) / len(lons)
+            
+            # 2. Логика за перфектен автоматичен зуум спрямо разстоянието между точките
+            max_bound = max(max(lats) - min(lats), max(lons) - min(lons))
+            if max_bound == 0: zoom_level = 14       # Само 1 пин -> максимално приближен
+            elif max_bound < 0.02: zoom_level = 13   # В рамките на няколко квартала
+            elif max_bound < 0.1: zoom_level = 11    # В рамките на един град
+            elif max_bound < 0.5: zoom_level = 9     # Между съседни градове
+            else: zoom_level = 7                     # Дълъг международен маршрут
+            
+            # 3. Генерираме маркерите за картата
+            markers_query = ""
+            for idx, row in df_gps.iterrows():
+                markers_query += f"&marker={row['latitude']},{row['longitude']},ol-marker"
+            
+            # 4. Сглобяваме линка към статичната карта
+            static_map_url = f"https://openstreetmap.de{center_lat},{center_lon}&zoom={zoom_level}&size=700x400&maptype=mapnik{markers_query}"
+            
+            # 5. Добавяме красив HTML контейнер за картата в дъното на отчета
+            pdf_html += f"""
+            <div style="margin-top: 40px; page-break-before: always; text-align: center;">
+                <hr style="border:0; border-top: 2px dashed #eee; margin-bottom: 20px;">
+                <h3 style="color: #4facfe; font-size: 16px; margin-bottom: 5px; border-bottom: none;">🌍 КАРТА НА ИЗМИНАТИЯ МАРШРУТ</h3>
+                <p style="color: #666; font-size: 12px; margin-bottom: 15px;">Автоматично мащабирано изображение, показващо локациите на всички записани разходи.</p>
+                <img src="{static_map_url}" style="width: 100%; max-width: 650px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            </div>
+            """
+    except Exception as e:
+        pdf_html += f"<!-- Картата не се зареди: {str(e)} -->"
+
+    # Затваряме HTML таговете
+    pdf_html += "</body></html>"
     
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
     
@@ -716,6 +761,7 @@ else:
     )
 
     st.markdown("---")
+
 
 
 
