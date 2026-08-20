@@ -566,7 +566,7 @@ else:
     if car_trip == "Да":
         col_manage1, col_manage2 = st.columns(2)
         with col_manage1: 
-            st.button("🔒 Заключени настройки" if is_trip_finished else "⚙️ Настройки кола", use_container_width=True, disabled=is_trip_finished, on_click=edit_car_modal)
+            st.button("🔒 Заключени настройки" if is_trip_finished else "⚙️ Настройки автомобил", use_container_width=True, disabled=is_trip_finished, on_click=edit_car_modal)
         with col_manage2: 
             st.button("🏁 Пътуването е приключено 🔒" if is_trip_finished else "🏁 Край на пътуването", use_container_width=True, disabled=is_trip_finished, on_click=finish_trip_modal)
     else:
