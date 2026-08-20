@@ -701,35 +701,45 @@ else:
         
     pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table>"
 
-    # --- СВРЪХНАДЕЖДНО И СИГУРНО ДОБАВЯНЕ НА КАРТАТА ---
+    # =========================================================================
+    # ИНТЕЛЕГЕНТНА ЖИВА КАРТА (ВГРАДЕНА ДИРЕКТНО В HTML ОТЧЕТА)
+    # =========================================================================
     try:
-        # Взимаме само редовете с налични GPS координати
         df_geo = df_trip[df_trip['latitude'].notna() & df_trip['longitude'].notna()]
         if not df_geo.empty:
-            # Изчисляваме среден център на база координатите
+            # Изчисляваме средната централна точка
             mean_lat = df_geo['latitude'].astype(float).mean()
             mean_lon = df_geo['longitude'].astype(float).mean()
             
-            # Изчисляваме раздалечеността на точките
+            # Изчисляваме раздалечеността за перфектен автоматичен зуум
             max_d = max(df_geo['latitude'].astype(float).max() - df_geo['latitude'].astype(float).min(),
                         df_geo['longitude'].astype(float).max() - df_geo['longitude'].astype(float).min())
-            
-            # Автоматичен перфектен зуум
             z = 13 if max_d == 0 else (12 if max_d < 0.02 else (11 if max_d < 0.1 else (9 if max_d < 0.5 else 7)))
             
-            # Статичен URL адрес към бърза глобална OSM карта
-            m_url = f"https://maps.co{mean_lat},{mean_lon}&zoom={z}&width=700&height=400"
-            
-            # Генерираме и добавяме пиновете
+            # Сглобяваме JS код за Leaflet карта, която се зарежда направо в браузъра на потребителя
+            pins_js = ""
             for _, r in df_geo.iterrows():
-                m_url += f"&markers=color:red|label:X|{r['latitude']},{r['longitude']}"
-                
+                clean_desc = str(r['description']).replace("'", "\\'")[:20]
+                pins_js += f"L.marker([{r['latitude']},{r['longitude']}]).addTo(map).bindPopup('{clean_desc}');\n"
+            
             pdf_html += f"""
-            <div style="text-align:center; margin-top:50px; page-break-before: always;">
-                <br><hr style="border:0; border-top: 2px dashed #4facfe; margin-bottom: 30px;">
-                <h3 style="color:#4facfe; font-size:18px; border-bottom:none; margin-bottom:5px;">🌍 КАРТА НА ИЗМИНАТИЯ МАРШРУТ</h3>
-                <p style="color:#666; font-size:12px; margin-bottom:20px;">Автоматично мащабирана визуализация на всички спирки по време на трипа.</p>
-                <img src="{m_url}" style="width:100%; max-width:650px; border-radius:12px; border:1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div style="margin-top: 50px;">
+                <hr style="border:0; border-top: 2px dashed #4facfe; margin-bottom: 25px;">
+                <h3 style="color:#4facfe; font-size:18px; border-bottom:none; margin-bottom:5px; text-align:center;">🌍 ИНТЕРАКТИВНА КАРТА НА МАРШРУТА</h3>
+                <p style="color:#666; font-size:12px; margin-bottom:20px; text-align:center;">Реално приближаване и разглеждане на посетените точки от телефона.</p>
+                
+                <!-- Контейнер за Leaflet картата -->
+                <link rel="stylesheet" href="https://unpkg.com" />
+                <script src="https://unpkg.com"></script>
+                <div id="map_report" style="width: 100%; height: 400px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></div>
+                
+                <script>
+                    var map = L.map('map_report').setView([{mean_lat}, {mean_lon}], {z});
+                    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                        attribution: '© OpenStreetMap'
+                    }}).addTo(map);
+                    {pins_js}
+                </script>
             </div>
             """
     except:
@@ -752,6 +762,7 @@ else:
     )
 
     st.markdown("---")
+
 
 
 
