@@ -6,44 +6,24 @@ import os
 import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
-import base64  # Важно: Добавяме тази вградена библиотека за обработка на логото
 
-# 1. Конфигуриране на страницата (Задължително на първо място)
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
-# 2. Прочитане на логото и превръщането му в чист уеб елемент
-logo_html_tag = ""
-logo_filename = "logo.png"
-
-if os.path.exists(logo_filename):
-    with open(logo_filename, "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read()).decode()
-    # Генерираме чист HTML код за логото с мека неонова сянка
-    logo_html_tag = f"""
-    <div style="text-align: center; width: 100%; margin-top: 15px; margin-bottom: 5px;">
-        <img src="data:image/png;base64,{encoded_string}" style="width: 250px; height: auto; display: inline-block; filter: drop-shadow(0 0 15px rgba(0, 242, 254, 0.15));">
-    </div>
-    """
-else:
-    # Алтернативно чисто заглавие, ако логото липсва
-    logo_html_tag = "<h1 style='text-align: center; color: #00f2fe; margin-top: 15px;'>PixelApp 🐾</h1>"
-
-# 3. Вашият оригинален CSS дизайн + Интегрираното премиум лого
-st.markdown(f"""
+st.markdown("""
 <style>
-    html, body, [data-testid="stAppViewContainer"] {{
+    html, body, [data-testid="stAppViewContainer"] {
         background: linear-gradient(135deg, #090b0e 0%, #11151c 50%, #0d1117 100%) !important;
         background-attachment: fixed !important;
-    }}
-    [data-testid="stAppViewContainer"]::before {{
+    }
+    [data-testid="stAppViewContainer"]::before {
         content: "";
         position: fixed;
         top: 0; left: 0; width: 100vw; height: 100vh;
         background: rgba(0, 0, 0, 0.15) !important;
         z-index: -1;
         pointer-events: none;
-    }}
-    div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {{
+    }
+    div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {
         background: rgba(255, 255, 255, 0.02) !important;
         border: 1px solid rgba(255, 255, 255, 0.06) !important;
         border-radius: 14px !important; 
@@ -51,9 +31,9 @@ st.markdown(f"""
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
         backdrop-filter: blur(4px) !important;
         margin-bottom: 15px !important;
-    }}
+    }
     button[data-testid="stBaseButton-secondary"], 
-    button[data-testid="stBaseButton-primary"] {{
+    button[data-testid="stBaseButton-primary"] {
         background: linear-gradient(135deg, #252932, #16191f) !important; 
         color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.05) !important; 
@@ -63,23 +43,17 @@ st.markdown(f"""
         font-weight: 600 !important;
         letter-spacing: 0.5px !important;
         width: 100% !important;
-    }}
+    }
     button[data-testid="stBaseButton-secondary"]:hover, 
-    button[data-testid="stBaseButton-primary"]:hover {{
+    button[data-testid="stBaseButton-primary"]:hover {
         background: linear-gradient(135deg, #2e343f, #1c2028) !important;
         transform: translateY(-1px) !important; 
         box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15) !important;
         border-color: rgba(0, 242, 254, 0.2) !important;
-    }}
-    small {{ color: #7e8494 !important; }}
+    }
+    small { color: #7e8494 !important; }
 </style>
-
-{logo_html_tag}
-<hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.06); margin-bottom: 25px; margin-top: 15px;">
 """, unsafe_allow_html=True)
-
-
-
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
