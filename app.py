@@ -701,50 +701,40 @@ else:
         
     pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table>"
 
-    # =========================================================================
-    # АВТОМАТИЧНА СТАТИЧНА КАРТА (СУПЕР БЕЗОПАСЕН ВАРИАНТ)
-    # =========================================================================
+    # --- СВРЪХНАДЕЖДНО И СИГУРНО ДОБАВЯНЕ НА КАРТАТА ---
     try:
-        # Взимаме само редовете, в които има реални числа в координатите
-        df_gps = df_trip[df_trip['latitude'].notna() & df_trip['longitude'].notna()].copy()
-        
-        if not df_gps.empty:
-            df_gps['latitude'] = df_gps['latitude'].astype(float)
-            df_gps['longitude'] = df_gps['longitude'].astype(float)
+        # Взимаме само редовете с налични GPS координати
+        df_geo = df_trip[df_trip['latitude'].notna() & df_trip['longitude'].notna()]
+        if not df_geo.empty:
+            # Изчисляваме среден център на база координатите
+            mean_lat = df_geo['latitude'].astype(float).mean()
+            mean_lon = df_geo['longitude'].astype(float).mean()
             
-            lats = df_gps['latitude'].tolist()
-            lons = df_gps['longitude'].tolist()
+            # Изчисляваме раздалечеността на точките
+            max_d = max(df_geo['latitude'].astype(float).max() - df_geo['latitude'].astype(float).min(),
+                        df_geo['longitude'].astype(float).max() - df_geo['longitude'].astype(float).min())
             
-            if len(lats) > 0:
-                # 1. Изчисляваме центъра
-                c_lat = sum(lats) / len(lats)
-                c_lon = sum(lons) / len(lons)
+            # Автоматичен перфектен зуум
+            z = 13 if max_d == 0 else (12 if max_d < 0.02 else (11 if max_d < 0.1 else (9 if max_d < 0.5 else 7)))
+            
+            # Статичен URL адрес към бърза глобална OSM карта
+            m_url = f"https://maps.co{mean_lat},{mean_lon}&zoom={z}&width=700&height=400"
+            
+            # Генерираме и добавяме пиновете
+            for _, r in df_geo.iterrows():
+                m_url += f"&markers=color:red|label:X|{r['latitude']},{r['longitude']}"
                 
-                # 2. Изчисляваме Zoom ниво спрямо отдалечеността на пиновете
-                max_d = max(max(lats) - min(lats), max(lons) - min(lons))
-                z = 14 if max_d == 0 else (13 if max_d < 0.02 else (11 if max_d < 0.1 else (9 if max_d < 0.5 else 7)))
-                
-                # 3. Добавяне на пиновете в линка
-                markers = ""
-                for lat, lon in zip(lats, lons):
-                    markers += f"&marker={lat},{lon},ol-marker"
-                
-                # URL към безплатната статична карта
-                map_url = f"https://openstreetmap.de{c_lat},{c_lon}&zoom={z}&size=700x400&maptype=mapnik{markers}"
-                
-                # Добавяме HTML кода за визуализация в документа
-                pdf_html += f"""
-                <div style="margin-top: 40px; text-align: center;">
-                    <hr style="border:0; border-top: 2px dashed #eee; margin-bottom: 20px;">
-                    <h3 style="color: #4facfe; font-size: 16px; margin-bottom: 5px; border-bottom: none;">🌍 КАРТА НА ИЗМИНАТИЯ МАРШРУТ</h3>
-                    <p style="color: #666; font-size: 11px; margin-bottom: 15px;">Всички отбелязани GPS точки от вашето пътуване.</p>
-                    <img src="{map_url}" style="width: 100%; max-width: 650px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                </div>
-                """
+            pdf_html += f"""
+            <div style="text-align:center; margin-top:50px; page-break-before: always;">
+                <br><hr style="border:0; border-top: 2px dashed #4facfe; margin-bottom: 30px;">
+                <h3 style="color:#4facfe; font-size:18px; border-bottom:none; margin-bottom:5px;">🌍 КАРТА НА ИЗМИНАТИЯ МАРШРУТ</h3>
+                <p style="color:#666; font-size:12px; margin-bottom:20px;">Автоматично мащабирана визуализация на всички спирки по време на трипа.</p>
+                <img src="{m_url}" style="width:100%; max-width:650px; border-radius:12px; border:1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            </div>
+            """
     except:
-        pass # Абсолютна защита: ако нещо се счупи, картата просто се прескача, без да блокира приложението
+        pass
 
-    # Затваряме HTML кода
     pdf_html += "</body></html>"
     
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
