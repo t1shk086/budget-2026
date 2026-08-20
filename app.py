@@ -699,7 +699,53 @@ else:
         km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
         pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
         
-    pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
+    pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table>"
+
+    # =========================================================================
+    # АВТОМАТИЧНА СТАТИЧНА КАРТА (СУПЕР БЕЗОПАСЕН ВАРИАНТ)
+    # =========================================================================
+    try:
+        # Взимаме само редовете, в които има реални числа в координатите
+        df_gps = df_trip[df_trip['latitude'].notna() & df_trip['longitude'].notna()].copy()
+        
+        if not df_gps.empty:
+            df_gps['latitude'] = df_gps['latitude'].astype(float)
+            df_gps['longitude'] = df_gps['longitude'].astype(float)
+            
+            lats = df_gps['latitude'].tolist()
+            lons = df_gps['longitude'].tolist()
+            
+            if len(lats) > 0:
+                # 1. Изчисляваме центъра
+                c_lat = sum(lats) / len(lats)
+                c_lon = sum(lons) / len(lons)
+                
+                # 2. Изчисляваме Zoom ниво спрямо отдалечеността на пиновете
+                max_d = max(max(lats) - min(lats), max(lons) - min(lons))
+                z = 14 if max_d == 0 else (13 if max_d < 0.02 else (11 if max_d < 0.1 else (9 if max_d < 0.5 else 7)))
+                
+                # 3. Добавяне на пиновете в линка
+                markers = ""
+                for lat, lon in zip(lats, lons):
+                    markers += f"&marker={lat},{lon},ol-marker"
+                
+                # URL към безплатната статична карта
+                map_url = f"https://openstreetmap.de{c_lat},{c_lon}&zoom={z}&size=700x400&maptype=mapnik{markers}"
+                
+                # Добавяме HTML кода за визуализация в документа
+                pdf_html += f"""
+                <div style="margin-top: 40px; text-align: center;">
+                    <hr style="border:0; border-top: 2px dashed #eee; margin-bottom: 20px;">
+                    <h3 style="color: #4facfe; font-size: 16px; margin-bottom: 5px; border-bottom: none;">🌍 КАРТА НА ИЗМИНАТИЯ МАРШРУТ</h3>
+                    <p style="color: #666; font-size: 11px; margin-bottom: 15px;">Всички отбелязани GPS точки от вашето пътуване.</p>
+                    <img src="{map_url}" style="width: 100%; max-width: 650px; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                </div>
+                """
+    except:
+        pass # Абсолютна защита: ако нещо се счупи, картата просто се прескача, без да блокира приложението
+
+    # Затваряме HTML кода
+    pdf_html += "</body></html>"
     
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
     
@@ -716,6 +762,7 @@ else:
     )
 
     st.markdown("---")
+
 
 
 
