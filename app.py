@@ -694,24 +694,12 @@ else:
     for _, row in df_trip.iterrows():
         desc_val = str(row['description'])
         if "Моментен разход:" in desc_val:
-            desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен random:</span>")
+            desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
         cur_km_val = float(row.get('current_km', 0.0))
         km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
         pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
         
-    pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table>"
-
-    # --- СУПЕР КРАТКО И СИГУРНО ДОБАВЯНЕ НА КАРТАТА ---
-    try:
-        df_geo = df_trip[df_trip['latitude'].notna() & df_trip['longitude'].notna()]
-        if not df_geo.empty:
-            pts = [f"&marker={r['latitude']},{r['longitude']},ol-marker" for _, r in df_geo.iterrows()]
-            m_url = f"https://openstreetmap.de{df_geo['latitude'].mean()},{df_geo['longitude'].mean()}&zoom=11&size=700x400&maptype=mapnik" + "".join(pts)
-            pdf_html += f'<br><br><div style="text-align:center;"><h3>🌍 КАРТА НА МАРШРУТА</h3><img src="{m_url}" style="width:100%;max-width:650px;border-radius:8px;border:1px solid #ddd;"></div>'
-    except:
-        pass
-
-    pdf_html += "</body></html>"
+    pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
     
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
     
@@ -728,9 +716,6 @@ else:
     )
 
     st.markdown("---")
-
-
-
 
 
 
@@ -955,4 +940,3 @@ else:
                         st.session_state["show_admin_panel"] = False
                         st.session_state["current_trip"] = None
                         st.rerun()
-
