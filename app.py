@@ -619,27 +619,47 @@ else:
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # 1. Горна част на кутията: заглавие и СИСТЕМЕН БУТОН за отваряне
-            header_col1, header_col2 = st.columns([2, 1])
-            with header_col1:
-                st.markdown(f"<span style='font-weight: 500; font-size: 15px; display: inline-block; margin-top: 6px;'>{get_emoji(kat)} {kat}</span>", unsafe_allow_html=True)
-            with header_col2:
-                # Бутонът за преглед, който изглежда стилно и отваря диалога мигновено
-                if st.button("👁️ Виж", key=f"view_cat_btn_{idx}", use_container_width=True):
-                    view_category_expenses_dialog(kat, df_trip)
-            
-            # 2. Долна част на кутията: Сумата и 3D Прогрес лентата (Твоят оригинален дизайн)
+            # Инжектираме твоя оригинален 3D дизайн ДИРЕКТНО като фон на бутона чрез неговия уникален CSS ключ
             st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-top: -40px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 6px;">
+                <style>
+                div[data-testid="stVerticalBlock"] button[key="3d_box_btn_{idx}"] {{
+                    background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)) !important;
+                    border: 1px solid rgba(255,255,255,0.08) !important;
+                    padding: 14px !important;
+                    border-radius: 14px !important;
+                    margin-bottom: 12px !important;
+                    box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
+                    display: block !important;
+                    width: 100% !important;
+                    height: auto !important;
+                    text-align: left !important;
+                    color: inherit !important;
+                }}
+                /* Премахваме ефектите по подразбиране на Streamlit при посочване */
+                div[data-testid="stVerticalBlock"] button[key="3d_box_btn_{idx}"]:hover {{
+                    border-color: rgba(255,255,255,0.2) !important;
+                    background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)) !important;
+                }}
+                </style>
+            """, unsafe_allow_html=True)
+            
+            # Сглобяваме съдържанието на твоята кутия (текстове, суми, прогрес лента) в един общ HTML стринг
+            box_content_html = f"""
+            <div style="width: 100%; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; width: 100%;">
+                    <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
                     <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
                 </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px; width: 100%;">
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3);"></div>
                     <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """
+            
+            # Пускаме бутона, който съдържа целия дизайн и прогрес лента вътре в себе си
+            if st.button(box_content_html, key=f"3d_box_btn_{idx}", use_container_width=True):
+                view_category_expenses_dialog(kat, df_trip)
 
     col_st1, col_st2 = st.columns(2)
     with col_st1:
