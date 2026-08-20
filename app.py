@@ -610,54 +610,44 @@ else:
 
 
 
-
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### 📊 Анализ на разходите")
     
-    # 1. Декларираме невидимите Streamlit бутони в дъното, които ще хващат кликванията от кутиите
-    # Тези бутони са напълно скрити от потребителя чрез CSS
-    st.markdown("""
-        <style>
-        .hidden-trigger-btn { display: none !important; }
-        div:has(> button[data-testid="stBaseButton-secondary"]) { position: absolute; opacity: 0; z-index: -1; }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    active_clicked_cat = None
-    for idx, (kat, s_value) in enumerate(categories_totals.items()):
-        # Създаваме невидим бутон за всяка категория
-        if st.button("", key=f"hidden_trigger_{idx}"):
-            active_clicked_cat = kat
-
-    # Извикваме прозореца, ако има засечено кликване
-    if active_clicked_cat:
-        view_category_expenses_dialog(active_clicked_cat, df_trip)
-
-    # 2. Рендираме твоя оригинален, красив 3D дизайн с добавена магия за кликване
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Твоят оригинален 3D дизайн, на който добавихме onclick събитие
-            # Когато се натисне, JS намира невидимия бутон по неговия ключ и го кликва автоматично
+            # Създаваме официален контейнер-бутон, който се разпъва по цялата ширина
+            with st.popover(f"{get_emoji(kat)} {kat} — {s_value:.2f} EUR", use_container_width=True):
+                # ВЪТРЕШНОСТ НА ПРОЗОРЕЦА: Показваме разходите само за тази категория (Само за четене)
+                st.markdown(f"#### 📋 Всички разходи за **{kat}**")
+                df_cat = df_trip[df_trip["category"] == kat].copy()
+                
+                if df_cat.empty:
+                    st.info("Няма регистрирани разходи.")
+                else:
+                    if "date" in df_cat.columns:
+                        df_cat = df_cat.sort_values(by="date", ascending=False)
+                    for _, row in df_cat.iterrows():
+                        st.markdown(f"""
+                        <div style='background: rgba(255,255,255,0.03); border-left: 4px solid #00f2fe; padding: 10px; border-radius: 4px; margin-bottom: 6px;'>
+                            <div style='display: flex; justify-content: space-between; font-size: 13px;'>
+                                <span style='font-weight: bold; color: white;'>{row['description']}</span>
+                                <span style='font-weight: bold; color: #ff4b4b;'>{row['amount']:.2f} EUR</span>
+                            </div>
+                            <div style='font-size: 10px; color: #888; margin-top: 2px;'>📅 {row['date']}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+            # Веднага под поповера изрисуваме твоята оригинална 3D прогрес лента, за да се запази визията
             st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: transform 0.1s ease, background-color 0.2s ease;" 
-                 onclick="window.parent.document.querySelector('button[key=\\'hidden_trigger_{idx}\\']').click();"
-                 onmouseover="this.style.background='rgba(255,255,255,0.05)'; this.style.transform='scale(1.01)';" 
-                 onmouseout="this.style.background='rgba(255,255,255,0.02)'; this.style.transform='scale(1)';">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
-                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
-                </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
-                    <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
-                </div>
+            <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: -8px; margin-bottom: 16px; width: 100%;">
+                <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3);"></div>
+                <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
             </div>
             """, unsafe_allow_html=True)
 
-    # 3. Твоите финални кутии за Депозит и На място остават без промяна
     col_st1, col_st2 = st.columns(2)
     with col_st1:
         st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} <span style='font-size: 14px; font-weight: 500; color: #7e8494;'>EUR</span></h2></div>", unsafe_allow_html=True)
