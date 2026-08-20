@@ -10,7 +10,7 @@ from geopy.geocoders import Nominatim
 # 1. Конфигуриране на страницата (Задължително на първо място)
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
-# 2. Вашият оригинален CSS дизайн с вградено лого най-горе
+# 2. Вашият оригинален CSS дизайн
 st.markdown("""
 <style>
     html, body, [data-testid="stAppViewContainer"] {
@@ -54,15 +54,27 @@ st.markdown("""
         border-color: rgba(0, 242, 254, 0.2) !important;
     }
     small { color: #7e8494 !important; }
+    
+    /* Специално центриране за вграденото Streamlit изображение най-горе */
+    div[data-testid="stImage"] {
+        display: flex !important;
+        justify-content: center !important;
+        margin: 10px auto 20px auto !important;
+        max-width: 260px !important;
+    }
 </style>
-
-<!-- Хедър контейнер, който центрира логото автоматично -->
-<div style="text-align: center; width: 100%; margin-bottom: 20px; padding-top: 10px;">
-    <img src="app/static/logo.png" style="max-width: 100%; width: 280px; height: auto; display: block; margin: 0 auto;" onerror="this.style.display='none'; document.getElementById('alt-title').style.display='block';">
-    <h1 id="alt-title" style="display: none; text-align: center; color: #00f2fe; font-family: sans-serif; margin: 0;">PixelApp 🐾</h1>
-</div>
-<hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin-bottom: 30px;">
 """, unsafe_allow_html=True)
+
+# 3. Вграждане на логото чрез фабричния и стабилен метод на Streamlit
+logo_filename = "logo.png"
+
+if os.path.exists(logo_filename):
+    st.image(logo_filename)
+else:
+    st.markdown("<h1 style='text-align: center; color: #00f2fe; margin-bottom: 15px;'>PixelApp 🐾</h1>", unsafe_allow_html=True)
+
+st.markdown("---")
+
 
 
 
