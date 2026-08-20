@@ -9,6 +9,40 @@ from geopy.geocoders import Nominatim
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
+# =========================================================================
+# ИЗСКАЧАЩ ПРОЗОРЕЦ ЗА ПРЕГЛЕД НА КАТЕГОРИЯ (САМО ЗА ЧЕТЕНЕ)
+# =========================================================================
+@st.dialog("Преглед на разходите", width="large")
+def view_category_expenses_dialog(category_name, df_trip_data):
+    st.markdown(f"### 📋 Всички разходи в категория: **{category_name}**")
+    
+    # Филтрираме разходите само за текущата селектирана категория
+    df_cat = df_trip_data[df_trip_data["category"] == category_name].copy()
+    
+    if df_cat.empty:
+        st.info(f"Няма регистрирани разходи в категория '{category_name}' за това пътуване.")
+    else:
+        # Сортираме хронологично от най-новите към най-старите
+        if "date" in df_cat.columns:
+            df_cat = df_cat.sort_values(by="date", ascending=False)
+            
+        # Извеждаме ги в изчистен списък без бутони за редакция
+        for idx, row in df_cat.iterrows():
+            st.markdown(f"""
+            <div style='background: rgba(255,255,255,0.03); border-left: 4px solid #00f2fe; padding: 12px; border-radius: 6px; margin-bottom: 8px;'>
+                <div style='display: flex; justify-content: space-between; font-size: 14px;'>
+                    <span style='font-weight: bold; color: white;'>{row['description']}</span>
+                    <span style='font-weight: bold; color: #ff4b4b;'>{row['amount']:.2f} EUR</span>
+                </div>
+                <div style='font-size: 11px; color: #888; margin-top: 4px;'>📅 {row['date']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+    if st.button("Затвори", use_container_width=True, key=f"close_btn_{category_name}"):
+        st.rerun()
+# =========================================================================
+
+
 st.markdown("""
 <style>
     html, body, [data-testid="stAppViewContainer"] {
@@ -584,18 +618,35 @@ else:
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
-            st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
-                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
+            
+            # Използваме контейнер, за да задържим HTML кутията и бутона на едно място
+            with st.container():
+                # Твоят оригинален 3D дизайн (добавихме само position: relative и курсор за кликване)
+                st.markdown(f"""
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; position: relative; cursor: pointer;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
+                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
+                    </div>
                 </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
-                    <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+                
+                # Магията: Инжектираме CSS, който прави бутона под кутията напълно невидим и го разтяга върху 3D дизайна
+                st.markdown(f"""
+                    <style>
+                    div[data-testid="stVerticalBlock"] > div:has(button[key="box_btn_{idx}"]) {{
+                        position: absolute; width: 100%; height: calc(100% - 12px); top: 0; left: 0; opacity: 0; z-index: 10;
+                    }}
+                    </style>
+                """, unsafe_allow_html=True)
+                
+                # Скритият бутон, който задейства изскачащия диалогов прозорец при натискане на кутията
+                if st.button("", key=f"box_btn_{idx}", use_container_width=True):
+                    view_category_expenses_dialog(kat, df_trip)  # Предаваме динамично името на категорията и таблицата
 
     col_st1, col_st2 = st.columns(2)
     with col_st1:
