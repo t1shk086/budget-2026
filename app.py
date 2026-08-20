@@ -702,46 +702,35 @@ else:
     pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table>"
 
     # =========================================================================
-    # ИНТЕЛЕГЕНТНА ЖИВА КАРТА (ВГРАДЕНА ДИРЕКТНО В HTML ОТЧЕТА)
+    # ФИНАЛЕН СИГУРЕН ЛИНК КЪМ GOOGLE MAPS (БЕЗ СКРИПТОВЕ И КАРТИНКИ)
     # =========================================================================
     try:
         df_geo = df_trip[df_trip['latitude'].notna() & df_trip['longitude'].notna()]
         if not df_geo.empty:
-            # Изчисляваме средната централна точка
-            mean_lat = df_geo['latitude'].astype(float).mean()
-            mean_lon = df_geo['longitude'].astype(float).mean()
-            
-            # Изчисляваме раздалечеността за перфектен автоматичен зуум
-            max_d = max(df_geo['latitude'].astype(float).max() - df_geo['latitude'].astype(float).min(),
-                        df_geo['longitude'].astype(float).max() - df_geo['longitude'].astype(float).min())
-            z = 13 if max_d == 0 else (12 if max_d < 0.02 else (11 if max_d < 0.1 else (9 if max_d < 0.5 else 7)))
-            
-            # Сглобяваме JS код за Leaflet карта, която се зарежда направо в браузъра на потребителя
-            pins_js = ""
+            coords_list = []
             for _, r in df_geo.iterrows():
-                clean_desc = str(r['description']).replace("'", "\\'")[:20]
-                pins_js += f"L.marker([{r['latitude']},{r['longitude']}]).addTo(map).bindPopup('{clean_desc}');\n"
+                coords_list.append(f"{r['latitude']},{r['longitude']}")
             
-            pdf_html += f"""
-            <div style="margin-top: 50px;">
-                <hr style="border:0; border-top: 2px dashed #4facfe; margin-bottom: 25px;">
-                <h3 style="color:#4facfe; font-size:18px; border-bottom:none; margin-bottom:5px; text-align:center;">🌍 ИНТЕРАКТИВНА КАРТА НА МАРШРУТА</h3>
-                <p style="color:#666; font-size:12px; margin-bottom:20px; text-align:center;">Реално приближаване и разглеждане на посетените точки от телефона.</p>
+            if coords_list:
+                origin = coords_list[0]
+                destination = coords_list[-1]
+                # Ако има междинни спирки, ги добавяме като waypoints
+                waypoints = "|".join(coords_list[1:-1]) if len(coords_list) > 2 else ""
                 
-                <!-- Контейнер за Leaflet картата -->
-                <link rel="stylesheet" href="https://unpkg.com" />
-                <script src="https://unpkg.com"></script>
-                <div id="map_report" style="width: 100%; height: 400px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></div>
+                # Генерираме чист официален линк за маршрут в Google Maps
+                gmaps_url = f"https://google.com{origin}&destination={destination}"
+                if waypoints:
+                    gmaps_url += f"&waypoints={waypoints}"
                 
-                <script>
-                    var map = L.map('map_report').setView([{mean_lat}, {mean_lon}], {z});
-                    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-                        attribution: '© OpenStreetMap'
-                    }}).addTo(map);
-                    {pins_js}
-                </script>
-            </div>
-            """
+                pdf_html += f"""
+                <div style="margin-top: 40px; padding: 20px; background: #f9f9f9; border-radius: 12px; border: 1px solid #eee; text-align: center;">
+                    <h3 style="color: #4facfe; font-size: 16px; margin-top: 0; border-bottom: none; padding-bottom: 0;">🗺️ МАРШРУТ НА ПЪТУВАНЕТО</h3>
+                    <p style="color: #666; font-size: 13px; margin-bottom: 20px;">Всички записани спирки и локации са компилирани в общ интерактивен маршрут.</p>
+                    <a href="{gmaps_url}" target="_blank" style="display: inline-block; background: #4facfe; color: white; text-decoration: none; padding: 12px 25px; font-weight: bold; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 10px rgba(79, 172, 254, 0.3);">
+                        ➔ ОТВОРИ МАРШРУТА В GOOGLE MAPS
+                    </a>
+                </div>
+                """
     except:
         pass
 
