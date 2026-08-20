@@ -614,16 +614,25 @@ else:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### 📊 Анализ на разходите")
     
+    # --- СИСТЕМА ЗА ХВАЩАНЕ НА КЛИКВАНЕ ЧРЕЗ КУТИИТЕ ---
+    if "clicked_cat" in st.query_params:
+        selected_category = st.query_params["clicked_cat"]
+        # Изтриваме параметъра веднага, за да не се отваря безкрайно
+        st.query_params.clear()
+        view_category_expenses_dialog(selected_category, df_trip)
+
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Използваме контейнер, за да задържим HTML кутията и бутона на едно място
-            with st.container():
-                # Твоят оригинален 3D дизайн (добавихме само position: relative и курсор за кликване)
-                st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; position: relative; cursor: pointer;">
+            # Създаваме линк, който презарежда страницата с параметър за категорията
+            box_link = f"?clicked_cat={kat}"
+            
+            # Твоят оригинален 3D дизайн, обвит в <a> таг за линк
+            st.markdown(f"""
+            <a href="{box_link}" target="_self" style="text-decoration: none; color: inherit; display: block;">
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s; cursor: pointer;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
                         <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
@@ -633,20 +642,8 @@ else:
                         <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
-                
-                # Магията: Инжектираме CSS, който прави бутона под кутията напълно невидим и го разтяга върху 3D дизайна
-                st.markdown(f"""
-                    <style>
-                    div[data-testid="stVerticalBlock"] > div:has(button[key="box_btn_{idx}"]) {{
-                        position: absolute; width: 100%; height: calc(100% - 12px); top: 0; left: 0; opacity: 0; z-index: 10;
-                    }}
-                    </style>
-                """, unsafe_allow_html=True)
-                
-                # Скритият бутон, който задейства изскачащия диалогов прозорец при натискане на кутията
-                if st.button("", key=f"box_btn_{idx}", use_container_width=True):
-                    view_category_expenses_dialog(kat, df_trip)  # Предаваме динамично името на категорията и таблицата
+            </a>
+            """, unsafe_allow_html=True)
 
     col_st1, col_st2 = st.columns(2)
     with col_st1:
