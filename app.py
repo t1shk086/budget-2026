@@ -619,40 +619,27 @@ else:
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Обгръщаме всичко в релативен контейнер, за да заключим бутона точно отгоре
+            # 1. Горна част на кутията: заглавие и СИСТЕМЕН БУТОН за отваряне
+            header_col1, header_col2 = st.columns([2, 1])
+            with header_col1:
+                st.markdown(f"<span style='font-weight: 500; font-size: 15px; display: inline-block; margin-top: 6px;'>{get_emoji(kat)} {kat}</span>", unsafe_allow_html=True)
+            with header_col2:
+                # Бутонът за преглед, който изглежда стилно и отваря диалога мигновено
+                if st.button("👁️ Виж", key=f"view_cat_btn_{idx}", use_container_width=True):
+                    view_category_expenses_dialog(kat, df_trip)
+            
+            # 2. Долна част на кутията: Сумата и 3D Прогрес лентата (Твоят оригинален дизайн)
             st.markdown(f"""
-            <div style="position: relative; margin-bottom: 12px; width: 100%;">
-                <!-- 1. Твоят оригинален 3D дизайн -->
-                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
-                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
-                    </div>
-                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
-                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
-                    </div>
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-top: -40px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 6px;">
+                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
+                </div>
+                <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                    <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            
-            # 2. Инжектираме специален CSS, който хваща бутона веднага след кутията и го разпъва ОГОРЕ като прозрачен слой
-            st.markdown(f"""
-                <style>
-                div:has(> button[key="btn_box_{idx}"]) {{
-                    position: absolute !important;
-                    margin-top: -86px !important; /* Връща бутона точно върху кутията */
-                    width: 100% !important;
-                    height: 74px !important;
-                    z-index: 9999 !important;
-                    opacity: 0 !important;
-                }}
-                </style>
-            """, unsafe_allow_html=True)
-            
-            # 3. Самият бутон – той става невидим, но е там и чака кликване без презареждане
-            if st.button("", key=f"btn_box_{idx}", use_container_width=True):
-                view_category_expenses_dialog(kat, df_trip)
 
     col_st1, col_st2 = st.columns(2)
     with col_st1:
