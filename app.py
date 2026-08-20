@@ -7,8 +7,10 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 
+# 1. Конфигуриране на страницата (Задължително на първо място)
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
+# 2. Вашият оригинален и автентичен CSS дизайн
 st.markdown("""
 <style>
     html, body, [data-testid="stAppViewContainer"] {
@@ -54,6 +56,19 @@ st.markdown("""
     small { color: #7e8494 !important; }
 </style>
 """, unsafe_allow_html=True)
+
+# 3. Вграждане и перфектно центриране на логото веднага след стила
+logo_path = "logo.png"
+col_left, col_logo, col_right = st.columns([1, 2, 1]) # 2-ката осигурява идеален мащаб
+
+with col_logo:
+    if os.path.exists(logo_path):
+        st.image(logo_path, use_container_width=True)
+    else:
+        st.markdown("<h1 style='text-align: center; color: #00f2fe;'>PixelApp 🐾</h1>", unsafe_allow_html=True)
+
+st.markdown("---")
+
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
