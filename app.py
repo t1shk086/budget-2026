@@ -383,64 +383,52 @@ else:
             st.stop()
 
     if car_trip == "Да":
-        val_to_show, is_final_status = 0.0, False
-        try:
-            df_fuel = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["current_km"] >= s_km)].sort_values(by="current_km")
-            total_valid_liters, total_valid_dist, prev_km, temp_liters = 0.0, 0.0, s_km, 0.0
-            for _, row in df_fuel.iterrows():
-                current_entry_km = float(row["current_km"])
-                if current_entry_km == s_km: 
-                    continue
-                stage_dist = current_entry_km - prev_km
-                if stage_dist > 0:
-                    temp_liters += float(row.get("liters", 0.0))
-                    if "ПЪЛЕН" in str(row["description"]).upper():
-                        total_valid_dist += stage_dist
-                        total_valid_liters += temp_liters
-                        temp_liters, prev_km = 0.0, current_entry_km
-            total_valid_liters += m_fuel
-            if total_valid_dist > 0 and total_valid_liters > 0: 
-                val_to_show = (total_valid_liters / total_valid_dist) * 100
-            if e_km > s_km:
-                is_final_status = True
-                if val_to_show == 0.0 and total_liters_calculated > 0: 
-                    val_to_show = (total_liters_calculated / dist) * 100
-        except: 
-            pass
-
+              # === 1. Изчисляване на прогреса за визуализацията на автомобила ===
+        is_final_status = True if e_km > s_km else False
         km_progress_pct = 100 if is_final_status else min(100, max(0, (dist / 1000 * 100))) if dist > 0 else 0
         finish_icon_html = f"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; left: calc({km_progress_pct}% - 10px); top: -12px; font-size: 16px;'>🚗</div>"
 
+        # === 2. ИНТЕЛЕГЕНТНА ЛОГИКА ЗА НАЙ-ТОЧЕН РАЗХОД (БЕЗ 0.0) ===
         val_to_show = 0.0
-        label_to_show = "последен затворен етап"
+        label_to_show = "няма данни за разход"
         
-        if is_trip_finished:
-            val_to_show = progressive_avg_con if 'progressive_avg_con' in locals() else 0.0
-            label_to_show = "финален среден разход"
-        else:
-            try:
-                df_trans_fuel = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["current_km"] > s_km)].sort_index()
-                df_only_full = df_trans_fuel[df_trans_fuel["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
-                if not df_only_full.empty:
-                    last_full_row = df_only_full.iloc[-1]["description"]
-                    import re
-                    match = re.search(r"(?:Реален разход:|Разход:)\s*([0-9.]+)", last_full_row)
-                    if match:
-                        val_to_show = float(match.group(1))
+        # СТЪПКА А: Проверяваме за затворен етап "до горе" (Степен №1 по точност)
+        try:
+            df_trans_fuel = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["current_km"] > s_km)].sort_index()
+            df_only_full = df_trans_fuel[df_trans_fuel["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
+            
+            if not df_only_full.empty:
+                last_full_row = df_only_full.iloc[-1]["description"]
+                import re
+                match = re.search(r"(?:Реален разход:|Разход:)\s*([0-9.]+)", last_full_row)
+                if match:
+                    val_to_show = float(match.group(1))
+                    if is_trip_finished:
+                        label_to_show = "финален разход (последен етап до горе)"
                     else:
-                        val_to_show = progressive_avg_con if 'progressive_avg_con' in locals() else 0.0
-                else:
-                    if not df_trans_fuel.empty:
-                        current_dist = float(df_trans_fuel.iloc[-1]["current_km"]) - s_km
-                        current_liters = float(df_trans_fuel["liters"].sum()) + m_fuel
-                        if current_dist > 0 and current_liters > 0:
-                            val_to_show = (current_liters / current_dist * 100)
-                            label_to_show = "среден разход до момента"
-            except:
-                pass
+                        label_to_show = "последен затворен етап до горе"
+        except:
+            val_to_show = 0.0
 
+        # СТЪПКА Б: Ако няма етапи "до горе" (или стойността е 0.0), взимаме Общ разход (Степен №2 по точност)
+        if val_to_show == 0.0:
+            try:
+                current_dist = (eff_end_km - s_km) if is_trip_finished else (float(df_expenses["current_km"].max()) - s_km if not df_expenses.empty and "current_km" in df_expenses.columns else 0.0)
+                current_liters = float(df_expenses["liters"].sum()) + m_fuel
+                
+                if current_dist > 0 and current_liters > 0:
+                    val_to_show = (current_liters / current_dist * 100)
+                    if is_trip_finished:
+                        label_to_show = "финален среден разход за цялото пътуване"
+                    else:
+                        label_to_show = "среден разход до момента"
+            except:
+                val_to_show = 0.0
+
+        # === 3. Дефиниране на цветове и общи литри за интерфейса ===
         color_gauge = "#00f2fe" if val_to_show < 6.0 else ("#ffa500" if val_to_show < 8.5 else "#ff4b4b")
         transport_liters = float(df_expenses[df_expenses['category'] == 'Транспорт']['liters'].sum()) + m_fuel
+
 
         st.markdown(f"### 🚗 Данни за километраж и пробег")
         st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 СЛЕДЕНЕ НА ПРОБЕГА</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
