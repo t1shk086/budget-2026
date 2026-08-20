@@ -726,7 +726,7 @@ else:
         location=[st.session_state["stable_lat"], st.session_state["stable_lon"]], 
         zoom_start=st.session_state["stable_zoom"]
     )
- m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
+    m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
     folium.LatLngPopup().add_to(m)
     
     for _, pt in df_points.iterrows(): 
@@ -739,6 +739,7 @@ else:
     points_count = len(df_points)
     click_state = "active" if "active_click" in st.session_state and st.session_state["active_click"] is not None else "idle"
     dynamic_map_key = f"folium_map_{trip_id}_{points_count}_{click_state}"
+
 
     map_data = st_folium(
         m, 
