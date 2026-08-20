@@ -9,40 +9,6 @@ from geopy.geocoders import Nominatim
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
-# =========================================================================
-# ИЗСКАЧАЩ ПРОЗОРЕЦ ЗА ПРЕГЛЕД НА КАТЕГОРИЯ (САМО ЗА ЧЕТЕНЕ)
-# =========================================================================
-@st.dialog("Преглед на разходите", width="large")
-def view_category_expenses_dialog(category_name, df_trip_data):
-    st.markdown(f"### 📋 Всички разходи в категория: **{category_name}**")
-    
-    # Филтрираме разходите само за текущата селектирана категория
-    df_cat = df_trip_data[df_trip_data["category"] == category_name].copy()
-    
-    if df_cat.empty:
-        st.info(f"Няма регистрирани разходи в категория '{category_name}' за това пътуване.")
-    else:
-        # Сортираме хронологично от най-новите към най-старите
-        if "date" in df_cat.columns:
-            df_cat = df_cat.sort_values(by="date", ascending=False)
-            
-        # Извеждаме ги в изчистен списък без бутони за редакция
-        for idx, row in df_cat.iterrows():
-            st.markdown(f"""
-            <div style='background: rgba(255,255,255,0.03); border-left: 4px solid #00f2fe; padding: 12px; border-radius: 6px; margin-bottom: 8px;'>
-                <div style='display: flex; justify-content: space-between; font-size: 14px;'>
-                    <span style='font-weight: bold; color: white;'>{row['description']}</span>
-                    <span style='font-weight: bold; color: #ff4b4b;'>{row['amount']:.2f} EUR</span>
-                </div>
-                <div style='font-size: 11px; color: #888; margin-top: 4px;'>📅 {row['date']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-    if st.button("Затвори", use_container_width=True, key=f"close_btn_{category_name}"):
-        st.rerun()
-# =========================================================================
-
-
 st.markdown("""
 <style>
     html, body, [data-testid="stAppViewContainer"] {
@@ -610,6 +576,7 @@ else:
 
 
 
+
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### 📊 Анализ на разходите")
     
@@ -617,34 +584,16 @@ else:
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
-            
-            # Създаваме официален контейнер-бутон, който се разпъва по цялата ширина
-            with st.popover(f"{get_emoji(kat)} {kat} — {s_value:.2f} EUR", use_container_width=True):
-                # ВЪТРЕШНОСТ НА ПРОЗОРЕЦА: Показваме разходите само за тази категория (Само за четене)
-                st.markdown(f"#### 📋 Всички разходи за **{kat}**")
-                df_cat = df_trip[df_trip["category"] == kat].copy()
-                
-                if df_cat.empty:
-                    st.info("Няма регистрирани разходи.")
-                else:
-                    if "date" in df_cat.columns:
-                        df_cat = df_cat.sort_values(by="date", ascending=False)
-                    for _, row in df_cat.iterrows():
-                        st.markdown(f"""
-                        <div style='background: rgba(255,255,255,0.03); border-left: 4px solid #00f2fe; padding: 10px; border-radius: 4px; margin-bottom: 6px;'>
-                            <div style='display: flex; justify-content: space-between; font-size: 13px;'>
-                                <span style='font-weight: bold; color: white;'>{row['description']}</span>
-                                <span style='font-weight: bold; color: #ff4b4b;'>{row['amount']:.2f} EUR</span>
-                            </div>
-                            <div style='font-size: 10px; color: #888; margin-top: 2px;'>📅 {row['date']}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-            # Веднага под поповера изрисуваме твоята оригинална 3D прогрес лента, за да се запази визията
             st.markdown(f"""
-            <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: -8px; margin-bottom: 16px; width: 100%;">
-                <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3);"></div>
-                <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
+                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
+                </div>
+                <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                    <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -750,42 +699,7 @@ else:
         km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
         pdf_html += f"<tr><td>{row['date']}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
         
-    pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table>"
-
-    # =========================================================================
-    # ФИНАЛЕН СИГУРЕН ЛИНК КЪМ GOOGLE MAPS (БЕЗ СКРИПТОВЕ И КАРТИНКИ)
-    # =========================================================================
-    try:
-        df_geo = df_trip[df_trip['latitude'].notna() & df_trip['longitude'].notna()]
-        if not df_geo.empty:
-            coords_list = []
-            for _, r in df_geo.iterrows():
-                coords_list.append(f"{r['latitude']},{r['longitude']}")
-            
-            if coords_list:
-                origin = coords_list[0]
-                destination = coords_list[-1]
-                # Ако има междинни спирки, ги добавяме като waypoints
-                waypoints = "|".join(coords_list[1:-1]) if len(coords_list) > 2 else ""
-                
-                # Генерираме чист официален линк за маршрут в Google Maps
-                gmaps_url = f"https://google.com{origin}&destination={destination}"
-                if waypoints:
-                    gmaps_url += f"&waypoints={waypoints}"
-                
-                pdf_html += f"""
-                <div style="margin-top: 40px; padding: 20px; background: #f9f9f9; border-radius: 12px; border: 1px solid #eee; text-align: center;">
-                    <h3 style="color: #4facfe; font-size: 16px; margin-top: 0; border-bottom: none; padding-bottom: 0;">🗺️ МАРШРУТ НА ПЪТУВАНЕТО</h3>
-                    <p style="color: #666; font-size: 13px; margin-bottom: 20px;">Всички записани спирки и локации са компилирани в общ интерактивен маршрут.</p>
-                    <a href="{gmaps_url}" target="_blank" style="display: inline-block; background: #4facfe; color: white; text-decoration: none; padding: 12px 25px; font-weight: bold; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 10px rgba(79, 172, 254, 0.3);">
-                        ➔ ОТВОРИ МАРШРУТА В GOOGLE MAPS
-                    </a>
-                </div>
-                """
-    except:
-        pass
-
-    pdf_html += "</body></html>"
+    pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
     
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
     
@@ -802,8 +716,6 @@ else:
     )
 
     st.markdown("---")
-
-
 
 
 
