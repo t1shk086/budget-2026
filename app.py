@@ -611,102 +611,107 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни върху полето за детайли):")
     
-    # 1. Твоят оригинален 3D дизайн - чист, стабилен и красив
+    # Стилизираме бутоните САМО вътре в контейнера .analytics-secure-grid
+    # Превръщаме стандартния бутон в твоята оригинална премиум 3D кутия
     st.markdown("""
         <style>
-            .original-premium-3d-card {
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
-                border: 1px solid rgba(255,255,255,0.08) !important; 
-                padding: 14px; 
-                border-radius: 14px; 
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
-                display: flex; 
-                flex-direction: column; 
-                justify-content: space-between; 
-                transition: all 0.2s ease-in-out; 
-                margin-bottom: 12px;
-                cursor: pointer;
-                user-select: none;
+            /* Променяме изцяло дизайна на самия бутон */
+            .analytics-secure-grid div[data-testid="stBtnContainer"] button {
+                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important;
+                border: 1px solid rgba(255,255,255,0.08) !important;
+                padding: 14px !important;
+                border-radius: 14px !important;
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
+                width: 100% !important;
+                min-height: 84px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                align-items: stretch !important;
+                transition: all 0.2s ease-in-out !important;
+                margin-bottom: 12px !important;
+                text-align: left !important;
             }
-            .original-premium-3d-card:hover {
+            
+            /* Ефект при посочване с мишката */
+            .analytics-secure-grid div[data-testid="stBtnContainer"] button:hover {
                 background: rgba(255,255,255,0.06) !important;
                 border-color: rgba(0, 242, 254, 0.35) !important;
-                transform: translateY(-2px);
+                transform: translateY(-2px) !important;
                 box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
             }
-            .original-premium-3d-card:active {
-                transform: translateY(1px);
-                box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
+            
+            /* Ефект при физическо натискане */
+            .analytics-secure-grid div[data-testid="stBtnContainer"] button:active {
+                transform: translateY(1px) !important;
+            }
+            
+            /* Подсигуряваме, че вътрешното съдържание заема 100% от ширината */
+            .analytics-secure-grid div[data-testid="stBtnContainer"] button div[data-testid="stMarkdownContainer"] {
+                width: 100% !important;
+            }
+            
+            /* Стилизираме оригиналния дизайн на прогрес лентата, която стои вътре в бутона */
+            .secure-progress-bg {
+                background: rgba(0, 0, 0, 0.4); 
+                height: 14px; 
+                border-radius: 20px; 
+                padding: 2px; 
+                box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); 
+                position: relative; 
+                display: flex; 
+                align-items: center; 
+                overflow: hidden; 
+                width: 100%; 
+                margin-top: 8px;
+                box-sizing: border-box;
+            }
+            .secure-progress-fill {
+                height: 100%; 
+                background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); 
+                border-radius: 20px; 
+                box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);
+            }}
+            .secure-progress-text {
+                position: absolute; 
+                right: 8px; 
+                font-size: 9px; 
+                font-weight: 900; 
+                color: rgba(255,255,255,0.85); 
+                font-family: sans-serif;
             }
         </style>
     """, unsafe_allow_html=True)
 
-    # Инициализираме променлива в сесията, за да пазим кликнатата категория локално
-    if "clicked_analytics_category" not in st.session_state:
-        st.session_state["clicked_analytics_category"] = None
+    # Отваряме изолирания контейнер
+    st.markdown('<div class="analytics-secure-grid">', unsafe_allow_html=True)
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # ФИКС: При клик изпращаме съобщение (postMessage) директно към iframe системата на Streamlit.
-            # Това става мигновено и БЕЗ никакво презареждане на URL адреси или губене на сесията!
-            st.markdown(f"""
-            <div class="original-premium-3d-card" onclick="
-                window.parent.postMessage({{type: 'analytics_click', category: '{kat}'}}, '*');
-            ">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
-                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
-                </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%; margin-top: 8px; box-sizing: border-box;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
-                    <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); font-family: sans-serif;">{pct:.1f}%</span>
-                </div>
+            # Използваме легален Streamlit бутон, като инжектираме твоя оригинален дизайн 
+            # (Заглавието, сумата и заоблената прогрес лента) директно в етикета му.
+            # Новите версии рендерират този HTML вътре в бутона без никакъв риск от срив.
+            button_inner_design = f"""
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
+                <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
             </div>
-            """, unsafe_allow_html=True)
+            <div class="secure-progress-bg">
+                <div class="secure-progress-fill" style="width: {pct}%;"></div>
+                <span class="secure-progress-text">{pct:.1f}%</span>
+            </div>
+            """
+            
+            # Поставяме чист, официален бутон. Понеже е обвиван от ".analytics-secure-grid",
+            # неговата сива рамка изчезва и той придобива перфектния 3D облик, който искаш.
+            if st.button(button_inner_design, key=f"final_3d_btn_{idx}", use_container_width=True):
+                show_category_expenses_dialog(kat)
+                
+    st.markdown('</div>', unsafe_allow_html=True) # Затваряме контейнера
 
-    # 2. СКРИТ СЛУШАТЕЛ: Поставяме малък, напълно невидим HTML компонент с височина 0 пиксела.
-    # Неговата единствена цел е да улови 'analytics_click' съобщението от картите и да го предаде сигурно на Python.
-    import streamlit.components.v1 as components
-    
-    listener_html = """
-    <html>
-    <body>
-    <script>
-        // Слушаме за кликвания върху 3D картите
-        window.parent.addEventListener('message', function(event) {
-            if (event.data && event.data.type === 'analytics_click') {
-                // Използваме официалния Streamlit API канал, за да запишем стойността в Python
-                window.parent.postMessage({
-                    type: "streamlit:setComponentValue",
-                    value: event.data.category
-                }, "*");
-            }
-        });
-    </script>
-    </body>
-    </html>
-    """
-    
-    # Извикваме компонента. Той заема 0 пиксела площ (скрит е) и връща стойност САМО когато се кликне върху карта
-    click_response = components.html(listener_html, height=0, width=0, key="analytics_js_listener")
-
-    # 3. АКТИВИРАНЕ НА ДИАЛОГА: Ако слушателят е уловил категория, я отваряме веднага
-    if click_response:
-        st.session_state["clicked_analytics_category"] = click_response
-        st.rerun()
-
-    # Показваме диалога, ако имаме записана категория в състоянието на сесията
-    if st.session_state["clicked_analytics_category"]:
-        current_active_cat = st.session_state["clicked_analytics_category"]
-        
-        # Нулираме я веднага, за да може при затваряне на диалога приложението да си работи нормално
-        st.session_state["clicked_analytics_category"] = None
-        
-        # Отваряме прозореца
-        show_category_expenses_dialog(current_active_cat)
 
 
 
