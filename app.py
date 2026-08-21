@@ -666,11 +666,11 @@ else:
             """, unsafe_allow_html=True)
 
     # В Python кода проверяваме дали в URL-а има записана категория за отваряне
-    if "open_cat" in st.query_params: [1]
-        selected_cat = st.query_params["open_cat"] [1]
+    if "open_cat" in st.query_params: 
+        selected_cat = st.query_params["open_cat"] 
         
         # Веднага изчистваме параметъра от URL-а, за да не се отваря прозорецът безкрайно при всяко опресняване
-        del st.query_params["open_cat"] [1]
+        del st.query_params["open_cat"] 
         
         # Отваряме красивия диалогов прозорец с разходите
         show_category_expenses_dialog(selected_cat)
