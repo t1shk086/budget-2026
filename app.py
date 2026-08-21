@@ -611,7 +611,7 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни върху полето за детайли):")
     
-    # CSS стил за твоята оригинална 3D премиум кутия и за НАПЪЛНОТО С КРИВАНЕ на тригер бутона
+    # Твоят оригинален 3D дизайн - чист и без излишни Python бутони под него
     st.markdown("""
         <style>
             .original-premium-3d-card {
@@ -628,32 +628,15 @@ else:
                 margin-bottom: 12px;
                 user-select: none;
             }
-            /* Ховър ефект при посочване */
             .original-premium-3d-card:hover {
                 background: rgba(255,255,255,0.06) !important;
                 border-color: rgba(0, 242, 254, 0.35) !important;
                 transform: translateY(-2px);
                 box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
             }
-            /* Ефект при физическо натискане */
             .original-premium-3d-card:active {
                 transform: translateY(1px);
                 box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
-            }
-            
-            /* ХАК ЗА ПЪЛНО СКРИВАНЕ: Скриваме абсолютно целия контейнер на бутона под кутията */
-            .completely-hidden-button-wrapper, 
-            .completely-hidden-button-wrapper div[data-testid="stBtnContainer"],
-            .completely-hidden-button-wrapper button {
-                position: absolute !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-                width: 0 !important;
-                height: 0 !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                border: none !important;
-                pointer-events: none !important;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -663,10 +646,14 @@ else:
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # 1. Изрисуваме красивия 3D дизайн на кутията
-            # Когато я кликнеш, JavaScript намира скрития бутон по неговия KEY атрибут на заден план и го натиска софтуерно
+            # При клик върху полето, JS обновява URL адреса с параметъра ?open_cat=ИметоНаКатегорията
+            # window.parent осигурява комуникацията извън iframe-а на Streamlit
             st.markdown(f"""
-            <div class="original-premium-3d-card" onclick="const btn = window.parent.document.querySelector('button[key=\"hidden_trigger_{idx}\"]') || window.parent.document.getElementById('hidden_trigger_{idx}') || window.parent.document.querySelector('[data-testid=\"stBaseButton-secondary\"]'); if(btn) btn.click();">
+            <div class="original-premium-3d-card" onclick="
+                const url = new URL(window.parent.location.href);
+                url.searchParams.set('open_cat', '{kat}');
+                window.parent.location.href = url.href;
+            ">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
                     <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
@@ -677,13 +664,17 @@ else:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            
-            # 2. Бутонът е тук, но е затворен в нашия специален "completely-hidden-button-wrapper"
-            # Той остава 100% активен в Python кода, за да отвори диалога, но за потребителя е абсолютно невидим
-            st.markdown(f'<div class="completely-hidden-button-wrapper">', unsafe_allow_html=True)
-            if st.button("Open", key=f"hidden_trigger_{idx}", use_container_width=True):
-                show_category_expenses_dialog(kat)
-            st.markdown('</div>', unsafe_allow_html=True)
+
+    # В Python кода проверяваме дали в URL-а има записана категория за отваряне
+    if "open_cat" in st.query_params: [1]
+        selected_cat = st.query_params["open_cat"] [1]
+        
+        # Веднага изчистваме параметъра от URL-а, за да не се отваря прозорецът безкрайно при всяко опресняване
+        del st.query_params["open_cat"] [1]
+        
+        # Отваряме красивия диалогов прозорец с разходите
+        show_category_expenses_dialog(selected_cat)
+
 
 
 
