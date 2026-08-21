@@ -694,27 +694,38 @@ else:
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Отваряме външния обвиващ контейнер
-            st.markdown('<div class="premium-card-container">', unsafe_allow_html=True)
+            # Създаваме линк, който пази в себе си И текущото пътуване (trip_id)
+            # Така браузърът не рестартира приложението на начален екран
+            target_url = f"?trip_id={trip_id}&open_cat={kat.replace(' ', '+')}"
             
-            # 1. Изрисуваме красивия ти ОРИГИНАЛЕН дизайн през st.markdown (тук HTML работи безупречно)
+            # Изрисуваме ОРИГИНАЛНИЯ ти дизайн. Цялото поле е затворено в <a> таг.
+            # Няма никакви Streamlit бутони в този блок, което гарантира, че нищо няма да изпадне отдолу!
             st.markdown(f"""
-            <div class="original-premium-3d-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
-                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
+            <a href="{target_url}" target="_self" style="text-decoration: none !important;">
+                <div class="original-premium-3d-card" style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease-in-out; cursor: pointer; margin-bottom: 12px; user-select: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
+                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%; margin-top: 8px; box-sizing: border-box;">
+                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
+                        <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); font-family: sans-serif;">{pct:.1f}%</span>
+                    </div>
                 </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%; margin-top: 8px; box-sizing: border-box;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
-                    <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); font-family: sans-serif;">{pct:.1f}%</span>
-                </div>
-            </div>
+            </a>
             """, unsafe_allow_html=True)
-            
-            # 2. Поставяме празен стандартен бутон. Понеже е вътре в ".premium-card-container",
-            # CSS кодът го издърпва нагоре и го разпъва на 100% върху 3D кутията.
-            if st.button("", key=f"overlay_final_click_{idx}", use_container_width=True):
-                show_category_expenses_dialog(kat)
+
+    # В Python кода проверяваме за натисната категория
+    if "open_cat" in st.query_params:
+        selected_cat = st.query_params["open_cat"].replace('+', ' ')
+        
+        # Почистваме уеб параметъра веднага, но ЗАПАЗВАМЕ trip_id, за да останем в текущото пътуване
+        st.query_params.clear()
+        st.query_params["trip_id"] = trip_id
+        
+        # Директно отваряме красивия диалогов прозорец с разходите
+        show_category_expenses_dialog(selected_cat)
+
                 
             # Затваряме обвиващия контейнер
             st.markdown('</div>', unsafe_allow_html=True)
