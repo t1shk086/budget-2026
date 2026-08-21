@@ -611,7 +611,7 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни върху полето за детайли):")
     
-    # Твоят оригинален 3D дизайн - чист и без излишни Python бутони под него
+    # Твоят оригинален 3D дизайн с допълнителен ефект за преминаване на мишката (hover)
     st.markdown("""
         <style>
             .original-premium-3d-card {
@@ -624,9 +624,8 @@ else:
                 flex-direction: column; 
                 justify-content: space-between; 
                 transition: all 0.2s ease-in-out; 
-                cursor: pointer;
                 margin-bottom: 12px;
-                user-select: none;
+                text-decoration: none !important; /* Маха синята линия на линковете */
             }
             .original-premium-3d-card:hover {
                 background: rgba(255,255,255,0.06) !important;
@@ -646,13 +645,10 @@ else:
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # ФИКС: Използваме чисто "window.location", което работи безотказно в Streamlit Cloud
+            # ФИКС: Вместо <div> с onclick, превръщаме кутията в <a> линк, който пренасочва в СЪЩИЯ таб target="_self"
+            # Това заобикаля всички защити на браузърите в Streamlit Cloud
             st.markdown(f"""
-            <div class="original-premium-3d-card" onclick="
-                const url = new URL(window.location.href);
-                url.searchParams.set('open_cat', '{kat}');
-                window.location.href = url.href;
-            ">
+            <a href="?open_cat={kat.replace(' ', '+')}" target="_self" class="original-premium-3d-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
                     <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
@@ -661,17 +657,18 @@ else:
                     <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
                     <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); font-family: sans-serif;">{pct:.1f}%</span>
                 </div>
-            </div>
+            </a>
             """, unsafe_allow_html=True)
 
-    # В Python кода проверяваме дали в URL-а има записана категория за отваряне
+    # В Python кода улавяме навигацията от линка веднага
     if "open_cat" in st.query_params:
-        selected_cat = st.query_params["open_cat"]
+        selected_cat = st.query_params["open_cat"].replace('+', ' ')
         
-        # Веднага изчистваме параметъра от URL-а, за да не се отваря прозорецът безкрайно
-        del st.query_params["open_cat"]
+        # Почистваме URL параметъра веднага чрез изпращане на празен редирект,
+        # за да не се отваря прозорецът повторно при ръчно опресняване
+        st.query_params.clear()
         
-        # Отваряме красивия диалогов прозорец с разходите
+        # Показваме диалоговия прозорец с разходите по категорията
         show_category_expenses_dialog(selected_cat)
 
 
