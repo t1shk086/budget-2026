@@ -611,60 +611,74 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
     
-    # Стилизираме стандартните Streamlit бутони да изглеждат като твоите премиум 3D карти
-    st.markdown("""
-        <style>
-            /* Форматираме самите бутони */
-            div[data-testid="stColumn"] button {
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important;
-                border: 1px solid rgba(255,255,255,0.08) !important;
-                padding: 14px !important;
-                border-radius: 14px !important;
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
-                width: 100% !important;
-                min-height: 82px !important;
-                display: flex !important;
-                flex-direction: column !important;
-                justify-content: space-between !important;
-                align-items: stretch !important;
-                transition: all 0.2s ease-in-out !important;
-            }
-            
-            /* Ефект при посочване с мишката */
-            div[data-testid="stColumn"] button:hover {
-                background: rgba(255,255,255,0.06) !important;
-                border-color: rgba(0, 242, 254, 0.3) !important;
-                transform: translateY(-2px) !important;
-                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
-            }
-            
-            /* Поправка за текста вътре в бутона, за да заеме целия контейнер */
-            div[data-testid="stColumn"] button div[data-testid="stMarkdownContainer"] {
-                width: 100% !important;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+    # Инициализираме променлива за проследяване на кликнатата категория
+    if "selected_analytics_category" not in st.session_state:
+        st.session_state["selected_analytics_category"] = None
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Поставяме дизайна И прогрес лентата ДИРЕКТНО вътре в етикета на бутона
-            button_design = f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
-                    <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
-                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
+            # HTML код за изолираната 3D премиум карта с вграден клик
+            card_html = f"""
+            <div class="premium-card" onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: '{kat}'}}, '*')">
+                <div class="card-header">
+                    <span class="card-title">{get_emoji(kat)} {kat}</span>
+                    <span class="card-amount">{s_value:.2f} EUR</span>
                 </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
-                    <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85);">{pct:.1f}%</span>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: {pct}%;"></div>
+                    <span class="progress-text">{pct:.1f}%</span>
                 </div>
+            </div>
+
+            <style>
+                body {{ margin: 0; background: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }}
+                .premium-card {{
+                    background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); 
+                    border: 1px solid rgba(255,255,255,0.08); 
+                    padding: 14px; 
+                    border-radius: 14px; 
+                    box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
+                    display: flex; 
+                    flex-direction: column; 
+                    justify-content: space-between;
+                    height: 44px;
+                    cursor: pointer;
+                    transition: all 0.2s ease-in-out;
+                    user-select: none;
+                }}
+                .premium-card:hover {{
+                    background: rgba(255,255,255,0.06);
+                    border-color: rgba(0, 242, 254, 0.3);
+                    transform: translateY(-2px);
+                    box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15);
+                }}
+                .premium-card:active {{ transform: translateY(1px); }}
+                .card-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }}
+                .card-title {{ font-weight: 500; font-size: 15px; color: white; }}
+                .card-amount {{ font-weight: bold; color: #ff4b4b; font-size: 15px; }}
+                .progress-container {{ background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; }}
+                .progress-bar {{ height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4); }}
+                .progress-text {{ position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }}
+            </style>
             """
             
-            # Използваме чист бутон, който сега изрисува всичко вътре в себе си и реагира на 100% при клик
-            if st.button(button_design, key=f"fixed_3d_btn_{idx}", use_container_width=True):
-                show_category_expenses_dialog(kat)
+            # Използваме html компонента, който връща стойност при клик
+            import streamlit.components.v1 as components
+            response = components.html(card_html, height=90, key=f"html_card_{idx}")
+            
+            # Ако този конкретен компонент върне стойност, я записваме
+            if response:
+                st.session_state["selected_analytics_category"] = response
+
+    # Извън цикъла проверяваме дали имаме избрана категория и отваряме диалога
+    if st.session_state["selected_analytics_category"] is not None:
+        chosen_cat = st.session_state["selected_analytics_category"]
+        st.session_state["selected_analytics_category"] = None  # Нулираме веднага за следващия клик
+        show_category_expenses_dialog(chosen_cat)
+
 
     st.markdown("---")
     @st.dialog("📜 Хронология на плащанията", width="large")
