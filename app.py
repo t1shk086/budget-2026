@@ -596,12 +596,6 @@ else:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-# --- Поставяне на бутона точно под 5-те 3D прозореца ---
-st.markdown("<div style='margin-top: 20px; margin-bottom: 20px;'>", unsafe_allow_html=True)
-if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
-    разходи_по_категории_dialog()
-st.markdown("</div>", unsafe_allow_html=True)
-# --------------------------------------------------------
 
     col_st1, col_st2 = st.columns(2)
     with col_st1:
@@ -787,7 +781,8 @@ st.markdown("</div>", unsafe_allow_html=True)
     if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
         hronologia_popup_dialog()
 
-
+    if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
+        разходи_по_категории_dialog()
 
     st.download_button(
         label="Отчет в PDF",
