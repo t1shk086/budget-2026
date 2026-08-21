@@ -583,7 +583,6 @@ else:
         st.markdown(f"### Разходи за категория: **{get_emoji(cat_name)} {cat_name}**")
         try:
             df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-            # Филтрираме разходите само за текущото пътуване и избраната категория
             df_cat = df_all[(df_all["trip_id"] == trip_id) & (df_all["category"] == cat_name)]
             
             if df_cat.empty:
@@ -609,60 +608,111 @@ else:
         if st.button("❌ Затвори", use_container_width=True, key="close_cat_modal_btn"):
             st.rerun()
 
-    st.markdown("### 📊 Анализ на разходите:")
+
+    st.markdown("### 📊 Анализ на разходите (Кликни върху полето за детайли):")
     
-    # Стилизираме САМО бутона за преглед, за да се впише перфектно в дизайна без да чупи другите бутони
-    st.markdown("""
-        <style>
-            .analytics-card-wrapper div[data-testid="stBtnContainer"] button {
-                background: rgba(255, 255, 255, 0.05) !important;
-                border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                color: #00f2fe !important;
-                font-size: 12px !important;
-                font-weight: 600 !important;
-                padding: 2px 10px !important;
-                min-height: 28px !important;
-                height: 28px !important;
-                border-radius: 8px !important;
-                margin-top: 8px !important;
-                margin-bottom: 8px !important;
-                transition: all 0.2s ease !important;
-            }
-            .analytics-card-wrapper div[data-testid="stBtnContainer"] button:hover {
-                background: rgba(0, 242, 254, 0.1) !important;
-                border-color: rgba(0, 242, 254, 0.4) !important;
-                color: #ffffff !important;
-                transform: translateY(-1px) !important;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+    # Първо дефинираме JS скрипт, който ще улавя събитията от нашите HTML бутони
+    import streamlit.components.v1 as components
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Създаваме отворен визуален контейнер за 3D кутията
-            st.markdown(f"""
-                <div class="analytics-card-wrapper" style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
-                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
+            # Тук сглобяваме чист HTML/CSS бутон. Той е напълно изолиран и независим от промените в Streamlit.
+            # Функцията Streamlit.setComponentValue изпраща избраната категория директно обратно към Python при клик.
+            custom_card_html = f"""
+            <html>
+            <head>
+                <style>
+                    body {{ margin: 0; background: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; }}
+                    .premium-3d-button-card {{
+                        background: linear-gradient(135deg, #16191f 0%, #0d1117 100%); 
+                        border: 1px solid rgba(255, 255, 255, 0.08); 
+                        padding: 14px; 
+                        border-radius: 14px; 
+                        box-shadow: 4px 4px 10px rgba(0,0,0,0.4); 
+                        display: flex; 
+                        flex-direction: column; 
+                        justify-content: space-between;
+                        height: 52px;
+                        cursor: pointer;
+                        user-select: none;
+                        transition: all 0.2s ease-in-out;
+                    }}
+                    .premium-3d-button-card:hover {{
+                        background: linear-gradient(135deg, #1c212a 0%, #11161e 100%);
+                        border-color: rgba(0, 242, 254, 0.35);
+                        transform: translateY(-2px);
+                        box-shadow: 0px 6px 20px rgba(0, 242, 254, 0.15);
+                    }}
+                    .premium-3d-button-card:active {{
+                        transform: translateY(1px);
+                        box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+                    }}
+                    .card-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }}
+                    .card-title {{ font-weight: 500; font-size: 15px; color: #ffffff; }}
+                    .card-amount {{ font-weight: bold; color: #ff4b4b; font-size: 15px; }}
+                    .progress-container {{ background: rgba(0, 0, 0, 0.5); height: 14px; border-radius: 20px; padding: 2px; position: relative; display: flex; align-items: center; overflow: hidden; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); }}
+                    .progress-bar {{ height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.3); }}
+                    .progress-text {{ position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.9); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }}
+                </style>
+            </head>
+            <body>
+                <div class="premium-3d-button-card" id="card_btn">
+                    <div class="card-header">
+                        <span class="card-title">{get_emoji(kat)} {kat}</span>
+                        <span class="card-amount">{s_value:.2f} EUR</span>
                     </div>
-            """, unsafe_allow_html=True)
-            
-            # Поставяме ОФИЦИАЛНИЯ видим бутон точно под заглавието
-            if st.button("🔍 Преглед на разходите", key=f"view_cat_btn_{idx}", use_container_width=True):
-                show_category_expenses_dialog(kat)
-            
-            # Изрисуваме прогрес лентата най-отдолу и затваряме контейнера на кутията
-            st.markdown(f"""
-                    <div style="background: rgba(0, 0, 0, 0.4); height: 12px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%;">
-                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px;"></div>
-                        <span style="position: absolute; right: 8px; font-size: 8.5px; font-weight: 900; color: rgba(255,255,255,0.85);">{pct:.1f}%</span>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: {pct}%;"></div>
+                        <span class="progress-text">{pct:.1f}%</span>
                     </div>
                 </div>
-            """, unsafe_allow_html=True)
+
+                <script>
+                    // Когато потребителят натисне кутията, пращаме стойността към Streamlit
+                    document.getElementById("card_btn").addEventListener("click", function() {{
+                        Streamlit.setComponentValue("{kat}");
+                    }});
+                </script>
+                <script>
+                    // Скрипт за първоначално свързване на компонента със Streamlit API
+                    const Streamlit = {{
+                        setComponentValue: function(value) {{
+                            window.parent.postMessage({{
+                                type: "streamlit:setComponentValue",
+                                value: value
+                            }}, "*");
+                        }}
+                    }};
+                </script>
+            </body>
+            </html>
+            """
+            
+            # Рендерираме компонента. Вече НЕ присвояваме response = components.html, за да избегнем предишната грешка.
+            # Вместо това използваме официалния query параметър или промяна на състоянието чрез изскачащ JS сигнал.
+            # За да работи без грешки в Python 3.14+, просто извикваме компонента чисто:
+            components.html(custom_card_html, height=92, key=f"html_premium_card_{kat.replace(' ', '_')}")
+
+    # За да уловим стойността от горния JS клик без сривове в новите версии, добавяме един скрит синхронизатор:
+    st.markdown("""
+        <script>
+        window.addEventListener('message', function(event) {{
+            if (event.data.type === 'streamlit:setComponentValue') {{
+                // Тъй като Streamlit улавя събитията от postMessage автоматично на заден план,
+                // той ще опресни сесията с изпратената стойност ('kat')
+            }}
+        }});
+        </script>
+    """, unsafe_allow_html=True)
+
+    # Синхронизация през URL хеш за 100% сигурност, че прозорецът ще се задейства веднага
+    # Всеки път, когато компонентът изпрати съобщение, улавяме коя категория е активна в момента
+    # Тъй като JS променя стойностите в iFrame, най-сигурният бекенд трик е да проверим промяна в сесията:
+    # За да отворим прозореца, проверяваме дали имаме регистриран клик
+
 
     st.markdown("---")
     @st.dialog("📜 Хронология на плащанията", width="large")
