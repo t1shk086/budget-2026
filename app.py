@@ -159,7 +159,7 @@ if st.session_state["current_trip"] is None:
     
     @st.dialog("➕ Създаване на ново приключение")
     def create_trip_modal():
-        txt = st.text_input("Име на дестинацията:").strip()
+        txt = st.text_input("Име на дестинацията:",placeholder="Въведете име...").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
         st.write("---")
         st.write("🚗 Пътувате ли със собствен автомобил?")
