@@ -611,36 +611,79 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
     
-    # Дефинираме стила за нашата изцяло кликаема 3D премиум карта
     st.markdown("""
         <style>
-            .clickable-premium-card {
+            /* Стягаме колоната и я правим отправна точка */
+            div[data-testid="stColumn"] {
+                position: relative !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            
+            /* Цялостната кутия на твоята 3D премиум карта */
+            .premium-3d-box {
                 background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
                 border: 1px solid rgba(255,255,255,0.08) !important; 
                 padding: 14px; 
                 border-radius: 14px; 
                 box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
+                height: 72px; 
                 display: flex; 
                 flex-direction: column; 
                 justify-content: space-between;
-                transition: all 0.2s ease-in-out;
+                position: relative;
+                z-index: 1;
                 margin-bottom: 12px;
-                cursor: pointer; /* Сменя курсора на ръчичка, за да покаже, че се клика */
+                transition: all 0.2s ease-in-out;
             }
-            /* Ефект при посочване с мишката */
-            .clickable-premium-card:hover {
+            
+            /* Ховър ефект върху цялата кутия */
+            div[data-testid="stColumn"]:hover .premium-3d-box {
                 background: rgba(255,255,255,0.06) !important;
                 border-color: rgba(0, 242, 254, 0.3) !important;
                 transform: translateY(-2px);
                 box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15);
             }
-            /* Ефект при реално натискане */
-            .clickable-premium-card:active {
-                transform: translateY(1px);
-                box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            
+            /* ВАЖНИЯТ ФИКС: Разпъваме контейнера на бутона върху цялата площ */
+            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: calc(100% - 16px) !important;
+                height: 72px !important;
+                z-index: 10 !important; /* Гарантираме, че е най-отгоре */
+            }
+            
+            /* Разпъваме самия бутон вътре в контейнера му */
+            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background: transparent !important;
+                border: none !important;
+                color: transparent !important;
+                box-shadow: none !important;
+                cursor: pointer !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            
+            /* Премахваме дефолтните визуални ефекти при клик на Streamlit */
+            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:hover,
+            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:active,
+            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:focus {
+                background: transparent !important;
+                border: none !important;
+                color: transparent !important;
+                box-shadow: none !important;
+                outline: none !important;
             }
         </style>
     """, unsafe_allow_html=True)
+
 
     # Правим списък с категориите, за да знаем коя е натисната
     clicked_category = None
