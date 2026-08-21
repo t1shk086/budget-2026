@@ -492,7 +492,7 @@ else:
     @st.dialog("⚙️ Настройки за автомобил и период")
     def edit_car_modal():
         v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1, disabled=is_trip_finished)
-        new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, disabled=is_trip_finished)
+        new_sk = st.number_input("Начални км:", value=None if s_km == 0.0 else s_km, placeholder="Въведете началните км...", disabled=is_trip_finished)
         
         # Полето приема само положителни числа за сигурност
         new_mf = st.number_input("Добави пропуснато гориво (л):", value=None, placeholder="Въведете литри...", min_value=0.0, disabled=is_trip_finished)
