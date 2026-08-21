@@ -609,171 +609,70 @@ else:
             st.rerun()
 
 
-    st.markdown("### 📊 Анализ на разходите (Кликни върху полето за детайли):")
+    st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
     
-    # CSS за перфектно застъпване на прозрачния бутон НАД HTML 3D кутията
+    # Стилизираме бутоните в тази секция, за да изглеждат като твоите премиум 3D карти
     st.markdown("""
         <style>
-            /* Контейнер за всяка клетка от мрежата */
-            .premium-card-container {
-                position: relative !important;
+            /* Хващаме бутоните само вътре в контейнера .premium-analytics */
+            .premium-analytics div[data-testid="stBtnContainer"] button {
+                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important;
+                border: 1px solid rgba(255,255,255,0.08) !important;
+                padding: 16px !important;
+                border-radius: 14px !important;
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
+                width: 100% !important;
+                min-height: 80px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                align-items: stretch !important;
+                transition: all 0.2s ease-in-out !important;
                 margin-bottom: 12px !important;
-                width: 100% !important;
+                text-align: left !important;
             }
             
-            /* Твоят оригинален premium 3D дизайн */
-            .original-premium-3d-card {
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
-                border: 1px solid rgba(255,255,255,0.08) !important; 
-                padding: 14px; 
-                border-radius: 14px; 
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
-                display: flex; 
-                flex-direction: column; 
-                justify-content: space-between; 
-                transition: all 0.2s ease-in-out;
-                position: relative;
-                z-index: 1; /* Стои отдолу */
-            }
-            
-            /* Ховър ефект при посочване на контейнера */
-            .premium-card-container:hover .original-premium-3d-card {
+            /* Ефект при посочване с мишката */
+            .premium-analytics div[data-testid="stBtnContainer"] button:hover {
                 background: rgba(255,255,255,0.06) !important;
                 border-color: rgba(0, 242, 254, 0.35) !important;
-                transform: translateY(-2px);
+                transform: translateY(-2px) !important;
                 box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
             }
             
-            /* Ефект при физическо натискане */
-            .premium-card-container:active .original-premium-3d-card {
-                transform: translateY(1px);
-                box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
+            /* Ефект при натискане */
+            .premium-analytics div[data-testid="stBtnContainer"] button:active {
+                transform: translateY(1px) !important;
             }
             
-            /* Хващаме контейнера на Streamlit бутона и го разпъваме АБСОЛЮТНО над HTML кутията */
-            .premium-card-container div[data-testid="stBtnContainer"] {
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100% !important;
-                height: 100% !important;
-                z-index: 10 !important; /* Излиза НАЙ-ОТГОРЕ */
+            /* Подравняване на текстовете вътре в бутона */
+            .premium-analytics div[data-testid="stBtnContainer"] button p {
                 margin: 0 !important;
                 padding: 0 !important;
-            }
-            
-            /* Правим самия бутон напълно прозрачен, за да заеме цялата площ */
-            .premium-card-container div[data-testid="stBtnContainer"] button {
                 width: 100% !important;
-                height: 100% !important;
-                background: transparent !important;
-                border: none !important;
-                color: transparent !important;
-                box-shadow: none !important;
-                cursor: pointer !important;
-                display: block !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            
-            /* Премахваме дефолтните сиви рамки и анимации на Streamlit при клик */
-            .premium-card-container div[data-testid="stBtnContainer"] button:hover,
-            .premium-card-container div[data-testid="stBtnContainer"] button:active,
-            .premium-card-container div[data-testid="stBtnContainer"] button:focus {
-                background: transparent !important;
-                border: none !important;
-                color: transparent !important;
-                box-shadow: none !important;
-                outline: none !important;
             }
         </style>
     """, unsafe_allow_html=True)
 
-    # 1. Инжектираме твоя оригинален, чист 3D премиум дизайн
-    st.markdown("""
-        <style>
-            .original-premium-3d-card {
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
-                border: 1px solid rgba(255,255,255,0.08) !important; 
-                padding: 14px; 
-                border-radius: 14px; 
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
-                display: flex; 
-                flex-direction: column; 
-                justify-content: space-between; 
-                transition: all 0.2s ease-in-out; 
-                cursor: pointer;
-                margin-bottom: 12px;
-                user-select: none;
-            }
-            .original-premium-3d-card:hover {
-                background: rgba(255,255,255,0.06) !important;
-                border-color: rgba(0, 242, 254, 0.35) !important;
-                transform: translateY(-2px);
-                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
-            }
-            .original-premium-3d-card:active {
-                transform: translateY(1px);
-                box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # Създаваме невидим ключ в сесията на Python, за да знаем коя категория да отворим
-    if "active_modal_category" not in st.session_state:
-        st.session_state["active_modal_category"] = None
+    # Отваряме чист контейнер
+    st.markdown('<div class="premium-analytics">', unsafe_allow_html=True)
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # При клик се задейства скрит HTML инпут, който активира реалния Streamlit стейт веднага
-            st.markdown(f"""
-            <div class="original-premium-3d-card" onclick="
-                const input = window.parent.document.getElementById('hidden_sync_input');
-                if(input) {{
-                    input.value = '{kat}';
-                    input.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                    const btn = window.parent.document.getElementById('hidden_sync_btn');
-                    if(btn) btn.click();
-                }}
-            ">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
-                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
-                </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%; margin-top: 8px; box-sizing: border-box;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
-                    <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); font-family: sans-serif;">{pct:.1f}%</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            # Подреждаме заглавието, емоджито, сумата и процентите чрез чист Markdown текст.
+            # Понеже не използваме <div> и <span> вътре в бутона, Streamlit няма да изпише код на екрана.
+            # Символът \n осигурява преминаването на нов ред за сумата.
+            button_text = f"### {get_emoji(kat)} {kat} \n\n **{s_value:.2f} EUR** ({pct:.1f}%)"
+            
+            # Самият бутон СЕ ПРЕВРЪЩА в 3D полето. Няма невидими слоеве, няма изпадащи елементи отдолу!
+            if st.button(button_text, key=f"prem_an_btn_{idx}", use_container_width=True):
+                show_category_expenses_dialog(kat)
+                
+    st.markdown('</div>', unsafe_allow_html=True) # Затваряме контейнера
 
-    # 2. СКРИТ СИНХРОНИЗАТОР: Поставяме два напълно невидими елемента на заден план чрез страничното меню
-    # Потребителят няма да ги види никога, но те пренасят клика директно в Python за 0 милисекунди БЕЗ ПРЕЗАРЕЖДАНЕ!
-    with st.sidebar:
-        # Инжектираме напълно скрит HTML инпут и бутон в дъното на сайдбара
-        st.markdown("""
-            <div style="position: absolute; visibility: hidden; width: 0; height: 0; overflow: hidden;">
-                <input type="text" id="hidden_sync_input" onchange="window.parent.Streamlit.setComponentValue('hidden_sync_val', this.value)">
-                <button id="hidden_sync_btn"></button>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # Свързваме стойността със сесията на Python чрез малък празен скрит елемент
-        cat_trigger = st.text_input("", key="hidden_sync_val", label_visibility="collapsed")
-        
-        if cat_trigger and cat_trigger.strip():
-            st.session_state["active_modal_category"] = cat_trigger
-            # Веднага чистим инпута, за да може да се кликне пак на същата категория по-късно
-            st.markdown("<script>window.parent.document.getElementById('hidden_sync_input').value = '';</script>", unsafe_allow_html=True)
-
-    # 3. АКТИВИРАНЕ НА ДИАЛОГА: Ако имаме записана категория в сесията, отваряме прозореца веднага
-    if st.session_state.get("active_modal_category"):
-        chosen_category = st.session_state["active_modal_category"]
-        st.session_state["active_modal_category"] = None # Нулираме веднага
-        show_category_expenses_dialog(chosen_category)
 
 
 
