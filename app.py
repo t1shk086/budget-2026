@@ -611,103 +611,72 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни върху полето за детайли):")
     
-    # CSS, който променя дизайна САМО на контейнерите в секцията за анализи
-    # и разпъва бутона вътре в тях като прозрачно фолио от край до край
+    # Конфигурираме уникален CSS стил за бутоните в тази секция чрез съответния контейнер
     st.markdown("""
         <style>
-            /* Стилизираме контейнера да бъде твоето 3D премиум поле */
-            div.analytics-box {
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
-                border: 1px solid rgba(255,255,255,0.08) !important; 
-                padding: 14px !important; 
-                border-radius: 14px !important; 
+            /* Използваме селектор, който хваща бутоните в секцията за анализи */
+            .analytics-grid div[data-testid="stBtnContainer"] button {
+                border: 1px solid rgba(255,255,255,0.08) !important;
+                padding: 14px !important;
+                border-radius: 14px !important;
                 box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
-                position: relative !important;
+                width: 100% !important;
+                min-height: 80px !important;
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: space-between !important;
-                min-height: 52px !important;
+                align-items: stretch !important;
                 transition: all 0.2s ease-in-out !important;
                 margin-bottom: 12px !important;
+                cursor: pointer !important;
             }
             
-            /* Ефект при посочване с мишката върху цялото 3D поле */
-            div.analytics-box:hover {
-                background: rgba(255,255,255,0.06) !important;
-                border-color: rgba(0, 242, 254, 0.3) !important;
+            /* Ефект при посочване с мишката */
+            .analytics-grid div[data-testid="stBtnContainer"] button:hover {
+                border-color: rgba(0, 242, 254, 0.35) !important;
                 transform: translateY(-2px) !important;
                 box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
             }
             
-            /* Хващаме Streamlit бутона вътре в този контейнер */
-            div.analytics-box div[data-testid="stBtnContainer"] {
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
+            /* Подсигуряваме, че текстовото съдържание заема цялата ширина */
+            .analytics-grid div[data-testid="stBtnContainer"] button div[data-testid="stMarkdownContainer"] {
                 width: 100% !important;
-                height: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                z-index: 10 !important; /* Излиза НАД текста и прогрес лентата */
-            }
-            
-            /* Правим самия бутон напълно прозрачно стъкло */
-            div.analytics-box div[data-testid="stBtnContainer"] button {
-                width: 100% !important;
-                height: 100% !important;
-                background: transparent !important;
-                border: none !important;
-                color: transparent !important;
-                box-shadow: none !important;
-                cursor: pointer !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                display: block !important;
-            }
-            
-            /* Пълно изчистване на дефолтните рамки и ефекти при натискане */
-            div.analytics-box div[data-testid="stBtnContainer"] button:hover,
-            div.analytics-box div[data-testid="stBtnContainer"] button:active,
-            div.analytics-box div[data-testid="stBtnContainer"] button:focus {
-                background: transparent !important;
-                border: none !important;
-                color: transparent !important;
-                box-shadow: none !important;
-                outline: none !important;
             }
         </style>
     """, unsafe_allow_html=True)
+
+    # Обвиваме всичко в един главен контейнер с клас "analytics-grid"
+    st.markdown('<div class="analytics-grid">', unsafe_allow_html=True)
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # 1. Създаваме чист HTML контейнер, който ще стилизираме като 3D кутия
-            st.markdown('<div class="analytics-box">', unsafe_allow_html=True)
+            # Създаваме стил за динамичен бекграунд на бутона:
+            # Горната част (до 65%) е леко прозрачен тъмен фон за 3D ефект, 
+            # а долната част (от 65% до 100%) съдържа прогрес лентата с твоя градиент!
+            # Прогрес лентата се запълва хоризонтално на базата на процента (pct)
+            button_style = f"""
+                <style>
+                    #b_secure_btn_{idx} {{
+                        background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 65%, rgba(0,0,0,0.4) 65%, rgba(0,0,0,0.4) 100%),
+                                    linear-gradient(90deg, #4facfe 0%, #00f2fe {pct}%, rgba(0,0,0,0.2) {pct}%, rgba(0,0,0,0.2) 100%) !important;
+                    }}
+                </style>
+            """
+            st.markdown(button_style, unsafe_allow_html=True)
             
-            # Поставяме заглавието и сумата
-            st.markdown(f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
-                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
-                </div>
-            """, unsafe_allow_html=True)
+            # Поставяме чист текст без HTML тагове в заглавието на бутона.
+            # Новите версии на Streamlit поддържат Markdown стилизиране в стринговете на бутоните
+            button_label = f"**{get_emoji(kat)} {kat}** \n\n **{s_value:.2f} EUR** ({pct:.1f}%)"
             
-            # Генерираме прозрачния официален Streamlit бутон, който заема 100% от площта на кутията
-            if st.button("", key=f"secure_box_click_{idx}", use_container_width=True):
+            # Рендерираме стандартния бутон. Тъй като той вече има собствен ID и инжектиран стил,
+            # той се превръща в перфектна 3D кутия с прогрес лента на заден план.
+            if st.button(button_label, key=f"b_secure_btn_{idx}", use_container_width=True):
                 show_category_expenses_dialog(kat)
                 
-            # Поставяме прогрес лентата най-отдолу вътре в кутията
-            st.markdown(f"""
-                <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%; margin-top: 4px;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
-                    <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85);">{pct:.1f}%</span>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # Затваряме 3D контейнера
-            st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True) # Затваряме контейнера
 
 
 
