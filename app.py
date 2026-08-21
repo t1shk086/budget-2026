@@ -596,10 +596,82 @@ else:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-    st.markdown("<div style='margin-top: 15px; margin-bottom: 25px;'>", unsafe_allow_html=True)
+    @st.dialog("📊 Разходи по Категории", width="large")
+    def разходи_по_категории_dialog():
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Преглед на направените разходи, групирани по съответните категории:</p>", unsafe_allow_html=True)
+        st.markdown("""
+            <style>
+                .category-expense-card {
+                    background: rgba(255,255,255,0.02) !important;
+                    padding: 10px 15px !important;
+                    border-radius: 10px !important;
+                    border: 1px solid rgba(250, 250, 250, 0.08) !important;
+                    margin-bottom: 6px !important;
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    align-items: center !important;
+                }
+                .category-total-box {
+                    background: rgba(255, 75, 75, 0.08) !important;
+                    border: 1px dashed rgba(255, 75, 75, 0.3) !important;
+                    padding: 12px !important;
+                    border-radius: 10px !important;
+                    margin-top: 5px !important;
+                    margin-bottom: 25px !important;
+                    text-align: right !important;
+                    font-size: 16px !important;
+                    font-weight: bold !important;
+                    color: #ff4b4b !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        try:
+            df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+            df_trip_rows = df_all[df_all["trip_id"] == trip_id]
+            
+            if df_trip_rows.empty:
+                st.info("Няма регистрирани разходи за това пътуване.")
+            else:
+                # Вземаме уникалните категории, които реално имат записи в това пътуване
+                записани_категории = df_trip_rows["category"].unique()
+                
+                for кат in KATEGORII:
+                    # Показваме категорията само ако има разходи в нея
+                    if кат in записани_категории:
+                        df_cat = df_trip_rows[df_trip_rows["category"] ==  кат]
+                        cat_sum = float(df_cat["amount"].sum())
+                        
+                        st.markdown(f"### {get_emoji(кат)} {кат}")
+                        st.markdown("<hr style='margin-top:2px; margin-bottom:10px; border-color:rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
+                        
+                        for _, r in df_cat.iterrows():
+                            l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
+                            st.markdown(f'''
+                                <div class="category-expense-card">
+                                    <div style="font-size: 14px; color: rgba(250,250,250,0.85);">
+                                        📅 {r["date"]} — <span>{r["description"]}</span>{l_txt}
+                                    </div>
+                                    <div style="font-size: 14px; font-weight: 600; color: #fafafa;">
+                                        {r["amount"]:.2f} EUR
+                                    </div>
+                                </div>
+                            ''', unsafe_allow_html=True)
+                        
+                        st.markdown(f'''
+                            <div class="category-total-box">
+                                Общо за {cat}: {cat_sum:.2f} EUR
+                            </div>
+                        ''', unsafe_allow_html=True)
+                        
+        except Exception as e:
+            st.error(f"Грешка при зареждане на категориите: {str(e)}")
+            
+        st.markdown("---")
+        if st.button("❌ Затвори", use_container_width=True, key="close_cat_popup_btn"):
+            st.rerun()
     if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
         разходи_по_категории_dialog()
-    st.markdown("</div>", unsafe_allow_html=True)
     col_st1, col_st2 = st.columns(2)
     with col_st1:
         st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} <span style='font-size: 14px; font-weight: 500; color: #7e8494;'>EUR</span></h2></div>", unsafe_allow_html=True)
