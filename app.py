@@ -611,125 +611,60 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
     
+    # Стилизираме стандартните Streamlit бутони да изглеждат като твоите премиум 3D карти
     st.markdown("""
         <style>
-            /* Стягаме колоната и я правим отправна точка */
-            div[data-testid="stColumn"] {
-                position: relative !important;
+            /* Форматираме самите бутони */
+            div[data-testid="stColumn"] button {
+                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important;
+                border: 1px solid rgba(255,255,255,0.08) !important;
+                padding: 14px !important;
+                border-radius: 14px !important;
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
+                width: 100% !important;
+                min-height: 82px !important;
                 display: flex !important;
                 flex-direction: column !important;
+                justify-content: space-between !important;
+                align-items: stretch !important;
+                transition: all 0.2s ease-in-out !important;
             }
             
-            /* Цялостната кутия на твоята 3D премиум карта */
-            .premium-3d-box {
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
-                border: 1px solid rgba(255,255,255,0.08) !important; 
-                padding: 14px; 
-                border-radius: 14px; 
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
-                height: 72px; 
-                display: flex; 
-                flex-direction: column; 
-                justify-content: space-between;
-                position: relative;
-                z-index: 1;
-                margin-bottom: 12px;
-                transition: all 0.2s ease-in-out;
-            }
-            
-            /* Ховър ефект върху цялата кутия */
-            div[data-testid="stColumn"]:hover .premium-3d-box {
+            /* Ефект при посочване с мишката */
+            div[data-testid="stColumn"] button:hover {
                 background: rgba(255,255,255,0.06) !important;
                 border-color: rgba(0, 242, 254, 0.3) !important;
-                transform: translateY(-2px);
-                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15);
+                transform: translateY(-2px) !important;
+                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
             }
             
-            /* ВАЖНИЯТ ФИКС: Разпъваме контейнера на бутона върху цялата площ */
-            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] {
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: calc(100% - 16px) !important;
-                height: 72px !important;
-                z-index: 10 !important; /* Гарантираме, че е най-отгоре */
-            }
-            
-            /* Разпъваме самия бутон вътре в контейнера му */
-            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button {
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
+            /* Поправка за текста вътре в бутона, за да заеме целия контейнер */
+            div[data-testid="stColumn"] button div[data-testid="stMarkdownContainer"] {
                 width: 100% !important;
-                height: 100% !important;
-                background: transparent !important;
-                border: none !important;
-                color: transparent !important;
-                box-shadow: none !important;
-                cursor: pointer !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            
-            /* Премахваме дефолтните визуални ефекти при клик на Streamlit */
-            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:hover,
-            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:active,
-            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:focus {
-                background: transparent !important;
-                border: none !important;
-                color: transparent !important;
-                box-shadow: none !important;
-                outline: none !important;
             }
         </style>
     """, unsafe_allow_html=True)
-
-
-    # Правим списък с категориите, за да знаем коя е натисната
-    clicked_category = None
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Използваме вграден бутон в HTML, който при клик променя URL адреса на страницата с хеш (#cat_click_ИМЕ)
-            # Това принуждава Streamlit да отчете промяната веднага
-            st.markdown(f"""
-                <div class="clickable-premium-card" onclick="window.location.hash = 'cat_click_{idx}'; window.parent.postMessage({{type: 'streamlit:setComponentValue'}}, '*');">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
-                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
-                    </div>
-                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3);"></div>
-                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
-                    </div>
+            # Поставяме дизайна И прогрес лентата ДИРЕКТНО вътре в етикета на бутона
+            button_design = f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
+                    <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
+                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
                 </div>
-            """, unsafe_allow_html=True)
-
-    # Проверяваме чрез сесийния контекст на браузъра дали има активен клик в URL-а
-    # Понеже Streamlit се рестартира при промяна на URL хеша, улавяме коя категория е натисната
-    try:
-        ctx = st.context if hasattr(st, "context") else None
-        # Проверяваме заявката за хеш параметри
-        query_params = st.query_params
-        # Алтернативен сигурен подход чрез скрит механизъм за синхронизация в Streamlit:
-        # Тъй като query_params понякога изискват пълно презареждане, ще добавим малък чист трик с бутони, 
-        # но затворен изцяло ВЪТРЕ в HTML контейнера чрез експериментален компонент, ако горното не хване.
-    except:
-        pass
-
-    # За да сме 100% сигурни, че няма да има усложнения с URL адреси, ето най-чистият начин:
-    # Просто вкарваме стандартния Streamlit бутон като прозрачна обвивка, но с КОРЕКТНИ размери
-    # и БЕЗ разместване на прогрес лентата, тъй като я преместваме ВЪТРЕ в бутона, като я рендерираме под заглавието.
-    # Тъй като Streamlit поддържа HTML стрингове в Markdown, но не и в бутони, правим следното:
-    
-    # Алтернатива с гарантиран визуален контейнер и пълна кликаемост:
-    # Вместо празен бутон, ползваме контейнер, който съдържа бутона и лентата напълно сляти.
-
-
-
+                <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%;">
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
+                    <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85);">{pct:.1f}%</span>
+                </div>
+            """
+            
+            # Използваме чист бутон, който сега изрисува всичко вътре в себе си и реагира на 100% при клик
+            if st.button(button_design, key=f"fixed_3d_btn_{idx}", use_container_width=True):
+                show_category_expenses_dialog(kat)
 
     st.markdown("---")
     @st.dialog("📜 Хронология на плащанията", width="large")
