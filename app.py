@@ -578,30 +578,83 @@ else:
 
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### 📊 Анализ на разходите:")
+    @st.dialog("📋 Разходи по категория", width="large")
+    def show_category_expenses_dialog(cat_name):
+        st.markdown(f"### Разходи за категория: **{get_emoji(cat_name)} {cat_name}**")
+        try:
+            df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+            # Филтрираме разходите само за текущото пътуване и избраната категория
+            df_cat = df_all[(df_all["trip_id"] == trip_id) & (df_all["category"] == cat_name)]
+            
+            if df_cat.empty:
+                st.info("Няма регистрирани разходи в тази категория.")
+            else:
+                for idx in reversed(df_cat.index.tolist()):
+                    r = df_cat.loc[idx]
+                    l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
+                    st.markdown(f'''
+                        <div style="background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%); padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(250, 250, 250, 0.1); margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-weight: 600; color: #fafafa;">{r["description"]}</div>
+                                <div style="font-weight: 700; color: #ff4b4b;">-{r["amount"]:.2f} EUR</div>
+                            </div>
+                            <div style="margin-top: 4px; font-size: 11px; color: rgba(250,250,250,0.4);">
+                                📅 {r["date"]}{l_txt}
+                            </div>
+                        </div>
+                    ''', unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Грешка при зареждане: {str(e)}")
+        
+        if st.button("❌ Затвори", use_container_width=True, key="close_cat_modal_btn"):
+            st.rerun()
+
+    st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
     
+    # Добавяме CSS стил, за да направим Streamlit бутоните да изглеждат като премиум карти
+    st.markdown("""
+        <style>
+            div[data-testid="stColumn"] button {
+                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important;
+                border: 1px solid rgba(255,255,255,0.08) !important;
+                padding: 14px !important;
+                border-radius: 14px !important;
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
+                text-align: left !important;
+                width: 100% !important;
+                min-height: 90px !important;
+                display: block !important;
+                transition: all 0.2s ease-in-out !important;
+            }
+            div[data-testid="stColumn"] button:hover {
+                background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
+                border-color: rgba(0, 242, 254, 0.3) !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.1) !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
-            st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
+            
+            # Създаваме визуален контейнер вътре в бутона, съдържащ заглавието, емоджито и сумата
+            button_html = f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; pointer-events: none;">
+                    <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
                     <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
                 </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
-                    <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
+                <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 10px; width: 100%; pointer-events: none;">
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px;"></div>
+                    <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85);">{pct:.1f}%</span>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    col_st1, col_st2 = st.columns(2)
-    with col_st1:
-        st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} <span style='font-size: 14px; font-weight: 500; color: #7e8494;'>EUR</span></h2></div>", unsafe_allow_html=True)
-    with col_st2:
-        st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>💰 НА МЯСТО</small><h2 style='color:#00f2fe; margin:5px 0;'>{total_on_site:.2f} <span style='font-size: 14px; font-weight: 500; color: #7e8494;'>EUR</span></h2></div>", unsafe_allow_html=True)
+            """
+            
+            # Използваме бутон, в който инжектираме HTML съдържанието
+            if st.button(button_html, key=f"cat_btn_{idx}", use_container_width=True):
+                show_category_expenses_dialog(kat)
 
     st.markdown("---")
     @st.dialog("📜 Хронология на плащанията", width="large")
