@@ -611,62 +611,47 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни върху полето за детайли):")
     
-    # Стилизираме бутона така, че да се превърне в прозрачна кутия-обвивка,
-    # която затваря и превръща HTML полето вътре в себе си в един голям бутон
+    # CSS стил за твоята оригинална 3D премиум кутия
     st.markdown("""
         <style>
-            /* Хващаме бутоните само в секцията за анализи */
-            .analytics-grid-secure div[data-testid="stBtnContainer"] button {
-                background: transparent !important;
-                border: none !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                width: 100% !important;
-                height: auto !important;
-                box-shadow: none !important;
-                display: block !important;
-                text-align: left !important;
-                cursor: pointer !important;
+            .original-premium-3d-card {
+                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
+                border: 1px solid rgba(255,255,255,0.08) !important; 
+                padding: 14px; 
+                border-radius: 14px; 
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: space-between; 
+                transition: all 0.2s ease-in-out; 
+                cursor: pointer;
+                margin-bottom: 12px;
+                user-select: none;
             }
-            
-            /* Премахваме дефолтните сиви рамки и анимации при натискане от Streamlit */
-            .analytics-grid-secure div[data-testid="stBtnContainer"] button:hover,
-            .analytics-grid-secure div[data-testid="stBtnContainer"] button:active,
-            .analytics-grid-secure div[data-testid="stBtnContainer"] button:focus {
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-                outline: none !important;
-            }
-            
-            /* Дефинираме ховър ефекта върху твоята оригинална 3D кутия, когато мишката е над бутона */
-            .analytics-grid-secure div[data-testid="stBtnContainer"] button:hover .original-premium-3d-card {
+            /* Ховър ефект при посочване */
+            .original-premium-3d-card:hover {
                 background: rgba(255,255,255,0.06) !important;
                 border-color: rgba(0, 242, 254, 0.35) !important;
                 transform: translateY(-2px);
                 box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
             }
-            
-            /* Ефект при реално физическо натискане на бутона */
-            .analytics-grid-secure div[data-testid="stBtnContainer"] button:active .original-premium-3d-card {
+            /* Ефект при физическо натискане */
+            .original-premium-3d-card:active {
                 transform: translateY(1px);
                 box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
             }
         </style>
     """, unsafe_allow_html=True)
 
-    # Обвиваме всичко в контейнер с клас "analytics-grid-secure"
-    st.markdown('<div class="analytics-grid-secure">', unsafe_allow_html=True)
-
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Връщаме ТВОЯ ОРИГИНАЛЕН дизайн на 100% непокътнат.
-            # Затваряме го в променлива, за да го подадем директно вътре в бутона.
-            card_inner_html = f"""
-            <div class="original-premium-3d-card" style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease-in-out; pointer-events: none; width: 100%; box-sizing: border-box; margin-bottom: 12px;">
+            # 1. Изрисуваме ОРИГИНАЛНИЯ ти дизайн. 
+            # Добавяме JS код в "onclick", който намира скрития бутон отдолу по неговия инжектиран ID атрибут и го кликва.
+            st.markdown(f"""
+            <div class="original-premium-3d-card" onclick="const btn = window.parent.document.querySelector('button[data-testid=\"stBaseButton-secondary\"][id*=\"hidden_trigger_{idx}\"]'); if(btn) btn.click();">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
                     <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
@@ -676,15 +661,15 @@ else:
                     <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); font-family: sans-serif;">{pct:.1f}%</span>
                 </div>
             </div>
-            """
+            """, unsafe_allow_html=True)
             
-            # Вместо чист текст, инжектираме ЦЕЛИЯ HTML код на оригиналната ти 3D кутия
-            # директно като "label" (име) на бутона. Понеже бутонът е направен напълно прозрачен,
-            # потребителят вижда единствено оригиналното поле, но браузърът знае, че това е бутон.
-            if st.button(card_inner_html, key=f"orig_3d_click_{idx}", use_container_width=True):
-                show_category_expenses_dialog(kat)
-                
-    st.markdown('</div>', unsafe_allow_html=True) # Затваряме главния контейнер
+            # 2. Поставяме празен бутон в празен контейнер, за да е напълно скрит от екрана
+            # Когато горната HTML кутия бъде натисната, JavaScript задейства този бутон и Python отваря прозореца.
+            with st.container():
+                st.markdown(f'<div id="hidden_trigger_{idx}" style="display:none;">', unsafe_allow_html=True)
+                if st.button("", key=f"hidden_trigger_{idx}", use_container_width=True):
+                    show_category_expenses_dialog(kat)
+                st.markdown('</div>', unsafe_allow_html=True)
 
 
 
