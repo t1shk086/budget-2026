@@ -765,135 +765,31 @@ else:
     
     avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
     grand_total = depozit_hotel + total_on_site
-    period_html = f" — 📅 <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
-    dist_html = f"{dist:.0f} км" if dist > 0 else "—"
+    period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
+    dist_html = f" | <b>Общо изминати км. :</b> {dist:.0f} км" if dist > 0 else ""
     
-    # Модерен и луксозен дизайн на HTML отчета
-    pdf_html = f"""<html>
-    <head>
-    <meta charset='utf-8'>
-    <style>
-        body {{ font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; color: #333333; margin: 30px; }}
-        .report-header {{ text-align: center; margin-bottom: 25px; border-bottom: 2px solid #f1f1f1; padding-bottom: 15px; }}
-        .report-title {{ font-size: 24px; color: #1e1e24; font-weight: bold; margin: 0 0 5px 0; text-transform: uppercase; }}
-        .report-subtitle {{ color: #777; font-size: 13px; margin: 0; }}
-        
-        /* Стил за топ картите със статистика */
-        .stats-container {{ display: flex; gap: 12px; margin-bottom: 25px; }}
-        .stat-card {{ flex: 1; background: #f8f9fa; border: 1px solid #e9ecef; padding: 12px; border-radius: 10px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }}
-        .stat-label {{ font-size: 10px; text-transform: uppercase; color: #6c757d; font-weight: bold; letter-spacing: 0.5px; }}
-        .stat-value {{ font-size: 18px; font-weight: bold; margin-top: 4px; }}
-        .val-red {{ color: #ff4b4b; }}
-        .val-blue {{ color: #0084ff; }}
-        .val-teal {{ color: #00a896; }}
-        
-        /* Секция Кола */
-        .car-section {{ background: #fdfdfd; border: 1px dashed #ced4da; padding: 15px; border-radius: 10px; margin-bottom: 25px; }}
-        .car-title {{ font-size: 14px; font-weight: bold; color: #4facfe; margin-top: 0; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f1f1f1; padding-bottom: 5px; }}
-        .car-grid {{ display: flex; justify-content: space-between; font-size: 13px; }}
-        
-        /* Стил за таблицата */
-        .table-title {{ font-size: 15px; font-weight: bold; color: #1e1e24; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }}
-        table {{ width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #eee; }}
-        th {{ background-color: #1e1e24; color: #ffffff; text-align: left; padding: 10px 12px; font-size: 13px; font-weight: 600; text-transform: uppercase; }}
-        td {{ padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: middle; }}
-        tr:nth-child(even) {{ background-color: #fcfcfc; }}
-        
-        /* Значки и елементи */
-        .badge-km {{ background: rgba(0, 132, 255, 0.06); color: #0084ff; border: 1px solid rgba(0, 132, 255, 0.15); padding: 3px 8px; border-radius: 20px; font-weight: bold; font-size: 11px; display: inline-block; }}
-        .badge-cat {{ background: rgba(33, 37, 41, 0.04); color: #212529; border: 1px solid rgba(33, 37, 41, 0.08); padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 500; display: inline-block; }}
-        .fuel-highlight {{ color: #d63384; font-weight: bold; background: rgba(214, 51, 132, 0.05); padding: 2px 5px; border-radius: 4px; }}
-        .date-text {{ color: #6c757d; font-size: 12px; font-family: monospace; }}
-        .total-row {{ background-color: #f8f9fa !important; font-size: 14px; font-weight: bold; border-top: 2px solid #1e1e24; }}
-    </style>
-    </head>
-    <body>
-        <div class="report-header">
-            <div class="report-title">📊 ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</div>
-            <div class="report-subtitle">Дигитален Бордови Дневник{period_html}</div>
-        </div>
-
-        <!-- Основни карти със статистика -->
-        <div class="stats-container">
-            <div class="stat-card">
-                <div class="stat-label">💰 ОБЩА СУМА</div>
-                <div class="stat-value val-red">{grand_total:.2f} EUR</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">🏨 ДЕПОЗИТ</div>
-                <div class="stat-value" style="color: #4a4e69;">{depozit_hotel:.2f} EUR</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">💸 НА МЯСТО</div>
-                <div class="stat-value val-teal">{total_on_site:.2f} EUR</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">🛣️ ОБЩО ПРОБЕГ</div>
-                <div class="stat-value val-blue">{dist_html}</div>
-            </div>
-        </div>
-
-        <!-- Секция Данни за Колата -->
-        <div class="car-section">
-            <div class="car-title">🚗 Параметри на превозното средство</div>
-            <div class="car-grid">
-                <div><b>🛣️ Километраж:</b> {s_km:.0f} км (нач.) → {eff_end_km:.0f} км (край)</div>
-                <div><b>⛽ Гориво:</b> {total_liters_calculated:.1f} л ({auto_fuel_money:.2f} EUR)</div>
-                <div><b>📈 Среден разход:</b> <span style="color:#0084ff; font-weight:bold;">{avg_con_txt}</span></div>
-            </div>
-        </div>
-
-        <!-- Таблица с разходи -->
-        <div class="table-title">📋 Списък на Хронологичните разходи</div>
-        <table>
-            <tr>
-                <th style="width: 18%;">📅 Дата / Час</th>
-                <th style="width: 37%;">📝 Описание</th>
-                <th style="width: 15%;">🛣️ Километраж</th>
-                <th style="width: 15%;">💶 Сума</th>
-                <th style="width: 15%;">🗂️ Категория</th>
-            </tr>
-    """
+    pdf_html = f"<html><head><meta charset='utf-8'><style>body{{font-family:sans-serif;padding:30px;color:#333;}}h2{{color:#222;border-bottom:2px solid #00f2fe;padding-bottom:8px;margin-bottom:15px;}}h3{{color:#4facfe;margin-top:20px;border-bottom:1px solid #eee;padding-bottom:5px;}}table{{width:100%;border-collapse:collapse;margin-top:15px;}}th,td{{padding:10px;text-align:left;border-bottom:1px solid #ddd;}}th{{background:#f5f5f5;}}.fuel-highlight{{color:#ff1493;font-weight:bold;}}.badge-km{{background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:12px;color:#555;font-weight:bold;}}</style></head><body><h2>ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</h2><p style='font-size:15px;'><b>Депозит:</b> {depozit_hotel:.2f} EUR | <b>На място:</b> {total_on_site:.2f} EUR{period_html}{dist_html}</p><p style='font-size:18px; color:#ff4b4b; background:#fff5f5; padding:10px; border-left:4px solid #ff4b4b; margin-top:10px;'><b>💰 ОБЩА СУМА: {grand_total:.2f} EUR</b></p><h3>🚗 Кола:</h3><ul><li><b>Начални:</b> {s_km:.0f} км | <b>Крайна:</b> {eff_end_km:.0f} км</li><li><b>Гориво:</b> {total_liters_calculated:.1f} л | <b>Стойност:</b> {auto_fuel_money:.2f} EUR</li><li><b>Среден разход:</b> {avg_con_txt}</li></ul><h3>📋 Разходи:</h3><table><tr><th>Дата и час</th><th>Описание</th><th>Километраж</th><th>Сума</th><th>Категория</th></tr>"
     
     for _, row in df_trip.iterrows():
         desc_val = str(row['description'])
         if "Моментен разход:" in desc_val:
             desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
-            
         cur_km_val = float(row.get('current_km', 0.0))
         km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#ccc;'>—</span>"
-        
-        # Разделяне на датата и часа с " / "
+                # Разделяне на датата и часа с " / "
         formatted_date = str(row['date']).replace(" ", " / ")
         
-        # Интеграция на емоджи за категорията, ако функцията съществува
-        cat_name = str(row['category'])
-        cat_emoji = get_emoji(cat_name) if 'get_emoji' in globals() else "🔹"
+        pdf_html += f"<tr><td>{formatted_date}</td><td>{desc_val}</td><td>{km_td_html}</td><td>{row['amount']:.2f} EUR</td><td>{row['category']}</td></tr>"
+
         
-        pdf_html += f"""
-            <tr>
-                <td class="date-text">{formatted_date}</td>
-                <td>{desc_val}</td>
-                <td>{km_td_html}</td>
-                <td style="font-weight: 600; color: #1e1e24;">{row['amount']:.2f} EUR</td>
-                <td><span class="badge-cat">{cat_emoji} {cat_name}</span></td>
-            </tr>
-        """
-        
-    pdf_html += f"""
-            <tr class="total-row">
-                <td colspan="3" style="text-align:right; padding: 12px;">ОБЩО ЗА ВСИЧКИ РАЗХОДИ:</td>
-                <td colspan="2" style="color:#ff4b4b; padding: 12px;">{grand_total:.2f} EUR</td>
-            </tr>
-        </table>
-    </body>
-    </html>
-    """
+    pdf_html += f"<tr><td colspan='3' style='text-align:right; font-weight:bold;'>Общо:</td><td colspan='2' style='font-weight:bold; color:#ff4b4b;'>{grand_total:.2f} EUR</td></tr></table></body></html>"
     
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
     
     if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
         hronologia_popup_dialog()
+
+
 
     st.download_button(
         label="Отчет в PDF",
