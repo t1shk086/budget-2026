@@ -611,26 +611,56 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
     
-    # Добавяме CSS стил, за да направим Streamlit бутоните да изглеждат като премиум карти
+    # Регулираме стила: Правим бутоните невидими слоеве, които стоят ТОЧНО върху 3D картите
     st.markdown("""
         <style>
-            div[data-testid="stColumn"] button {
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important;
-                border: 1px solid rgba(255,255,255,0.08) !important;
-                padding: 14px !important;
-                border-radius: 14px !important;
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
-                text-align: left !important;
-                width: 100% !important;
-                min-height: 90px !important;
-                display: block !important;
-                transition: all 0.2s ease-in-out !important;
+            /* Контейнер за застъпване */
+            .clickable-card-wrapper {
+                position: relative;
+                margin-bottom: 12px;
             }
-            div[data-testid="stColumn"] button:hover {
-                background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
+            /* Дизайнът на твоята премиум 3D карта */
+            .premium-3d-card {
+                background: rgba(255,255,255,0.02) !important; 
+                border: 1px solid rgba(255,255,255,0.08) !important; 
+                padding: 14px; 
+                border-radius: 14px; 
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: space-between;
+                transition: all 0.2s ease-in-out;
+            }
+            /* Ефект при посочване на контейнера */
+            .clickable-card-wrapper:hover .premium-3d-card {
+                background: rgba(255,255,255,0.05) !important;
                 border-color: rgba(0, 242, 254, 0.3) !important;
-                transform: translateY(-2px) !important;
-                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.1) !important;
+                transform: translateY(-2px);
+                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15);
+            }
+            /* Правим Streamlit бутона напълно прозрачен и го разпъваме върху цялата карта */
+            .clickable-card-wrapper div[data-testid="stBtnContainer"] button {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background: transparent !important;
+                border: none !important;
+                color: transparent !important;
+                box-shadow: none !important;
+                cursor: pointer !important;
+                z-index: 10 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            /* Премахваме ефектите на натискане на прозрачния бутон, за да не закрива картата */
+            .clickable-card-wrapper div[data-testid="stBtnContainer"] button:hover,
+            .clickable-card-wrapper div[data-testid="stBtnContainer"] button:active,
+            .clickable-card-wrapper div[data-testid="stBtnContainer"] button:focus {
+                background: transparent !important;
+                border: none !important;
+                color: transparent !important;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -640,21 +670,27 @@ else:
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Създаваме визуален контейнер вътре в бутона, съдържащ заглавието, емоджито и сумата
-            button_html = f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; pointer-events: none;">
-                    <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
-                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
+            # 1. Изчертаваме красивата визуална 3D карта чрез HTML
+            st.markdown(f"""
+            <div class="clickable-card-wrapper">
+                <div class="premium-3d-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
+                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3);"></div>
+                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
+                    </div>
                 </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 10px; width: 100%; pointer-events: none;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px;"></div>
-                    <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85);">{pct:.1f}%</span>
-                </div>
-            """
+            </div>
+            """, unsafe_allow_html=True)
             
-            # Използваме бутон, в който инжектираме HTML съдържанието
-            if st.button(button_html, key=f"cat_btn_{idx}", use_container_width=True):
+            # 2. Поставяме прозрачен бутон точно върху нея със същия размер чрез CSS застъпване
+            # Тъй като бутонът е в същия стълб (column), извикваме празен текст като име, за да не закрива нищо
+            if st.button("", key=f"overlay_btn_{idx}", use_container_width=True):
                 show_category_expenses_dialog(kat)
+
 
     st.markdown("---")
     @st.dialog("📜 Хронология на плащанията", width="large")
