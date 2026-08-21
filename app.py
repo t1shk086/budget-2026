@@ -725,7 +725,7 @@ else:
                                     </div>
                                 </div>
                                 <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5);">
-                                    📅 {r["date"]} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
+                                    📅 {r["date"].replace(" ", " / ")} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
                                 </div>
                             </div>
                         ''', unsafe_allow_html=True)
