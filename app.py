@@ -1030,13 +1030,13 @@ else:
         cat_emoji = get_emoji(cat_name) if 'get_emoji' in globals() else "🔹"
         
         pdf_html += f"""
-            <tr>
-                <td class="date-text">{formatted_date}</td>
-                <td style="font-weight: 500; color: #1e293b;">{desc_val}</td>
-                <td>{km_td_html}</td>
-                <td style="font-weight: 600; color: #0f172a;">{row['amount']:.2f} EUR</td>
-                <td><span class="badge-cat">{cat_emoji} {cat_name}</span></td>
-            </tr>
+        <tr>
+            <td class="date-text">{formatted_date}</td>
+            <td style="font-weight: 500; color: #1e293b;">{desc_val}</td>
+            <td>{km_td_html}</td>
+            <td style="font-weight: 600; color: #0f172a;">{row['amount']:.2f} EUR</td>
+            <td><span class="badge-cat">{cat_emoji} {cat_name}</span></td>
+        </tr>
         """
         
     pdf_html += f"""
@@ -1066,6 +1066,7 @@ else:
         use_container_width=True,
         key="st_premium_report_download_btn"
     )
+
 
 
 
