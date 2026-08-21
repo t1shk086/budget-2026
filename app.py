@@ -611,14 +611,14 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
     
-    # Регулираме стила: Правим бутоните невидими слоеве, които стоят ТОЧНО върху 3D картите
+    # Модифициран CSS: премахваме марджините от Streamlit контейнера и избутваме бутона НАД картата
     st.markdown("""
         <style>
-            /* Контейнер за застъпване */
-            .clickable-card-wrapper {
-                position: relative;
-                margin-bottom: 12px;
+            /* Създаваме релативен контекст за цялата колона на Streamlit */
+            div[data-testid="stColumn"] {
+                position: relative !important;
             }
+            
             /* Дизайнът на твоята премиум 3D карта */
             .premium-3d-card {
                 background: rgba(255,255,255,0.02) !important; 
@@ -630,37 +630,45 @@ else:
                 flex-direction: column; 
                 justify-content: space-between;
                 transition: all 0.2s ease-in-out;
+                margin-bottom: 12px;
+                position: relative;
+                z-index: 1; /* Картата стои отдолу */
             }
-            /* Ефект при посочване на контейнера */
-            .clickable-card-wrapper:hover .premium-3d-card {
+            
+            /* Ефект при посочване на колоната - тъй като бутонът е прозрачен, потребителят ще вижда това */
+            div[data-testid="stColumn"]:hover .premium-3d-card {
                 background: rgba(255,255,255,0.05) !important;
                 border-color: rgba(0, 242, 254, 0.3) !important;
                 transform: translateY(-2px);
                 box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15);
             }
-            /* Правим Streamlit бутона напълно прозрачен и го разпъваме върху цялата карта */
-            .clickable-card-wrapper div[data-testid="stBtnContainer"] button {
+            
+            /* Хващаме бутона в колоната, правим го напълно прозрачен и го изстрелваме НАЙ-ОТГОРЕ */
+            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button {
                 position: absolute !important;
                 top: 0 !important;
                 left: 0 !important;
                 width: 100% !important;
-                height: 100% !important;
+                height: calc(100% - 12px) !important; /* Напасваме височината спрямо картата */
                 background: transparent !important;
                 border: none !important;
                 color: transparent !important;
                 box-shadow: none !important;
                 cursor: pointer !important;
-                z-index: 10 !important;
+                z-index: 10 !important; /* Слагаме го НАД картата, за да хваща кликовете */
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            /* Премахваме ефектите на натискане на прозрачния бутон, за да не закрива картата */
-            .clickable-card-wrapper div[data-testid="stBtnContainer"] button:hover,
-            .clickable-card-wrapper div[data-testid="stBtnContainer"] button:active,
-            .clickable-card-wrapper div[data-testid="stBtnContainer"] button:focus {
+            
+            /* Пълно неутрализиране на Streamlit стиловете при клик и задържане върху прозрачния бутон */
+            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:hover,
+            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:active,
+            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:focus {
                 background: transparent !important;
                 border: none !important;
                 color: transparent !important;
+                box-shadow: none !important;
+                outline: none !important;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -670,9 +678,8 @@ else:
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # 1. Изчертаваме красивата визуална 3D карта чрез HTML
+            # 1. Рендерираме красивата 3D карта (вече без външния wrapper)
             st.markdown(f"""
-            <div class="clickable-card-wrapper">
                 <div class="premium-3d-card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
@@ -683,13 +690,13 @@ else:
                         <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
                     </div>
                 </div>
-            </div>
             """, unsafe_allow_html=True)
             
-            # 2. Поставяме прозрачен бутон точно върху нея със същия размер чрез CSS застъпване
-            # Тъй като бутонът е в същия стълб (column), извикваме празен текст като име, за да не закрива нищо
+            # 2. Бутонът се генерира веднага след това. Понеже колоната е с дефиниран "absolute" стил за бутоните,
+            # този бутон автоматично се разпъва отгоре (от координати top:0, left:0) над markdown-а.
             if st.button("", key=f"overlay_btn_{idx}", use_container_width=True):
                 show_category_expenses_dialog(kat)
+
 
 
     st.markdown("---")
