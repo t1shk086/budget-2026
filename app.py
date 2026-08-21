@@ -609,83 +609,30 @@ else:
         if st.button("❌ Затвори", use_container_width=True, key="close_cat_modal_btn"):
             st.rerun()
 
-    st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
+    st.markdown("### 📊 Анализ на разходите:")
     
-    # Перфектно Grid застъпване чрез абсолютни нулеви граници на бутона
+    # Стилизираме САМО бутона за преглед, за да се впише перфектно в дизайна без да чупи другите бутони
     st.markdown("""
         <style>
-            /* Основният контейнер, който събира 3D кутията и бутона */
-            .card-grid-item {
-                display: grid !important;
-                grid-template-areas: "overlay" !important;
-                position: relative !important;
-                margin-bottom: 12px !important;
-                width: 100% !important;
+            .analytics-card-wrapper div[data-testid="stBtnContainer"] button {
+                background: rgba(255, 255, 255, 0.05) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                color: #00f2fe !important;
+                font-size: 12px !important;
+                font-weight: 600 !important;
+                padding: 2px 10px !important;
+                min-height: 28px !important;
+                height: 28px !important;
+                border-radius: 8px !important;
+                margin-top: 8px !important;
+                margin-bottom: 8px !important;
+                transition: all 0.2s ease !important;
             }
-            
-            /* Твоята премиум 3D кутия - стои като визуален фон на долния слой */
-            .premium-3d-box-v2 {
-                grid-area: overlay !important;
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
-                border: 1px solid rgba(255,255,255,0.08) !important; 
-                padding: 14px !important; 
-                border-radius: 14px !important; 
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important; 
-                display: flex !important; 
-                flex-direction: column !important; 
-                justify-content: space-between !important;
-                min-height: 48px !important;
-                pointer-events: none !important; /* Кликовете преминават свободно през нея */
-                transition: all 0.2s ease-in-out !important;
-                z-index: 1 !important;
-            }
-            
-            /* Ховър ефект при посочване на кутията */
-            .card-grid-item:hover .premium-3d-box-v2 {
-                background: rgba(255,255,255,0.06) !important;
-                border-color: rgba(0, 242, 254, 0.3) !important;
-                transform: translateY(-2px) !important;
-                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
-            }
-            
-            /* Разпъваме контейнера на Streamlit бутона върху АБСОЛЮТНО целия Grid елемент */
-            .card-grid-item div[data-testid="stBtnContainer"] {
-                grid-area: overlay !important;
-                z-index: 2 !important; /* Задължително НАД 3D кутията */
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                bottom: 0 !important;
-                width: 100% !important;
-                height: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            
-            /* Правим самия бутон напълно прозрачен и заемащ 100% от разпънатия контейнер */
-            .card-grid-item div[data-testid="stBtnContainer"] button {
-                width: 100% !important;
-                height: 100% !important;
-                background: transparent !important;
-                border: none !important;
-                color: transparent !important;
-                box-shadow: none !important;
-                cursor: pointer !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                display: block !important;
-            }
-            
-            /* Пълно изчистване на дефолтните анимации и сиви рамки на Streamlit при активен клик */
-            .card-grid-item div[data-testid="stBtnContainer"] button:hover,
-            .card-grid-item div[data-testid="stBtnContainer"] button:active,
-            .card-grid-item div[data-testid="stBtnContainer"] button:focus {
-                background: transparent !important;
-                border: none !important;
-                color: transparent !important;
-                box-shadow: none !important;
-                outline: none !important;
+            .analytics-card-wrapper div[data-testid="stBtnContainer"] button:hover {
+                background: rgba(0, 242, 254, 0.1) !important;
+                border-color: rgba(0, 242, 254, 0.4) !important;
+                color: #ffffff !important;
+                transform: translateY(-1px) !important;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -695,33 +642,27 @@ else:
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Отваряме общия Grid контейнер
-            st.markdown('<div class="card-grid-item">', unsafe_allow_html=True)
-            
-            # 1. Зареждаме визуалната част (текста и прогрес лентата) - те стоят заключени вътре в кутията
+            # Създаваме отворен визуален контейнер за 3D кутията
             st.markdown(f"""
-                <div class="premium-3d-box-v2">
+                <div class="analytics-card-wrapper" style="background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); margin-bottom: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                         <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
                         <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
                     </div>
-                    <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%; margin-top: 6px;">
-                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
-                        <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85);">{pct:.1f}%</span>
+            """, unsafe_allow_html=True)
+            
+            # Поставяме ОФИЦИАЛНИЯ видим бутон точно под заглавието
+            if st.button("🔍 Преглед на разходите", key=f"view_cat_btn_{idx}", use_container_width=True):
+                show_category_expenses_dialog(kat)
+            
+            # Изрисуваме прогрес лентата най-отдолу и затваряме контейнера на кутията
+            st.markdown(f"""
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 12px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%;">
+                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px;"></div>
+                        <span style="position: absolute; right: 8px; font-size: 8.5px; font-weight: 900; color: rgba(255,255,255,0.85);">{pct:.1f}%</span>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
-            
-            # 2. Бутонът се генерира тук, но чрез CSS абсолютните координати (top:0, bottom:0...)
-            # той автоматично се разпъва като прозрачно фолио върху 100% от площта на кутията отгоре.
-            if st.button("", key=f"grid_perfect_overlay_{idx}", use_container_width=True):
-                show_category_expenses_dialog(kat)
-                
-            # Затвори Grid контейнера
-            st.markdown('</div>', unsafe_allow_html=True)
-
-
-
 
     st.markdown("---")
     @st.dialog("📜 Хронология на плащанията", width="large")
