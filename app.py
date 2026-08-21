@@ -1029,29 +1029,21 @@ else:
         cat_name = str(row['category'])
         cat_emoji = get_emoji(cat_name) if 'get_emoji' in globals() else "🔹"
         
-        pdf_html += f"""
-        <tr>
-            <td class="date-text">{formatted_date}</td>
-            <td style="font-weight: 500; color: #1e293b;">{desc_val}</td>
-            <td>{km_td_html}</td>
-            <td style="font-weight: 600; color: #0f172a;">{row['amount']:.2f} EUR</td>
-            <td><span class="badge-cat">{cat_emoji} {cat_name}</span></td>
-        </tr>
-        """
+        # Сглобяване на реда без използване на многоредов текст (избягва IndentationError)
+        pdf_html += "<tr>"
+        pdf_html += f"<td class='date-text'>{formatted_date}</td>"
+        pdf_html += f"<td style='font-weight: 500; color: #1e293b;'>{desc_val}</td>"
+        pdf_html += f"<td>{km_td_html}</td>"
+        pdf_html += f"<td style='font-weight: 600; color: #0f172a;'>{row['amount']:.2f} EUR</td>"
+        pdf_html += f"<td><span class='badge-cat'>{cat_emoji} {cat_name}</span></td>"
+        pdf_html += "</tr>"
         
-    pdf_html += f"""
-            </tbody>
-        </table>
-        
-        <!-- Краен блок за Общата сума -->
-        <div class="total-box">
-            <span style="font-size: 14px; color: #64748b; font-weight: 500; margin-right: 10px;">ОБЩО ЗА ВСИЧКИ РАЗХОДИ:</span>
-            <span style="font-size: 22px; font-weight: 700; color: #ef4444;">{grand_total:.2f} EUR</span>
-        </div>
-    </div>
-    </body>
-    </html>
-    """
+    # Добавяне на финалния затварящ блок
+    pdf_html += "</tbody></table>"
+    pdf_html += "<div class='total-box'>"
+    pdf_html += f"<span style='font-size: 14px; color: #64748b; font-weight: 500; margin-right: 10px;'>ОБЩО ЗА ВСИЧКИ РАЗХОДИ:</span>"
+    pdf_html += f"<span style='font-size: 22px; font-weight: 700; color: #ef4444;'>{grand_total:.2f} EUR</span>"
+    pdf_html += "</div></div></body></html>"
     
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
     
