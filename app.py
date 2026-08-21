@@ -611,64 +611,28 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
     
-    # Модифициран CSS: премахваме марджините от Streamlit контейнера и избутваме бутона НАД картата
+    # Стилизираме стандартните Streamlit бутони, за да получат твоя премиум 3D ефект
     st.markdown("""
         <style>
-            /* Създаваме релативен контекст за цялата колона на Streamlit */
-            div[data-testid="stColumn"] {
-                position: relative !important;
-            }
-            
-            /* Дизайнът на твоята премиум 3D карта */
-            .premium-3d-card {
-                background: rgba(255,255,255,0.02) !important; 
-                border: 1px solid rgba(255,255,255,0.08) !important; 
-                padding: 14px; 
-                border-radius: 14px; 
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
-                display: flex; 
-                flex-direction: column; 
-                justify-content: space-between;
-                transition: all 0.2s ease-in-out;
-                margin-bottom: 12px;
-                position: relative;
-                z-index: 1; /* Картата стои отдолу */
-            }
-            
-            /* Ефект при посочване на колоната - тъй като бутонът е прозрачен, потребителят ще вижда това */
-            div[data-testid="stColumn"]:hover .premium-3d-card {
-                background: rgba(255,255,255,0.05) !important;
-                border-color: rgba(0, 242, 254, 0.3) !important;
-                transform: translateY(-2px);
-                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15);
-            }
-            
-            /* Хващаме бутона в колоната, правим го напълно прозрачен и го изстрелваме НАЙ-ОТГОРЕ */
-            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button {
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
+            /* Променяме дизайна на самите бутони в мрежата */
+            div[data-testid="stColumn"] button[data-testid="stBaseButton-secondary"] {
+                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important;
+                border: 1px solid rgba(255,255,255,0.08) !important;
+                padding: 12px 16px !important;
+                border-radius: 14px !important;
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
+                text-align: left !important;
                 width: 100% !important;
-                height: calc(100% - 12px) !important; /* Напасваме височината спрямо картата */
-                background: transparent !important;
-                border: none !important;
-                color: transparent !important;
-                box-shadow: none !important;
-                cursor: pointer !important;
-                z-index: 10 !important; /* Слагаме го НАД картата, за да хваща кликовете */
-                margin: 0 !important;
-                padding: 0 !important;
+                display: block !important;
+                min-height: 55px !important;
+                transition: all 0.2s ease-in-out !important;
             }
-            
-            /* Пълно неутрализиране на Streamlit стиловете при клик и задържане върху прозрачния бутон */
-            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:hover,
-            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:active,
-            div[data-testid="stColumn"] div[data-testid="stBtnContainer"] button:focus {
-                background: transparent !important;
-                border: none !important;
-                color: transparent !important;
-                box-shadow: none !important;
-                outline: none !important;
+            /* Ефект при посочване с мишката */
+            div[data-testid="stColumn"] button[data-testid="stBaseButton-secondary"]:hover {
+                background: rgba(255,255,255,0.06) !important;
+                border-color: rgba(0, 242, 254, 0.3) !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -678,24 +642,21 @@ else:
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # 1. Рендерираме красивата 3D карта (вече без външния wrapper)
+            # Създаваме чист текст за бутона: Емоджи + Име + Сума
+            button_label = f"{get_emoji(kat)} {kat}  —  {s_value:.2f} EUR"
+            
+            # 1. Поставяме истински, чист Streamlit бутон, който е 100% кликаем
+            if st.button(button_label, key=f"active_cat_btn_{idx}", use_container_width=True):
+                show_category_expenses_dialog(kat)
+                
+            # 2. Непосредствено под бутона изрисуваме прогрес лентата (тя си стои в същата колона)
             st.markdown(f"""
-                <div class="premium-3d-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
-                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
-                    </div>
-                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3);"></div>
-                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
-                    </div>
+                <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: -6px; margin-bottom: 15px; width: 100%;">
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
+                    <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
                 </div>
             """, unsafe_allow_html=True)
-            
-            # 2. Бутонът се генерира веднага след това. Понеже колоната е с дефиниран "absolute" стил за бутоните,
-            # този бутон автоматично се разпъва отгоре (от координати top:0, left:0) над markdown-а.
-            if st.button("", key=f"overlay_btn_{idx}", use_container_width=True):
-                show_category_expenses_dialog(kat)
+
 
 
 
