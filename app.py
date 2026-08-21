@@ -622,7 +622,7 @@ else:
                 }
             </style>
         """, unsafe_allow_html=True)
-        st.markdown(---)
+        st.markdown("---")
         try:
             df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
             df_trip_rows = df_all[df_all["trip_id"] == trip_id]
