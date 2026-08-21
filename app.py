@@ -765,65 +765,46 @@ else:
     
     avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
     grand_total = depozit_hotel + total_on_site
-    period_html = f" — 📅 {st_date} - {en_date}" if st_date and st_date != "nan" else ""
+    period_html = f" &bull; 📅 {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f"{dist:.0f} км" if dist > 0 else "—"
     
-    # Безопасно сглобяване на HTML структурата ред по ред
-    pdf_html = "<html><head><meta charset='utf-8'><style>"
-    pdf_html += "@import url('https://googleapis.com');"
-    pdf_html += "body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #334155; margin: 0; padding: 40px; }"
-    pdf_html += ".wrapper { max-width: 1100px; margin: 0 auto; background: #ffffff; padding: 40px; border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }"
-    pdf_html += ".report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; border-bottom: 1px solid #e2e8f0; padding-bottom: 25px; }"
-    pdf_html += ".report-title { font-size: 22px; color: #0f172a; font-weight: 700; margin: 0; letter-spacing: -0.5px; }"
-    pdf_html += ".report-subtitle { color: #64748b; font-size: 13px; margin-top: 5px; font-weight: 400; }"
-    pdf_html += ".brand-badge { background: #0f172a; color: #ffffff; padding: 8px 16px; border-radius: 30px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }"
-    pdf_html += ".stats-container { display: flex; gap: 16px; margin-bottom: 30px; }"
-    pdf_html += ".stat-card { flex: 1; background: #ffffff; border: 1px solid #f1f5f9; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); position: relative; overflow: hidden; }"
-    pdf_html += ".stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }"
-    pdf_html += ".card-total::before { background: #ef4444; }"
-    pdf_html += ".card-depozit::before { background: #64748b; }"
-    pdf_html += ".card-onsite::before { background: #10b981; }"
-    pdf_html += ".card-dist::before { background: #3b82f6; }"
-    pdf_html += ".stat-label { font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.5px; }"
-    pdf_html += ".stat-value { font-size: 20px; font-weight: 700; margin-top: 6px; color: #0f172a; }"
-    pdf_html += ".val-red { color: #ef4444; }"
-    pdf_html += ".val-teal { color: #10b981; }"
-    pdf_html += ".car-section { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 16px; margin-bottom: 35px; }"
-    pdf_html += ".car-title { font-size: 13px; font-weight: 700; color: #334155; margin-top: 0; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; }"
-    pdf_html += ".car-grid { display: flex; justify-content: space-between; font-size: 13px; color: #475569; }"
-    pdf_html += ".table-title { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; }"
-    pdf_html += "table { width: 100%; border-collapse: collapse; background: #ffffff; }"
-    pdf_html += "th { background-color: #f8fafc; color: #64748b; text-align: left; padding: 14px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #edf2f7; }"
-    pdf_html += "td { padding: 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; vertical-align: middle; }"
-    pdf_html += "tr:hover { background-color: #f8fafc; }"
-    pdf_html += ".badge-km { background: #eff6ff; color: #2563eb; padding: 5px 10px; border-radius: 8px; font-weight: 600; font-size: 11px; }"
-    pdf_html += ".badge-cat { background: #f1f5f9; color: #334155; padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 500; }"
-    pdf_html += ".fuel-highlight { color: #db2777; font-weight: 600; background: #fdf2f8; padding: 3px 8px; border-radius: 6px; }"
-    pdf_html += ".date-text { color: #64748b; font-size: 12px; font-weight: 500; }"
-    pdf_html += ".total-box { background: #f8fafc; border-radius: 12px; padding: 20px; text-align: right; margin-top: 25px; border: 1px solid #e2e8f0; }"
-    pdf_html += "</style></head><body><div class='wrapper'>"
+    # 1. СТАРТ НА МОДЕРНИЯ HTML ШАБЛОН (Стилен Тъмен/Премиум дизайн)
+    pdf_html = "<html><head><meta charset='utf-8'><style>@import url('https://googleapis.com'); body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b0f19; color: #e2e8f0; margin: 0; padding: 40px; } .wrapper { max-width: 1000px; margin: 0 auto; background: #111827; padding: 40px; border-radius: 24px; border: 1px solid #1f2937; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); } .report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; border-bottom: 1px solid #1f2937; padding-bottom: 25px; } .report-title { font-size: 24px; color: #ffffff; font-weight: 700; letter-spacing: -0.5px; } .report-subtitle { color: #9ca3af; font-size: 13px; margin-top: 6px; } .brand-badge { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; padding: 6px 14px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; } .stats-container { display: flex; gap: 16px; margin-bottom: 30px; } .stat-card { flex: 1; background: #1f2937; border: 1px solid #374151; padding: 20px; border-radius: 18px; position: relative; } .stat-label { font-size: 11px; text-transform: uppercase; color: #9ca3af; font-weight: 600; letter-spacing: 0.5px; } .stat-value { font-size: 22px; font-weight: 700; margin-top: 8px; color: #ffffff; } .val-red { color: #f87171; } .val-teal { color: #34d399; } .val-blue { color: #60a5fa; } .car-section { background: #1f2937; border: 1px solid #374151; padding: 22px; border-radius: 18px; margin-bottom: 35px; } .car-title { font-size: 13px; font-weight: 700; color: #60a5fa; margin-0; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; } .car-grid { display: flex; justify-content: space-between; font-size: 13px; color: #d1d5db; } .table-title { font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; } table { width: 100%; border-collapse: collapse; background: #111827; } th { background-color: #1f2937; color: #9ca3af; text-align: left; padding: 14px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #374151; } td { padding: 16px; border-bottom: 1px solid #1f2937; font-size: 13px; color: #e2e8f0; vertical-align: middle; } tr:hover { background-color: #1f2937; } .badge-km { background: rgba(59,130,246,0.15); color: #60a5fa; padding: 4px 10px; border-radius: 10px; font-weight: 600; font-size: 11px; border: 1px solid rgba(59,130,246,0.3); } .badge-cat { background: #374151; color: #e2e8f0; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; border: 1px solid #4b5563; } .fuel-highlight { color: #f472b6; font-weight: 600; background: rgba(244,114,182,0.1); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(244,114,182,0.2); } .date-text { color: #9ca3af; font-size: 12px; font-family: monospace; } .total-box { background: #1f2937; border-radius: 18px; padding: 22px; text-align: right; margin-top: 30px; border: 1px solid #374151; }</style></head><body><div class='wrapper'>"
     
-    # Добавяне на хедъра
-    pdf_html += f"<div class='report-header'><div><div class='report-title'>📊 ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</div>"
-    pdf_html += f"<div class='report-subtitle'>Бордови дневник на разходите{period_html}</div></div><div class='brand-badge'>PREMIUM REPORT</div></div>"
+    # 2. ХЕДЪР И СТАТИСТИЧЕСКИ КАРТИ
+    pdf_html += f"<div class='report-header'><div><div class='report-title'>📊 ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</div><div class='report-subtitle'>Премиум борд дневник на пътуването{period_html}</div></div><div class='brand-badge'>⚡ ТЪМЕН РЕЖИМ</div></div>"
+    pdf_html += f"<div class='stats-container'><div class='stat-card'><div class='stat-label'>💰 ОБЩИ РАЗХОДИ</div><div class='stat-value val-red'>{grand_total:.2f} EUR</div></div><div class='stat-card'><div class='stat-label'>🏨 ДЕПОЗИТ</div><div class='stat-value'>{depozit_hotel:.2f} EUR</div></div><div class='stat-card'><div class='stat-label'>💸 НА МЯСТО</div><div class='stat-value val-teal'>{total_on_site:.2f} EUR</div></div><div class='stat-card'><div class='stat-label'>🛣️ ИЗМИНАТ Пробег</div><div class='stat-value val-blue'>{dist_html}</div></div></div>"
     
-    # Добавяне на картите
-    pdf_html += f"<div class='stats-container'><div class='stat-card card-total'><div class='stat-label'>💰 ОБЩА СУМА</div><div class='stat-value val-red'>{grand_total:.2f} EUR</div></div>"
-    pdf_html += f"<div class='stat-card card-depozit'><div class='stat-label'>🏨 ДЕПОЗИТ</div><div class='stat-value'>{depozit_hotel:.2f} EUR</div></div>"
-    pdf_html += f"<div class='stat-card card-onsite'><div class='stat-label'>💸 НА МЯСТО</div><div class='stat-value val-teal'>{total_on_site:.2f} EUR</div></div>"
-    pdf_html += f"<div class='stat-card card-dist'><div class='stat-label'>🛣️ ОБЩО ПРОБЕГ</div><div class='stat-value' style='color: #2563eb;'>{dist_html}</div></div></div>"
+    # 3. ДАННИ ЗА АВТОМОБИЛА
+    pdf_html += f"<div class='car-section'><div class='car-title'>🚗 Спецификация на превозното средство</div><div class='car-grid'>"
+    pdf_html += f"<div><b>🛣️ Пробег:</b> {s_km:.0f} км &rarr; {eff_end_km:.0f} км</div>"
+    pdf_html += f"<div><b>⛽ Гориво:</b> {total_liters_calculated:.1f} л ({auto_fuel_money:.2f} EUR)</div>"
+    pdf_html += f"<div><b>📉 Среден разход:</b> <span class='val-blue' style='font-weight:600;'>{avg_con_txt}</span></div></div></div>"
     
-    # Добавяне на данните за колата
-    pdf_html += f"<div class='car-section'><div class='car-title'>🚗 Параметри на превозното средство</div><div class='car-grid'>"
-    pdf_html += f"<div class='car-item'><b>Пробег:</b> {s_km:.0f} км <span style='color:#94a3b8;'>→</span> {eff_end_km:.0f} км</div>"
-    pdf_html += f"<div class='car-item'><b>Заредено гориво:</b> {total_liters_calculated:.1f} л ({auto_fuel_money:.2f} EUR)</div>"
-    pdf_html += f"<div class='car-item'><b>Среден разход:</b> <span style='color:#2563eb; font-weight:600;'>{avg_con_txt}</span></div></div></div>"
+    # 4. НАЧАЛО НА ТАБЛИЦАТА
+    pdf_html += "<div class='table-title'>📋 Хронологичен лист на разходите</div><table><thead><tr><th style='width: 20%;'>📅 Дата / Час</th><th style='width: 35%;'>📝 Описание</th><th style='width: 15%;'>🛣️ Километраж</th><th style='width: 15%;'>💶 Сума</th><th style='width: 15%;'>🗂️ Категория</th></tr></thead><tbody>"
     
-    # Отваряне на таблицата
-    pdf_html += "<div class='table-title'>📋 Списък на Хронологичните разходи</div><table><thead><tr>"
-    pdf_html += "<th style='width: 20%;'>📅 Дата / Час</th><th style='width: 35%;'>📝 Описание</th><th style='width: 15%;'>🛣️ Километраж</th><th style='width: 15%;'>💶 Сума</th><th style='width: 15%;'>🗂️ Категория</th>"
-    pdf_html += "</tr></thead><tbody>"
-
+    # 5. ЦИКЪЛ ЗА РЕДОВЕТЕ
+    for _, row in df_trip.iterrows():
+        desc_val = str(row['description'])
+        if "Моментен разход:" in desc_val:
+            desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
+        cur_km_val = float(row.get('current_km', 0.0))
+        km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#4b5563;'>—</span>"
+        formatted_date = str(row['date']).replace(" ", " / ")
+        cat_name = str(row['category'])
+        cat_emoji = get_emoji(cat_name) if 'get_emoji' in globals() else "🔹"
+        
+        pdf_html += "<tr>"
+        pdf_html += f"<td class='date-text'>{formatted_date}</td>"
+        pdf_html += f"<td style='font-weight: 500; color: #ffffff;'>{desc_val}</td>"
+        pdf_html += f"<td>{km_td_html}</td>"
+        pdf_html += f"<td style='font-weight: 600; color: #34d399;'>{row['amount']:.2f} EUR</td>"
+        pdf_html += f"<td><span class='badge-cat'>{cat_emoji} {cat_name}</span></td>"
+        pdf_html += "</tr>"
+        
+    # 6. КРАЕН БЛОК И СТАРТИРАНЕ НА БУТОНИТЕ
+    pdf_html += f"</tbody></table><div class='total-box'><span style='font-size: 14px; color: #9ca3af; font-weight: 500; margin-right: 12px;'>ОБЩО НАТРУПАНИ РАЗХОДИ:</span><span style='font-size: 24px; font-weight: 700; color: #f87171;'>{grand_total:.2f} EUR</span></div></div></body></html>"
     
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
     
@@ -838,6 +819,7 @@ else:
         use_container_width=True,
         key="st_premium_report_download_btn"
     )
+
 
 
 
