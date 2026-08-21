@@ -611,106 +611,113 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни върху полето за детайли):")
     
-    # Стилизираме бутоните САМО вътре в контейнера .analytics-secure-grid
-    # Превръщаме стандартния бутон в твоята оригинална премиум 3D кутия
+    # CSS за перфектно застъпване на прозрачния бутон НАД HTML 3D кутията
     st.markdown("""
         <style>
-            /* Променяме изцяло дизайна на самия бутон */
-            .analytics-secure-grid div[data-testid="stBtnContainer"] button {
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important;
-                border: 1px solid rgba(255,255,255,0.08) !important;
-                padding: 14px !important;
-                border-radius: 14px !important;
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
-                width: 100% !important;
-                min-height: 84px !important;
-                display: flex !important;
-                flex-direction: column !important;
-                justify-content: space-between !important;
-                align-items: stretch !important;
-                transition: all 0.2s ease-in-out !important;
+            /* Контейнер за всяка клетка от мрежата */
+            .premium-card-container {
+                position: relative !important;
                 margin-bottom: 12px !important;
-                text-align: left !important;
+                width: 100% !important;
             }
             
-            /* Ефект при посочване с мишката */
-            .analytics-secure-grid div[data-testid="stBtnContainer"] button:hover {
+            /* Твоят оригинален premium 3D дизайн */
+            .original-premium-3d-card {
+                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
+                border: 1px solid rgba(255,255,255,0.08) !important; 
+                padding: 14px; 
+                border-radius: 14px; 
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: space-between; 
+                transition: all 0.2s ease-in-out;
+                position: relative;
+                z-index: 1; /* Стои отдолу */
+            }
+            
+            /* Ховър ефект при посочване на контейнера */
+            .premium-card-container:hover .original-premium-3d-card {
                 background: rgba(255,255,255,0.06) !important;
                 border-color: rgba(0, 242, 254, 0.35) !important;
-                transform: translateY(-2px) !important;
+                transform: translateY(-2px);
                 box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
             }
             
             /* Ефект при физическо натискане */
-            .analytics-secure-grid div[data-testid="stBtnContainer"] button:active {
-                transform: translateY(1px) !important;
+            .premium-card-container:active .original-premium-3d-card {
+                transform: translateY(1px);
+                box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
             }
             
-            /* Подсигуряваме, че вътрешното съдържание заема 100% от ширината */
-            .analytics-secure-grid div[data-testid="stBtnContainer"] button div[data-testid="stMarkdownContainer"] {
+            /* Хващаме контейнера на Streamlit бутона и го разпъваме АБСОЛЮТНО над HTML кутията */
+            .premium-card-container div[data-testid="stBtnContainer"] {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
                 width: 100% !important;
+                height: 100% !important;
+                z-index: 10 !important; /* Излиза НАЙ-ОТГОРЕ */
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
-            /* Стилизираме оригиналния дизайн на прогрес лентата, която стои вътре в бутона */
-            .secure-progress-bg {
-                background: rgba(0, 0, 0, 0.4); 
-                height: 14px; 
-                border-radius: 20px; 
-                padding: 2px; 
-                box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); 
-                position: relative; 
-                display: flex; 
-                align-items: center; 
-                overflow: hidden; 
-                width: 100%; 
-                margin-top: 8px;
-                box-sizing: border-box;
+            /* Правим самия бутон напълно прозрачен, за да заеме цялата площ */
+            .premium-card-container div[data-testid="stBtnContainer"] button {
+                width: 100% !important;
+                height: 100% !important;
+                background: transparent !important;
+                border: none !important;
+                color: transparent !important;
+                box-shadow: none !important;
+                cursor: pointer !important;
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
-            .secure-progress-fill {
-                height: 100%; 
-                background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); 
-                border-radius: 20px; 
-                box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);
-            }}
-            .secure-progress-text {
-                position: absolute; 
-                right: 8px; 
-                font-size: 9px; 
-                font-weight: 900; 
-                color: rgba(255,255,255,0.85); 
-                font-family: sans-serif;
+            
+            /* Премахваме дефолтните сиви рамки и анимации на Streamlit при клик */
+            .premium-card-container div[data-testid="stBtnContainer"] button:hover,
+            .premium-card-container div[data-testid="stBtnContainer"] button:active,
+            .premium-card-container div[data-testid="stBtnContainer"] button:focus {
+                background: transparent !important;
+                border: none !important;
+                color: transparent !important;
+                box-shadow: none !important;
+                outline: none !important;
             }
         </style>
     """, unsafe_allow_html=True)
-
-    # Отваряме изолирания контейнер
-    st.markdown('<div class="analytics-secure-grid">', unsafe_allow_html=True)
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Използваме легален Streamlit бутон, като инжектираме твоя оригинален дизайн 
-            # (Заглавието, сумата и заоблената прогрес лента) директно в етикета му.
-            # Новите версии рендерират този HTML вътре в бутона без никакъв риск от срив.
-            button_inner_design = f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
-                <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
-            </div>
-            <div class="secure-progress-bg">
-                <div class="secure-progress-fill" style="width: {pct}%;"></div>
-                <span class="secure-progress-text">{pct:.1f}%</span>
-            </div>
-            """
+            # Отваряме външния обвиващ контейнер
+            st.markdown('<div class="premium-card-container">', unsafe_allow_html=True)
             
-            # Поставяме чист, официален бутон. Понеже е обвиван от ".analytics-secure-grid",
-            # неговата сива рамка изчезва и той придобива перфектния 3D облик, който искаш.
-            if st.button(button_inner_design, key=f"final_3d_btn_{idx}", use_container_width=True):
+            # 1. Изрисуваме красивия ти ОРИГИНАЛЕН дизайн през st.markdown (тук HTML работи безупречно)
+            st.markdown(f"""
+            <div class="original-premium-3d-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
+                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
+                </div>
+                <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%; margin-top: 8px; box-sizing: border-box;">
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
+                    <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); font-family: sans-serif;">{pct:.1f}%</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # 2. Поставяме празен стандартен бутон. Понеже е вътре в ".premium-card-container",
+            # CSS кодът го издърпва нагоре и го разпъва на 100% върху 3D кутията.
+            if st.button("", key=f"overlay_final_click_{idx}", use_container_width=True):
                 show_category_expenses_dialog(kat)
                 
-    st.markdown('</div>', unsafe_allow_html=True) # Затваряме контейнера
+            # Затваряме обвиващия контейнер
+            st.markdown('</div>', unsafe_allow_html=True)
 
 
 
