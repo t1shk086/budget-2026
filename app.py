@@ -735,7 +735,7 @@ else:
                             st.markdown(f'''
                                 <div class="category-expense-card">
                                     <div style="font-size: 14px; color: rgba(250,250,250,0.85);">
-                                        📅  {r["date"].replace(" ", " / ")} — <span>{r["description"]}</span>{l_txt}
+                                        📅 {r["date"].replace(" ", " / ")} — <span>{r["description"]}</span>{l_txt}
                                     </div>
                                     <div style="font-size: 14px; font-weight: 600; color: #fafafa;">
                                         {r["amount"]:.2f} EUR
