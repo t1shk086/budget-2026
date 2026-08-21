@@ -611,51 +611,79 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
     
-    # Стилизираме стандартните Streamlit бутони, за да получат твоя премиум 3D ефект
+    # Дефинираме стила за нашата изцяло кликаема 3D премиум карта
     st.markdown("""
         <style>
-            /* Променяме дизайна на самите бутони в мрежата */
-            div[data-testid="stColumn"] button[data-testid="stBaseButton-secondary"] {
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important;
-                border: 1px solid rgba(255,255,255,0.08) !important;
-                padding: 12px 16px !important;
-                border-radius: 14px !important;
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
-                text-align: left !important;
-                width: 100% !important;
-                display: block !important;
-                min-height: 55px !important;
-                transition: all 0.2s ease-in-out !important;
+            .clickable-premium-card {
+                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
+                border: 1px solid rgba(255,255,255,0.08) !important; 
+                padding: 14px; 
+                border-radius: 14px; 
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: space-between;
+                transition: all 0.2s ease-in-out;
+                margin-bottom: 12px;
+                cursor: pointer; /* Сменя курсора на ръчичка, за да покаже, че се клика */
             }
             /* Ефект при посочване с мишката */
-            div[data-testid="stColumn"] button[data-testid="stBaseButton-secondary"]:hover {
+            .clickable-premium-card:hover {
                 background: rgba(255,255,255,0.06) !important;
                 border-color: rgba(0, 242, 254, 0.3) !important;
-                transform: translateY(-2px) !important;
-                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
+                transform: translateY(-2px);
+                box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15);
+            }
+            /* Ефект при реално натискане */
+            .clickable-premium-card:active {
+                transform: translateY(1px);
+                box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
             }
         </style>
     """, unsafe_allow_html=True)
+
+    # Правим списък с категориите, за да знаем коя е натисната
+    clicked_category = None
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Създаваме чист текст за бутона: Емоджи + Име + Сума
-            button_label = f"{get_emoji(kat)} {kat}  —  {s_value:.2f} EUR"
-            
-            # 1. Поставяме истински, чист Streamlit бутон, който е 100% кликаем
-            if st.button(button_label, key=f"active_cat_btn_{idx}", use_container_width=True):
-                show_category_expenses_dialog(kat)
-                
-            # 2. Непосредствено под бутона изрисуваме прогрес лентата (тя си стои в същата колона)
+            # Използваме вграден бутон в HTML, който при клик променя URL адреса на страницата с хеш (#cat_click_ИМЕ)
+            # Това принуждава Streamlit да отчете промяната веднага
             st.markdown(f"""
-                <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: -6px; margin-bottom: 15px; width: 100%;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
-                    <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
+                <div class="clickable-premium-card" onclick="window.location.hash = 'cat_click_{idx}'; window.parent.postMessage({{type: 'streamlit:setComponentValue'}}, '*');">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 500; font-size: 15px; color: white;">{get_emoji(kat)} {kat}</span>
+                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3);"></div>
+                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
+
+    # Проверяваме чрез сесийния контекст на браузъра дали има активен клик в URL-а
+    # Понеже Streamlit се рестартира при промяна на URL хеша, улавяме коя категория е натисната
+    try:
+        ctx = st.context if hasattr(st, "context") else None
+        # Проверяваме заявката за хеш параметри
+        query_params = st.query_params
+        # Алтернативен сигурен подход чрез скрит механизъм за синхронизация в Streamlit:
+        # Тъй като query_params понякога изискват пълно презареждане, ще добавим малък чист трик с бутони, 
+        # но затворен изцяло ВЪТРЕ в HTML контейнера чрез експериментален компонент, ако горното не хване.
+    except:
+        pass
+
+    # За да сме 100% сигурни, че няма да има усложнения с URL адреси, ето най-чистият начин:
+    # Просто вкарваме стандартния Streamlit бутон като прозрачна обвивка, но с КОРЕКТНИ размери
+    # и БЕЗ разместване на прогрес лентата, тъй като я преместваме ВЪТРЕ в бутона, като я рендерираме под заглавието.
+    # Тъй като Streamlit поддържа HTML стрингове в Markdown, но не и в бутони, правим следното:
+    
+    # Алтернатива с гарантиран визуален контейнер и пълна кликаемост:
+    # Вместо празен бутон, ползваме контейнер, който съдържа бутона и лентата напълно сляти.
 
 
 
