@@ -611,7 +611,7 @@ else:
 
     st.markdown("### 📊 Анализ на разходите (Кликни върху полето за детайли):")
     
-    # Твоят оригинален 3D дизайн с допълнителен ефект за преминаване на мишката (hover)
+    # 1. Твоят оригинален 3D дизайн - чист, стабилен и красив
     st.markdown("""
         <style>
             .original-premium-3d-card {
@@ -625,7 +625,8 @@ else:
                 justify-content: space-between; 
                 transition: all 0.2s ease-in-out; 
                 margin-bottom: 12px;
-                text-decoration: none !important; /* Маха синята линия на линковете */
+                cursor: pointer;
+                user-select: none;
             }
             .original-premium-3d-card:hover {
                 background: rgba(255,255,255,0.06) !important;
@@ -640,15 +641,21 @@ else:
         </style>
     """, unsafe_allow_html=True)
 
+    # Инициализираме променлива в сесията, за да пазим кликнатата категория локално
+    if "clicked_analytics_category" not in st.session_state:
+        st.session_state["clicked_analytics_category"] = None
+
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # ФИКС: Вместо <div> с onclick, превръщаме кутията в <a> линк, който пренасочва в СЪЩИЯ таб target="_self"
-            # Това заобикаля всички защити на браузърите в Streamlit Cloud
+            # ФИКС: При клик изпращаме съобщение (postMessage) директно към iframe системата на Streamlit.
+            # Това става мигновено и БЕЗ никакво презареждане на URL адреси или губене на сесията!
             st.markdown(f"""
-            <a href="?open_cat={kat.replace(' ', '+')}" target="_self" class="original-premium-3d-card">
+            <div class="original-premium-3d-card" onclick="
+                window.parent.postMessage({{type: 'analytics_click', category: '{kat}'}}, '*');
+            ">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
                     <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
@@ -657,19 +664,50 @@ else:
                     <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
                     <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); font-family: sans-serif;">{pct:.1f}%</span>
                 </div>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
 
-    # В Python кода улавяме навигацията от линка веднага
-    if "open_cat" in st.query_params:
-        selected_cat = st.query_params["open_cat"].replace('+', ' ')
+    # 2. СКРИТ СЛУШАТЕЛ: Поставяме малък, напълно невидим HTML компонент с височина 0 пиксела.
+    # Неговата единствена цел е да улови 'analytics_click' съобщението от картите и да го предаде сигурно на Python.
+    import streamlit.components.v1 as components
+    
+    listener_html = """
+    <html>
+    <body>
+    <script>
+        // Слушаме за кликвания върху 3D картите
+        window.parent.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'analytics_click') {
+                // Използваме официалния Streamlit API канал, за да запишем стойността в Python
+                window.parent.postMessage({
+                    type: "streamlit:setComponentValue",
+                    value: event.data.category
+                }, "*");
+            }
+        });
+    </script>
+    </body>
+    </html>
+    """
+    
+    # Извикваме компонента. Той заема 0 пиксела площ (скрит е) и връща стойност САМО когато се кликне върху карта
+    click_response = components.html(listener_html, height=0, width=0, key="analytics_js_listener")
+
+    # 3. АКТИВИРАНЕ НА ДИАЛОГА: Ако слушателят е уловил категория, я отваряме веднага
+    if click_response:
+        st.session_state["clicked_analytics_category"] = click_response
+        st.rerun()
+
+    # Показваме диалога, ако имаме записана категория в състоянието на сесията
+    if st.session_state["clicked_analytics_category"]:
+        current_active_cat = st.session_state["clicked_analytics_category"]
         
-        # Почистваме URL параметъра веднага чрез изпращане на празен редирект,
-        # за да не се отваря прозорецът повторно при ръчно опресняване
-        st.query_params.clear()
+        # Нулираме я веднага, за да може при затваряне на диалога приложението да си работи нормално
+        st.session_state["clicked_analytics_category"] = None
         
-        # Показваме диалоговия прозорец с разходите по категорията
-        show_category_expenses_dialog(selected_cat)
+        # Отваряме прозореца
+        show_category_expenses_dialog(current_active_cat)
+
 
 
 
