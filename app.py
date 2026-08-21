@@ -683,7 +683,82 @@ else:
         st.markdown("---")
         if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
             st.rerun()
+    @st.dialog("📊 Разходи по Категории", width="large")
+    def разходи_по_категории_dialog():
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Преглед на направените разходи, групирани по съответните категории:</p>", unsafe_allow_html=True)
+        st.markdown("""
+            <style>
+                .category-expense-card {
+                    background: rgba(255,255,255,0.02) !important;
+                    padding: 10px 15px !important;
+                    border-radius: 10px !important;
+                    border: 1px solid rgba(250, 250, 250, 0.08) !important;
+                    margin-bottom: 6px !important;
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    align-items: center !important;
+                }
+                .category-total-box {
+                    background: rgba(255, 75, 75, 0.08) !important;
+                    border: 1px dashed rgba(255, 75, 75, 0.3) !important;
+                    padding: 12px !important;
+                    border-radius: 10px !important;
+                    margin-top: 5px !important;
+                    margin-bottom: 25px !important;
+                    text-align: right !important;
+                    font-size: 16px !important;
+                    font-weight: bold !important;
+                    color: #ff4b4b !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        try:
+            df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+            df_trip_rows = df_all[df_all["trip_id"] == trip_id]
+            
+            if df_trip_rows.empty:
+                st.info("Няма регистрирани разходи за това пътуване.")
+            else:
+                # Вземаме уникалните категории, които реално имат записи в това пътуване
+                записани_категории = df_trip_rows["category"].unique()
+                
+                for кат in KATEGORII:
+                    # Показваме категорията само ако има разходи в нея
+                    if кат in записани_категории:
+                        df_cat = df_trip_rows[df_trip_rows["category"] ==  кат]
+                        cat_sum = float(df_cat["amount"].sum())
+                        
+                        st.markdown(f"### {get_emoji(кат)} {кат}")
+                        st.markdown("<hr style='margin-top:2px; margin-bottom:10px; border-color:rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
+                        
+                        for _, r in df_cat.iterrows():
+                            l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
+                            st.markdown(f'''
+                                <div class="category-expense-card">
+                                    <div style="font-size: 14px; color: rgba(250,250,250,0.85);">
+                                        📅 {r["date"]} — <span>{r["description"]}</span>{l_txt}
+                                    </div>
+                                    <div style="font-size: 14px; font-weight: 600; color: #fafafa;">
+                                        {r["amount"]:.2f} EUR
+                                    </div>
+                                </div>
+                            ''', unsafe_allow_html=True)
+                        
+                        st.markdown(f'''
+                            <div class="category-total-box">
+                                Общо за {cat}: {cat_sum:.2f} EUR
+                            </div>
+                        ''', unsafe_allow_html=True)
+                        
+        except Exception as e:
+            st.error(f"Грешка при зареждане на категориите: {str(e)}")
+            
+        st.markdown("---")
+        if st.button("❌ Затвори", use_container_width=True, key="close_cat_popup_btn"):
+            st.rerun()
 
+    
     avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
     grand_total = depozit_hotel + total_on_site
     period_html = f" | <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
@@ -706,6 +781,9 @@ else:
     if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
         hronologia_popup_dialog()
 
+    if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
+        разходи_по_категории_dialog()
+
     st.download_button(
         label="Отчет в PDF",
         data=pdf_html,
@@ -714,6 +792,7 @@ else:
         use_container_width=True,
         key="st_premium_report_download_btn"
     )
+
 
     st.markdown("---")
 
