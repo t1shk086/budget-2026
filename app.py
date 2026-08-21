@@ -633,11 +633,9 @@ else:
             if df_trip_rows.empty:
                 st.info("Няма регистрирани разходи за това пътуване.")
             else:
-                # Вземаме уникалните категории, които реално имат записи в това пътуване
                 записани_категории = df_trip_rows["category"].unique()
                 
                 for кат in KATEGORII:
-                    # Показваме категорията само ако има разходи в нея
                     if кат in записани_категории:
                         df_cat = df_trip_rows[df_trip_rows["category"] ==  кат]
                         cat_sum = float(df_cat["amount"].sum())
@@ -658,9 +656,10 @@ else:
                                 </div>
                             ''', unsafe_allow_html=True)
                         
+                        # Коригирано от {cat} на {кат}
                         st.markdown(f'''
                             <div class="category-total-box">
-                                Общо за {cat}: {cat_sum:.2f} EUR
+                                Общо за {кат}: {cat_sum:.2f} EUR
                             </div>
                         ''', unsafe_allow_html=True)
                         
@@ -670,6 +669,7 @@ else:
         st.markdown("---")
         if st.button("❌ Затвори", use_container_width=True, key="close_cat_popup_btn"):
             st.rerun()
+
     if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
         разходи_по_категории_dialog()
     col_st1, col_st2 = st.columns(2)
