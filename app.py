@@ -646,13 +646,12 @@ else:
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # При клик върху полето, JS обновява URL адреса с параметъра ?open_cat=ИметоНаКатегорията
-            # window.parent осигурява комуникацията извън iframe-а на Streamlit
+            # ФИКС: Използваме чисто "window.location", което работи безотказно в Streamlit Cloud
             st.markdown(f"""
             <div class="original-premium-3d-card" onclick="
-                const url = new URL(window.parent.location.href);
+                const url = new URL(window.location.href);
                 url.searchParams.set('open_cat', '{kat}');
-                window.parent.location.href = url.href;
+                window.location.href = url.href;
             ">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
@@ -666,14 +665,15 @@ else:
             """, unsafe_allow_html=True)
 
     # В Python кода проверяваме дали в URL-а има записана категория за отваряне
-    if "open_cat" in st.query_params: 
-        selected_cat = st.query_params["open_cat"] 
+    if "open_cat" in st.query_params:
+        selected_cat = st.query_params["open_cat"]
         
-        # Веднага изчистваме параметъра от URL-а, за да не се отваря прозорецът безкрайно при всяко опресняване
-        del st.query_params["open_cat"] 
+        # Веднага изчистваме параметъра от URL-а, за да не се отваря прозорецът безкрайно
+        del st.query_params["open_cat"]
         
         # Отваряме красивия диалогов прозорец с разходите
         show_category_expenses_dialog(selected_cat)
+
 
 
 
