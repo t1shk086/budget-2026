@@ -609,69 +609,120 @@ else:
             st.rerun()
 
 
-    st.markdown("### 📊 Анализ на разходите (Кликни за детайли):")
+    st.markdown("### 📊 Анализ на разходите (Кликни върху полето за детайли):")
     
-    # Стилизираме бутоните в тази секция, за да изглеждат като твоите премиум 3D карти
+    # CSS за перфектно затваряне на прозрачния бутон ВЪТРЕ в рамките на твоята 3D кутия
     st.markdown("""
         <style>
-            /* Хващаме бутоните само вътре в контейнера .premium-analytics */
-            .premium-analytics div[data-testid="stBtnContainer"] button {
-                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important;
-                border: 1px solid rgba(255,255,255,0.08) !important;
-                padding: 16px !important;
-                border-radius: 14px !important;
-                box-shadow: 4px 4px 10px rgba(0,0,0,0.3) !important;
+            /* Главен контейнер за всяка позиция в мрежата */
+            .premium-card-wrapper {
+                position: relative !important;
+                display: block !important;
                 width: 100% !important;
-                min-height: 80px !important;
-                display: flex !important;
-                flex-direction: column !important;
-                justify-content: space-between !important;
-                align-items: stretch !important;
-                transition: all 0.2s ease-in-out !important;
                 margin-bottom: 12px !important;
-                text-align: left !important;
             }
             
-            /* Ефект при посочване с мишката */
-            .premium-analytics div[data-testid="stBtnContainer"] button:hover {
+            /* Твоят оригинален премиум 3D дизайн */
+            .original-premium-3d-card {
+                background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)) !important; 
+                border: 1px solid rgba(255,255,255,0.08) !important; 
+                padding: 14px; 
+                border-radius: 14px; 
+                box-shadow: 4px 4px 10px rgba(0,0,0,0.3); 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: space-between; 
+                transition: all 0.2s ease-in-out;
+                position: relative;
+                z-index: 1; /* Остава като фон отдолу */
+                pointer-events: none; /* Кликовете преминават през него */
+            }
+            
+            /* Ефект при посочване с мишката върху цялото поле */
+            .premium-card-wrapper:hover .original-premium-3d-card {
                 background: rgba(255,255,255,0.06) !important;
                 border-color: rgba(0, 242, 254, 0.35) !important;
-                transform: translateY(-2px) !important;
+                transform: translateY(-2px);
                 box-shadow: 4px 6px 15px rgba(0, 242, 254, 0.15) !important;
             }
             
-            /* Ефект при натискане */
-            .premium-analytics div[data-testid="stBtnContainer"] button:active {
-                transform: translateY(1px) !important;
+            /* Ефект при физическо натискане */
+            .premium-card-wrapper:active .original-premium-3d-card {
+                transform: translateY(1px);
+                box-shadow: 2px 2px 5px rgba(0,0,0,0.3) !important;
             }
             
-            /* Подравняване на текстовете вътре в бутона */
-            .premium-analytics div[data-testid="stBtnContainer"] button p {
+            /* ФИКС: Хващаме контейнера на Streamlit бутона и го разпъваме по ВСИЧКИ четири страни на 100% */
+            .premium-card-wrapper div[data-testid="stBtnContainer"] {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                z-index: 10 !important; /* Излиза НАЙ-ОТГОРЕ над всичко */
                 margin: 0 !important;
                 padding: 0 !important;
+            }
+            
+            /* Правим самия бутон напълно прозрачно стъкло, заемащо 100% от разпънатия си контейнер */
+            .premium-card-wrapper div[data-testid="stBtnContainer"] button {
                 width: 100% !important;
+                height: 100% !important;
+                background: transparent !important;
+                border: none !important;
+                color: transparent !important;
+                box-shadow: none !important;
+                cursor: pointer !important;
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            
+            /* Премахваме дефолтните сиви рамки и анимации на Streamlit при клик */
+            .premium-card-wrapper div[data-testid="stBtnContainer"] button:hover,
+            .premium-card-wrapper div[data-testid="stBtnContainer"] button:active,
+            .premium-card-wrapper div[data-testid="stBtnContainer"] button:focus {
+                background: transparent !important;
+                border: none !important;
+                color: transparent !important;
+                box-shadow: none !important;
+                outline: none !important;
             }
         </style>
     """, unsafe_allow_html=True)
-
-    # Отваряме чист контейнер
-    st.markdown('<div class="premium-analytics">', unsafe_allow_html=True)
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             
-            # Подреждаме заглавието, емоджито, сумата и процентите чрез чист Markdown текст.
-            # Понеже не използваме <div> и <span> вътре в бутона, Streamlit няма да изпише код на екрана.
-            # Символът \n осигурява преминаването на нов ред за сумата.
-            button_text = f"### {get_emoji(kat)} {kat} \n\n **{s_value:.2f} EUR** ({pct:.1f}%)"
+            # Отваряме обвиващия контейнер
+            st.markdown('<div class="premium-card-wrapper">', unsafe_allow_html=True)
             
-            # Самият бутон СЕ ПРЕВРЪЩА в 3D полето. Няма невидими слоеве, няма изпадащи елементи отдолу!
-            if st.button(button_text, key=f"prem_an_btn_{idx}", use_container_width=True):
+            # 1. ТВОЯТ ОРИГИНАЛЕН ДИЗАЙН: Изрисуваме красивата кутия и прогрес лентата ти напълно непокътнати
+            st.markdown(f"""
+            <div class="original-premium-3d-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span style="font-weight: 500; font-size: 15px; color: white; font-family: sans-serif;">{get_emoji(kat)} {kat}</span>
+                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: sans-serif;">{s_value:.2f} EUR</span>
+                </div>
+                <div style="background: rgba(0, 0, 0, 0.4); height: 14px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); position: relative; display: flex; align-items: center; overflow: hidden; width: 100%; margin-top: 8px; box-sizing: border-box;">
+                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4);"></div>
+                    <span style="position: absolute; right: 8px; font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); font-family: sans-serif;">{pct:.1f}%</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # 2. ПОСТАВЯМЕ ПРАЗЕН БУТОН: Тъй като ползваме top:0, bottom:0, left:0, right:0, 
+            # контейнерът му се разпъва АВТОМАТИЧНО по точния размер на HTML кутията отгоре и не пада отдолу!
+            if st.button("", key=f"perfect_overlay_click_{idx}", use_container_width=True):
                 show_category_expenses_dialog(kat)
                 
-    st.markdown('</div>', unsafe_allow_html=True) # Затваряме контейнера
+            # Затваряме обвиващия контейнер
+            st.markdown('</div>', unsafe_allow_html=True)
+
 
 
 
