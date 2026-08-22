@@ -205,7 +205,7 @@ if st.session_state["current_trip"] is None:
         /* Намалява шрифта с 50% и го прави чист, както поиска */
         .small-clean-text {
             font-family: var(--font), sans-serif !important;
-            font-size: 15px !important; /* Наполовина на оригиналния заглавен размер */
+            font-size: 14px !important; /* Наполовина на оригиналния заглавен размер */
             color: #ffffff !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -228,17 +228,17 @@ if st.session_state["current_trip"] is None:
         
     with title_col:
         # Чист текст с малък размер, залепен плътно до бутона
-        st.markdown('<p class="small-clean-text">Глобален анализ</p>', unsafe_allow_html=True)
+        st.markdown('<p class="small-clean-text">Сравнителен панел</p>', unsafe_allow_html=True)
         
     # ОТТУК НАДОЛУ Е ТВОЯТ ОРИГИНАЛЕН РАБОТЕЩ КОД - БЕЗ НИКАКВИ ПРОМЕНИ В ЛОГИКАТА
     if show_comparison:
         # Дефиницията на прозореца си остава тук, точно както си работеше в началото
         @st.dialog("📊 Глобален анализ и сравнения", width="large")
         def show_global_analytics_dialog():
-            st.markdown("<p style='color: #888; margin-bottom: 20px;'>Сравнение и ефективност на всички записани пътувания:</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в по-добър мащаб!</p>", unsafe_allow_html=True)
             
             chosen_criteria = st.segmented_control(
-                label="Изберете критерий за сравнение:",
+                label="Изберете критерий:",
                 options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
                 default="Цена за 1 км",
                 key="modal_segmented_metric_selector"
