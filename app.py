@@ -218,7 +218,7 @@ if st.session_state["current_trip"] is None:
             color: #ffffff !important;
             white-space: nowrap !important;
             margin: 0 !important;
-            margin-top: -14px !important;
+            margin-top: -20px !important;
             padding: 0 !important;
             display: inline-block !important;
         }
