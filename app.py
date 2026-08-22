@@ -307,43 +307,47 @@ if st.session_state["current_trip"] is None:
             st.session_state["stable_comparison_toggle"] = False
             st.rerun()
 
-    # 2. CSS ЗА ЗАКЛЮЧВАНЕ НА РЕДА НА МОБИЛНИ УСТРОЙСТВА
+    # 1. СТИЛ ЗА ЕДНОВРЕМЕННО ПАСВАНЕ НА ДЕСКТОП И ТЕЛЕФОН БЕЗ КОЛОНИ
     st.html("""
     <style>
-        /* Намира основния контейнер на колоните и забранява пречупването (flex-wrap) на телефон */
-        div[data-testid="stHorizontalBlock"] {
-            flex-wrap: nowrap !important;
+        /* Хъб, който гарантира, че двата обекта са в една линия навсякъде */
+        .analytics-inline-wrapper {
+            display: inline-flex !important;
             align-items: center !important;
-            gap: 10px !important;
+            gap: 8px !important; /* Разстояние точно 1 интервал */
+            width: auto !important;
         }
-        /* Оптимизира ширината на малката колона за бутона на малки екрани */
-        div[data-testid="stHorizontalBlock"] > div:first-child {
-            flex-grow: 0 !important;
-            flex-shrink: 0 !important;
-            flex-basis: 50px !important; /* Фиксира перфектно място за toggle бутона */
+        /* Връща нормалния оригинален шрифт и размер от бутона 'Ново пътуване' */
+        .analytics-inline-text {
+            font-family: var(--font), sans-serif !important;
+            font-size: 1rem !important; /* Нормален стандартен размер */
+            font-weight: inherit !important;
+            color: #ffffff !important;
+            white-space: nowrap !important; /* Забранява пречупването на текста */
+            line-height: 1 !important;
+        }
+        /* Центрира превключвателя вертикално спрямо текста */
+        .analytics-inline-wrapper div[data-testid="stCheckbox"] {
+            margin-bottom: 0px !important;
         }
     </style>
     """)
 
-    # ПОДРЕДБА ЧРЕЗ СТАНДАРТНИ КОЛОНИ (СЕГА СЪС ЗАЩИТА ЗА МОБИЛНИ)
-    toggle_col, title_col = st.columns([0.15, 0.85], vertical_alignment="center")
+    # 2. РЕНДЕРИРАНЕ НА ЕЛЕМЕНТИТЕ В ОБЩ СТРУКТУРЕН КОНТЕНЕР
+    st.markdown('<div class="analytics-inline-wrapper">', unsafe_allow_html=True)
     
-    with toggle_col:
-        show_comparison = st.toggle(
-            "Покажи прозореца",
-            value=False,
-            key="stable_comparison_toggle",
-            label_visibility="collapsed"
-        )
-        
-    with title_col:
-        st.markdown(
-            "<p style='font-family: var(--font), sans-serif; font-size: 10px; font-weight: 500; color: #ffffff; margin: 0; padding: 0;'>Глобален анализ</p>", 
-            unsafe_allow_html=True
-        )
+    show_comparison = st.toggle(
+        "Покажи прозореца",
+        value=False,
+        key="stable_comparison_toggle",
+        label_visibility="collapsed"
+    )
+    
+    st.markdown('<span class="analytics-inline-text">Глобален анализ</span></div>', unsafe_allow_html=True)
         
     if show_comparison:
         show_global_analytics_dialog()
+
 
 
 
