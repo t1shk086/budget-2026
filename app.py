@@ -1044,6 +1044,7 @@ else:
         if "show_comparison_graphic" not in st.session_state:
             st.session_state.show_comparison_graphic = False
             
+        # БЕЗ СЪКРАТЕН st.rerun() ТУК ЗА ДА НЕ СЕ ЗАТВАРЯ ДИАЛОГА
         if st.button("📈 Сравни всички записани пътувания", use_container_width=True, type="secondary"):
             st.session_state.show_comparison_graphic = not st.session_state.show_comparison_graphic
             st.rerun()
@@ -1077,7 +1078,7 @@ else:
                     days_count = 1
                     
                     if not df_t_sett.empty:
-                        # СИГУРЕН И ПРЕЦИЗЕН ФИКС ЗА ИЗВЛИЧАНЕ НА ДАННИТЕ ЗА ВСИЧКИ ТРИПОВЕ
+                        # ТОЧЕН И СИГУРЕН ФИКС: добавено .iloc[0] преди преобразуването в речник
                         row_dict = df_t_sett.iloc[0].to_dict()
                         s_k = float(row_dict.get("start_km", 0.0))
                         e_k = float(row_dict.get("end_km", 0.0))
@@ -1134,7 +1135,7 @@ else:
                         color=df_sorted[x_col],
                         colorscale=[[0, '#00f2fe'], [1, '#4facfe']],
                         line=dict(width=0),
-                        cornerradius=15 # Заобляне на лентите в Plotly
+                        cornerradius=15
                     ),
                     texttemplate=f"<b>{t_format}</b>",
                     textposition='outside',
@@ -1168,6 +1169,7 @@ else:
 
     if st.button("📥 Свали отчет", use_container_width=True, key="main_download_report_popup_trigger"):
         download_and_compare_dialog()
+
 
 
 
