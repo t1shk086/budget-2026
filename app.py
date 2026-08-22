@@ -1059,7 +1059,6 @@ else:
                 key="popup_segmented_metric_selector"
             )
             
-            # АВТОМАТИЧНО СЪБИРАНЕ НА РЕАЛНИТЕ ДАННИ ОТ ВСИЧКИ ТВОИ ПЪТУВАНИЯ В CSV ЛОГОВЕТЕ
             all_trips_computed = []
             try:
                 df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
@@ -1137,12 +1136,14 @@ else:
                     textposition='outside',
                     cliponaxis=False
                 )
+                
+                # ИЗЧИСТЕНИ НАСТРОЙКИ НА LAYOUT БЕЗ КОНФЛИКТНИ ОБЕКТИ И ШРИФТОВЕ
                 fig_pixel.update_layout(
-                    title=dict(text=f"<b>{graph_title}</b>", font=dict(size=12, color='#2f3542', family="Segoe UI")),
+                    title=dict(text=graph_title),
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
                     xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
-                    yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(size=11, fontWeight='bold', color='#2f3542')),
+                    yaxis=dict(showgrid=False, showline=False, title=""),
                     margin=dict(l=10, r=90, t=40, b=10),
                     height=220,
                     bargap=0.3
@@ -1152,7 +1153,6 @@ else:
                 st.info("Няма достатъчно база данни от пътувания за сравнение.")
                 
             st.markdown("<br>", unsafe_allow_html=True)
-            # Бутон за бързо затваряне на графичната секция
             if st.button("❌ Затвори анализите", use_container_width=True, type="primary", key="close_inner_comparison_btn"):
                 st.session_state.show_comparison_graphic = False
                 st.rerun()
