@@ -197,43 +197,43 @@ if st.session_state["current_trip"] is None:
     
 
     
-    # 1. ЧИСТ CSS ЗА НАМАЛЯВАНЕ НА ШРИФТА, ИЗРАВНЯВАНЕ И ЗАБРАНА ЗА ПАДАНЕ НА НОВ РЕД
+    st.markdown("---")
+    
+    # 1. CSS ЗА ЗАКЛЮЧВАНЕ НА ЕДИН РЕД И ФИКСИРАНЕ НА РАЗСТОЯНИЕТО НА ТЕЛЕФОН
     st.html("""
     <style>
-        /* ФИКС ЗА ТЕЛЕФОН: Забранява на колоните да падат една под друга */
+        /* Държи колоните в една линия винаги */
         [data-testid="stHorizontalBlock"] {
             display: flex !important;
             flex-direction: row !important;
-            flex-wrap: nowrap !important; /* Държи ги на един ред винаги */
+            flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 0.5rem !important;
+            gap: 4px !important; /* Настройка на разстоянието между бутона и текста */
         }
         
-        /* Изравнява ширината на първата колона спрямо бутона */
+        /* ФИКС: Спира разтягането на първата колона и я свива около бутона */
         [data-testid="stHorizontalBlock"] > div:first-child {
-            flex: 0 0 auto !important;
-            width: auto !important;
+            flex: 0 0 55px !important; /* Заковава ширината на бутона на 55px */
+            min-width: 55px !important;
+            max-width: 55px !important;
         }
 
-        /* Намалява шрифта и го изравнява вертикално */
+        /* Изчистен малък текст с перфектна вертикална линия */
         .small-clean-text {
             font-family: var(--font), sans-serif !important;
             font-size: 14px !important; 
             color: #ffffff !important;
             margin: 0 !important;
-            margin-top: -14px !important; /* Вашата настройка за височина */
+            margin-top: -14px !important; /* Твоята ръчна настройка за височина */
             padding: 0 !important;
-            white-space: nowrap !important; /* Забранява на самия текст да се пречупва */
+            white-space: nowrap !important;
         }
     </style>
     """)
 
-    # 2. ПОДРЕДБА В СВРЪХТЕСНИ КОЛОНИ
+    # 2. ПОДРЕДБА В КОЛОНИ (CSS ВЕЧЕ КОНТРОЛИРА ШИРИНАТА ИМ НА СЪОТНОШЕНИЕ)
     toggle_col, title_col = st.columns([0.06, 0.94], vertical_alignment="center")
 
-
-    # 2. ПОДРЕДБА В СВРЪХТЕСНИ КОЛОНИ, КОИТО НЕ СЕ РАЗДЕЛЯТ
-    toggle_col, title_col = st.columns([0.06, 0.94], vertical_alignment="center")
     
     with toggle_col:
         # Връщаме оригиналния чист бутон, който си работеше отлично
