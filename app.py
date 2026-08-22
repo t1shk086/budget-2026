@@ -241,8 +241,9 @@ if st.session_state["current_trip"] is None:
             st.rerun()
     else:
         st.markdown("Все още нямате записани почивки. Създайте първото си приключение по-долу!", unsafe_allow_html=True)
-        st.markdown("или", unsafe_allow_html=True)
-
+    
+    st.markdown("или", unsafe_allow_html=True)
+    
     @st.dialog("➕ Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:",placeholder="Въведете име...").strip()
@@ -482,14 +483,11 @@ else:
                 val_average = (current_liters / current_dist * 100)
         except:
             val_average = 0.0
-
         color_gauge_real = "#00f2fe" if val_real < 6.0 else ("#ffa500" if val_real < 8.5 else "#ff4b4b")
         color_gauge_avg = "#00f2fe" if val_average < 6.0 else ("#ffa500" if val_average < 8.5 else "#ff4b4b")
         transport_liters = float(df_expenses[df_expenses['category'] == 'Транспорт']['liters'].sum()) + m_fuel
-
         st.markdown(f"### ⏲ Данни за разход и пробег:")
         st.markdown(f"📍 СЛЕДЕНЕ НА ПРОБЕГА{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН' if is_trip_finished else ''}S{finish_icon_html}Старт{s_km:.0f} кмИзминати{dist:.0f} кмКраен{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}", unsafe_allow_html=True)
-
         box_col1, box_col2 = st.columns(2)
         with box_col1:
             if is_trip_finished:
