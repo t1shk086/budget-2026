@@ -1006,7 +1006,7 @@ else:
     </body>
     </html>"""
 
-    # === ИНТЕГРИРАНА МУЛТИФУНКЦИОНАЛНА СЪСРЕДОТОЧЕНА ДИАЛОГОВА СИСТЕМА ===
+    # === ИНТЕГРИРАНА МУЛТИФУНКЦИОНАЛНА ДИАЛОГОВА СИСТЕМА ===
     @st.dialog("💾 Действия с отчети и анализи", width="large")
     def download_and_compare_dialog():
         st.markdown("#### 📥 Изтегляне на текущото пътуване")
@@ -1046,6 +1046,7 @@ else:
             
         if st.button("📈 Сравни всички записани пътувания", use_container_width=True, type="secondary"):
             st.session_state.show_comparison_graphic = not st.session_state.show_comparison_graphic
+            st.rerun()
             
         if st.session_state.show_comparison_graphic:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -1077,10 +1078,10 @@ else:
                     t_dist, s_k, e_k = 0.0, 0.0, 0.0
                     days_count = 1
                     if not df_t_sett.empty:
-                        s_k = float(df_t_sett.iloc[0].get("start_km", 0.0))
-                        e_k = float(df_t_sett.iloc[0].get("end_km", 0.0))
-                        st_d_str = str(df_t_sett.iloc[0].get("start_date", ""))
-                        en_d_str = str(df_t_sett.iloc[0].get("end_date", ""))
+                        s_k = float(df_t_sett.get("start_km", pd.Series([0.0])).iloc[0])
+                        e_k = float(df_t_sett.get("end_km", pd.Series([0.0])).iloc[0])
+                        st_d_str = str(df_t_sett.get("start_date", pd.Series([""])).iloc[0])
+                        en_d_str = str(df_t_sett.get("end_date", pd.Series([""])).iloc[0])
                         
                         max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
                         eff_e = e_k if e_k > 0 else max_k
@@ -1144,12 +1145,17 @@ else:
                     yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(size=11, fontWeight='bold', color='#2f3542')),
                     margin=dict(l=10, r=90, t=40, b=10),
                     height=220,
-                    barhovermode=False,
                     bargap=0.3
                 )
                 st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
             else:
                 st.info("Няма достатъчно база данни от пътувания за сравнение.")
+                
+            st.markdown("<br>", unsafe_allow_html=True)
+            # Бутон за бързо затваряне на графичната секция
+            if st.button("❌ Затвори анализите", use_container_width=True, type="primary", key="close_inner_comparison_btn"):
+                st.session_state.show_comparison_graphic = False
+                st.rerun()
 
     # === ПОДРЕДБА НА СТАНДАРТНИТЕ БУТОНИ НА ЕКРАНА ===
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
@@ -1159,8 +1165,6 @@ else:
 
     if st.button("📥 Свали отчет", use_container_width=True, key="main_download_report_popup_trigger"):
         download_and_compare_dialog()
-
-
 
 
 
