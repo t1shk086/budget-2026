@@ -138,6 +138,37 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
         return True
     except: 
         return False
+def analyze_receipt_text(image_file):
+    import re
+    from PIL import Image
+    try:
+        import easyocr
+        # Инициализира четеца за Български и Английски език
+        reader = easyocr.Reader(['bg', 'en'])
+        
+        image = Image.open(image_file)
+        result = reader.readtext(image, detail=0)
+        full_text = " ".join(result).lower()
+        
+        # 1. Търсене на категория по твоите реални КАТЕГОРИИ
+        detected_kat = None
+        if any(w in full_text for w in ["lukoil", "shell", "omv", "petrol", "бензин", "дизел", "газ", "гориво", "зареждане"]):
+            detected_kat = "Транспорт"
+        elif any(w in full_text for w in ["lidl", "billa", "kaufland", "метро", "ресторант", "механа", "кафе", "храна", "pizz", "дюнер"]):
+            detected_kat = "Храна и напитки"
+        elif any(w in full_text for w in ["хотел", "hotel", "нощувка", "booking", "airbnb", "къща за гости"]):
+            detected_kat = "Нощувки/Хотел"
+        elif any(w in full_text for w in ["ветеринар", "зоо", "куче", "храна за кучета", "повод"]):
+            detected_kat = "Куче"
+            
+        # 2. Извличане на Сума чрез регулярни изрази (търси десетични числа)
+        amounts = re.findall(r'\d+[\.,]\d{2}', full_text)
+        amounts = [float(a.replace(',', '.')) for a in amounts]
+        detected_amount = max(amounts) if amounts else 0.0
+        
+        return detected_kat, detected_amount
+    except:
+        return None, 0.0
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
@@ -192,6 +223,53 @@ if st.session_state["current_trip"] is None:
 
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
+    st.markdown("---")
+    st.markdown("### 📸 Бърз разход чрез Скенер")
+    uploaded_receipt = st.file_uploader("Зареди или снимай касова бележка", type=["jpg", "jpeg", "png"], key="main_receipt_uploader", label_visibility="collapsed")
+
+    if uploaded_receipt is not None:
+        with st.spinner("🔄 AI анализира бележката..."):
+            ai_kat, ai_amount = analyze_receipt_text(uploaded_receipt)
+        
+        st.markdown("#### 📝 Потвърждение на данните:")
+        
+        # 1. Автоматично попълнена сума
+        scanned_amount = st.number_input("Разпозната сума (EUR):", value=float(ai_amount), min_value=0.0, step=0.01, format="%.2f", key="scanned_amt_field")
+        scanned_desc = st.text_input("Описание / Обект:", value="Сканиран разход от бележка", key="scanned_desc_field")
+        
+        # 2. Твоят съществуващ кликащ сегментиран контрол за категории
+        st.markdown("<small>Изберете категория (AI маркира автоматично, ако я разпознае):</small>", unsafe_allow_html=True)
+        chosen_cat = st.segmented_control(
+            label="Категория:",
+            options=KATEGORII,
+            default=ai_kat if ai_kat in KATEGORII else None,
+            label_visibility="collapsed",
+            key="scanned_cat_segment_clicker"
+        )
+        
+        if not chosen_cat:
+            st.info("ℹ️ Моля, кликнете върху категория от бутоните по-горе, за да изпратите разхода.")
+        
+        # 3. Избор в кое пътуване да се запише разхода (ако имаш повече от едно записано)
+        if existing:
+            selected_target_trip = st.selectbox("Запиши към пътуване:", opts, key="scanned_target_trip_select")
+            
+            if st.button("💾 Запиши разхода", use_container_width=True, type="primary", key="save_scanned_expense_btn"):
+                if not chosen_cat:
+                    st.error("Грешка: Не сте избрали категория!")
+                elif scanned_amount <= 0:
+                    st.error("Грешка: Моля, въведете валидна сума!")
+                else:
+                    target_trip_id = selected_target_trip.replace(" ", "_")
+                    is_deposit = (chosen_cat == "Депозит/Резервация")
+                    
+                    # Извикваме твоята вградена функция за добавяне на разход в CSV лога
+                    if add_expense(target_trip_id, scanned_amount, chosen_cat, scanned_desc, is_deposit):
+                        st.success(f"✅ Успешно записан разход към {selected_target_trip}!")
+                        # Изчистване на бележката чрез изкуствено рестартиране на формата
+                        st.session_state["form_version"] += 1
+                        st.rerun()
+
 else:
     trip_id = st.session_state["current_trip"]
     c_s = get_trip_settings(trip_id)
