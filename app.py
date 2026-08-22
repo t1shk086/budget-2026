@@ -228,7 +228,7 @@ if st.session_state["current_trip"] is None:
     # 2. ОФИЦИАЛЕН СТРУКТУРЕН РЕД НА STREAMLIT (КОЙТО НЕ СЕ ЧУПИ И НЕ ПРАВИ ПРЕМИГВАНИЯ В ДРУГИТЕ ЕКРАНИ)
     with st.container():
         # Използваме вградените колони, но със специален параметър, който ги държи малки на всяко устройство
-        r_col1, r_col2 = st.columns([0.01, 0.99], vertical_alignment="center")
+        r_col1, r_col2 = st.columns([0.06, 0.94], vertical_alignment="center")
         
         with r_col1:
             show_comparison = st.toggle(
