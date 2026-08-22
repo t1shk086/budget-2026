@@ -768,7 +768,7 @@ else:
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
 
-    # === КОРЕГИРАН ВАРИАНТ (ОРИГИНАЛНО СИНЬО + ЧЕРНИ ЛИНИИ ГОРЕ И ДОЛУ) ===
+    # === ФИНАЛЕН БРАНДИРАН ВАРИАНТ (ГОЛЯМО ЛОГО + СИВА ВЕРТИКАЛНА ЧЕРТА) ===
     pdf_html = f"""<!DOCTYPE html>
     <html>
     <head>
@@ -789,7 +789,7 @@ else:
                 margin: 0 auto;
             }}
             .header-container {{
-                border-bottom: 3px solid #000000; /* ЧЕРНА горна линия */
+                border-bottom: 3px solid #000000; /* Черна горна линия */
                 padding-bottom: 12px;
                 margin-bottom: 25px;
                 display: flex;
@@ -805,9 +805,9 @@ else:
             }}
             .header-right {{
                 text-align: right;
-                font-weight: bold;
+                font-weight: 900; /* Изключително плътно */
                 color: #00a8ff; 
-                font-size: 15px;
+                font-size: 20px; /* По-голямо лого */
                 letter-spacing: 0.5px;
             }}
             h3 {{
@@ -827,7 +827,7 @@ else:
             .summary-box {{
                 background: #f4f7f9; /* Изчистен сивкаво-син бокс */
                 border: 1px solid #dcdde1;
-                border-left: 6px solid #00a8ff; /* PixelApp син акцент */
+                border-left: 6px solid #ced6e0; /* СИВА вертикална черта (пасваща на хронологията) */
                 padding: 18px;
                 border-radius: 6px;
                 margin-bottom: 25px;
@@ -843,7 +843,7 @@ else:
             }}
             .summary-amount {{
                 font-size: 28px;
-                color: #00a8ff; /* PixelApp син акцент за сумата */
+                color: #00a8ff; /* Задържан син бранд акцент за сумата */
                 font-weight: 800;
                 margin: 0;
             }}
@@ -921,7 +921,7 @@ else:
                 font-weight: bold;
                 background-color: #f4f7f9 !important;
                 font-size: 14px;
-                border-top: 3px solid #000000; /* ЧЕРНА долна линия над ОБЩО */
+                border-top: 3px solid #000000; /* Черна долна линия над ОБЩО */
             }}
         </style>
     </head>
