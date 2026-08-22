@@ -195,13 +195,13 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("---")
     
-    # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ (MODAL) ЗА ГРАФИКИТЕ
+    # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ
     @st.dialog("📊 Глобален анализ и сравнения", width="large")
     def show_global_analytics_dialog():
-        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в цял размер!</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Сравнение и ефективност на всички записани пътувания:</p>", unsafe_allow_html=True)
         
         chosen_criteria = st.segmented_control(
-            label="Изберете критерий:",
+            label="Изберете критерий за сравнение:",
             options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
             default="Цена за 1 км",
             key="modal_segmented_metric_selector"
@@ -295,7 +295,7 @@ if st.session_state["current_trip"] is None:
                 xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
                 yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
                 margin=dict(l=10, r=110, t=50, b=10),
-                height=300,
+                height=320,
                 bargap=0.35
             )
             st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
@@ -303,13 +303,30 @@ if st.session_state["current_trip"] is None:
             st.info("Няма достатъчно база данни за сравнение.")
 
         st.write("---")
-        # ФИКС: Ръчно изключваме toggle състоянието преди опресняване
-        if st.button("❌ Затвори", use_container_width=True):
+        if st.button("❌ Затвори анализа", key="bottom_modal_close_btn", use_container_width=True):
             st.session_state["stable_comparison_toggle"] = False
             st.rerun()
 
-    # ПОДРЕЖДАНЕ: ПРЕВКЛЮЧВАТЕЛЯТ ВЛЯВО, ЗАГЛАВИЕТО ВДЯСНО
-    toggle_col, title_col = st.columns([0.06, 0.5], vertical_alignment="center")
+    # 2. CSS ЗА ЗАКЛЮЧВАНЕ НА РЕДА НА МОБИЛНИ УСТРОЙСТВА
+    st.html("""
+    <style>
+        /* Намира основния контейнер на колоните и забранява пречупването (flex-wrap) на телефон */
+        div[data-testid="stHorizontalBlock"] {
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 10px !important;
+        }
+        /* Оптимизира ширината на малката колона за бутона на малки екрани */
+        div[data-testid="stHorizontalBlock"] > div:first-child {
+            flex-grow: 0 !important;
+            flex-shrink: 0 !important;
+            flex-basis: 50px !important; /* Фиксира перфектно място за toggle бутона */
+        }
+    </style>
+    """)
+
+    # ПОДРЕДБА ЧРЕЗ СТАНДАРТНИ КОЛОНИ (СЕГА СЪС ЗАЩИТА ЗА МОБИЛНИ)
+    toggle_col, title_col = st.columns([0.15, 0.85], vertical_alignment="center")
     
     with toggle_col:
         show_comparison = st.toggle(
@@ -320,12 +337,14 @@ if st.session_state["current_trip"] is None:
         )
         
     with title_col:
-        # ФИКС: Нормален шрифт без удебеляване и без специфични размери
-        st.write("Сравнителен Панел")
+        st.markdown(
+            "<p style='font-family: var(--font), sans-serif; font-size: 10px; font-weight: 500; color: #ffffff; margin: 0; padding: 0;'>Глобален анализ</p>", 
+            unsafe_allow_html=True
+        )
         
-    # ПРИ АКТИВИРАНЕ ОТ TOGGLE БУТОНА - ИЗВИКВАМЕ ДИАЛОГОВИЯ ПРОЗОРЕЦ
     if show_comparison:
         show_global_analytics_dialog()
+
 
 
 
