@@ -193,7 +193,7 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
-    st.markdown("---")
+
     
 
     
