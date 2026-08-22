@@ -194,13 +194,69 @@ if st.session_state["current_trip"] is None:
         create_trip_modal()
 
     st.markdown("<br>", unsafe_allow_html=True)
-    home_analysis_cols = st.columns(2)
-    with home_analysis_cols[0]:
-        st.markdown("---")
-        st.markdown("#### 🔄 Глобални анализи:")
-        
-        # СТАБИЛЕН ПРЕВКЛЮЧВАТЕЛ БЕЗ РЕСТАРТИРАНЕ НА СТРАНИЦАТА
-        show_comparison = st.checkbox("📈 Сравни всички записани пътувания", value=False, key="stable_comparison_toggle")
+    st.markdown('<div style="height:18px;"></div>', unsafe_allow_html=True)
+
+    analytics_cols = st.columns([1, 1])
+    with analytics_cols[0]:
+        st.markdown('''
+        <style>
+        .global-analytics-card {
+            background: linear-gradient(145deg, rgba(24,27,36,0.97), rgba(15,17,23,0.99));
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+            margin-bottom: 8px;
+        }
+        .global-analytics-head {
+            display:flex;
+            align-items:center;
+            gap:12px;
+        }
+        .global-analytics-icon {
+            width:40px;
+            height:40px;
+            border-radius:12px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:linear-gradient(135deg, rgba(0,242,254,0.18), rgba(79,172,254,0.10));
+            border:1px solid rgba(0,242,254,0.20);
+            font-size:20px;
+        }
+        .global-analytics-title {
+            color:#f5f7fa;
+            font-size:17px;
+            font-weight:800;
+            line-height:1.15;
+        }
+        .global-analytics-subtitle {
+            color:#7f8796;
+            font-size:11px;
+            margin-top:4px;
+        }
+        .global-analytics-accent {
+            height:2px;
+            width:52px;
+            margin-top:14px;
+            border-radius:5px;
+            background:linear-gradient(90deg,#00f2fe,#4facfe);
+            box-shadow:0 0 10px rgba(0,242,254,0.35);
+        }
+        </style>
+        <div class="global-analytics-card">
+            <div class="global-analytics-head">
+                <div class="global-analytics-icon">📊</div>
+                <div>
+                    <div class="global-analytics-title">Глобален анализ</div>
+                    <div class="global-analytics-subtitle">Сравнение на всички записани пътувания</div>
+                </div>
+            </div>
+            <div class="global-analytics-accent"></div>
+        </div>
+        ''', unsafe_allow_html=True)
+
+        show_comparison = st.toggle("Сравни всички записани пътувания", value=False, key="stable_comparison_toggle")
             
         if show_comparison:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -396,6 +452,9 @@ else:
 
     date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
     st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {trip_id.replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+    with analytics_cols[1]:
+        st.empty()
+
     st.markdown("---")
     st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
     
