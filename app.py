@@ -207,7 +207,7 @@ if st.session_state["current_trip"] is None:
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 1px !important; /* Настройка на разстоянието между бутона и текста */
+            gap: -3px !important; /* Настройка на разстоянието между бутона и текста */
         }
         
         /* ФИКС: Спира разтягането на първата колона и я свива около бутона */
