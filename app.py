@@ -195,9 +195,6 @@ if st.session_state["current_trip"] is None:
 
 
     
-
-    
-    
     st.markdown("---")
     
     # 1. CSS ЗА НАМАЛЯВАНЕ НА РАЗМЕРА И ВЕРТИКАЛНО НИВЕЛИРАНЕ
@@ -236,7 +233,7 @@ if st.session_state["current_trip"] is None:
         with r_col2:
             st.markdown('<p class="analytics-row-text">Глобален анализ</p>', unsafe_allow_html=True)
             
-    # 3. ПОПРАВЕНА И КОРЕКТНА ЛОГИКА ЗА ДИАЛОГОВИЯ ПРОЗОРЕЦ
+    # 3. КОРЕКТНА ЛОГИКА ЗА ДИАЛОГОВИЯ ПРОЗОРЕЦ (ПРАВИЛНО ИНДЕНТИРАНА)
     if show_comparison:
         @st.dialog("📊 Глобален анализ и сравнения", width="large")
         def show_global_analytics_dialog():
@@ -258,11 +255,9 @@ if st.session_state["current_trip"] is None:
                 for t in unique_trips:
                     if not t or str(t).strip() == "": continue
                     
-                    # ФИКС: Правилно филтриране само за текущото пътуване 't'
                     df_t_data = df_all_data[df_all_data["trip_id"] == t]
                     df_t_sett = df_all_settings[df_all_settings["trip_id"] == t]
 
-                    # ФИКС: Сумиране от филтрирания df_t_data, а не от общия файл
                     t_dep = float(df_t_data[df_t_data["type"] == "deposit"]["amount"].sum())
                     t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
                     t_total = t_dep + t_site
@@ -297,62 +292,65 @@ if st.session_state["current_trip"] is None:
             except:
                 pass
 
-        if all_trips_computed:
-            df_pixel = pd.DataFrame(all_trips_computed)
-            import plotly.express as px
+            # ФИКС: Този блок вече е правилно поставен С ВЪТРЕШЕН ТАБ вътре във функцията
+            if all_trips_computed:
+                df_pixel = pd.DataFrame(all_trips_computed)
+                import plotly.express as px
 
-            if chosen_criteria == "Цена за 1 км":
-                x_col = "Цена за 1 км (EUR)"
-                t_format = "%{text:.2f} EUR/км"
-                df_filtered = df_pixel[df_pixel["DistValid"] == True]
-                if df_filtered.empty: df_filtered = df_pixel
-                df_sorted = df_filtered.sort_values(by=x_col, ascending=True)
-                graph_title = "💰 Сравнение на ефективността (EUR/1км)"
-            elif chosen_criteria == "Обща Стойност":
-                x_col = "Обща Стойност (EUR)"
-                t_format = "%{text:,.2f} EUR"
-                df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                graph_title = "💸 Общ разход за почивките"
-            else: 
-                x_col = "Дневен Разход (EUR)"
-                t_format = "%{text:.2f} EUR/ден"
-                df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                graph_title = "📅 Среднодневен разход"
+                if chosen_criteria == "Цена за 1 км":
+                    x_col = "Цена за 1 км (EUR)"
+                    t_format = "%{text:.2f} EUR/км"
+                    df_filtered = df_pixel[df_pixel["DistValid"] == True]
+                    if df_filtered.empty: df_filtered = df_pixel
+                    df_sorted = df_filtered.sort_values(by=x_col, ascending=True)
+                    graph_title = "💰 Сравнение на ефективността (EUR/1км)"
+                elif chosen_criteria == "Обща Стойност":
+                    x_col = "Обща Стойност (EUR)"
+                    t_format = "%{text:,.2f} EUR"
+                    df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                    graph_title = "💸 Общ разход за почивките"
+                else: 
+                    x_col = "Дневен Разход (EUR)"
+                    t_format = "%{text:.2f} EUR/ден"
+                    df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                    graph_title = "📅 Среднодневен разход"
 
-            fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
+                fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
 
-            fig_pixel.update_traces(
-                marker=dict(
-                    color=df_sorted[x_col],
-                    colorscale=[[0, '#00f2fe'], [0.5, '#4facfe'], [1, '#b100ff']],
-                    line=dict(width=0),
-                    cornerradius=15
-                ),
-                texttemplate=f"<b>{t_format}</b>",
-                textposition='outside',
-                cliponaxis=False
-            )
+                fig_pixel.update_traces(
+                    marker=dict(
+                        color=df_sorted[x_col],
+                        colorscale=[[0, '#00f2fe'], [0.5, '#4facfe'], [1, '#b100ff']],
+                        line=dict(width=0),
+                        cornerradius=15
+                    ),
+                    texttemplate=f"<b>{t_format}</b>",
+                    textposition='outside',
+                    cliponaxis=False
+                )
 
-            fig_pixel.update_layout(
-                title=dict(text=graph_title, font=dict(color="white")),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
-                yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
-                margin=dict(l=10, r=110, t=50, b=10),
-                height=320,
-                bargap=0.35
-            )
-            st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
-        else:
-            st.info("Няма достатъчно база данни за сравнение.")
+                fig_pixel.update_layout(
+                    title=dict(text=graph_title, font=dict(color="white")),
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
+                    yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
+                    margin=dict(l=10, r=110, t=50, b=10),
+                    height=320,
+                    bargap=0.35
+                )
+                st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.info("Няма достатъчно база данни за сравнение.")
 
-        st.write("---")
-        if st.button("❌ Затвори анализа", key="bottom_modal_close_btn", use_container_width=True):
-            st.session_state["stable_comparison_toggle"] = False
-            st.rerun()
+            st.write("---")
+            if st.button("❌ Затвори анализа", key="bottom_modal_close_btn", use_container_width=True):
+                st.session_state["stable_comparison_toggle"] = False
+                st.rerun()
 
-    show_global_analytics_dialog()
+        # Извикваме прозореца правилно
+        show_global_analytics_dialog()
+
 
 
 
