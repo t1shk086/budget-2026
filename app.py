@@ -763,56 +763,223 @@ else:
 
 
     
+    # === ОПТИМИЗИРАН ЗА ПРИНТИРАНЕ (A4) БЛОК ЗА PDF/HTML ОТЧЕТ ===
     avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
     grand_total = depozit_hotel + total_on_site
-    period_html = f" &bull; 📅 {st_date} - {en_date}" if st_date and st_date != "nan" else ""
-    dist_html = f"{dist:.0f} км" if dist > 0 else "—"
+    period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
+    dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
     
-    # 🎨 STREAMLIT SYNC (CALIBRI EDITION — БЕЗ КАТЕГОРИЯ И КИЛОМЕТРАЖ)
-    pdf_html = "<html><head><meta charset='utf-8'><style>body { font-family: 'Calibri', 'Segoe UI', sans-serif; background-color: #0e1117; color: #fafafa; margin: 0; padding: 40px; -webkit-font-smoothing: antialiased; } .wrapper { max-width: 900px; margin: 0 auto; background: #0e1117; padding: 20px; } .report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #262730; padding-bottom: 20px; } .report-title { font-size: 24px; color: #ffffff; font-weight: 700; letter-spacing: -0.5px; } .report-subtitle { color: #808495; font-size: 14px; margin-top: 4px; } .brand-badge { background: rgba(255, 75, 75, 0.1); color: #ff4b4b; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; border: 1px solid rgba(255, 75, 75, 0.2); } .stats-container { display: flex; gap: 14px; margin-bottom: 25px; } .stat-card { flex: 1; background: #262730; border: 1px solid rgba(255,255,255,0.05); padding: 16px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); } .stat-label { font-size: 11px; text-transform: uppercase; color: #808495; font-weight: 600; letter-spacing: 0.5px; } .stat-value { font-size: 22px; font-weight: 700; margin-top: 6px; color: #ffffff; } .val-red { color: #ff4b4b; } .val-cyan { color: #00f2fe; } .car-section { background: #131722; border: 1px solid #262730; padding: 20px; border-radius: 10px; margin-bottom: 30px; } .car-title { font-size: 12px; font-weight: 700; color: #808495; margin: 0; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; } .car-grid { display: flex; justify-content: space-between; font-size: 14px; color: #e0e0e0; } .car-grid b { color: #ffffff; font-weight: 700; } table { width: 100%; border-collapse: collapse; margin-top: 10px; } th { color: #808495; text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #262730; } td { padding: 14px 16px; border-bottom: 1px solid #262730; font-size: 14px; color: #e0e0e0; vertical-align: middle; } tr:hover td { background-color: rgba(255,255,255,0.02); color: #ffffff; } .fuel-highlight { color: #ff1493; font-weight: 700; background: rgba(255,20,147,0.08); padding: 2px 6px; border-radius: 4px; } .date-text { color: #808495; font-size: 13px; font-weight: 700; } .total-box { background: rgba(255, 75, 75, 0.05); border-radius: 10px; padding: 18px; text-align: right; margin-top: 25px; border: 1px dashed rgba(255, 75, 75, 0.2); }</style></head><body><div class='wrapper'>"
+    # Модерен, чист дизайн, перфектен за принтиране на А4 без излишен разход на мастило
+    pdf_html = f"""<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset='utf-8'>
+        <title>Отчет за пътуване - {trip_id.replace('_', ' ')}</title>
+        <style>
+            @media print {{
+                body {{ font-size: 12px; line-height: 1.4; color: #000; background: #fff; padding: 0; }}
+                .no-print {{ display: none; }}
+                tr {{ page-break-inside: avoid; }}
+                @page {{ size: A4; margin: 15mm; }}
+            }}
+            body {{
+                font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                padding: 20px;
+                color: #2c3e50;
+                background-color: #ffffff;
+                max-width: 800px;
+                margin: 0 auto;
+            }}
+            .header-container {{
+                border-bottom: 3px solid #34495e;
+                padding-bottom: 12px;
+                margin-bottom: 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+            }}
+            h2 {{
+                color: #2c3e50;
+                margin: 0 0 5px 0;
+                font-size: 24px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }}
+            .meta-info {{
+                font-size: 13px;
+                color: #7f8c8d;
+                margin: 0;
+            }}
+            .summary-box {{
+                background: #f8f9fa;
+                border: 1px solid #e2e8f0;
+                border-left: 5px solid #2ecc71;
+                padding: 15px;
+                border-radius: 6px;
+                margin-bottom: 25px;
+            }}
+            .summary-title {{
+                font-size: 14px;
+                color: #7f8c8d;
+                text-transform: uppercase;
+                margin-bottom: 5px;
+                font-weight: 600;
+            }}
+            .summary-amount {{
+                font-size: 22px;
+                color: #27ae60;
+                font-weight: bold;
+                margin: 0;
+            }}
+            .stats-grid {{
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin-bottom: 25px;
+            }}
+            .stat-card {{
+                background: #fdfefe;
+                border: 1px solid #e2e8f0;
+                padding: 12px 15px;
+                border-radius: 6px;
+            }}
+            .stat-card h4 {{
+                margin: 0 0 8px 0;
+                color: #34495e;
+                border-bottom: 1px solid #ecf0f1;
+                padding-bottom: 4px;
+                font-size: 14px;
+            }}
+            .stat-card ul {{
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                font-size: 13px;
+            }}
+            .stat-card li {{
+                margin-bottom: 4px;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                font-size: 12px;
+            }}
+            th {{
+                background-color: #34495e;
+                color: #ffffff;
+                text-align: left;
+                padding: 8px 10px;
+                font-weight: 600;
+            }}
+            td {{
+                padding: 8px 10px;
+                border-bottom: 1px solid #e2e8f0;
+                color: #333;
+            }}
+            tr:nth-child(even) {{
+                background-color: #f8f9fa;
+            }}
+            .fuel-highlight {{
+                color: #c0392b;
+                font-weight: 600;
+            }}
+            .badge-km {{
+                background: #e1e8ed;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 11px;
+                color: #4c566a;
+                font-weight: 600;
+            }}
+            .text-right {{
+                text-align: right;
+            }}
+            .total-row {{
+                font-weight: bold;
+                background-color: #eaeded !important;
+                font-size: 13px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class='header-container'>
+            <div>
+                <h2>ОТЧЕТ ЗА ПЪТУВАНЕ: {trip_id.upper().replace('_', ' ')}</h2>
+                <p class='meta-info'>Генериран на: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
+            </div>
+        </div>
+
+        <div class='summary-box'>
+            <div class='summary-title'>Обща стойност на почивката</div>
+            <div class='summary-amount'>{grand_total:.2f} EUR</div>
+            <p style='margin: 5px 0 0 0; font-size: 12px; color: #555;'>
+                (Депозити: {depozit_hotel:.2f} EUR | Разходи на място: {total_on_site:.2f} EUR)
+            </p>
+        </div>
+
+        <div class='stats-grid'>
+            <div class='stat-card'>
+                <h4>📊 Период и Пробег</h4>
+                <ul>
+                    <li>{period_html.replace(' • ', '')}</li>
+                    <li><b>Начален километраж:</b> {s_km:.0f} км</li>
+                    <li><b>Краен километраж:</b> {eff_end_km:.0f} км</li>
+                    <li><b>Общо изминато разстояние:</b> {dist:.0f} км</li>
+                </ul>
+            </div>
+            <div class='stat-card'>
+                <h4>🚗 Статистика за Автомобила</h4>
+                <ul>
+                    <li><b>Заредено гориво:</b> {total_liters_calculated:.1f} литра</li>
+                    <li><b>Разходи за гориво/транспорт:</b> {auto_fuel_money:.2f} EUR</li>
+                    <li><b>Среден разход:</b> {avg_con_txt}</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>📋 Списък с хронологични разходи</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style='width: 18%;'>Дата и час</th>
+                    <th style='width: 20%;'>Категория</th>
+                    <th style='width: 37%;'>Описание</th>
+                    <th style='width: 12%;'>Табло (км)</th>
+                    <th style='width: 13%;' class='text-right'>Сума (EUR)</th>
+                </tr>
+            </thead>
+            <tbody>
+    """
     
-    # 2. СИНХРОНИЗИРАН ХЕДЪР И КАРТИ
-    pdf_html += f"<div class='report-header'><div><div class='report-title'>📊 ОТЧЕТ: {trip_id.upper().replace('_', ' ')}</div><div class='report-subtitle'>Дигитален бордови дневник{period_html}</div></div><div class='brand-badge'>Streamlit Sync</div></div>"
-    pdf_html += f"<div class='stats-container'><div class='stat-card'><div class='stat-label'>💰 ОБЩИ РАЗХОДИ</div><div class='stat-value val-red'>{grand_total:.2f} EUR</div></div><div class='stat-card'><div class='stat-label'>🏨 ДЕПОЗИТ</div><div class='stat-value'>{depozit_hotel:.2f} EUR</div></div><div class='stat-card'><div class='stat-label'>💸 НА МЯСТО</div><div class='stat-value val-cyan'>{total_on_site:.2f} EUR</div></div><div class='stat-card'><div class='stat-label'>🛣️ ОБЩО ПРОБЕГ</div><div class='stat-value' style='color:#808495;'>{dist_html}</div></div></div>"
-    
-    # 3. ДАННИ ЗА КОЛАТА
-    pdf_html += f"<div class='car-section'><div class='car-title'>🚗 Параметри на превозното средство</div><div class='car-grid'>"
-    pdf_html += f"<div><b>Пробег:</b> {s_km:.0f} км &rarr; {eff_end_km:.0f} км</div>"
-    pdf_html += f"<div><b>Гориво:</b> {total_liters_calculated:.1f} л ({auto_fuel_money:.2f} EUR)</div>"
-    pdf_html += f"<div><b>Среден разход:</b> <span style='color: #00f2fe; font-weight:700;'>{avg_con_txt}</span></div></div></div>"
-    
-    # 4. МИНИМАЛИСТИЧНА ТАБЛИЦА (САМО ДАТА И ОПИСАНИЕ/СУМА)
-    pdf_html += "<table><thead><tr><th style='width: 25%;'>ДАТА / ЧАС</th><th style='width: 60%;'>ОПИСАНИЕ</th><th style='width: 15%;'>СУМА</th></tr></thead><tbody>"
-    
-    # 5. ЦИКЪЛ ЗА РЕДОВЕТЕ
     for _, row in df_trip.iterrows():
         desc_val = str(row['description'])
         if "Моментен разход:" in desc_val:
             desc_val = desc_val.replace("Моментен разход:", "<span class='fuel-highlight'>Моментен разход:</span>")
+        
+        cur_km_val = float(row.get('current_km', 0.0))
+        km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#bbb;'>—</span>"
         formatted_date = str(row['date']).replace(" ", " / ")
         
-        pdf_html += "<tr>"
-        pdf_html += f"<td class='date-text'>{formatted_date}</td>"
-        pdf_html += f"<td style='font-weight: 700; color: #ffffff;'>{desc_val}</td>"
-        pdf_html += f"<td style='font-weight: 700; color: #ffffff;'>{row['amount']:.2f} EUR</td>"
-        pdf_html += "</tr>"
-        
-    # 6. КРАЕН БЛОК С ОБЩАТА СУМА
-    pdf_html += f"</tbody></table><div class='total-box'><span style='font-size: 13px; color: #808495; font-weight: 600; margin-right: 12px;'>ОБЩО НАТРУПАНИ РАЗХОДИ:</span><span style='font-size: 24px; font-weight: 700; color: #ff4b4b;'>{grand_total:.2f} EUR</span></div></div></body></html>"
-    
-    st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-    
-    if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
-        hronologia_popup_dialog()
+        pdf_html += f"""
+                <tr>
+                    <td>{formatted_date}</td>
+                    <td>{get_emoji(row['category'])} {row['category']}</td>
+                    <td>{desc_val}</td>
+                    <td>{km_td_html}</td>
+                    <td class='text-right' style='font-weight: 500;'>{row['amount']:.2f} EUR</td>
+                </tr>"""
 
-    st.download_button(
-        label="Отчет в PDF",
-        data=pdf_html,
-        file_name=f"Otchet_{trip_id}_2026.html",
-        mime="text/html",
-        use_container_width=True,
-        key="st_premium_report_download_btn"
-    )
+    pdf_html += f"""
+                <tr class='total-row'>
+                    <td colspan='4' class='text-right'>ОБЩО:</td>
+                    <td class='text-right' style='color: #c0392b;'>{grand_total:.2f} EUR</td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+    </html>"""
+    # === КРАЙ НА ОПТИМИЗИРАНИЯ БЛОК ===
 
 
 
