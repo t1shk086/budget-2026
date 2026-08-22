@@ -195,13 +195,40 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("---")
     
-    # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ (MODAL) ЗА ГРАФИКИТЕ
+    # 1. ГЛОБАЛЕН CSS СТИЛ ЗА СТРЕЧВАНЕ НА ВСИЧКИ ИЗСКАЧАЩИ ПРОЗОРЦИ (MODALS) В ПРИЛОЖЕНИЕТО
+    st.html("""
+    <style>
+        /* Разтяга диалоговия прозорец на 95% от екрана */
+        div[data-testid="stDialog"] div[role="dialog"] {
+            max-width: 95vw !important;
+            width: 95vw !important;
+            min-width: 95vw !important;
+            margin: auto !important;
+            padding: 20px !important;
+        }
+        /* Оптимизация на вътрешните контейнери за графиките */
+        div[data-testid="stDialog"] .stElementContainer {
+            width: 100% !important;
+        }
+    </style>
+    """)
+    
+    # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ
     @st.dialog("📊 Глобален анализ и сравнения", width="large")
     def show_global_analytics_dialog():
-        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в цял размер!</p>", unsafe_allow_html=True)
-        
+        # Добавяме горен бърз бутон за затваряне
+        top_close_col1, top_close_col2 = st.columns([0.85, 0.15])
+        with top_close_col1:
+            st.markdown("<p style='color: #888; margin: 0;'>Сравнение и ефективност на всички записани пътувания:</p>", unsafe_allow_html=True)
+        with top_close_col2:
+            if st.button("❌", key="top_modal_close_btn", use_container_width=True):
+                st.session_state["stable_comparison_toggle"] = False
+                st.rerun()
+                
+        st.write("")
+
         chosen_criteria = st.segmented_control(
-            label="Изберете критерий:",
+            label="Изберете критерий за сравнение:",
             options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
             default="Цена за 1 км",
             key="modal_segmented_metric_selector"
@@ -295,7 +322,7 @@ if st.session_state["current_trip"] is None:
                 xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
                 yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
                 margin=dict(l=10, r=110, t=50, b=10),
-                height=300,
+                height=350,  # Увеличена височина на графиките за по-добро запълване
                 bargap=0.35
             )
             st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
@@ -303,8 +330,7 @@ if st.session_state["current_trip"] is None:
             st.info("Няма достатъчно база данни за сравнение.")
 
         st.write("---")
-        # ФИКС: Ръчно изключваме toggle състоянието преди опресняване
-        if st.button("❌ Затвори", use_container_width=True):
+        if st.button("❌ Затвори анализа", key="bottom_modal_close_btn", use_container_width=True):
             st.session_state["stable_comparison_toggle"] = False
             st.rerun()
 
@@ -320,12 +346,11 @@ if st.session_state["current_trip"] is None:
         )
         
     with title_col:
-        # ФИКС: Нормален шрифт без удебеляване и без специфични размери
-        st.write("Сравнителен Панел")
+        st.write("Глобален анализ")
         
-    # ПРИ АКТИВИРАНЕ ОТ TOGGLE БУТОНА - ИЗВИКВАМЕ ДИАЛОГОВИЯ ПРОЗОРЕЦ
     if show_comparison:
         show_global_analytics_dialog()
+
 
 
 
