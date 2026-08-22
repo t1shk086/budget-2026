@@ -1009,10 +1009,151 @@ else:
 # === ИНТЕГРИРАНА МУЛТИФУНКЦИОНАЛНА ДИАЛОГОВА СИСТЕМА ===
 @st.dialog("💾 Действия с отчети и анализи", width="large")
 def download_and_compare_dialog():
-    # ... (тук стои съществуващият ти код за отчетите, оставяш си го навътре) ...
-    if st.button("❌ Затвори анализите", use_container_width=True, type="primary", key="close_inner_comparison_btn"):
-        st.session_state.show_comparison_graphic = False
-        st.rerun()
+            st.markdown("#### 📥 Изтегляне на текущото пътуване")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.download_button(
+                label="📄 Свали Отчет за Печат (PDF/HTML)",
+                data=pdf_html,
+                file_name=f"Otchet_{trip_id}_2026.html",
+                mime="text/html",
+                use_container_width=True,
+                key="popup_download_pdf_btn"
+            )
+        
+        with col2:
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                df_excel = df_trip[['date', 'category', 'description', 'current_km', 'amount']].copy()
+                df_excel.columns = ['Дата и час', 'Категория', 'Описание', 'Километраж (км)', 'Сума (EUR)']
+                df_excel.to_excel(writer, index=False, sheet_name='Разходи')
+                
+            st.download_button(
+                label="📊 Свали Таблица с разходи (Excel)",
+                data=buffer.getvalue(),
+                file_name=f"Razhodi_{trip_id}_2026.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                key="popup_download_excel_btn"
+            )
+            
+        st.markdown("---")
+        st.markdown("#### 🔄 Глобални анализи:")
+        
+        # СТАБИЛЕН ПРЕВКЛЮЧВАТЕЛ БЕЗ РЕСТАРТИРАНЕ НА СТРАНИЦАТА
+        show_comparison = st.checkbox("📈 Сравни всички записани пътувания", value=False, key="stable_comparison_toggle")
+            
+        if show_comparison:
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            chosen_criteria = st.segmented_control(
+                label="Изберете критерий за сравнение:",
+                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
+                default="Цена за 1 км",
+                key="popup_segmented_metric_selector"
+            )
+            
+            all_trips_computed = []
+            try:
+                df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
+                df_all_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                unique_trips = df_all_data["trip_id"].dropna().unique()
+                
+                for t in unique_trips:
+                    if not t or str(t).strip() == "": continue
+                    df_t_data = df_all_data[df_all_data["trip_id"] == t]
+                    df_t_sett = df_all_settings[df_all_settings["trip_id"] == t]
+                    
+                    t_dep = float(df_t_data[df_t_data["type"] == "deposit"]["amount"].sum())
+                    t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
+                    t_total = t_dep + t_site
+                    
+                    t_dist, s_k, e_k = 0.0, 0.0, 0.0
+                    days_count = 1
+                    
+                    if not df_t_sett.empty:
+                        s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
+                        e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
+                        st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
+                        en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
+                        
+                        max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
+                        eff_e = e_k if e_k > 0 else max_k
+                        t_dist = eff_e - s_k if eff_e > s_k else 0.0
+                        
+                        try:
+                            d1 = datetime.datetime.strptime(st_d_str, "%d.%m.%Y")
+                            d2 = datetime.datetime.strptime(en_d_str, "%d.%m.%Y")
+                            days_count = max(1, (d2 - d1).days + 1)
+                        except:
+                            days_count = 1
+                            
+                    all_trips_computed.append({
+                        "Пътуване": str(t).replace("_", " ").upper(),
+                        "Обща Стойност (EUR)": t_total,
+                        "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
+                        "Дневен Разход (EUR)": (t_total / days_count),
+                        "DistValid": t_dist > 0
+                    })
+            except:
+                pass
+                
+            if all_trips_computed:
+                df_pixel = pd.DataFrame(all_trips_computed)
+                import plotly.express as px
+                
+                if chosen_criteria == "Цена за 1 км":
+                    x_col = "Цена за 1 км (EUR)"
+                    t_format = "%{text:.2f} EUR/км"
+                    df_filtered = df_pixel[df_pixel["DistValid"] == True]
+                    if df_filtered.empty: df_filtered = df_pixel
+                    df_sorted = df_filtered.sort_values(by=x_col, ascending=True)
+                    graph_title = "💰Сравнява ефективност на пътуване или EUR/1км. (по-ниската стойност е по-добра)"
+                elif chosen_criteria == "Обща Стойност":
+                    x_col = "Обща Стойност (EUR)"
+                    t_format = "%{text:,.2f} EUR"
+                    df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                    graph_title = "💸Сравнява всички по крайно САЛДО/Тотален Разход"
+                else: 
+                    x_col = "Дневен Разход (EUR)"
+                    t_format = "%{text:.2f} EUR/ден"
+                    df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                    graph_title = "📅Сравнява среднодневен разход за всички пътувания"
+                    
+                fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
+                
+                fig_pixel.update_traces(
+                    marker=dict(
+                        color=df_sorted[x_col],
+                        colorscale=[[0, '#00f2fe'], [1, '#4facfe']],
+                        line=dict(width=0),
+                        cornerradius=15
+                    ),
+                    texttemplate=f"<b>{t_format}</b>",
+                    textposition='outside',
+                    cliponaxis=False
+                )
+                
+                fig_pixel.update_layout(
+                    title=dict(text=graph_title),
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
+                    yaxis=dict(showgrid=False, showline=False, title=""),
+                    margin=dict(l=10, r=110, t=50, b=10),
+                    height=240,
+                    bargap=0.35
+                )
+                st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.info("Няма достатъчно база данни за сравнение.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
+        if st.button("❌ Затвори", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
+            st.rerun()
+
 
 
 # === ИЗОЛИРАН ДИАЛОГ ЗА АВТОМАТИЧНО СКАНИРАНЕ НА БЕЛЕЖКИ ===
