@@ -195,97 +195,16 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("---")
     
-    # 1. ПОДРЕЖДАНЕ НА ЗАГЛАВИЕТО И TOGGLE BOX-А НА ЕДИН РЕД
-    head_col1, head_col2, head_col3 = st.columns([0.45, 0.20, 0.35], vertical_alignment="center")
-    
-    with head_col1:
-        st.markdown("""
-        <style>
-        .global-analytics-card {
-            width: 100%;
-            box-sizing: border-box;
-            background: linear-gradient(145deg, rgba(24,27,36,0.97), rgba(15,17,23,0.99));
-            border: 1px solid rgba(255,255,255,0.09);
-            border-radius: 18px;
-            padding: 16px 18px 12px 18px;
-            box-shadow: 0 10px 28px rgba(0,0,0,0.24);
-            overflow: hidden;
-        }
-        .global-analytics-head {
-            display:flex;
-            align-items:center;
-            gap:11px;
-        }
-        .global-analytics-icon {
-            width:38px;
-            height:38px;
-            flex:0 0 38px;
-            border-radius:11px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            background:linear-gradient(135deg, rgba(0,242,254,0.18), rgba(79,172,254,0.10));
-            border:1px solid rgba(0,242,254,0.20);
-            font-size:19px;
-        }
-        .global-analytics-title {
-            color:#f5f7fa;
-            font-size:17px;
-            font-weight:800;
-            line-height:1.15;
-        }
-        .global-analytics-subtitle {
-            color:#858d9c;
-            font-size:11px;
-            margin-top:4px;
-            line-height:1.35;
-        }
-        .global-analytics-accent {
-            height:2px;
-            width:48px;
-            margin-top:12px;
-            border-radius:5px;
-            background:linear-gradient(90deg,#00f2fe,#4facfe);
-            box-shadow:0 0 9px rgba(0,242,254,0.30);
-        }
-        @media (max-width: 640px) {
-            .global-analytics-card { border-radius:15px; padding:14px 14px 10px 14px; }
-            .global-analytics-icon { width:34px; height:34px; flex-basis:34px; border-radius:10px; font-size:17px; }
-            .global-analytics-title { font-size:15px; }
-            .global-analytics-subtitle { font-size:10px; }
-        }
-        </style>
-
-        <div class="global-analytics-card">
-            <div class="global-analytics-head">
-                <div class="global-analytics-icon">📊</div>
-                <div>
-                    <div class="global-analytics-title">Глобален анализ</div>
-                    <div class="global-analytics-subtitle">Сравнение на всички записани пътувания</div>
-                </div>
-            </div>
-            <div class="global-analytics-accent"></div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with head_col3:
-        # Toggle бутонът стои директно до заглавието в десния край
-        show_comparison = st.toggle(
-            "Включи анализи",
-            value=False,
-            key="stable_comparison_toggle"
-        )
-
-    # 2. ВСИЧКО СЕ ПОКАЗВА ЕДВА СЛЕД АКТИВИРАНЕ НА TOGGLE
-    if show_comparison:
-        st.markdown("<br>", unsafe_allow_html=True)
+    # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ (MODAL) ЗА ГРАФИКИТЕ
+    @st.dialog("📊 Глобален анализ и сравнения", width="large")
+    def show_global_analytics_dialog():
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Сравнение и ефективност на всички записани пътувания:</p>", unsafe_allow_html=True)
         
-        # Показваме бутоните за избор на критерий непосредствено над графиките
         chosen_criteria = st.segmented_control(
             label="Изберете критерий за сравнение:",
             options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
             default="Цена за 1 км",
-            key="home_segmented_metric_selector"
+            key="modal_segmented_metric_selector"
         )
 
         all_trips_computed = []
@@ -343,17 +262,17 @@ if st.session_state["current_trip"] is None:
                 df_filtered = df_pixel[df_pixel["DistValid"] == True]
                 if df_filtered.empty: df_filtered = df_pixel
                 df_sorted = df_filtered.sort_values(by=x_col, ascending=True)
-                graph_title = "💰Сравнява ефективност на пътуване или EUR/1км. (по-ниската стойност е по-добра)"
+                graph_title = "💰 Сравнение на ефективността (EUR/1км)"
             elif chosen_criteria == "Обща Стойност":
                 x_col = "Обща Стойност (EUR)"
                 t_format = "%{text:,.2f} EUR"
                 df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                graph_title = "💸Сравнява всички по крайно САЛДО/Тотален Разход"
+                graph_title = "💸 Общ разход за почивките"
             else: 
                 x_col = "Дневен Разход (EUR)"
                 t_format = "%{text:.2f} EUR/ден"
                 df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                graph_title = "📅Сравнява среднодневен разход за всички пътувания"
+                graph_title = "📅 Среднодневен разход"
 
             fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
 
@@ -370,18 +289,40 @@ if st.session_state["current_trip"] is None:
             )
 
             fig_pixel.update_layout(
-                title=dict(text=graph_title),
+                title=dict(text=graph_title, font=dict(color="white")),
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
-                yaxis=dict(showgrid=False, showline=False, title=""),
+                yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
                 margin=dict(l=10, r=110, t=50, b=10),
-                height=240,
+                height=300,
                 bargap=0.35
             )
             st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("Няма достатъчно база данни за сравнение.")
+
+        st.write("---")
+        if st.button("❌ Затвори анализа", use_container_width=True):
+            st.rerun()
+
+    # ПОДРЕЖДАНЕ: ПРЕВКЛЮЧВАТЕЛЯТ ВЛЯВО, ЗАГЛАВИЕТО ВДЯСНО
+    toggle_col, title_col = st.columns([0.35, 0.65], vertical_alignment="center")
+    
+    with toggle_col:
+        show_comparison = st.toggle(
+            "Покажи прозореца",
+            value=False,
+            key="stable_comparison_toggle",
+            label_visibility="collapsed" # Скрива системния текст на бутона, за да не си пречи със заглавието
+        )
+        
+    with title_col:
+        st.markdown("<h3 style='margin:0; padding:0; font-family:\"Segoe UI\", sans-serif; font-weight:700; color:#fafafa; margin-left:-10px;'>Глобален анализ</h3>", unsafe_allow_html=True)
+        
+    # ПРИ АКТИВИРАНЕ ОТ TOGGLE БУТОНА - ИЗВИКВАМЕ ДИАЛОГОВИЯ ПРОЗОРЕЦ
+    if show_comparison:
+        show_global_analytics_dialog()
 
 
 
