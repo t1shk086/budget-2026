@@ -330,10 +330,14 @@ if st.session_state["current_trip"] is None:
 
                 fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
 
-                fig_pixel.update_traces(
+fig_pixel.update_traces(
                     marker=dict(
                         color=df_sorted[x_col],
-                        colorscale=[[0, '#00f2fe'], [1, '#4facfe']],
+                        colorscale=[
+                            [0, '#00f2fe'],    # Най-ниска стойност (Тюркоаз)
+                            [0.5, '#4facfe'],  # Средна стойност (Синьо)
+                            [1, '#b100ff']     # Най-висока стойност (Неоново лилаво)
+                        ],
                         line=dict(width=0),
                         cornerradius=15
                     ),
@@ -341,6 +345,7 @@ if st.session_state["current_trip"] is None:
                     textposition='outside',
                     cliponaxis=False
                 )
+
 
                 fig_pixel.update_layout(
                     title=dict(text=graph_title, font=dict(color="white")),
