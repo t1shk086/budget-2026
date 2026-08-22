@@ -309,7 +309,7 @@ if st.session_state["current_trip"] is None:
                 fig_pixel.update_traces(
                     marker=dict(
                         color=df_sorted[x_col],
-                        colorscale=[[0, '#00f2fe'], [0.5, '#4facfe'], [1, '#b100ff']],
+                        colorscale=[[0, '#2ebd59'], [0.5, '#ffaa00'], [1, '#ff3b30']],
                         line=dict(width=0),
                         cornerradius=15
                     ),
