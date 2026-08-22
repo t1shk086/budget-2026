@@ -983,6 +983,23 @@ else:
 
 
 
+    # === ВЪЗСТАНОВЯВАНЕ НА БУТОНА ЗА СВАЛЯНЕ И ХРОНОЛОГИЯТА ===
+    st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+    
+    if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
+        hronologia_popup_dialog()
+
+    # Този бутон съдържа вече форматирания за печат pdf_html
+    st.download_button(
+        label="Отчет в PDF",
+        data=pdf_html,
+        file_name=f"Otchet_{trip_id}_2026.html",
+        mime="text/html",
+        use_container_width=True,
+        key="st_premium_report_download_btn"
+    )
+
+    st.markdown("---")
 
 
 
