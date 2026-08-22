@@ -309,7 +309,7 @@ if st.session_state["current_trip"] is None:
             st.rerun()
 
     # ПОДРЕЖДАНЕ: ПРЕВКЛЮЧВАТЕЛЯТ ВЛЯВО, ЗАГЛАВИЕТО ВДЯСНО
-    toggle_col, title_col = st.columns([0.15, 0.95], vertical_alignment="center")
+    toggle_col, title_col = st.columns([0.55, 0.85], vertical_alignment="center")
     
     with toggle_col:
         show_comparison = st.toggle(
