@@ -201,7 +201,7 @@ if st.session_state["current_trip"] is None:
         st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в цял размер!</p>", unsafe_allow_html=True)
         
         chosen_criteria = st.segmented_control(
-            label="Изберете критерий за сравнение:",
+            label="Изберете критерий:",
             options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
             default="Цена за 1 км",
             key="modal_segmented_metric_selector"
