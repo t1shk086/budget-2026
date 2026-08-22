@@ -1041,7 +1041,7 @@ else:
     <body>
         <div class='header-container'>
             <div class='header-left'>
-                <h2>ОТЧЕТ ЗА ПЪТУВАНЕ: {trip_id.upper().replace('_', ' ')}</h2>
+                <h2>ОТЧЕТ ЗА ПЪТУВАНЕ: {str(trip_id).upper().replace('_', ' ')}</h2>
                 <p class='meta-info'>Генериран на: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
             </div>
             <div class='header-right'>
