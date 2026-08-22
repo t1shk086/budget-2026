@@ -1095,10 +1095,10 @@ else:
         </div>
 
         <div class='summary-box'>
-            <div class='summary-title'>Финално салдо на почивката</div>
+            <div class='summary-title'>Финално салдо</div>
             <div class='summary-amount'>{grand_total:.2f} EUR</div>
             <p style='margin: 6px 0 0 0; font-size: 12px; color: #747d8c;'>
-                (Предишни депозити: {depozit_hotel:.2f} EUR | Директни разходи на място: {total_on_site:.2f} EUR)
+                (Депозит: {depozit_hotel:.2f} EUR | Разходи на място: {total_on_site:.2f} EUR)
             </p>
         </div>
 
@@ -1122,7 +1122,7 @@ else:
             </div>
         </div>
 
-        <h3>Спесификация на хронологичните разходи</h3>
+        <h3>Хронология на разходите</h3>
         <table>
             <thead>
                 <tr>
