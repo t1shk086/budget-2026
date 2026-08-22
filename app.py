@@ -1010,74 +1010,74 @@ else:
     @st.dialog("💾 Действия с отчети и анализи", width="large")
     def download_and_compare_dialog():
 # === ИЗОЛИРАН ДИАЛОГ ЗА АВТОМАТИЧНО СКАНИРАНЕ НА БЕЛЕЖКИ ===
-@st.dialog("📸 Автоматичен скенер на бележки", width="large")
-def scan_receipt_popup_dialog():
-    import re
-    import requests
-    
-    st.markdown("<p style='color: #aaa; margin-bottom: 15px;'>Снимайте касовата бележка на живо от телефона си. AI автоматично ще извлече сумата и категорията.</p>", unsafe_allow_html=True)
-    
-    uploaded_receipt = st.file_uploader(
-        label="📸 СНИМКА НА ЖИВО (Натиснете тук за камера)", 
-        type=["jpg", "jpeg", "png"], 
-        key="popup_receipt_camera_uploader"
-    )
-
-    if uploaded_receipt is not None:
-        with st.spinner("🔄 AI анализира текста..."):
-            try:
-                payload = {"language": "bul", "isOverlayRequired": False}
-                files = {"filename": (uploaded_receipt.name, uploaded_receipt.getvalue(), uploaded_receipt.type)}
-                response = requests.post("https://ocr.space", data=payload, files=files, headers={"apikey": "helloworld"})
-                
-                result_json = response.json()
-                parsed_text = result_json.get("ParsedResults", [{}])[0].get("ParsedText", "").lower()
-                
-                # 1. Търсене на категория
-                ai_kat = None
-                if any(w in parsed_text for w in ["lukoil", "shell", "omv", "petrol", "бензин", "дизел", "газ", "гориво", "еко", "eko"]):
-                    ai_kat = "Транспорт"
-                elif any(w in parsed_text for w in ["lidl", "billa", "kaufland", "метро", "ресторант", "механа", "кафе", "храна", "pizz", "супермаркет"]):
-                    ai_kat = "Храна и напитки"
-                elif any(w in parsed_text for w in ["хотел", "hotel", "нощувка", "booking", "airbnb"]):
-                    ai_kat = "Нощувки/Хотел"
-                elif any(w in parsed_text for w in ["ветеринар", "зоо", "куче", "дог", "dog"]):
-                    ai_kat = "Куче"
-                
-                # 2. Търсене на сума
-                amounts = re.findall(r'\d+[\.,]\d{2}', parsed_text)
-                amounts = [float(a.replace(',', '.')) for a in amounts]
-                ai_amount = max(amounts) if amounts else 0.0
-            except:
-                ai_kat, ai_amount = None, 0.0
+    @st.dialog("📸 Автоматичен скенер на бележки", width="large")
+    def scan_receipt_popup_dialog():
+        import re
+        import requests
         
-        st.markdown("---")
-        st.markdown("#### 📝 Преглед на извлечените данни:")
+        st.markdown("<p style='color: #aaa; margin-bottom: 15px;'>Снимайте касовата бележка на живо от телефона си. AI автоматично ще извлече сумата и категорията.</p>", unsafe_allow_html=True)
         
-        final_amount = st.number_input("Разпозната сума (EUR):", value=float(ai_amount), min_value=0.0, step=0.01, format="%.2f")
-        final_desc = st.text_input("Описание / Обект:", value="Разход от сканирана бележка")
-        
-        st.markdown("<small>Изберете категория (AI маркира автоматично, ако я открие):</small>", unsafe_allow_html=True)
-        final_cat = st.segmented_control(
-            label="Избор на категория от бутони:",
-            options=KATEGORII,
-            default=ai_kat if ai_kat in KATEGORII else None,
-            label_visibility="collapsed",
-            key="popup_scanned_cat_clicker"
+        uploaded_receipt = st.file_uploader(
+            label="📸 СНИМКА НА ЖИВО (Натиснете тук за камера)", 
+            type=["jpg", "jpeg", "png"], 
+            key="popup_receipt_camera_uploader"
         )
-        
-        if st.button("💾 ЗАПИШИ РАЗХОДА ТУК", use_container_width=True, type="primary"):
-            if not final_cat:
-                st.error("Грешка: Трябва да кликнете върху категория!")
-            elif final_amount <= 0:
-                st.error("Грешка: Въведете валидна сума!")
-            else:
-                is_deposit = (final_cat == "Депозит/Резервация")
-                # Тук използваме сигурния trip_id, защото диалогът се вика вътре в контекста му
-                if add_expense(st.session_state["current_trip"], final_amount, final_cat, final_desc, is_deposit):
-                    st.success("✅ Разходът е записан успешно!")
-                    st.session_state["form_version"] += 1
-                    st.rerun()        
+    
+        if uploaded_receipt is not None:
+            with st.spinner("🔄 AI анализира текста..."):
+                try:
+                    payload = {"language": "bul", "isOverlayRequired": False}
+                    files = {"filename": (uploaded_receipt.name, uploaded_receipt.getvalue(), uploaded_receipt.type)}
+                    response = requests.post("https://ocr.space", data=payload, files=files, headers={"apikey": "helloworld"})
+                    
+                    result_json = response.json()
+                    parsed_text = result_json.get("ParsedResults", [{}])[0].get("ParsedText", "").lower()
+                    
+                    # 1. Търсене на категория
+                    ai_kat = None
+                    if any(w in parsed_text for w in ["lukoil", "shell", "omv", "petrol", "бензин", "дизел", "газ", "гориво", "еко", "eko"]):
+                        ai_kat = "Транспорт"
+                    elif any(w in parsed_text for w in ["lidl", "billa", "kaufland", "метро", "ресторант", "механа", "кафе", "храна", "pizz", "супермаркет"]):
+                        ai_kat = "Храна и напитки"
+                    elif any(w in parsed_text for w in ["хотел", "hotel", "нощувка", "booking", "airbnb"]):
+                        ai_kat = "Нощувки/Хотел"
+                    elif any(w in parsed_text for w in ["ветеринар", "зоо", "куче", "дог", "dog"]):
+                        ai_kat = "Куче"
+                    
+                    # 2. Търсене на сума
+                    amounts = re.findall(r'\d+[\.,]\d{2}', parsed_text)
+                    amounts = [float(a.replace(',', '.')) for a in amounts]
+                    ai_amount = max(amounts) if amounts else 0.0
+                except:
+                    ai_kat, ai_amount = None, 0.0
+            
+            st.markdown("---")
+            st.markdown("#### 📝 Преглед на извлечените данни:")
+            
+            final_amount = st.number_input("Разпозната сума (EUR):", value=float(ai_amount), min_value=0.0, step=0.01, format="%.2f")
+            final_desc = st.text_input("Описание / Обект:", value="Разход от сканирана бележка")
+            
+            st.markdown("<small>Изберете категория (AI маркира автоматично, ако я открие):</small>", unsafe_allow_html=True)
+            final_cat = st.segmented_control(
+                label="Избор на категория от бутони:",
+                options=KATEGORII,
+                default=ai_kat if ai_kat in KATEGORII else None,
+                label_visibility="collapsed",
+                key="popup_scanned_cat_clicker"
+            )
+            
+            if st.button("💾 ЗАПИШИ РАЗХОДА ТУК", use_container_width=True, type="primary"):
+                if not final_cat:
+                    st.error("Грешка: Трябва да кликнете върху категория!")
+                elif final_amount <= 0:
+                    st.error("Грешка: Въведете валидна сума!")
+                else:
+                    is_deposit = (final_cat == "Депозит/Резервация")
+                    # Тук използваме сигурния trip_id, защото диалогът се вика вътре в контекста му
+                    if add_expense(st.session_state["current_trip"], final_amount, final_cat, final_desc, is_deposit):
+                        st.success("✅ Разходът е записан успешно!")
+                        st.session_state["form_version"] += 1
+                        st.rerun()        
         st.markdown("#### 📥 Изтегляне на текущото пътуване")
         col1, col2 = st.columns(2)
         
