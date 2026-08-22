@@ -6,6 +6,7 @@ import os
 import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
+import io
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
