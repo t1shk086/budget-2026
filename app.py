@@ -282,7 +282,7 @@ else:
     
     ekran_za_kategorii = st.empty()
 
-    if st.button("🔙 НАЗАД КЪМ ИЗБОР НА ПОЧИВКА", use_container_width=True): 
+    if st.button("🔙 НАЗАД КЪМ НАЧАЛЕН ЕКРАН", use_container_width=True): 
         st.session_state["current_trip"] = None
         st.rerun()
 
@@ -1165,7 +1165,7 @@ else:
     bottom_cols = st.columns(2)
     
     with bottom_cols[0]:
-        if st.button("🏠 ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
+        if st.button("🔙 КЪМ ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
             st.session_state["current_trip"] = None
             st.rerun()
             
