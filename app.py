@@ -1009,7 +1009,7 @@ else:
 # === ИНТЕГРИРАНА МУЛТИФУНКЦИОНАЛНА ДИАЛОГОВА СИСТЕМА ===
 @st.dialog("💾 Действия с отчети и анализи", width="large")
 def download_and_compare_dialog():
-            st.markdown("#### 📥 Изтегляне на текущото пътуване")
+        st.markdown("#### 📥 Изтегляне на текущото пътуване")
         col1, col2 = st.columns(2)
         
         with col1:
