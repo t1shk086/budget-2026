@@ -768,7 +768,7 @@ else:
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
 
-    # === ФИНАЛЕН СИНХРОНИЗИРАН ВАРИАНТ (ВЕРТИКАЛНА ЛИНИЯ И ТАБЛИЦА В ЕДИН ЦВЯТ) ===
+    # === ДЕФИНИРАНЕ НА PDF HTML СТРУКТУРАТА ЗА ПЕЧАТ ===
     pdf_html = f"""<!DOCTYPE html>
     <html>
     <head>
@@ -807,7 +807,7 @@ else:
                 text-align: right;
                 font-weight: 900;
                 color: #00a8ff; 
-                font-size: 30px;
+                font-size: 20px;
                 letter-spacing: 0.5px;
             }}
             h3 {{
@@ -827,7 +827,7 @@ else:
             .summary-box {{
                 background: #f4f7f9;
                 border: 1px solid #dcdde1;
-                border-left: 6px solid #2f3542; /* СИНХРОНИЗИРАН ТЪМЕН ГРАФИТ */
+                border-left: 6px solid #2f3542; 
                 padding: 18px;
                 border-radius: 6px;
                 margin-bottom: 25px;
@@ -888,7 +888,7 @@ else:
                 font-size: 12px;
             }}
             th {{
-                background-color: #2f3542; /* СЪЩИЯ ТЪМЕН ГРАФИТ */
+                background-color: #2f3542; 
                 color: #ffffff;
                 text-align: left;
                 padding: 10px 12px;
@@ -937,10 +937,10 @@ else:
         </div>
 
         <div class='summary-box'>
-            <div class='summary-title'>Финално салдо </div>
+            <div class='summary-title'>Финално салдо на почивката</div>
             <div class='summary-amount'>{grand_total:.2f} EUR</div>
             <p style='margin: 6px 0 0 0; font-size: 12px; color: #747d8c;'>
-                (Депозити: {depozit_hotel:.2f} EUR | Разходи на място: {total_on_site:.2f} EUR)
+                (Предишни депозити: {depozit_hotel:.2f} EUR | Директни разходи на място: {total_on_site:.2f} EUR)
             </p>
         </div>
 
@@ -959,12 +959,12 @@ else:
                 <ul>
                     <li><b>Изразходено гориво:</b> {total_liters_calculated:.1f} литра</li>
                     <li><b>Обща стойност транспорт:</b> {auto_fuel_money:.2f} EUR</li>
-                    <li><b>Среден разход:</b> {avg_con_txt}</li>
+                    <li><b>Среден теглен разход:</b> {avg_con_txt}</li>
                 </ul>
             </div>
         </div>
 
-        <h3>Хронология на разходите</h3>
+        <h3>Спесификация на хронологичните разходи</h3>
         <table>
             <thead>
                 <tr>
@@ -977,7 +977,6 @@ else:
             </thead>
             <tbody>
     """
-
     for _, row in df_trip.iterrows():
         desc_val = str(row['description'])
         if "Моментен разход:" in desc_val:
@@ -1006,19 +1005,47 @@ else:
     </body>
     </html>"""
 
+    # === ФУНКЦИЯ ЗА ДИАЛОГОВ ПРОЗОРЕЦ (ПОПЪП С ОПЦИИ ЗА ИЗТЕГЛЯНЕ) ===
+    @st.dialog("💾 Избор на формат за изтегляне")
+    def download_options_dialog():
+        st.write("Изберете предпочитания от вас формат за отчет:")
+        
+        # 1. Сваляне на PDF/HTML
+        st.download_button(
+            label="📄 Свали Отчет за Печат (PDF/HTML)",
+            data=pdf_html,
+            file_name=f"Otchet_{trip_id}_2026.html",
+            mime="text/html",
+            use_container_width=True,
+            key="download_pdf_final_btn"
+        )
+        
+        # 2. Сваляне на Excel файл
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            df_excel = df_trip[['date', 'category', 'description', 'current_km', 'amount']].copy()
+            df_excel.columns = ['Дата и час', 'Категория', 'Описание', 'Километраж (км)', 'Сума (EUR)']
+            df_excel.to_excel(writer, index=False, sheet_name='Разходи')
+            
+        st.download_button(
+            label="📊 Свали Таблица с разходи (Excel)",
+            data=buffer.getvalue(),
+            file_name=f"Razhodi_{trip_id}_2026.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="download_excel_final_btn"
+        )
+
+    # === ПОДРЕДБА НА СТАНДАРТНИТЕ БУТОНИ ===
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
     
     if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
         hronologia_popup_dialog()
 
-    st.download_button(
-        label="Отчет в PDF",
-        data=pdf_html,
-        file_name=f"Otchet_{trip_id}_2026.html",
-        mime="text/html",
-        use_container_width=True,
-        key="st_premium_report_download_btn"
-    )
+    # Бутонът, който задейства попъпа
+    if st.button("📥 Свали отчет", use_container_width=True, key="main_download_report_popup_trigger"):
+        download_options_dialog()
+
 
 
 
