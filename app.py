@@ -768,7 +768,7 @@ else:
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
 
-    # === НАПЪЛНО ИЗЧИСТЕН ПЕЧАТЕН ВАРИАНТ (БЕЗ ИКОНКИ + ТЪМНО СИВА ЛИНІЯ) ===
+    # === ФИНАЛЕН СИНХРОНИЗИРАН ВАРИАНТ (ВЕРТИКАЛНА ЛИНИЯ И ТАБЛИЦА В ЕДИН ЦВЯТ) ===
     pdf_html = f"""<!DOCTYPE html>
     <html>
     <head>
@@ -789,7 +789,7 @@ else:
                 margin: 0 auto;
             }}
             .header-container {{
-                border-bottom: 3px solid #000000; /* Черна горна линия */
+                border-bottom: 3px solid #000000; 
                 padding-bottom: 12px;
                 margin-bottom: 25px;
                 display: flex;
@@ -827,7 +827,7 @@ else:
             .summary-box {{
                 background: #f4f7f9;
                 border: 1px solid #dcdde1;
-                border-left: 6px solid #747d8c; /* Още по-тъмно сива вертикална черта */
+                border-left: 6px solid #2f3542; /* СИНХРОНИЗИРАН ТЪМЕН ГРАФИТ */
                 padding: 18px;
                 border-radius: 6px;
                 margin-bottom: 25px;
@@ -888,7 +888,7 @@ else:
                 font-size: 12px;
             }}
             th {{
-                background-color: #2f3542;
+                background-color: #2f3542; /* СЪЩИЯ ТЪМЕН ГРАФИТ */
                 color: #ffffff;
                 text-align: left;
                 padding: 10px 12px;
@@ -921,7 +921,7 @@ else:
                 font-weight: bold;
                 background-color: #f4f7f9 !important;
                 font-size: 14px;
-                border-top: 3px solid #000000; /* Черна долна линия над ОБЩО */
+                border-top: 3px solid #000000; 
             }}
         </style>
     </head>
@@ -1019,6 +1019,7 @@ else:
         use_container_width=True,
         key="st_premium_report_download_btn"
     )
+
 
 
 
