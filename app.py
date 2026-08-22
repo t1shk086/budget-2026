@@ -195,20 +195,32 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("---")
     
-    # 1. ГЛОБАЛЕН CSS СТИЛ ЗА СТРЕЧВАНЕ НА ВСИЧКИ ИЗСКАЧАЩИ ПРОЗОРЦИ (MODALS) В ПРИЛОЖЕНИЕТО
+    # 1. АГРЕСИВЕН CSS ЗА ТОТАЛНО СТРЕЧВАНЕ НА ДИАЛОГОВИЯ ПРОЗОРЕЦ НА 100%
     st.html("""
     <style>
-        /* Разтяга диалоговия прозорец на 95% от екрана */
-        div[data-testid="stDialog"] div[role="dialog"] {
-            max-width: 95vw !important;
-            width: 95vw !important;
-            min-width: 95vw !important;
-            margin: auto !important;
-            padding: 20px !important;
+        /* Премахва максималните ограничения на ширината на всички вложени контейнери в диалога */
+        div[data-testid="stDialog"] {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
         }
-        /* Оптимизация на вътрешните контейнери за графиките */
+        div[data-testid="stDialog"] div[role="dialog"] {
+            max-width: 100vw !important;
+            width: 100vw !important;
+            min-width: 100vw !important;
+            height: auto !important;
+            min-height: 50vh !important;
+            margin: 0 !important;
+            padding: 24px !important;
+            border-radius: 0px !important; /* Прави го изцяло на цял екран */
+        }
+        /* Форсира елементите вътре да заемат пълната ширина */
         div[data-testid="stDialog"] .stElementContainer {
             width: 100% !important;
+        }
+        div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {
+            width: 100% !important;
+            max-width: 100% !important;
         }
     </style>
     """)
@@ -216,17 +228,8 @@ if st.session_state["current_trip"] is None:
     # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ
     @st.dialog("📊 Глобален анализ и сравнения", width="large")
     def show_global_analytics_dialog():
-        # Добавяме горен бърз бутон за затваряне
-        top_close_col1, top_close_col2 = st.columns([0.85, 0.15])
-        with top_close_col1:
-            st.markdown("<p style='color: #888; margin: 0;'>Сравнение и ефективност на всички записани пътувания:</p>", unsafe_allow_html=True)
-        with top_close_col2:
-            if st.button("❌", key="top_modal_close_btn", use_container_width=True):
-                st.session_state["stable_comparison_toggle"] = False
-                st.rerun()
-                
-        st.write("")
-
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Сравнение и ефективност на всички записани пътувания:</p>", unsafe_allow_html=True)
+        
         chosen_criteria = st.segmented_control(
             label="Изберете критерий за сравнение:",
             options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
@@ -322,7 +325,7 @@ if st.session_state["current_trip"] is None:
                 xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
                 yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
                 margin=dict(l=10, r=110, t=50, b=10),
-                height=350,  # Увеличена височина на графиките за по-добро запълване
+                height=380,  # Оптимална височина за широк екран
                 bargap=0.35
             )
             st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
@@ -334,7 +337,7 @@ if st.session_state["current_trip"] is None:
             st.session_state["stable_comparison_toggle"] = False
             st.rerun()
 
-    # ПОДРЕЖДАНЕ: ПРЕВКЛЮЧВАТЕЛЯТ ВЛЯВО, ЗАГЛАВИЕТО ВДЯСНО
+    # ПОДРЕЖДАНЕ НА НАЧАЛНИЯ ЕКРАН
     toggle_col, title_col = st.columns([0.15, 0.85], vertical_alignment="center")
     
     with toggle_col:
@@ -346,10 +349,12 @@ if st.session_state["current_trip"] is None:
         )
         
     with title_col:
+        # Уеднаквяване на шрифта: Използва фабричния стил на приложението, точно като при "Ново пътуване"
         st.write("Глобален анализ")
         
     if show_comparison:
         show_global_analytics_dialog()
+
 
 
 
