@@ -1041,11 +1041,9 @@ else:
         st.markdown("---")
         st.markdown("#### 🔄 Глобални анализи на бранда")
         
-        # Проверка и дефиниране на състоянието без рестартиране
         if "show_comparison_graphic" not in st.session_state:
             st.session_state.show_comparison_graphic = False
             
-        # ПРЕМАХНАТ st.rerun() ТУК - Сега просто сменя стойността и презарежда САМО попъпа
         if st.button("📈 Сравни всички записани пътувания", use_container_width=True, type="secondary"):
             st.session_state.show_comparison_graphic = not st.session_state.show_comparison_graphic
             
@@ -1078,10 +1076,10 @@ else:
                     t_dist, s_k, e_k = 0.0, 0.0, 0.0
                     days_count = 1
                     if not df_t_sett.empty:
-                        s_k = float(df_t_sett.get("start_km", pd.Series([0.0])).iloc[0])
-                        e_k = float(df_t_sett.get("end_km", pd.Series([0.0])).iloc[0])
-                        st_d_str = str(df_t_sett.get("start_date", pd.Series([""])).iloc[0])
-                        en_d_str = str(df_t_sett.get("end_date", pd.Series([""])).iloc[0])
+                        s_k = float(df_t_sett.get("start_km", pd.Series([0.0])).iloc)
+                        e_k = float(df_t_sett.get("end_km", pd.Series([0.0])).iloc)
+                        st_d_str = str(df_t_sett.get("start_date", pd.Series([""])).iloc)
+                        en_d_str = str(df_t_sett.get("end_date", pd.Series([""])).iloc)
                         
                         max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
                         eff_e = e_k if e_k > 0 else max_k
@@ -1126,6 +1124,7 @@ else:
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
                     graph_title = "📅 СРЕДЕН РАЗХОД НА ДЕН ОТ ПРЕСТОЯ"
                     
+                # ДОБАВЕН ПАРАМЕТЪР bar_cornerradius="max" ЗА ЗАОБЛЯНЕ НА СТЪЛБЧЕТАТА КАТО КАПСУЛИ
                 fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
                 fig_pixel.update_traces(
                     marker=dict(
@@ -1135,25 +1134,34 @@ else:
                     ),
                     texttemplate=f"<b>{t_format}</b>",
                     textposition='outside',
-                    cliponaxis=False
+                    cliponaxis=False,
+                    bar_cornerradius="max" # <--- Фиксът за перфектно овални крайни форми
                 )
                 
+                # МОДЕРЕН ИЗЧИСТЕН LAYOUT С ФИН ДИЗАЙН НА ТЕКСТА
                 fig_pixel.update_layout(
-                    title=dict(text=graph_title),
+                    title=dict(
+                        text=f"<b>{graph_title}</b>",
+                        font=dict(size=12, color='#ffffff' if st.get_option("theme.base") == "dark" else '#2f3542', family="Segoe UI")
+                    ),
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
                     xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
-                    yaxis=dict(showgrid=False, showline=False, title=""),
-                    margin=dict(l=10, r=90, t=40, b=10),
-                    height=220,
-                    bargap=0.3
+                    yaxis=dict(
+                        showgrid=False, 
+                        showline=False, 
+                        title="",
+                        tickfont=dict(size=11, color='#ffffff' if st.get_option("theme.base") == "dark" else '#2f3542')
+                    ),
+                    margin=dict(l=10, r=110, t=50, b=10),
+                    height=240,
+                    bargap=0.35
                 )
                 st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
             else:
                 st.info("Няма достатъчно база данни от пътувания за сравнение.")
                 
             st.markdown("<br>", unsafe_allow_html=True)
-            # ПРЕМАХНАТ st.rerun() ТУК - Просто сменя състоянието в паметта
             if st.button("❌ Затвори анализите", use_container_width=True, type="primary", key="close_inner_comparison_btn"):
                 st.session_state.show_comparison_graphic = False
                 st.rerun()
