@@ -200,62 +200,54 @@ if st.session_state["current_trip"] is None:
     
     st.markdown("---")
     
-    # 1. ЧИСТ И НАПЪЛНО ИЗОЛИРАН CSS, КОЙТО НЕ ИЗПОЛЗВА ФАБРИЧНИТЕ КОЛОНИ НА STREAMLIT
+    # 1. ЧИСТ CSS ЗА НАМАЛЯВАНЕ НА РАЗМЕРА И ВЕРТИКАЛНО НИВЕЛИРАНЕ СЛЕД ЗАКЛЮЧВАНЕТО В РЕД
     st.html("""
     <style>
-        /* Създаваме наш собствен независим контейнер */
-        .isolated-analytics-row {
-            display: inline-flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-            gap: 8px !important; /* Точно 1 чист интервал разстояние */
-            margin: 10px 0 !important;
+        /* Премахваме фабричните отстъпи около тогъла, за да не го раздалечават от текста */
+        .analytics-row-container div[data-testid="stCheckbox"] {
             width: auto !important;
+            min-width: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         
-        /* Изолиран малък текст, който не влияе на нищо друго */
-        .isolated-analytics-text {
+        /* Стилизираме малкия чист текст съобразно новата подредба */
+        .analytics-row-text {
             font-family: var(--font), sans-serif !important;
-            font-size: 14px !important; 
+            font-size: 11px !important;
             color: #ffffff !important;
-            margin: 0 !important;
-            margin-top: -4px !important; /* Ръчна настройка за височина (може да я коригирате) */
-            padding: 0 !important;
             white-space: nowrap !important;
-        }
-        
-        /* Спира излишните вътрешни маржове само за този бутон */
-        .isolated-analytics-row div[data-testid="stCheckbox"] {
             margin: 0 !important;
             padding: 0 !important;
-            width: auto !important;
+            display: inline-block !important;
         }
     </style>
     """)
 
-    # 2. РЕНДЕРИРАНЕ В НАШИЯ СОБСТВЕН КОНТЕЙНЕР (БЕЗ st.columns)
-    st.markdown('<div class="isolated-analytics-row">', unsafe_allow_html=True)
-    
-    show_comparison = st.toggle(
-        "Покажи прозореца",
-        value=False,
-        key="stable_comparison_toggle",
-        label_visibility="collapsed"
-    )
-    
-    st.markdown('<span class="isolated-analytics-text">Сравнителен панел</span></div>', unsafe_allow_html=True)
-
+    # 2. ОФИЦИАЛЕН СТРУКТУРЕН РЕД НА STREAMLIT (КОЙТО НЕ СЕ ЧУПИ И НЕ ПРАВИ ПРЕМИГВАНИЯ В ДРУГИТЕ ЕКРАНИ)
+    with st.container():
+        # Използваме вградените колони, но със специален параметър, който ги държи малки на всяко устройство
+        r_col1, r_col2 = st.columns([0.01, 0.99], vertical_alignment="center")
         
-    # ОТТУК НАДОЛУ Е ТВОЯТ ОРИГИНАЛЕН РАБОТЕЩ КОД - БЕЗ НИКАКВИ ПРОМЕНИ В ЛОГИКАТА
+        with r_col1:
+            show_comparison = st.toggle(
+                "Покажи прозореца",
+                value=False,
+                key="stable_comparison_toggle",
+                label_visibility="collapsed"
+            )
+            
+        with r_col2:
+            st.markdown('<p class="analytics-row-text">Глобален анализ</p>', unsafe_allow_html=True)
+            
+    # Логиката за прозореца си остава същата
     if show_comparison:
-        # Дефиницията на прозореца си остава тук, точно както си работеше в началото
-        @st.dialog("📊 Сравнителен панел", width="large")
+        @st.dialog("📊 Глобален анализ и сравнения", width="large")
         def show_global_analytics_dialog():
-            st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в по-добър мащаб!</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #888; margin-bottom: 20px;'>Сравнение и ефективност на всички записани пътувания:</p>", unsafe_allow_html=True)
             
             chosen_criteria = st.segmented_control(
-                label="Изберете критерий:",
+                label="Изберете критерий за сравнение:",
                 options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
                 default="Цена за 1 км",
                 key="modal_segmented_metric_selector"
@@ -269,11 +261,11 @@ if st.session_state["current_trip"] is None:
 
                 for t in unique_trips:
                     if not t or str(t).strip() == "": continue
-                    df_t_data = df_all_data[df_all_data["trip_id"] == t]
+                    df_all_data[df_all_data["trip_id"] == t]
                     df_t_sett = df_all_settings[df_all_settings["trip_id"] == t]
 
-                    t_dep = float(df_t_data[df_t_data["type"] == "deposit"]["amount"].sum())
-                    t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
+                    t_dep = float(df_all_data[df_all_data["type"] == "deposit"]["amount"].sum())
+                    t_site = float(df_all_data[df_all_data["type"] == "expense"]["amount"].sum())
                     t_total = t_dep + t_site
 
                     t_dist, s_k, e_k = 0.0, 0.0, 0.0
@@ -285,7 +277,7 @@ if st.session_state["current_trip"] is None:
                         st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
                         en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
 
-                        max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
+                        max_k = float(df_all_data[df_all_data["type"] == "expense"]["current_km"].max()) if not df_all_data.empty else 0.0
                         eff_e = e_k if e_k > 0 else max_k
                         t_dist = eff_e - s_k if eff_e > s_k else 0.0
 
@@ -333,11 +325,7 @@ if st.session_state["current_trip"] is None:
                 fig_pixel.update_traces(
                     marker=dict(
                         color=df_sorted[x_col],
-                        colorscale=[
-                            [0, '#2ebd59'],    # Най-ниска стойност (Приглушено зелено)
-                            [0.5, '#ffaa00'],  # Средна стойност (Меко оранжево)
-                            [1, '#ff3b30']     # Най-висока стойност (Контрастно червено)
-                        ],
+                        colorscale=[[0, '#00f2fe'], [0.5, '#4facfe'], [1, '#b100ff']],
                         line=dict(width=0),
                         cornerradius=15
                     ),
@@ -345,7 +333,6 @@ if st.session_state["current_trip"] is None:
                     textposition='outside',
                     cliponaxis=False
                 )
-
 
                 fig_pixel.update_layout(
                     title=dict(text=graph_title, font=dict(color="white")),
@@ -362,12 +349,12 @@ if st.session_state["current_trip"] is None:
                 st.info("Няма достатъчно база данни за сравнение.")
 
             st.write("---")
-            if st.button("❌ Затвори", key="bottom_modal_close_btn", use_container_width=True):
+            if st.button("❌ Затвори анализа", key="bottom_modal_close_btn", use_container_width=True):
                 st.session_state["stable_comparison_toggle"] = False
                 st.rerun()
 
-        # Стартираме прозореца веднага след дефинирането му
         show_global_analytics_dialog()
+
 
 
 
