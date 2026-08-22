@@ -68,6 +68,40 @@ for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description",
     if not os.path.exists(f): 
         pd.DataFrame(columns=cols).to_csv(f, index=False, encoding="utf-8")
 
+# === АВТОМАТИЗИРАНА OCR ФУНКЦИЯ С КЛЮЧОВИ ДУМИ ===
+def analyze_receipt_text(image_file):
+    import re
+    import requests
+    try:
+        payload = {"language": "bul", "isOverlayRequired": False}
+        files = {"filename": (image_file.name, image_file.getvalue(), image_file.type)}
+        response = requests.post("https://ocr.space", data=payload, files=files, headers={"apikey": "helloworld"})
+        
+        result_json = response.json()
+        parsed_results = result_json.get("ParsedResults", [])
+        if not parsed_results:
+            return None, 0.0
+            
+        full_text = str(parsed_results[0].get("ParsedText", "")).lower()
+        
+        detected_kat = None
+        if any(w in full_text for w in ["lukoil", "shell", "omv", "petrol", "бензин", "дизел", "газ", "гориво", "зареждане", "еко", "eko"]):
+            detected_kat = "Транспорт"
+        elif any(w in full_text for w in ["lidl", "billa", "kaufland", "метро", "ресторант", "механа", "кафе", "храна", "pizz", "дюнер", "супермаркет"]):
+            detected_kat = "Храна и напитки"
+        elif any(w in full_text for w in ["хотел", "hotel", "нощувка", "booking", "airbnb", "престой"]):
+            detected_kat = "Нощувки/Хотел"
+        elif any(w in full_text for w in ["ветеринар", "зоо", "куче", "храна за кучета", "повод", "дог", "dog"]):
+            detected_kat = "Куче"
+            
+        amounts = re.findall(r'\d+[\.,]\d{2}', full_text)
+        amounts = [float(a.replace(',', '.')) for a in amounts]
+        detected_amount = max(amounts) if amounts else 0.0
+        
+        return detected_kat, detected_amount
+    except:
+        return None, 0.0
+
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
@@ -102,6 +136,7 @@ def get_trip_settings(t_id):
     except: 
         pass
     return d
+
 
 def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
     try:
@@ -224,8 +259,16 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
     st.markdown("---")
-    st.markdown("### Сканирай касов БОН")
-    uploaded_receipt = st.file_uploader("Зареди или снимай касова бележка", type=["jpg", "jpeg", "png"], key="main_receipt_uploader", label_visibility="collapsed")
+    # === НАЧАЛО НА АВТОМАТИЧЕН СКЕНЕР ===
+    st.markdown("---")
+    st.markdown("### 📸 Автоматичен скенер на бележки")
+    
+    # Мобилен бутон - на телефон директно отваря камерата за снимка на живо
+    uploaded_receipt = st.file_uploader(
+        label="📸 Натиснете тук за СНИМКА НА ЖИВО", 
+        type=["jpg", "jpeg", "png"], 
+        key="main_receipt_uploader"
+    )
 
     if uploaded_receipt is not None:
         with st.spinner("🔄 AI анализира бележката..."):
@@ -233,12 +276,12 @@ if st.session_state["current_trip"] is None:
         
         st.markdown("#### 📝 Потвърждение на данните:")
         
-        # 1. Автоматично попълнена сума
+        # 1. Интелигентно извлечени стойности от облачния скенер
         scanned_amount = st.number_input("Разпозната сума (EUR):", value=float(ai_amount), min_value=0.0, step=0.01, format="%.2f", key="scanned_amt_field")
         scanned_desc = st.text_input("Описание / Обект:", value="Сканиран разход от бележка", key="scanned_desc_field")
         
-        # 2. Твоят съществуващ кликащ сегментиран контрол за категории
-        st.markdown("<small>Изберете категория (AI маркира автоматично, ако я разпознае):</small>", unsafe_allow_html=True)
+        # 2. Визуализиране на твоите реални категории като модерни хоризонтални бутони за кликване
+        st.markdown("<small>Изберете категория (AI маркира автоматично, ако я откриет в текста):</small>", unsafe_allow_html=True)
         chosen_cat = st.segmented_control(
             label="Категория:",
             options=KATEGORII,
@@ -250,11 +293,11 @@ if st.session_state["current_trip"] is None:
         if not chosen_cat:
             st.info("ℹ️ Моля, кликнете върху категория от бутоните по-горе, за да изпратите разхода.")
         
-        # 3. Избор в кое пътуване да се запише разхода (ако имаш повече от едно записано)
+        # 3. Избор към коя дестинация в базата да се прикачи сумата
         if existing:
             selected_target_trip = st.selectbox("Запиши към пътуване:", opts, key="scanned_target_trip_select")
             
-            if st.button("💾 Запиши разхода", use_container_width=True, type="primary", key="save_scanned_expense_btn"):
+            if st.button("💾 Запиши разхода в базата", use_container_width=True, type="primary", key="save_scanned_expense_btn"):
                 if not chosen_cat:
                     st.error("Грешка: Не сте избрали категория!")
                 elif scanned_amount <= 0:
@@ -263,44 +306,13 @@ if st.session_state["current_trip"] is None:
                     target_trip_id = selected_target_trip.replace(" ", "_")
                     is_deposit = (chosen_cat == "Депозит/Резервация")
                     
-                    # Извикваме твоята вградена функция за добавяне на разход в CSV лога
+                    # Записване чрез твоята оригинална функция add_expense
                     if add_expense(target_trip_id, scanned_amount, chosen_cat, scanned_desc, is_deposit):
                         st.success(f"✅ Успешно записан разход към {selected_target_trip}!")
-                        # Изчистване на бележката чрез изкуствено рестартиране на формата
                         st.session_state["form_version"] += 1
                         st.rerun()
+    # === КРАЙ НА АВТОМАТИЧЕН СКЕНЕР ===
 
-else:
-    trip_id = st.session_state["current_trip"]
-    c_s = get_trip_settings(trip_id)
-    car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
-    st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
-
-    @st.dialog("🗑️ Потвърждение за изтриване")
-    def confirm_delete_dialog():
-        if "delete_idx" in st.session_state and st.session_state["delete_idx"] is not None:
-            st.write("Сигурни ли сте, че искате да изтриете този разход?")
-            idx = st.session_state["delete_idx"]
-            try:
-                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                r = df_all.loc[idx]
-                st.markdown(f"**{get_emoji(r['category'])} {r['category']}** — <span style='color:#ff4b4b; font-weight:bold;'>{r['amount']:.2f} EUR</span><br><small>{r['description']}</small>", unsafe_allow_html=True)
-            except: 
-                pass
-            c_del1, c_del2 = st.columns(2)
-            with c_del1:
-                if st.button("✔️ ДА, ИЗТРИЙ", use_container_width=True, type="primary"):
-                    try:
-                        df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                        df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
-                    except: 
-                        pass
-                    st.session_state["delete_idx"] = None
-                    st.rerun()
-            with c_del2:
-                if st.button("✖️ ОТКАЗ", use_container_width=True): 
-                    st.session_state["delete_idx"] = None
-                    st.rerun()
 
     @st.dialog("🚨 Изтриване на цялото пътуване")
     def confirm_delete_trip_dialog():
