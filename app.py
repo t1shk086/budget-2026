@@ -195,7 +195,7 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("---")
     
-    # 1. СТРУКТУРИРАНЕ НА ЗАГЛАВИЕТО И СЕЛЕКТОРА В КОЛОНИ
+    # 1. СТРУКТУРИРАНЕ НА ЗАГЛАВИЕТО И СЕЛЕКТОРА В КОЛОНИ (С ТОЧНА ИНДЕНТАЦИЯ)
     head_col1, head_col2 = st.columns([0.55, 0.45], vertical_alignment="center")
     
     with head_col1:
@@ -279,7 +279,8 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-        all_trips_computed = []
+    all_trips_computed = []
+
         try:
             df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
             df_all_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
