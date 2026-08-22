@@ -214,10 +214,11 @@ if st.session_state["current_trip"] is None:
         /* Стилизираме малкия чист текст съобразно новата подредба */
         .analytics-row-text {
             font-family: var(--font), sans-serif !important;
-            font-size: 11px !important;
+            font-size: 14px !important;
             color: #ffffff !important;
             white-space: nowrap !important;
             margin: 0 !important;
+            margin-top: -14px !important;
             padding: 0 !important;
             display: inline-block !important;
         }
