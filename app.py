@@ -212,9 +212,9 @@ if st.session_state["current_trip"] is None:
         
         /* ФИКС: Спира разтягането на първата колона и я свива около бутона */
         [data-testid="stHorizontalBlock"] > div:first-child {
-            flex: 0 0 55px !important; /* Заковава ширината на бутона на 55px */
-            min-width: 55px !important;
-            max-width: 55px !important;
+            flex: 0 0 50px !important; /* Заковава ширината на бутона на 55px */
+            min-width: 50px !important;
+            max-width: 50px !important;
         }
 
         /* Изчистен малък текст с перфектна вертикална линия */
