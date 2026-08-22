@@ -1044,7 +1044,7 @@ else:
         if "show_comparison_graphic" not in st.session_state:
             st.session_state.show_comparison_graphic = False
             
-        # БЕЗ СЪКРАТЕН st.rerun() ТУК ЗА ДА НЕ СЕ ЗАТВАРЯ ДИАЛОГА
+        # Сигурно превключване на състоянието без срив на родителския прозорец
         if st.button("📈 Сравни всички записани пътувания", use_container_width=True, type="secondary"):
             st.session_state.show_comparison_graphic = not st.session_state.show_comparison_graphic
             st.rerun()
@@ -1078,12 +1078,11 @@ else:
                     days_count = 1
                     
                     if not df_t_sett.empty:
-                        # ТОЧЕН И СИГУРЕН ФИКС: добавено .iloc[0] преди преобразуването в речник
-                        row_dict = df_t_sett.iloc[0].to_dict()
-                        s_k = float(row_dict.get("start_km", 0.0))
-                        e_k = float(row_dict.get("end_km", 0.0))
-                        st_d_str = str(row_dict.get("start_date", ""))
-                        en_d_str = str(row_dict.get("end_date", ""))
+                        # АБСОЛЮТНО СИГУРНО И БЕЗГРЕШНО ИЗВЛИЧАНЕ НА СТОЙНОСТИТЕ ЗА СЕКЦИЯТА С ДАННИ
+                        s_k = float(df_t_sett["start_km"].values[0]) if "start_km" in df_t_sett.columns else 0.0
+                        e_k = float(df_t_sett["end_km"].values[0]) if "end_km" in df_t_sett.columns else 0.0
+                        st_d_str = str(df_t_sett["start_date"].values[0]) if "start_date" in df_t_sett.columns else ""
+                        en_d_str = str(df_t_sett["end_date"].values[0]) if "end_date" in df_t_sett.columns else ""
                         
                         max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
                         eff_e = e_k if e_k > 0 else max_k
