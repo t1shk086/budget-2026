@@ -259,59 +259,7 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
     st.markdown("---")
-    # === НАЧАЛО НА АВТОМАТИЧЕН СКЕНЕР ===
-    st.markdown("---")
-    st.markdown("### 📸 Автоматичен скенер на бележки")
-    
-    # Мобилен бутон - на телефон директно отваря камерата за снимка на живо
-    uploaded_receipt = st.file_uploader(
-        label="📸 Натиснете тук за СНИМКА НА ЖИВО", 
-        type=["jpg", "jpeg", "png"], 
-        key="main_receipt_uploader"
-    )
 
-    if uploaded_receipt is not None:
-        with st.spinner("🔄 AI анализира бележката..."):
-            ai_kat, ai_amount = analyze_receipt_text(uploaded_receipt)
-        
-        st.markdown("#### 📝 Потвърждение на данните:")
-        
-        # 1. Интелигентно извлечени стойности от облачния скенер
-        scanned_amount = st.number_input("Разпозната сума (EUR):", value=float(ai_amount), min_value=0.0, step=0.01, format="%.2f", key="scanned_amt_field")
-        scanned_desc = st.text_input("Описание / Обект:", value="Сканиран разход от бележка", key="scanned_desc_field")
-        
-        # 2. Визуализиране на твоите реални категории като модерни хоризонтални бутони за кликване
-        st.markdown("<small>Изберете категория (AI маркира автоматично, ако я откриет в текста):</small>", unsafe_allow_html=True)
-        chosen_cat = st.segmented_control(
-            label="Категория:",
-            options=KATEGORII,
-            default=ai_kat if ai_kat in KATEGORII else None,
-            label_visibility="collapsed",
-            key="scanned_cat_segment_clicker"
-        )
-        
-        if not chosen_cat:
-            st.info("ℹ️ Моля, кликнете върху категория от бутоните по-горе, за да изпратите разхода.")
-        
-        # 3. Избор към коя дестинация в базата да се прикачи сумата
-        if existing:
-            selected_target_trip = st.selectbox("Запиши към пътуване:", opts, key="scanned_target_trip_select")
-            
-            if st.button("💾 Запиши разхода в базата", use_container_width=True, type="primary", key="save_scanned_expense_btn"):
-                if not chosen_cat:
-                    st.error("Грешка: Не сте избрали категория!")
-                elif scanned_amount <= 0:
-                    st.error("Грешка: Моля, въведете валидна сума!")
-                else:
-                    target_trip_id = selected_target_trip.replace(" ", "_")
-                    is_deposit = (chosen_cat == "Депозит/Резервация")
-                    
-                    # Записване чрез твоята оригинална функция add_expense
-                    if add_expense(target_trip_id, scanned_amount, chosen_cat, scanned_desc, is_deposit):
-                        st.success(f"✅ Успешно записан разход към {selected_target_trip}!")
-                        st.session_state["form_version"] += 1
-                        st.rerun()
-    # === КРАЙ НА АВТОМАТИЧЕН СКЕНЕР ===
 
 
     @st.dialog("🚨 Изтриване на цялото пътуване")
@@ -385,7 +333,59 @@ if st.session_state["current_trip"] is None:
         s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
     with col2: 
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
+    # === НАЧАЛО НА АВТОМАТИЧЕН СКЕНЕР ===
+    st.markdown("---")
+    st.markdown("### 📸 Автоматичен скенер на бележки")
+    
+    # Мобилен бутон - на телефон директно отваря камерата за снимка на живо
+    uploaded_receipt = st.file_uploader(
+        label="📸 Натиснете тук за СНИМКА НА ЖИВО", 
+        type=["jpg", "jpeg", "png"], 
+        key="main_receipt_uploader"
+    )
 
+    if uploaded_receipt is not None:
+        with st.spinner("🔄 AI анализира бележката..."):
+            ai_kat, ai_amount = analyze_receipt_text(uploaded_receipt)
+        
+        st.markdown("#### 📝 Потвърждение на данните:")
+        
+        # 1. Интелигентно извлечени стойности от облачния скенер
+        scanned_amount = st.number_input("Разпозната сума (EUR):", value=float(ai_amount), min_value=0.0, step=0.01, format="%.2f", key="scanned_amt_field")
+        scanned_desc = st.text_input("Описание / Обект:", value="Сканиран разход от бележка", key="scanned_desc_field")
+        
+        # 2. Визуализиране на твоите реални категории като модерни хоризонтални бутони за кликване
+        st.markdown("<small>Изберете категория (AI маркира автоматично, ако я откриет в текста):</small>", unsafe_allow_html=True)
+        chosen_cat = st.segmented_control(
+            label="Категория:",
+            options=KATEGORII,
+            default=ai_kat if ai_kat in KATEGORII else None,
+            label_visibility="collapsed",
+            key="scanned_cat_segment_clicker"
+        )
+        
+        if not chosen_cat:
+            st.info("ℹ️ Моля, кликнете върху категория от бутоните по-горе, за да изпратите разхода.")
+        
+        # 3. Избор към коя дестинация в базата да се прикачи сумата
+        if existing:
+            selected_target_trip = st.selectbox("Запиши към пътуване:", opts, key="scanned_target_trip_select")
+            
+            if st.button("💾 Запиши разхода в базата", use_container_width=True, type="primary", key="save_scanned_expense_btn"):
+                if not chosen_cat:
+                    st.error("Грешка: Не сте избрали категория!")
+                elif scanned_amount <= 0:
+                    st.error("Грешка: Моля, въведете валидна сума!")
+                else:
+                    target_trip_id = selected_target_trip.replace(" ", "_")
+                    is_deposit = (chosen_cat == "Депозит/Резервация")
+                    
+                    # Записване чрез твоята оригинална функция add_expense
+                    if add_expense(target_trip_id, scanned_amount, chosen_cat, scanned_desc, is_deposit):
+                        st.success(f"✅ Успешно записан разход към {selected_target_trip}!")
+                        st.session_state["form_version"] += 1
+                        st.rerun()
+    # === КРАЙ НА АВТОМАТИЧЕН СКЕНЕР ===
     is_trip_finished = (e_km > 0.0)
 
     @st.dialog("⛽ Зареждане на гориво")
