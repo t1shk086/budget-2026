@@ -209,7 +209,7 @@ if st.session_state["current_trip"] is None:
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 0px !important; /* Точно 1 чист интервал разстояние */
+            gap: 8px !important; /* Точно 1 чист интервал разстояние */
             margin: 10px 0 !important;
             width: auto !important;
         }
@@ -220,7 +220,7 @@ if st.session_state["current_trip"] is None:
             font-size: 14px !important; 
             color: #ffffff !important;
             margin: 0 !important;
-            margin-top: -14px !important; /* Ръчна настройка за височина (може да я коригирате) */
+            margin-top: -4px !important; /* Ръчна настройка за височина (може да я коригирате) */
             padding: 0 !important;
             white-space: nowrap !important;
         }
