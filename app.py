@@ -768,7 +768,7 @@ else:
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
 
-    # === ВАРИАНТ 2: МИНИМАЛИСТИЧНО ГРАФИТЕНО (ЧЕРНО-БЯЛ И КОНТРАСТЕН ПЕЧАТ) ===
+    # === ВАРИАНТ 3: ГОРСКО ЗЕЛЕНО И ЗЛАТНО (ПРЕМИУМ/СТИЛЕН ДИЗАЙН) ===
     pdf_html = f"""<!DOCTYPE html>
     <html>
     <head>
@@ -776,64 +776,61 @@ else:
         <title>Отчет за пътуване - {trip_id.replace('_', ' ')}</title>
         <style>
             @media print {{
-                body {{ font-size: 11px; line-height: 1.3; color: #000; background: #fff; padding: 0; }}
+                body {{ font-size: 12px; line-height: 1.4; color: #000; background: #fff; padding: 0; }}
                 tr {{ page-break-inside: avoid; }}
                 @page {{ size: A4; margin: 15mm; }}
             }}
             body {{
                 font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
                 padding: 20px;
-                color: #2f3542;
+                color: #2c3e50;
                 background-color: #ffffff;
                 max-width: 800px;
                 margin: 0 auto;
             }}
             .header-container {{
-                border-bottom: 2px solid #2f3542;
-                padding-bottom: 10px;
+                border-bottom: 3px solid #1e2d24; /* Горско зелено */
+                padding-bottom: 12px;
                 margin-bottom: 20px;
             }}
             h2 {{
-                color: #2f3542;
+                color: #1e2d24;
                 margin: 0 0 5px 0;
-                font-size: 22px;
+                font-size: 24px;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }}
             h3 {{
-                color: #2f3542;
-                border-bottom: 2px solid #ced6e0;
+                color: #2d3e33;
+                border-bottom: 2px solid #e1e8e4;
                 padding-bottom: 5px;
                 margin-top: 25px;
-                font-size: 15px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
+                font-size: 16px;
             }}
             .meta-info {{
                 font-size: 12px;
-                color: #747d8c;
+                color: #7f8c8d;
                 margin: 0;
             }}
             .summary-box {{
-                background: #f1f2f6;
-                border: 1px solid #ced6e0;
-                border-left: 5px solid #2f3542;
+                background: #f4f6f5; /* Много нежен зелен оттенък за фон */
+                border: 1px solid #d1ded6;
+                border-left: 5px solid #b8860b; /* Тъмно златно */
                 padding: 15px;
-                border-radius: 4px;
+                border-radius: 6px;
                 margin-bottom: 25px;
             }}
             .summary-title {{
-                font-size: 12px;
-                color: #747d8c;
+                font-size: 13px;
+                color: #7f8c8d;
                 text-transform: uppercase;
                 margin-bottom: 5px;
                 font-weight: 600;
-                letter-spacing: 0.5px;
             }}
             .summary-amount {{
-                font-size: 26px;
-                color: #000000;
-                font-weight: 800;
+                font-size: 24px;
+                color: #b8860b; /* Златно за сумата */
+                font-weight: bold;
                 margin: 0;
             }}
             .stats-grid {{
@@ -843,19 +840,17 @@ else:
                 margin-bottom: 25px;
             }}
             .stat-card {{
-                background: #fdfdfe;
-                border: 1px solid #ced6e0;
+                background: #fbfcfb;
+                border: 1px solid #e1e8e4;
                 padding: 12px 15px;
-                border-radius: 4px;
+                border-radius: 6px;
             }}
             .stat-card h4 {{
                 margin: 0 0 8px 0;
-                color: #2f3542;
-                border-bottom: 1px solid #ced6e0;
+                color: #1e2d24;
+                border-bottom: 1px solid #e1e8e4;
                 padding-bottom: 4px;
-                font-size: 13px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
+                font-size: 14px;
             }}
             .stat-card ul {{
                 list-style: none;
@@ -873,31 +868,30 @@ else:
                 font-size: 12px;
             }}
             th {{
-                background-color: #2f3542;
+                background-color: #1e2d24; /* Горско зелено за заглавието на таблицата */
                 color: #ffffff;
                 text-align: left;
-                padding: 8px 10px;
+                padding: 10px;
                 font-weight: 600;
             }}
             td {{
-                padding: 8px 10px;
-                border-bottom: 1px solid #e4e7eb;
-                color: #2f3542;
+                padding: 10px;
+                border-bottom: 1px solid #e1e8e4;
+                color: #333;
             }}
             tr:nth-child(even) {{
-                background-color: #f1f2f6;
+                background-color: #f4f6f5;
             }}
             .fuel-highlight {{
-                color: #000000;
-                font-weight: 700;
-                text-decoration: underline;
+                color: #8b0000;
+                font-weight: 600;
             }}
             .badge-km {{
-                background: #ced6e0;
+                background: #e1e8e4;
                 padding: 2px 6px;
-                border-radius: 3px;
+                border-radius: 4px;
                 font-size: 11px;
-                color: #2f3542;
+                color: #1e2d24;
                 font-weight: 600;
             }}
             .text-right {{
@@ -905,7 +899,7 @@ else:
             }}
             .total-row {{
                 font-weight: bold;
-                background-color: #ced6e0 !important;
+                background-color: #e1e8e4 !important;
                 font-size: 13px;
             }}
         </style>
@@ -921,7 +915,7 @@ else:
         <div class='summary-box'>
             <div class='summary-title'>Обща стойност на почивката</div>
             <div class='summary-amount'>{grand_total:.2f} EUR</div>
-            <p style='margin: 5px 0 0 0; font-size: 12px; color: #57606f;'>
+            <p style='margin: 5px 0 0 0; font-size: 12px; color: #5d6d7e;'>
                 (Депозити: {depozit_hotel:.2f} EUR | Разходи на място: {total_on_site:.2f} EUR)
             </p>
         </div>
@@ -981,7 +975,7 @@ else:
     pdf_html += f"""
                 <tr class='total-row'>
                     <td colspan='4' class='text-right'>ОБЩО:</td>
-                    <td class='text-right' style='color: #000000;'>{grand_total:.2f} EUR</td>
+                    <td class='text-right' style='color: #1e2d24;'>{grand_total:.2f} EUR</td>
                 </tr>
             </tbody>
         </table>
