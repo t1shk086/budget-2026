@@ -198,7 +198,7 @@ if st.session_state["current_trip"] is None:
     # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ (MODAL) ЗА ГРАФИКИТЕ
     @st.dialog("📊 Глобален анализ и сравнения", width="large")
     def show_global_analytics_dialog():
-        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в цял размер!</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в по-добър мащаб!</p>", unsafe_allow_html=True)
         
         chosen_criteria = st.segmented_control(
             label="Изберете критерий:",
@@ -321,7 +321,7 @@ if st.session_state["current_trip"] is None:
         
     with title_col:
         # ФИКС: Нормален шрифт без удебеляване и без специфични размери
-        st.write("Сравнителен Панел")
+        st.write("Сравнителен панел")
         
     # ПРИ АКТИВИРАНЕ ОТ TOGGLE БУТОНА - ИЗВИКВАМЕ ДИАЛОГОВИЯ ПРОЗОРЕЦ
     if show_comparison:
