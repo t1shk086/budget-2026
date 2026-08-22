@@ -262,7 +262,7 @@ if st.session_state["current_trip"] is None:
 
                 for t in unique_trips:
                     if not t or str(t).strip() == "": continue
-                    df_all_data[df_all_data["trip_id"] == t]
+                    df_t_data = df_all_data[df_all_data["trip_id"] == t]
                     df_t_sett = df_all_settings[df_all_settings["trip_id"] == t]
 
                     t_dep = float(df_all_data[df_all_data["type"] == "deposit"]["amount"].sum())
