@@ -204,7 +204,7 @@ if st.session_state["current_trip"] is None:
             width: auto !important;
             min-width: auto !important;
             margin: 0 !important;
-            margin-bottom: -14px !important;
+            margin-bottom: 14px !important;
             padding: 0 !important;
         }
         .analytics-row-text {
