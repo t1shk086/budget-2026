@@ -1109,17 +1109,17 @@ else:
                     df_filtered = df_pixel[df_pixel["DistValid"] == True]
                     if df_filtered.empty: df_filtered = df_pixel
                     df_sorted = df_filtered.sort_values(by=x_col, ascending=True)
-                    graph_title = "💰Показва колко EUR излиза 1км. за цялото пътуване (по-ниската стойност е по-добра)"
+                    graph_title = "💰Сравнява ефективност на пътуване или EUR/1км. (по-ниската стойност е по-добра)"
                 elif chosen_criteria == "Обща Стойност":
                     x_col = "Обща Стойност (EUR)"
                     t_format = "%{text:,.2f} EUR"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                    graph_title = "💸Сравнява всички пътувания по тотал. Крайно САЛДО"
+                    graph_title = "💸Сравнява всички по крайно САЛДО/Тотален Разход"
                 else: 
                     x_col = "Дневен Разход (EUR)"
                     t_format = "%{text:.2f} EUR/ден"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                    graph_title = "📅Сравнява пътуванията по среднодневен разход EUR"
+                    graph_title = "📅Сравнява среднодневен разход за всички пътувания"
                     
                 fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
                 
