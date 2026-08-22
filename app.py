@@ -758,7 +758,7 @@ else:
             st.error(f"Грешка при зареждане на хронологията: {str(e)}")
         
         st.markdown("---")
-        if st.button("❌ Изход", use_container_width=True, key="close_hronologia_popup_btn"):
+        if st.button("❌ Затвори", use_container_width=True, key="close_hronologia_popup_btn"):
             st.rerun()
 
 
