@@ -197,44 +197,33 @@ if st.session_state["current_trip"] is None:
     
     st.markdown("---")
     
-    # 1. CSS ЗА НАМАЛЯВАНЕ НА РАЗМЕРА И ВЕРТИКАЛНО НИВЕЛИРАНЕ
+    # 1. ЕЛЕГАНТЕН CSS: ПРЕМЕСТВА ФАБРИЧНИЯ НАДПИС ОТДЯСНО НА ТОГЪЛА С 1 ИНТЕРВАЛ РАЗСТОЯНИЕ
     st.html("""
     <style>
-        .analytics-row-container div[data-testid="stCheckbox"] {
+        /* Пренастройва контейнера на toggle бутона да подрежда елементите в линия */
+        div[data-testid="stCheckbox"] > label {
+            display: inline-flex !important;
+            flex-direction: row-reverse !important; /* Мести оригиналния текст отдясно */
+            align-items: center !important;
+            gap: 10px !important; /* Разстояние точно колкото 1 интервал */
             width: auto !important;
-            min-width: auto !important;
-            margin: 0 !important;
-            padding: 0 !important;
         }
-        .analytics-row-text {
-            font-family: var(--font), sans-serif !important;
-            font-size: 14px !important;
-            color: #ffffff !important;
+        /* Подсигурява, че текстът няма да се пречупи на два реда на телефон */
+        div[data-testid="stCheckbox"] p {
             white-space: nowrap !important;
             margin: 0 !important;
-            margin-top: -14px !important;
-            padding: 0 !important;
-            display: inline-block !important;
         }
     </style>
     """)
 
-    # 2. СТРУКТУРЕН РЕД НА STREAMLIT (ПОДРАВНЕН И СТАБИЛЕН)
-    with st.container():
-        r_col1, r_col2 = st.columns([0.05, 0.95], vertical_alignment="center")
+    # 2. ОФИЦИАЛЕН TOGGLE БУТОН С ДИРЕКТЕН НАДПИС (БЕЗ ДОПЪЛНИТЕЛНИ КОЛОНИ И HTML)
+    show_comparison = st.toggle(
+        label="Глобален анализ",
+        value=False,
+        key="stable_comparison_toggle"
+    )
         
-        with r_col1:
-            show_comparison = st.toggle(
-                "Покажи прозореца",
-                value=False,
-                key="stable_comparison_toggle",
-                label_visibility="collapsed"
-            )
-            
-        with r_col2:
-            st.markdown('<p class="analytics-row-text">Глобален анализ</p>', unsafe_allow_html=True)
-            
-    # 3. КОРЕКТНА ЛОГИКА ЗА ДИАЛОГОВИЯ ПРОЗОРЕЦ (ПРАВИЛНО ИНДЕНТИРАНА)
+    # 3. КОРЕКТНА И СТАБИЛНА ФУНКЦИЯ ЗА ДИАЛОГОВИЯ ПРОЗОРЕЦ
     if show_comparison:
         @st.dialog("📊 Глобален анализ и сравнения", width="large")
         def show_global_analytics_dialog():
@@ -293,7 +282,6 @@ if st.session_state["current_trip"] is None:
             except:
                 pass
 
-            # ФИКС: Този блок вече е правилно поставен С ВЪТРЕШЕН ТАБ вътре във функцията
             if all_trips_computed:
                 df_pixel = pd.DataFrame(all_trips_computed)
                 import plotly.express as px
@@ -349,7 +337,6 @@ if st.session_state["current_trip"] is None:
                 st.session_state["stable_comparison_toggle"] = False
                 st.rerun()
 
-        # Извикваме прозореца правилно
         show_global_analytics_dialog()
 
 
