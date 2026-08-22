@@ -194,107 +194,90 @@ if st.session_state["current_trip"] is None:
         create_trip_modal()
 
     st.markdown("---")
-    st.markdown("""
-    <style>
-    .global-analytics-card {
-        width: 100%;
-        box-sizing: border-box;
-        background: linear-gradient(145deg, rgba(24,27,36,0.97), rgba(15,17,23,0.99));
-        border: 1px solid rgba(255,255,255,0.09);
-        border-radius: 18px;
-        padding: 16px 18px 12px 18px;
-        margin: 18px 0 10px 0;
-        box-shadow: 0 10px 28px rgba(0,0,0,0.24);
-        overflow: hidden;
-    }
-    .global-analytics-head {
-        display:flex;
-        align-items:center;
-        gap:11px;
-    }
-    .global-analytics-icon {
-        width:38px;
-        height:38px;
-        flex:0 0 38px;
-        border-radius:11px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        background:linear-gradient(135deg, rgba(0,242,254,0.18), rgba(79,172,254,0.10));
-        border:1px solid rgba(0,242,254,0.20);
-        font-size:19px;
-    }
-    .global-analytics-title {
-        color:#f5f7fa;
-        font-size:17px;
-        font-weight:800;
-        line-height:1.15;
-    }
-    .global-analytics-subtitle {
-        color:#858d9c;
-        font-size:11px;
-        margin-top:4px;
-        line-height:1.35;
-    }
-    .global-analytics-accent {
-        height:2px;
-        width:48px;
-        margin-top:12px;
-        border-radius:5px;
-        background:linear-gradient(90deg,#00f2fe,#4facfe);
-        box-shadow:0 0 9px rgba(0,242,254,0.30);
-    }
-
-    /* Mobile-first adjustments */
-    @media (max-width: 640px) {
+    
+    # 1. СТРУКТУРИРАНЕ НА ЗАГЛАВИЕТО И СЕЛЕКТОРА В КОЛОНИ
+    head_col1, head_col2 = st.columns([0.55, 0.45], vertical_alignment="center")
+    
+    with head_col1:
+        st.markdown("""
+        <style>
         .global-analytics-card {
-            border-radius:15px;
-            padding:14px 14px 10px 14px;
-            margin-top:12px;
+            width: 100%;
+            box-sizing: border-box;
+            background: linear-gradient(145deg, rgba(24,27,36,0.97), rgba(15,17,23,0.99));
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 18px;
+            padding: 16px 18px 12px 18px;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.24);
+            overflow: hidden;
+        }
+        .global-analytics-head {
+            display:flex;
+            align-items:center;
+            gap:11px;
         }
         .global-analytics-icon {
-            width:34px;
-            height:34px;
-            flex-basis:34px;
-            border-radius:10px;
-            font-size:17px;
+            width:38px;
+            height:38px;
+            flex:0 0 38px;
+            border-radius:11px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:linear-gradient(135deg, rgba(0,242,254,0.18), rgba(79,172,254,0.10));
+            border:1px solid rgba(0,242,254,0.20);
+            font-size:19px;
         }
         .global-analytics-title {
-            font-size:15px;
+            color:#f5f7fa;
+            font-size:17px;
+            font-weight:800;
+            line-height:1.15;
         }
         .global-analytics-subtitle {
-            font-size:10px;
+            color:#858d9c;
+            font-size:11px;
+            margin-top:4px;
+            line-height:1.35;
         }
-    }
-    </style>
+        .global-analytics-accent {
+            height:2px;
+            width:48px;
+            margin-top:12px;
+            border-radius:5px;
+            background:linear-gradient(90deg,#00f2fe,#4facfe);
+            box-shadow:0 0 9px rgba(0,242,254,0.30);
+        }
+        @media (max-width: 640px) {
+            .global-analytics-card { border-radius:15px; padding:14px 14px 10px 14px; }
+            .global-analytics-icon { width:34px; height:34px; flex-basis:34px; border-radius:10px; font-size:17px; }
+            .global-analytics-title { font-size:15px; }
+            .global-analytics-subtitle { font-size:10px; }
+        }
+        </style>
 
-    <div class="global-analytics-card">
-        <div class="global-analytics-head">
-            <div class="global-analytics-icon">📊</div>
-            <div>
-                <div class="global-analytics-title">Глобален анализ</div>
-                <div class="global-analytics-subtitle">Сравнение на всички записани пътувания</div>
+        <div class="global-analytics-card">
+            <div class="global-analytics-head">
+                <div class="global-analytics-icon">📊</div>
+                <div>
+                    <div class="global-analytics-title">Глобален анализ</div>
+                    <div class="global-analytics-subtitle">Сравнение на всички записани пътувания</div>
+                </div>
             </div>
+            <div class="global-analytics-accent"></div>
         </div>
-        <div class="global-analytics-accent"></div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    show_comparison = st.toggle(
-        "Сравни всички пътувания",
-        value=False,
-        key="stable_comparison_toggle"
-    )
-
-    if show_comparison:
-        st.markdown("<br>", unsafe_allow_html=True)
-
+    with head_col2:
         chosen_criteria = st.segmented_control(
-            label="Изберете критерий за сравнение:",
+            label="Критерий за сравнение:",
             options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
             default="Цена за 1 км",
-            key="home_segmented_metric_selector"
+            key="home_segmented_metric_selector",
+            label_visibility="collapsed"
         )
+
+    st.markdown("<br>", unsafe_allow_html=True)
 
         all_trips_computed = []
         try:
