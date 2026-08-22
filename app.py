@@ -218,19 +218,19 @@ if st.session_state["current_trip"] is None:
 
     # 2. ОФИЦИАЛЕН TOGGLE БУТОН С ДИРЕКТЕН НАДПИС (БЕЗ ДОПЪЛНИТЕЛНИ КОЛОНИ И HTML)
     show_comparison = st.toggle(
-        label="Глобален анализ",
+        label="Сравнителен панел",
         value=False,
         key="stable_comparison_toggle"
     )
         
     # 3. КОРЕКТНА И СТАБИЛНА ФУНКЦИЯ ЗА ДИАЛОГОВИЯ ПРОЗОРЕЦ
     if show_comparison:
-        @st.dialog("📊 Глобален анализ и сравнения", width="large")
+        @st.dialog("📊 Сравнителен панел", width="large")
         def show_global_analytics_dialog():
-            st.markdown("<p style='color: #888; margin-bottom: 20px;'>Сравнение и ефективност на всички записани пътувания:</p>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в по-добър мащаб!</p>", unsafe_allow_html=True)
             
             chosen_criteria = st.segmented_control(
-                label="Изберете критерий за сравнение:",
+                label="Изберете критерий:",
                 options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
                 default="Цена за 1 км",
                 key="modal_segmented_metric_selector"
@@ -297,7 +297,7 @@ if st.session_state["current_trip"] is None:
                     x_col = "Обща Стойност (EUR)"
                     t_format = "%{text:,.2f} EUR"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                    graph_title = "💸 Общ разход за почивките"
+                    graph_title = "💸 Тотална СУМА "
                 else: 
                     x_col = "Дневен Разход (EUR)"
                     t_format = "%{text:.2f} EUR/ден"
@@ -333,7 +333,7 @@ if st.session_state["current_trip"] is None:
                 st.info("Няма достатъчно база данни за сравнение.")
 
             st.write("---")
-            if st.button("❌ Затвори анализа", key="bottom_modal_close_btn", use_container_width=True):
+            if st.button("❌ Затвори", key="bottom_modal_close_btn", use_container_width=True):
                 st.session_state["stable_comparison_toggle"] = False
                 st.rerun()
 
