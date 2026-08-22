@@ -303,26 +303,30 @@ if st.session_state["current_trip"] is None:
             st.info("Няма достатъчно база данни за сравнение.")
 
         st.write("---")
+        # ФИКС: Ръчно изключваме toggle състоянието преди опресняване
         if st.button("❌ Затвори анализа", use_container_width=True):
+            st.session_state["stable_comparison_toggle"] = False
             st.rerun()
 
     # ПОДРЕЖДАНЕ: ПРЕВКЛЮЧВАТЕЛЯТ ВЛЯВО, ЗАГЛАВИЕТО ВДЯСНО
-    toggle_col, title_col = st.columns([0.35, 0.65], vertical_alignment="center")
+    toggle_col, title_col = st.columns([0.15, 0.85], vertical_alignment="center")
     
     with toggle_col:
         show_comparison = st.toggle(
             "Покажи прозореца",
             value=False,
             key="stable_comparison_toggle",
-            label_visibility="collapsed" # Скрива системния текст на бутона, за да не си пречи със заглавието
+            label_visibility="collapsed"
         )
         
     with title_col:
-        st.markdown("<h3 style='margin:0; padding:0; font-family:\"Segoe UI\", sans-serif; font-weight:700; color:#fafafa; margin-left:-10px;'>Глобален анализ</h3>", unsafe_allow_html=True)
+        # ФИКС: Нормален шрифт без удебеляване и без специфични размери
+        st.write("Глобален анализ")
         
     # ПРИ АКТИВИРАНЕ ОТ TOGGLE БУТОНА - ИЗВИКВАМЕ ДИАЛОГОВИЯ ПРОЗОРЕЦ
     if show_comparison:
         show_global_analytics_dialog()
+
 
 
 
