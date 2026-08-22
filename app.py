@@ -224,7 +224,7 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
     st.markdown("---")
-    st.markdown("### 📸 Бърз разход чрез Скенер")
+    st.markdown("### Сканирай касов БОН")
     uploaded_receipt = st.file_uploader("Зареди или снимай касова бележка", type=["jpg", "jpeg", "png"], key="main_receipt_uploader", label_visibility="collapsed")
 
     if uploaded_receipt is not None:
