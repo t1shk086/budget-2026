@@ -330,7 +330,7 @@ if st.session_state["current_trip"] is None:
 
                 fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
 
-fig_pixel.update_traces(
+                fig_pixel.update_traces(
                     marker=dict(
                         color=df_sorted[x_col],
                         colorscale=[
