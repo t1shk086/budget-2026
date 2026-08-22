@@ -208,7 +208,7 @@ if st.session_state["current_trip"] is None:
             font-size: 14px !important; /* Наполовина на оригиналния заглавен размер */
             color: #ffffff !important;
             margin: 0 !important;
-            margin-top: -6px !important;
+            margin-top: -7px !important;
             padding: 0 !important;
             white-space: nowrap !important;
         }
