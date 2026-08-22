@@ -1041,12 +1041,13 @@ else:
         st.markdown("---")
         st.markdown("#### 🔄 Глобални анализи на бранда")
         
+        # Проверка и дефиниране на състоянието без рестартиране
         if "show_comparison_graphic" not in st.session_state:
             st.session_state.show_comparison_graphic = False
             
+        # ПРЕМАХНАТ st.rerun() ТУК - Сега просто сменя стойността и презарежда САМО попъпа
         if st.button("📈 Сравни всички записани пътувания", use_container_width=True, type="secondary"):
             st.session_state.show_comparison_graphic = not st.session_state.show_comparison_graphic
-            st.rerun()
             
         if st.session_state.show_comparison_graphic:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -1137,7 +1138,6 @@ else:
                     cliponaxis=False
                 )
                 
-                # ИЗЧИСТЕНИ НАСТРОЙКИ НА LAYOUT БЕЗ КОНФЛИКТНИ ОБЕКТИ И ШРИФТОВЕ
                 fig_pixel.update_layout(
                     title=dict(text=graph_title),
                     plot_bgcolor='rgba(0,0,0,0)',
@@ -1153,6 +1153,7 @@ else:
                 st.info("Няма достатъчно база данни от пътувания за сравнение.")
                 
             st.markdown("<br>", unsafe_allow_html=True)
+            # ПРЕМАХНАТ st.rerun() ТУК - Просто сменя състоянието в паметта
             if st.button("❌ Затвори анализите", use_container_width=True, type="primary", key="close_inner_comparison_btn"):
                 st.session_state.show_comparison_graphic = False
                 st.rerun()
@@ -1165,6 +1166,7 @@ else:
 
     if st.button("📥 Свали отчет", use_container_width=True, key="main_download_report_popup_trigger"):
         download_and_compare_dialog()
+
 
 
 
