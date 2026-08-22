@@ -198,7 +198,7 @@ if st.session_state["current_trip"] is None:
     # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ (MODAL) ЗА ГРАФИКИТЕ
     @st.dialog("📊 Глобален анализ и сравнения", width="large")
     def show_global_analytics_dialog():
-        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завърти дисплея, за да видите графиката в цял размер!</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в цял размер!</p>", unsafe_allow_html=True)
         
         chosen_criteria = st.segmented_control(
             label="Изберете критерий за сравнение:",
@@ -1146,7 +1146,7 @@ else:
     </html>"""
 
     # === ИНТЕГРИРАНА МУЛТИФУНКЦИОНАЛНА ДИАЛОГОВА СИСТЕМА ===
-    @st.dialog("💾 Действия с отчети и анализи", width="large")
+    @st.dialog("💾 Действия с отчети", width="large")
     def download_and_compare_dialog():
         st.markdown("#### 📥 Изтегляне на текущото пътуване")
         col1, col2 = st.columns(2)
