@@ -221,7 +221,7 @@ if st.session_state["current_trip"] is None:
 
     # 2. СТРУКТУРЕН РЕД НА STREAMLIT (ПОДРАВНЕН И СТАБИЛЕН)
     with st.container():
-        r_col1, r_col2 = st.columns([0.01, 0.99], vertical_alignment="center")
+        r_col1, r_col2 = st.columns([0.05, 0.95], vertical_alignment="center")
         
         with r_col1:
             show_comparison = st.toggle(
