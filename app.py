@@ -195,25 +195,42 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("---")
     
-    # 1. ЧИСТ CSS ЗА НАМАЛЯВАНЕ НА ШРИФТА (БЕЗ ДА СЕ ЧУПИ БУТОНА)
+    st.markdown("---")
+    
+    # 1. ЧИСТ CSS ЗА НАМАЛЯВАНЕ НА ШРИФТА, ИЗРАВНЯВАНЕ И ЗАБРАНА ЗА ПАДАНЕ НА НОВ РЕД
     st.html("""
     <style>
-        /* Свива празнотата между колоните на телефона */
+        /* ФИКС ЗА ТЕЛЕФОН: Забранява на колоните да падат една под друга */
         [data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important; /* Държи ги на един ред винаги */
+            align-items: center !important;
             gap: 0.5rem !important;
         }
-        /* Намалява шрифта с 50% и го прави чист, както поиска */
+        
+        /* Изравнява ширината на първата колона спрямо бутона */
+        [data-testid="stHorizontalBlock"] > div:first-child {
+            flex: 0 0 auto !important;
+            width: auto !important;
+        }
+
+        /* Намалява шрифта и го изравнява вертикално */
         .small-clean-text {
             font-family: var(--font), sans-serif !important;
-            font-size: 14px !important; /* Наполовина на оригиналния заглавен размер */
+            font-size: 11px !important; 
             color: #ffffff !important;
             margin: 0 !important;
-            margin-top: -14px !important;
+            margin-top: -6px !important; /* Вашата настройка за височина */
             padding: 0 !important;
-            white-space: nowrap !important;
+            white-space: nowrap !important; /* Забранява на самия текст да се пречупва */
         }
     </style>
     """)
+
+    # 2. ПОДРЕДБА В СВРЪХТЕСНИ КОЛОНИ
+    toggle_col, title_col = st.columns([0.06, 0.94], vertical_alignment="center")
+
 
     # 2. ПОДРЕДБА В СВРЪХТЕСНИ КОЛОНИ, КОИТО НЕ СЕ РАЗДЕЛЯТ
     toggle_col, title_col = st.columns([0.06, 0.94], vertical_alignment="center")
