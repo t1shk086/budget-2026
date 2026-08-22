@@ -226,10 +226,10 @@ if st.session_state["current_trip"] is None:
                 days_count = 1
 
                 if not df_t_sett.empty:
-                    s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
-                    e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
-                    st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
-                    en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
+                    s_k = float(df_t_sett["start_km"].iloc) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
+                    e_k = float(df_t_sett["end_km"].iloc) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
+                    st_d_str = str(df_t_sett["start_date"].iloc) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
+                    en_d_str = str(df_t_sett["end_date"].iloc) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
 
                     max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
                     eff_e = e_k if e_k > 0 else max_k
@@ -307,46 +307,38 @@ if st.session_state["current_trip"] is None:
             st.session_state["stable_comparison_toggle"] = False
             st.rerun()
 
-    # 1. СТИЛ ЗА ЕДНОВРЕМЕННО ПАСВАНЕ НА ДЕСКТОП И ТЕЛЕФОН БЕЗ КОЛОНИ
+    # 1. ЕЛЕГАНТЕН CSS, КОЙТО ПРЕОБРЪЩА ЕТИКЕТА НА TOGGLE БУТОНА ВДЯСНО С ЕДИН ИНТЕРВАЛ СЪОТНОШЕНИЕ
     st.html("""
     <style>
-        /* Хъб, който гарантира, че двата обекта са в една линия навсякъде */
-        .analytics-inline-wrapper {
+        /* Пренастройва контейнера на toggle бутона да подрежда елементите хоризонтално */
+        div[data-testid="stCheckbox"] > label {
             display: inline-flex !important;
+            flex-direction: row-reverse !important; /* Премества текста от дясната страна на ключа */
             align-items: center !important;
-            gap: 8px !important; /* Разстояние точно 1 интервал */
+            gap: 10px !important; /* Разстояние точно колкото 1 интервал */
             width: auto !important;
         }
-        /* Връща нормалния оригинален шрифт и размер от бутона 'Ново пътуване' */
-        .analytics-inline-text {
+        /* Принуждава текста да запази същия шрифт и размер като бутона за Ново пътуване */
+        div[data-testid="stCheckbox"] p {
             font-family: var(--font), sans-serif !important;
-            font-size: 1rem !important; /* Нормален стандартен размер */
-            font-weight: inherit !important;
+            font-size: 1rem !important; /* Същият нативен размер */
             color: #ffffff !important;
-            white-space: nowrap !important; /* Забранява пречупването на текста */
-            line-height: 1 !important;
-        }
-        /* Центрира превключвателя вертикално спрямо текста */
-        .analytics-inline-wrapper div[data-testid="stCheckbox"] {
-            margin-bottom: 0px !important;
+            white-space: nowrap !important;
+            margin: 0 !important;
         }
     </style>
     """)
 
-    # 2. РЕНДЕРИРАНЕ НА ЕЛЕМЕНТИТЕ В ОБЩ СТРУКТУРЕН КОНТЕНЕР
-    st.markdown('<div class="analytics-inline-wrapper">', unsafe_allow_html=True)
-    
+    # 2. РЕНДЕРИРАНЕ НА ТОГЪЛА С ТЕКСТА КАТО ОФИЦИАЛЕН ЕТИКЕТ
     show_comparison = st.toggle(
-        "Покажи прозореца",
+        label="Глобален анализ",
         value=False,
-        key="stable_comparison_toggle",
-        label_visibility="collapsed"
+        key="stable_comparison_toggle"
     )
-    
-    st.markdown('<span class="analytics-inline-text">Глобален анализ</span></div>', unsafe_allow_html=True)
         
     if show_comparison:
         show_global_analytics_dialog()
+
 
 
 
