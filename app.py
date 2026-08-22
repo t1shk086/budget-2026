@@ -321,7 +321,7 @@ if st.session_state["current_trip"] is None:
         
     with title_col:
         # ФИКС: Нормален шрифт без удебеляване и без специфични размери
-        st.write("Сравнителен панел")
+        st.write("📈Сравнителен панел")
         
     # ПРИ АКТИВИРАНЕ ОТ TOGGLE БУТОНА - ИЗВИКВАМЕ ДИАЛОГОВИЯ ПРОЗОРЕЦ
     if show_comparison:
