@@ -1173,7 +1173,7 @@ else:
         st.markdown("""
             <div class="twin-grid-wrapper">
                 <a href="#trip_top_anchor" target="_self">
-                    <button class="twin-premium-3d-btn">🔝 КЪМ РАЗХОДИТЕ</button>
+                    <button class="twin-premium-3d-btn">🔝КЪМ РАЗХОДИТЕ</button>
                 </a>
             </div>
         """, unsafe_allow_html=True)
