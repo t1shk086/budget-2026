@@ -233,7 +233,7 @@ if st.session_state["current_trip"] is None:
     # ОТТУК НАДОЛУ Е ТВОЯТ ОРИГИНАЛЕН РАБОТЕЩ КОД - БЕЗ НИКАКВИ ПРОМЕНИ В ЛОГИКАТА
     if show_comparison:
         # Дефиницията на прозореца си остава тук, точно както си работеше в началото
-        @st.dialog("📊 Глобален анализ и сравнения", width="large")
+        @st.dialog("📊 Сравнителен панел", width="large")
         def show_global_analytics_dialog():
             st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в по-добър мащаб!</p>", unsafe_allow_html=True)
             
