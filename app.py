@@ -768,24 +768,7 @@ else:
     grand_total = depozit_hotel + total_on_site
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
-    
 
-    # === КРАЙ НА ОПТИМИЗИРАНИЯ БЛОК ===
-
-
-
-    # === ВЪЗСТАНОВЯВАНЕ НА БУТОНА ЗА СВАЛЯНЕ И ХРОНОЛОГИЯТА ===
-    st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-    
-    if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
-        hronologia_popup_dialog()
-
-    # Този бутон съдържа вече форматирания за печат pdf_html
-    st.download_button(
-        label="Отчет в PDF",
-        data=pdf_html,
-        file_name=f"Otchet_{trip_id}_2026.html",
-        mime="text/html",    # === ВАРИАНТ 1: КРАЛСКО СИНЬО И СРЕБЪРНО (ОПТИМИЗИРАН ЗА ПЕЧАТ) ===
     pdf_html = f"""<!DOCTYPE html>
     <html>
     <head>
@@ -807,7 +790,7 @@ else:
                 margin: 0 auto;
             }}
             .header-container {{
-                border-bottom: 3px solid #1b3a4b; /* Кралско синьо */
+                border-bottom: 3px solid #1b3a4b;
                 padding-bottom: 12px;
                 margin-bottom: 20px;
                 display: flex;
@@ -815,7 +798,7 @@ else:
                 align-items: flex-end;
             }}
             h2 {{
-                color: #1b3a4b; /* Кралско синьо */
+                color: #1b3a4b;
                 margin: 0 0 5px 0;
                 font-size: 24px;
                 text-transform: uppercase;
@@ -834,9 +817,9 @@ else:
                 margin: 0;
             }}
             .summary-box {{
-                background: #f5f6fa; /* Светло сребърно/сиво */
+                background: #f5f6fa;
                 border: 1px solid #dcdde1;
-                border-left: 5px solid #27ae60; /* Успешно зелено */
+                border-left: 5px solid #27ae60;
                 padding: 15px;
                 border-radius: 6px;
                 margin-bottom: 25px;
@@ -850,7 +833,7 @@ else:
             }}
             .summary-amount {{
                 font-size: 24px;
-                color: #27ae60; /* Успешно зелено */
+                color: #27ae60;
                 font-weight: bold;
                 margin: 0;
             }}
@@ -889,7 +872,7 @@ else:
                 font-size: 12px;
             }}
             th {{
-                background-color: #1b3a4b; /* Кралско синьо за заглавието на таблицата */
+                background-color: #1b3a4b;
                 color: #ffffff;
                 text-align: left;
                 padding: 10px;
@@ -901,7 +884,7 @@ else:
                 color: #333;
             }}
             tr:nth-child(even) {{
-                background-color: #f5f6fa; /* Нежно сребърно за редовете */
+                background-color: #f5f6fa;
             }}
             .fuel-highlight {{
                 color: #c0392b;
@@ -952,7 +935,7 @@ else:
                 </ul>
             </div>
             <div class='stat-card'>
-                <h4>🚗 Статистика за Автомобила</h4>
+                <h4>🚗 Статистика за Автомольба</h4>
                 <ul>
                     <li><b>Заредено гориво:</b> {total_liters_calculated:.1f} литра</li>
                     <li><b>Разходи за гориво/транспорт:</b> {auto_fuel_money:.2f} EUR</li>
@@ -974,7 +957,7 @@ else:
             </thead>
             <tbody>
     """
-    
+
     for _, row in df_trip.iterrows():
         desc_val = str(row['description'])
         if "Моментен разход:" in desc_val:
@@ -1002,15 +985,6 @@ else:
         </table>
     </body>
     </html>"""
-
-        use_container_width=True,
-        key="st_premium_report_download_btn"
-    )
-
-    st.markdown("---")
-
-
-
 
 
     st.markdown("---")
