@@ -195,8 +195,8 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("---")
     
-    # 1. СТРУКТУРИРАНЕ НА ЗАГЛАВИЕТО И СЕЛЕКТОРА В КОЛОНИ
-    head_col1, head_col2 = st.columns([0.55, 0.45], vertical_alignment="center")
+    # 1. ПОДРЕЖДАНЕ НА ЗАГЛАВИЕТО И TOGGLE BOX-А НА ЕДИН РЕД
+    head_col1, head_col2, head_col3 = st.columns([0.45, 0.20, 0.35], vertical_alignment="center")
     
     with head_col1:
         st.markdown("""
@@ -268,25 +268,26 @@ if st.session_state["current_trip"] is None:
         </div>
         """, unsafe_allow_html=True)
 
-    with head_col2:
-        chosen_criteria = st.segmented_control(
-            label="Критерий за сравнение:",
-            options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
-            default="Цена за 1 км",
-            key="home_segmented_metric_selector",
-            label_visibility="collapsed"
+    with head_col3:
+        # Toggle бутонът стои директно до заглавието в десния край
+        show_comparison = st.toggle(
+            "Включи анализи",
+            value=False,
+            key="stable_comparison_toggle"
         )
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ЧЕКБОКС ЗА ПОКАЗВАНЕ НА ГРАФИКАТА
-    show_comparison = st.checkbox(
-        "Покажи графиките и сравненията между почивките",
-        value=False,
-        key="stable_comparison_toggle"
-    )
-
+    # 2. ВСИЧКО СЕ ПОКАЗВА ЕДВА СЛЕД АКТИВИРАНЕ НА TOGGLE
     if show_comparison:
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Показваме бутоните за избор на критерий непосредствено над графиките
+        chosen_criteria = st.segmented_control(
+            label="Изберете критерий за сравнение:",
+            options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
+            default="Цена за 1 км",
+            key="home_segmented_metric_selector"
+        )
+
         all_trips_computed = []
         try:
             df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
@@ -381,6 +382,7 @@ if st.session_state["current_trip"] is None:
             st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
         else:
             st.info("Няма достатъчно база данни за сравнение.")
+
 
 
 
