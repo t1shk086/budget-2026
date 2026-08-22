@@ -598,7 +598,7 @@ else:
             """, unsafe_allow_html=True)
     @st.dialog("📊 Разходи по Категории", width="large")
     def разходи_по_категории_dialog():
-        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Преглед на направените разходи, групирани по съответните категории:</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Преглед на направените разходи, групирани по категории:</p>", unsafe_allow_html=True)
         st.markdown("""
             <style>
                 .category-expense-card {
