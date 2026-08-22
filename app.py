@@ -212,7 +212,7 @@ if st.session_state["current_trip"] is None:
             color: #ffffff !important;
             white-space: nowrap !important;
             margin: 0 !important;
-            margin-top: -14px !important;
+            margin-top: -20px !important;
             padding: 0 !important;
             display: inline-block !important;
         }
@@ -221,7 +221,7 @@ if st.session_state["current_trip"] is None:
 
     # 2. СТРУКТУРЕН РЕД НА STREAMLIT (ПОДРАВНЕН И СТАБИЛЕН)
     with st.container():
-        r_col1, r_col2 = st.columns([0.05, 0.95], vertical_alignment="center")
+        r_col1, r_col2 = st.columns([0.04, 0.96], vertical_alignment="center")
         
         with r_col1:
             show_comparison = st.toggle(
