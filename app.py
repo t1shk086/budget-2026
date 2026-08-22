@@ -7,6 +7,8 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import io
+import re
+import requests
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -68,10 +70,11 @@ for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description",
     if not os.path.exists(f): 
         pd.DataFrame(columns=cols).to_csv(f, index=False, encoding="utf-8")
 
-# === АВТОМАТИЗИРАНА OCR ФУНКЦИЯ С КЛЮЧОВИ ДУМИ ===
+def get_emoji(cat):
+    m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
+    return m.get(cat, "💳")
+
 def analyze_receipt_text(image_file):
-    import re
-    import requests
     try:
         payload = {"language": "bul", "isOverlayRequired": False}
         files = {"filename": (image_file.name, image_file.getvalue(), image_file.type)}
@@ -85,11 +88,11 @@ def analyze_receipt_text(image_file):
         full_text = str(parsed_results[0].get("ParsedText", "")).lower()
         
         detected_kat = None
-        if any(w in full_text for w in ["lukoil", "shell", "omv", "petrol", "бензин", "дизел", "газ", "гориво", "зареждане", "еко", "eko"]):
+        if any(w in full_text for w in ["lukoil", "shell", "omv", "petrol", "бензин", "дизел", "газ", "гориво", "зареждане", "еко", "eko", "rompetrol"]):
             detected_kat = "Транспорт"
-        elif any(w in full_text for w in ["lidl", "billa", "kaufland", "метро", "ресторант", "механа", "кафе", "храна", "pizz", "дюнер", "супермаркет"]):
+        elif any(w in full_text for w in ["lidl", "billa", "kaufland", "метро", "ресторант", "механа", "кафе", "храна", "pizz", "дюнер", "супермаркет", "болгари"]):
             detected_kat = "Храна и напитки"
-        elif any(w in full_text for w in ["хотел", "hotel", "нощувка", "booking", "airbnb", "престой"]):
+        elif any(w in full_text for w in ["хотел", "hotel", "нощувка", "booking", "airbnb", "къща за гости"]):
             detected_kat = "Нощувки/Хотел"
         elif any(w in full_text for w in ["ветеринар", "зоо", "куче", "храна за кучета", "повод", "дог", "dog"]):
             detected_kat = "Куче"
@@ -101,10 +104,6 @@ def analyze_receipt_text(image_file):
         return detected_kat, detected_amount
     except:
         return None, 0.0
-
-def get_emoji(cat):
-    m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
-    return m.get(cat, "💳")
 
 def get_trip_data(t_id):
     try:
@@ -136,7 +135,6 @@ def get_trip_settings(t_id):
     except: 
         pass
     return d
-
 
 def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
     try:
@@ -173,40 +171,10 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
         return True
     except: 
         return False
-def analyze_receipt_text(image_file):
-    import re
-    from PIL import Image
-    try:
-        import easyocr
-        # Инициализира четеца за Български и Английски език
-        reader = easyocr.Reader(['bg', 'en'])
-        
-        image = Image.open(image_file)
-        result = reader.readtext(image, detail=0)
-        full_text = " ".join(result).lower()
-        
-        # 1. Търсене на категория по твоите реални КАТЕГОРИИ
-        detected_kat = None
-        if any(w in full_text for w in ["lukoil", "shell", "omv", "petrol", "бензин", "дизел", "газ", "гориво", "зареждане"]):
-            detected_kat = "Транспорт"
-        elif any(w in full_text for w in ["lidl", "billa", "kaufland", "метро", "ресторант", "механа", "кафе", "храна", "pizz", "дюнер"]):
-            detected_kat = "Храна и напитки"
-        elif any(w in full_text for w in ["хотел", "hotel", "нощувка", "booking", "airbnb", "къща за гости"]):
-            detected_kat = "Нощувки/Хотел"
-        elif any(w in full_text for w in ["ветеринар", "зоо", "куче", "храна за кучета", "повод"]):
-            detected_kat = "Куче"
-            
-        # 2. Извличане на Сума чрез регулярни изрази (търси десетични числа)
-        amounts = re.findall(r'\d+[\.,]\d{2}', full_text)
-        amounts = [float(a.replace(',', '.')) for a in amounts]
-        detected_amount = max(amounts) if amounts else 0.0
-        
-        return detected_kat, detected_amount
-    except:
-        return None, 0.0
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
+
 
 if st.session_state["current_trip"] is None:
     st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: 4px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
