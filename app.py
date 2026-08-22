@@ -193,7 +193,7 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
-    st.markdown("---")
+
     
 
     
@@ -217,10 +217,10 @@ if st.session_state["current_trip"] is None:
         /* Изолиран малък текст, който не влияе на нищо друго */
         .isolated-analytics-text {
             font-family: var(--font), sans-serif !important;
-            font-size: 11px !important; 
+            font-size: 14px !important; 
             color: #ffffff !important;
             margin: 0 !important;
-            margin-top: -3px !important; /* Ръчна настройка за височина (може да я коригирате) */
+            margin-top: -14px !important; /* Ръчна настройка за височина (може да я коригирате) */
             padding: 0 !important;
             white-space: nowrap !important;
         }
