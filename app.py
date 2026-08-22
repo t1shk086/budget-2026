@@ -763,7 +763,6 @@ else:
 
 
     
-    # === ОПТИМИЗИРАН ЗА ПРИНТИРАНЕ (A4) БЛОК ЗА PDF/HTML ОТЧЕТ ===
     avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
     grand_total = depozit_hotel + total_on_site
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
@@ -777,7 +776,6 @@ else:
         <style>
             @media print {{
                 body {{ font-size: 12px; line-height: 1.4; color: #000; background: #fff; padding: 0; }}
-                .no-print {{ display: none; }}
                 tr {{ page-break-inside: avoid; }}
                 @page {{ size: A4; margin: 15mm; }}
             }}
@@ -793,9 +791,6 @@ else:
                 border-bottom: 3px solid #1b3a4b;
                 padding-bottom: 12px;
                 margin-bottom: 20px;
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-end;
             }}
             h2 {{
                 color: #1b3a4b;
@@ -812,7 +807,7 @@ else:
                 font-size: 16px;
             }}
             .meta-info {{
-                font-size: 13px;
+                font-size: 12px;
                 color: #7f8c8d;
                 margin: 0;
             }}
@@ -825,7 +820,7 @@ else:
                 margin-bottom: 25px;
             }}
             .summary-title {{
-                font-size: 14px;
+                font-size: 13px;
                 color: #7f8c8d;
                 text-transform: uppercase;
                 margin-bottom: 5px;
@@ -935,7 +930,7 @@ else:
                 </ul>
             </div>
             <div class='stat-card'>
-                <h4>🚗 Статистика за Автомольба</h4>
+                <h4>🚗 Статистика за Автомобила</h4>
                 <ul>
                     <li><b>Заредено гориво:</b> {total_liters_calculated:.1f} литра</li>
                     <li><b>Разходи за гориво/транспорт:</b> {auto_fuel_money:.2f} EUR</li>
@@ -985,6 +980,20 @@ else:
         </table>
     </body>
     </html>"""
+
+    st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+    
+    if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
+        hronologia_popup_dialog()
+
+    st.download_button(
+        label="Отчет в PDF",
+        data=pdf_html,
+        file_name=f"Otchet_{trip_id}_2026.html",
+        mime="text/html",
+        use_container_width=True,
+        key="st_premium_report_download_btn"
+    )
 
 
     st.markdown("---")
