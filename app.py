@@ -195,7 +195,7 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("---")
     
-    st.markdown("---")
+
     
     # 1. ЧИСТ CSS ЗА НАМАЛЯВАНЕ НА ШРИФТА, ИЗРАВНЯВАНЕ И ЗАБРАНА ЗА ПАДАНЕ НА НОВ РЕД
     st.html("""
@@ -218,10 +218,10 @@ if st.session_state["current_trip"] is None:
         /* Намалява шрифта и го изравнява вертикално */
         .small-clean-text {
             font-family: var(--font), sans-serif !important;
-            font-size: 11px !important; 
+            font-size: 14px !important; 
             color: #ffffff !important;
             margin: 0 !important;
-            margin-top: -6px !important; /* Вашата настройка за височина */
+            margin-top: -14px !important; /* Вашата настройка за височина */
             padding: 0 !important;
             white-space: nowrap !important; /* Забранява на самия текст да се пречупва */
         }
