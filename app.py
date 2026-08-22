@@ -198,54 +198,54 @@ if st.session_state["current_trip"] is None:
 
     
     
-    # 1. CSS ЗА ЗАКЛЮЧВАНЕ НА ЕДИН РЕД И ФИКСИРАНЕ НА РАЗСТОЯНИЕТО НА ТЕЛЕФОН
+    st.markdown("---")
+    
+    # 1. ЧИСТ И НАПЪЛНО ИЗОЛИРАН CSS, КОЙТО НЕ ИЗПОЛЗВА ФАБРИЧНИТЕ КОЛОНИ НА STREAMLIT
     st.html("""
     <style>
-        /* Таргетираме само блока на глобалния анализ, ползвайки специфичния key на toggle бутона */
-        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stCheckbox"] input[id*="stable_comparison_toggle"]) {
-            display: flex !important;
+        /* Създаваме наш собствен независим контейнер */
+        .isolated-analytics-row {
+            display: inline-flex !important;
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 0px !important;
+            gap: 8px !important; /* Точно 1 чист интервал разстояние */
+            margin: 10px 0 !important;
+            width: auto !important;
         }
         
-        /* ФИКС: Спира разтягането на първата колона и я свива около бутона */
-        [data-testid="stHorizontalBlock"] > div:first-child {
-            flex: 0 0 40px !important; /* Заковава ширината на бутона на 55px */
-            min-width: 40px !important;
-            max-width: 40px !important;
-        }
-
-        /* Изчистен малък текст с перфектна вертикална линия */
-        .small-clean-text {
+        /* Изолиран малък текст, който не влияе на нищо друго */
+        .isolated-analytics-text {
             font-family: var(--font), sans-serif !important;
             font-size: 14px !important; 
             color: #ffffff !important;
             margin: 0 !important;
-            margin-top: -14px !important; /* Твоята ръчна настройка за височина */
+            margin-top: -14px !important; /* Ръчна настройка за височина (може да я коригирате) */
             padding: 0 !important;
             white-space: nowrap !important;
+        }
+        
+        /* Спира излишните вътрешни маржове само за този бутон */
+        .isolated-analytics-row div[data-testid="stCheckbox"] {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: auto !important;
         }
     </style>
     """)
 
-    # 2. ПОДРЕДБА В КОЛОНИ (CSS ВЕЧЕ КОНТРОЛИРА ШИРИНАТА ИМ НА СЪОТНОШЕНИЕ)
-    toggle_col, title_col = st.columns([0.06, 0.94], vertical_alignment="center")
-
+    # 2. РЕНДЕРИРАНЕ В НАШИЯ СОБСТВЕН КОНТЕЙНЕР (БЕЗ st.columns)
+    st.markdown('<div class="isolated-analytics-row">', unsafe_allow_html=True)
     
-    with toggle_col:
-        # Връщаме оригиналния чист бутон, който си работеше отлично
-        show_comparison = st.toggle(
-            "Покажи прозореца",
-            value=False,
-            key="stable_comparison_toggle",
-            label_visibility="collapsed"
-        )
-        
-    with title_col:
-        # Чист текст с малък размер, залепен плътно до бутона
-        st.markdown('<p class="small-clean-text">Сравнителен панел</p>', unsafe_allow_html=True)
+    show_comparison = st.toggle(
+        "Покажи прозореца",
+        value=False,
+        key="stable_comparison_toggle",
+        label_visibility="collapsed"
+    )
+    
+    st.markdown('<span class="isolated-analytics-text">Сравнителен панел</span></div>', unsafe_allow_html=True)
+
         
     # ОТТУК НАДОЛУ Е ТВОЯТ ОРИГИНАЛЕН РАБОТЕЩ КОД - БЕЗ НИКАКВИ ПРОМЕНИ В ЛОГИКАТА
     if show_comparison:
