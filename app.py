@@ -340,7 +340,7 @@ if st.session_state["current_trip"] is None:
                 st.info("Няма достатъчно база данни за сравнение.")
 
             st.write("---")
-            if st.button("❌ Затвори анализа", key="bottom_modal_close_btn", use_container_width=True):
+            if st.button("❌ Затвори", key="bottom_modal_close_btn", use_container_width=True):
                 st.session_state["stable_comparison_toggle"] = False
                 st.rerun()
 
