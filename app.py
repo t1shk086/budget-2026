@@ -291,7 +291,7 @@ else:
     
     col1, col2 = st.columns(2)
     with col1: 
-        s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Напишете сума...", format="%.2f", key=f"su_{v_id}")
+        s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
     with col2: 
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
@@ -937,7 +937,7 @@ else:
         </div>
 
         <div class='summary-box'>
-            <div class='summary-title'>Финално салдо на</div>
+            <div class='summary-title'>Финално салдо </div>
             <div class='summary-amount'>{grand_total:.2f} EUR</div>
             <p style='margin: 6px 0 0 0; font-size: 12px; color: #747d8c;'>
                 (Депозити: {depozit_hotel:.2f} EUR | Разходи на място: {total_on_site:.2f} EUR)
