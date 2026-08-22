@@ -244,7 +244,7 @@ if st.session_state["current_trip"] is None:
         label_visibility="collapsed"
     )
     
-    st.markdown('<span class="isolated-analytics-text">Глобален анализ</span></div>', unsafe_allow_html=True)
+    st.markdown('<span class="isolated-analytics-text">Сравнителен панел</span></div>', unsafe_allow_html=True)
 
         
     # ОТТУК НАДОЛУ Е ТВОЯТ ОРИГИНАЛЕН РАБОТЕЩ КОД - БЕЗ НИКАКВИ ПРОМЕНИ В ЛОГИКАТА
