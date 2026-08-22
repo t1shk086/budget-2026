@@ -195,13 +195,13 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("---")
     
-    # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ (MODAL) ЗА ГРАФИКИТЕ
+    # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ
     @st.dialog("📊 Глобален анализ и сравнения", width="large")
     def show_global_analytics_dialog():
-        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в по-добър мащаб!</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Сравнение и ефективност на всички записани пътувания:</p>", unsafe_allow_html=True)
         
         chosen_criteria = st.segmented_control(
-            label="Изберете критерий:",
+            label="Изберете критерий за сравнение:",
             options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
             default="Цена за 1 км",
             key="modal_segmented_metric_selector"
@@ -226,10 +226,10 @@ if st.session_state["current_trip"] is None:
                 days_count = 1
 
                 if not df_t_sett.empty:
-                    s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
-                    e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
-                    st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
-                    en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
+                    s_k = float(df_t_sett["start_km"].iloc) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
+                    e_k = float(df_t_sett["end_km"].iloc) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
+                    st_d_str = str(df_t_sett["start_date"].iloc) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
+                    en_d_str = str(df_t_sett["end_date"].iloc) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
 
                     max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
                     eff_e = e_k if e_k > 0 else max_k
@@ -295,7 +295,7 @@ if st.session_state["current_trip"] is None:
                 xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
                 yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
                 margin=dict(l=10, r=110, t=50, b=10),
-                height=300,
+                height=320,
                 bargap=0.35
             )
             st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
@@ -303,29 +303,48 @@ if st.session_state["current_trip"] is None:
             st.info("Няма достатъчно база данни за сравнение.")
 
         st.write("---")
-        # ФИКС: Ръчно изключваме toggle състоянието преди опресняване
-        if st.button("❌ Затвори", use_container_width=True):
+        if st.button("❌ Затвори анализа", key="bottom_modal_close_btn", use_container_width=True):
             st.session_state["stable_comparison_toggle"] = False
             st.rerun()
 
-    # ПОДРЕЖДАНЕ: ПРЕВКЛЮЧВАТЕЛЯТ ВЛЯВО, ЗАГЛАВИЕТО ВДЯСНО
-    toggle_col, title_col = st.columns([0.15, 0.85], vertical_alignment="center")
+    # 2. ЧИСТО ПОДРАВНЯВАНЕ: ТОЧНО НА 1 ИНТЕРВАЛ ОТ TOGGLE-А И СЪС СЪЩИЯ ШРИФТ
+    st.html("""
+    <style>
+        /* Обединява елементите плътно на един ред */
+        .clean-toggle-container {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important; /* Разстояние точно колкото 1 празен интервал */
+            margin: 8px 0;
+        }
+        /* Взема абсолютно същия шрифт и размер като бутона "Ново пътуване" */
+        .clean-toggle-label {
+            font-family: var(--font), sans-serif;
+            font-size: 1.15rem; /* Същият стандартен размер за заглавна секция */
+            font-weight: 500; /* Нормална/чиста плътност на бутон */
+            color: #ffffff;
+            user-select: none;
+            line-height: 1;
+        }
+    </style>
+    """)
+
+    # Сглобяване на интерфейса
+    st.markdown('<div class="clean-toggle-container">', unsafe_allow_html=True)
     
-    with toggle_col:
-        show_comparison = st.toggle(
-            "Покажи прозореца",
-            value=False,
-            key="stable_comparison_toggle",
-            label_visibility="collapsed"
-        )
+    show_comparison = st.toggle(
+        "Покажи прозореца",
+        value=False,
+        key="stable_comparison_toggle",
+        label_visibility="collapsed"
+    )
+    
+    # Надписът е чист чист текст, плътно залепен до избирача
+    st.markdown('<span class="clean-toggle-label">Глобален анализ</span></div>', unsafe_allow_html=True)
         
-    with title_col:
-        # ФИКС: Нормален шрифт без удебеляване и без специфични размери
-        st.write("📈Сравнителен панел")
-        
-    # ПРИ АКТИВИРАНЕ ОТ TOGGLE БУТОНА - ИЗВИКВАМЕ ДИАЛОГОВИЯ ПРОЗОРЕЦ
     if show_comparison:
         show_global_analytics_dialog()
+
 
 
 
