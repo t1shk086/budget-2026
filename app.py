@@ -304,7 +304,7 @@ if st.session_state["current_trip"] is None:
 
         st.write("---")
         # ФИКС: Ръчно изключваме toggle състоянието преди опресняване
-        if st.button("❌ Затвори анализа", use_container_width=True):
+        if st.button("❌ Затвори", use_container_width=True):
             st.session_state["stable_comparison_toggle"] = False
             st.rerun()
 
