@@ -807,7 +807,7 @@ else:
                 text-align: right;
                 font-weight: 900;
                 color: #00a8ff; 
-                font-size: 20px;
+                font-size: 30px;
                 letter-spacing: 0.5px;
             }}
             h3 {{
@@ -937,10 +937,10 @@ else:
         </div>
 
         <div class='summary-box'>
-            <div class='summary-title'>Финално салдо на почивката</div>
+            <div class='summary-title'>Финално салдо на</div>
             <div class='summary-amount'>{grand_total:.2f} EUR</div>
             <p style='margin: 6px 0 0 0; font-size: 12px; color: #747d8c;'>
-                (Предишни депозити: {depozit_hotel:.2f} EUR | Директни разходи на място: {total_on_site:.2f} EUR)
+                (Депозити: {depozit_hotel:.2f} EUR | Разходи на място: {total_on_site:.2f} EUR)
             </p>
         </div>
 
@@ -959,12 +959,12 @@ else:
                 <ul>
                     <li><b>Изразходено гориво:</b> {total_liters_calculated:.1f} литра</li>
                     <li><b>Обща стойност транспорт:</b> {auto_fuel_money:.2f} EUR</li>
-                    <li><b>Среден теглен разход:</b> {avg_con_txt}</li>
+                    <li><b>Среден разход:</b> {avg_con_txt}</li>
                 </ul>
             </div>
         </div>
 
-        <h3>Спесификация на хронологичните разходи</h3>
+        <h3>Хронология на разходите</h3>
         <table>
             <thead>
                 <tr>
