@@ -768,7 +768,7 @@ else:
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
 
-    # === ВАРИАНТ 3: ГОРСКО ЗЕЛЕНО И ЗЛАТНО (ПРЕМИУМ/СТИЛЕН ДИЗАЙН) ===
+    # === ХИБРИДЕН ДИЗАЙН С ВИСОК КОНТРАСТ (ГРАФИТ + ЕНЕРГИЧНО ОРАНЖЕВО) ===
     pdf_html = f"""<!DOCTYPE html>
     <html>
     <head>
@@ -776,81 +776,97 @@ else:
         <title>Отчет за пътуване - {trip_id.replace('_', ' ')}</title>
         <style>
             @media print {{
-                body {{ font-size: 12px; line-height: 1.4; color: #000; background: #fff; padding: 0; }}
+                body {{ font-size: 11px; line-height: 1.4; color: #000; background: #fff; padding: 0; }}
                 tr {{ page-break-inside: avoid; }}
                 @page {{ size: A4; margin: 15mm; }}
             }}
             body {{
                 font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                padding: 20px;
-                color: #2c3e50;
+                padding: 25px;
+                color: #2f3542;
                 background-color: #ffffff;
                 max-width: 800px;
                 margin: 0 auto;
             }}
             .header-container {{
-                border-bottom: 3px solid #1e2d24; /* Горско зелено */
+                border-bottom: 3px double #2f3542; /* Класическа двойна линия */
                 padding-bottom: 12px;
-                margin-bottom: 20px;
+                margin-bottom: 25px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
             }}
-            h2 {{
-                color: #1e2d24;
-                margin: 0 0 5px 0;
+            .header-left h2 {{
+                color: #2f3542;
+                margin: 0 0 4px 0;
                 font-size: 24px;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }}
+            .header-right {{
+                text-align: right;
+                font-weight: bold;
+                color: #e67e22; /* Енергично оранжево */
+                font-size: 14px;
+                letter-spacing: 0.5px;
+            }}
             h3 {{
-                color: #2d3e33;
-                border-bottom: 2px solid #e1e8e4;
-                padding-bottom: 5px;
-                margin-top: 25px;
-                font-size: 16px;
+                color: #2f3542;
+                border-bottom: 2px solid #e4e7eb;
+                padding-bottom: 6px;
+                margin-top: 30px;
+                font-size: 15px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             }}
             .meta-info {{
                 font-size: 12px;
-                color: #7f8c8d;
+                color: #747d8c;
                 margin: 0;
             }}
             .summary-box {{
-                background: #f4f6f5; /* Много нежен зелен оттенък за фон */
-                border: 1px solid #d1ded6;
-                border-left: 5px solid #b8860b; /* Тъмно златно */
-                padding: 15px;
+                background: #fffdfb; /* Много нежен оранжев оттенък за фон */
+                border: 1px solid #fad7a0;
+                border-left: 6px solid #e67e22; /* Дебел оранжев акцент */
+                padding: 18px;
                 border-radius: 6px;
                 margin-bottom: 25px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             }}
             .summary-title {{
-                font-size: 13px;
-                color: #7f8c8d;
+                font-size: 12px;
+                color: #747d8c;
                 text-transform: uppercase;
-                margin-bottom: 5px;
-                font-weight: 600;
+                margin-bottom: 4px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
             }}
             .summary-amount {{
-                font-size: 24px;
-                color: #b8860b; /* Златно за сумата */
-                font-weight: bold;
+                font-size: 28px;
+                color: #e67e22; /* Оранжево за сумата */
+                font-weight: 800;
                 margin: 0;
             }}
             .stats-grid {{
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 15px;
+                gap: 20px;
                 margin-bottom: 25px;
             }}
             .stat-card {{
-                background: #fbfcfb;
-                border: 1px solid #e1e8e4;
-                padding: 12px 15px;
+                background: #f8f9fa;
+                border: 1px solid #e4e7eb;
+                padding: 14px 16px;
                 border-radius: 6px;
             }}
             .stat-card h4 {{
-                margin: 0 0 8px 0;
-                color: #1e2d24;
-                border-bottom: 1px solid #e1e8e4;
-                padding-bottom: 4px;
-                font-size: 14px;
+                margin: 0 0 10px 0;
+                color: #2f3542;
+                border-bottom: 1px solid #ced6e0;
+                padding-bottom: 6px;
+                font-size: 13px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             }}
             .stat-card ul {{
                 list-style: none;
@@ -859,39 +875,43 @@ else:
                 font-size: 13px;
             }}
             .stat-card li {{
-                margin-bottom: 5px;
+                margin-bottom: 6px;
+                color: #57606f;
+            }}
+            .stat-card b {{
+                color: #2f3542;
             }}
             table {{
                 width: 100%;
                 border-collapse: collapse;
-                margin-top: 10px;
+                margin-top: 12px;
                 font-size: 12px;
             }}
             th {{
-                background-color: #1e2d24; /* Горско зелено за заглавието на таблицата */
+                background-color: #2f3542; /* Тъмен графит за стабилност */
                 color: #ffffff;
                 text-align: left;
-                padding: 10px;
+                padding: 10px 12px;
                 font-weight: 600;
             }}
             td {{
-                padding: 10px;
-                border-bottom: 1px solid #e1e8e4;
-                color: #333;
+                padding: 10px 12px;
+                border-bottom: 1px solid #e4e7eb;
+                color: #2f3542;
             }}
             tr:nth-child(even) {{
-                background-color: #f4f6f5;
+                background-color: #fcfcfc;
             }}
             .fuel-highlight {{
-                color: #8b0000;
-                font-weight: 600;
+                color: #d35400;
+                font-weight: 700;
             }}
             .badge-km {{
-                background: #e1e8e4;
+                background: #e4e7eb;
                 padding: 2px 6px;
                 border-radius: 4px;
                 font-size: 11px;
-                color: #1e2d24;
+                color: #2f3542;
                 font-weight: 600;
             }}
             .text-right {{
@@ -899,30 +919,34 @@ else:
             }}
             .total-row {{
                 font-weight: bold;
-                background-color: #e1e8e4 !important;
-                font-size: 13px;
+                background-color: #fdf2e9 !important; /* Оранжев нюанс за общия ред */
+                font-size: 14px;
+                border-top: 2px solid #e67e22;
             }}
         </style>
     </head>
     <body>
         <div class='header-container'>
-            <div>
+            <div class='header-left'>
                 <h2>ОТЧЕТ ЗА ПЪТУВАНЕ: {trip_id.upper().replace('_', ' ')}</h2>
                 <p class='meta-info'>Генериран на: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}</p>
+            </div>
+            <div class='header-right'>
+                🐾 PixelApp
             </div>
         </div>
 
         <div class='summary-box'>
-            <div class='summary-title'>Обща стойност на почивката</div>
+            <div class='summary-title'>Финално салдо на почивката</div>
             <div class='summary-amount'>{grand_total:.2f} EUR</div>
-            <p style='margin: 5px 0 0 0; font-size: 12px; color: #5d6d7e;'>
-                (Депозити: {depozit_hotel:.2f} EUR | Разходи на място: {total_on_site:.2f} EUR)
+            <p style='margin: 6px 0 0 0; font-size: 12px; color: #747d8c;'>
+                (Предишни депозити: {depozit_hotel:.2f} EUR | Директни разходи на място: {total_on_site:.2f} EUR)
             </p>
         </div>
 
         <div class='stats-grid'>
             <div class='stat-card'>
-                <h4>📊 Период и Пробег</h4>
+                <h4>📅 Период и Пробег</h4>
                 <ul>
                     <li>{period_html.replace(' • ', '')}</li>
                     <li><b>Начален километраж:</b> {s_km:.0f} км</li>
@@ -931,16 +955,16 @@ else:
                 </ul>
             </div>
             <div class='stat-card'>
-                <h4>🚗 Статистика за Автомобила</h4>
+                <h4>🚗 Автомобилна статистика</h4>
                 <ul>
-                    <li><b>Заредено гориво:</b> {total_liters_calculated:.1f} литра</li>
-                    <li><b>Разходи за гориво/транспорт:</b> {auto_fuel_money:.2f} EUR</li>
-                    <li><b>Среден разход:</b> {avg_con_txt}</li>
+                    <li><b>Изразходено гориво:</b> {total_liters_calculated:.1f} литра</li>
+                    <li><b>Обща стойност транспорт:</b> {auto_fuel_money:.2f} EUR</li>
+                    <li><b>Среден теглен разход:</b> {avg_con_txt}</li>
                 </ul>
             </div>
         </div>
 
-        <h3>📋 Списък с хронологични разходи</h3>
+        <h3>📋 Спесификация на хронологичните разходи</h3>
         <table>
             <thead>
                 <tr>
@@ -974,8 +998,8 @@ else:
 
     pdf_html += f"""
                 <tr class='total-row'>
-                    <td colspan='4' class='text-right'>ОБЩО:</td>
-                    <td class='text-right' style='color: #1e2d24;'>{grand_total:.2f} EUR</td>
+                    <td colspan='4' class='text-right' style='color: #2f3542;'>ОБЩА СУМА ЗА ПЛАЩАНЕ:</td>
+                    <td class='text-right' style='color: #e67e22;'>{grand_total:.2f} EUR</td>
                 </tr>
             </tbody>
         </table>
@@ -995,6 +1019,7 @@ else:
         use_container_width=True,
         key="st_premium_report_download_btn"
     )
+
 
     
 
