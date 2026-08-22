@@ -205,7 +205,7 @@ if st.session_state["current_trip"] is None:
         /* Намалява шрифта с 50% и го прави чист, както поиска */
         .small-clean-text {
             font-family: var(--font), sans-serif !important;
-            font-size: 19px !important; /* Наполовина на оригиналния заглавен размер */
+            font-size: 15px !important; /* Наполовина на оригиналния заглавен размер */
             color: #ffffff !important;
             margin: 0 !important;
             padding: 0 !important;
