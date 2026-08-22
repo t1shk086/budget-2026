@@ -1073,7 +1073,6 @@ else:
                     days_count = 1
                     
                     if not df_t_sett.empty:
-                        # Защитен метод за прочитане на първия елемент без сривове в индексите
                         s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
                         e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
                         st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
@@ -1149,6 +1148,11 @@ else:
                 st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
             else:
                 st.info("Няма достатъчно база данни от пътувания за сравнение.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
+        if st.button("❌ Затвори прозореца", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
+            st.rerun()
 
     # === ПОДРЕДБА НА СТАНДАРТНИТЕ БУТОНИ НА ЕКРАНА ===
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
