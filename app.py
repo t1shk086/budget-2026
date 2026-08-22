@@ -768,7 +768,7 @@ else:
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
 
-    # === ФИНАЛЕН БРАНДИРАН ВАРИАНТ (ГОЛЯМО ЛОГО + СИВА ВЕРТИКАЛНА ЧЕРТА) ===
+    # === НАПЪЛНО ИЗЧИСТЕН ПЕЧАТЕН ВАРИАНТ (БЕЗ ИКОНКИ + ТЪМНО СИВА ЛИНІЯ) ===
     pdf_html = f"""<!DOCTYPE html>
     <html>
     <head>
@@ -805,9 +805,9 @@ else:
             }}
             .header-right {{
                 text-align: right;
-                font-weight: 900; /* Изключително плътно */
+                font-weight: 900;
                 color: #00a8ff; 
-                font-size: 20px; /* По-голямо лого */
+                font-size: 20px;
                 letter-spacing: 0.5px;
             }}
             h3 {{
@@ -825,9 +825,9 @@ else:
                 margin: 0;
             }}
             .summary-box {{
-                background: #f4f7f9; /* Изчистен сивкаво-син бокс */
+                background: #f4f7f9;
                 border: 1px solid #dcdde1;
-                border-left: 6px solid #ced6e0; /* СИВА вертикална черта (пасваща на хронологията) */
+                border-left: 6px solid #747d8c; /* Още по-тъмно сива вертикална черта */
                 padding: 18px;
                 border-radius: 6px;
                 margin-bottom: 25px;
@@ -843,7 +843,7 @@ else:
             }}
             .summary-amount {{
                 font-size: 28px;
-                color: #00a8ff; /* Задържан син бранд акцент за сумата */
+                color: #00a8ff; 
                 font-weight: 800;
                 margin: 0;
             }}
@@ -946,7 +946,7 @@ else:
 
         <div class='stats-grid'>
             <div class='stat-card'>
-                <h4>📅 Период и Пробег</h4>
+                <h4>Период и Пробег</h4>
                 <ul>
                     <li>{period_html.replace(' • ', '')}</li>
                     <li><b>Начален километраж:</b> {s_km:.0f} км</li>
@@ -955,7 +955,7 @@ else:
                 </ul>
             </div>
             <div class='stat-card'>
-                <h4>🚗 Автомобилна статистика</h4>
+                <h4>Автомобилна статистика</h4>
                 <ul>
                     <li><b>Изразходено гориво:</b> {total_liters_calculated:.1f} литра</li>
                     <li><b>Обща стойност транспорт:</b> {auto_fuel_money:.2f} EUR</li>
@@ -964,7 +964,7 @@ else:
             </div>
         </div>
 
-        <h3>📋 Спесификация на хронологичните разходи</h3>
+        <h3>Спесификация на хронологичните разходи</h3>
         <table>
             <thead>
                 <tr>
@@ -990,7 +990,7 @@ else:
         pdf_html += f"""
                 <tr>
                     <td>{formatted_date}</td>
-                    <td>{get_emoji(row['category'])} {row['category']}</td>
+                    <td>{row['category']}</td>
                     <td>{desc_val}</td>
                     <td>{km_td_html}</td>
                     <td class='text-right' style='font-weight: 500;'>{row['amount']:.2f} EUR</td>
@@ -1019,6 +1019,7 @@ else:
         use_container_width=True,
         key="st_premium_report_download_btn"
     )
+
 
 
 
