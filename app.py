@@ -197,7 +197,6 @@ if st.session_state["current_trip"] is None:
     
 
     
-    st.markdown("---")
     
     # 1. CSS ЗА ЗАКЛЮЧВАНЕ НА ЕДИН РЕД И ФИКСИРАНЕ НА РАЗСТОЯНИЕТО НА ТЕЛЕФОН
     st.html("""
