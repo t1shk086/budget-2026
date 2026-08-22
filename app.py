@@ -1046,11 +1046,11 @@ else:
             
         if st.button("📈 Сравни всички записани пътувания", use_container_width=True, type="secondary"):
             st.session_state.show_comparison_graphic = not st.session_state.show_comparison_graphic
+            st.rerun()
             
         if st.session_state.show_comparison_graphic:
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # Полета за КЛИКВАНЕ
             chosen_criteria = st.segmented_control(
                 label="Изберете критерий за сравнение:",
                 options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
@@ -1075,11 +1075,14 @@ else:
                     
                     t_dist, s_k, e_k = 0.0, 0.0, 0.0
                     days_count = 1
+                    
                     if not df_t_sett.empty:
-                        s_k = float(df_t_sett.get("start_km", pd.Series([0.0])).iloc)
-                        e_k = float(df_t_sett.get("end_km", pd.Series([0.0])).iloc)
-                        st_d_str = str(df_t_sett.get("start_date", pd.Series([""])).iloc)
-                        en_d_str = str(df_t_sett.get("end_date", pd.Series([""])).iloc)
+                        # СИГУРЕН И ПРЕЦИЗЕН ФИКС ЗА ИЗВЛИЧАНЕ НА ДАННИТЕ ЗА ВСИЧКИ ТРИПОВЕ
+                        row_dict = df_t_sett.iloc[0].to_dict()
+                        s_k = float(row_dict.get("start_km", 0.0))
+                        e_k = float(row_dict.get("end_km", 0.0))
+                        st_d_str = str(row_dict.get("start_date", ""))
+                        en_d_str = str(row_dict.get("end_date", ""))
                         
                         max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
                         eff_e = e_k if e_k > 0 else max_k
@@ -1100,7 +1103,7 @@ else:
                         "DistValid": t_dist > 0
                     })
             except:
-                all_trips_computed = []
+                pass
                 
             if all_trips_computed:
                 df_pixel = pd.DataFrame(all_trips_computed)
@@ -1124,35 +1127,26 @@ else:
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
                     graph_title = "📅 СРЕДЕН РАЗХОД НА ДЕН ОТ ПРЕСТОЯ"
                     
-                # ДОБАВЕН ПАРАМЕТЪР bar_cornerradius="max" ЗА ЗАОБЛЯНЕ НА СТЪЛБЧЕТАТА КАТО КАПСУЛИ
                 fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
+                
                 fig_pixel.update_traces(
                     marker=dict(
                         color=df_sorted[x_col],
                         colorscale=[[0, '#00f2fe'], [1, '#4facfe']],
-                        line=dict(width=0)
+                        line=dict(width=0),
+                        cornerradius=15 # Заобляне на лентите в Plotly
                     ),
                     texttemplate=f"<b>{t_format}</b>",
                     textposition='outside',
-                    cliponaxis=False,
-                    bar_cornerradius="max" # <--- Фиксът за перфектно овални крайни форми
+                    cliponaxis=False
                 )
                 
-                # МОДЕРЕН ИЗЧИСТЕН LAYOUT С ФИН ДИЗАЙН НА ТЕКСТА
                 fig_pixel.update_layout(
-                    title=dict(
-                        text=f"<b>{graph_title}</b>",
-                        font=dict(size=12, color='#ffffff' if st.get_option("theme.base") == "dark" else '#2f3542', family="Segoe UI")
-                    ),
+                    title=dict(text=graph_title),
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
                     xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
-                    yaxis=dict(
-                        showgrid=False, 
-                        showline=False, 
-                        title="",
-                        tickfont=dict(size=11, color='#ffffff' if st.get_option("theme.base") == "dark" else '#2f3542')
-                    ),
+                    yaxis=dict(showgrid=False, showline=False, title=""),
                     margin=dict(l=10, r=110, t=50, b=10),
                     height=240,
                     bargap=0.35
