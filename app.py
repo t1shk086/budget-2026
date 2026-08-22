@@ -1039,7 +1039,7 @@ else:
             )
             
         st.markdown("---")
-        st.markdown("#### 🔄 Глобални анализи на бранда")
+        st.markdown("#### 🔄 Глобални анализи:")
         
         # СТАБИЛЕН ПРЕВКЛЮЧВАТЕЛ БЕЗ РЕСТАРТИРАНЕ НА СТРАНИЦАТА
         show_comparison = st.checkbox("📈 Сравни всички записани пътувания", value=False, key="stable_comparison_toggle")
@@ -1109,17 +1109,17 @@ else:
                     df_filtered = df_pixel[df_pixel["DistValid"] == True]
                     if df_filtered.empty: df_filtered = df_pixel
                     df_sorted = df_filtered.sort_values(by=x_col, ascending=True)
-                    graph_title = "💰 ЕФЕКТИВНОСТ НА КИЛОМЕТЪР (ПО-НИСКОТО Е ПО-ДОБРЕ)"
+                    graph_title = "💰Ефективност за КМ(по-ниската стойност е по-добра)"
                 elif chosen_criteria == "Обща Стойност":
                     x_col = "Обща Стойност (EUR)"
                     t_format = "%{text:,.2f} EUR"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                    graph_title = "💸 ТОТАЛЕН ИЗХАРЧЕН БЮДЖЕТ ПО ПЪТУВАНИЯ"
+                    graph_title = "💸По тотална Сума"
                 else: 
-                    x_col = "Пари на Ден (EUR)"
+                    x_col = "Дневен Разход (EUR)"
                     t_format = "%{text:.2f} EUR/ден"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                    graph_title = "📅 СРЕДЕН РАЗХОД НА ДЕН ОТ ПРЕСТОЯ"
+                    graph_title = "📅Среден разход от пътуването"
                     
                 fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
                 
@@ -1147,11 +1147,11 @@ else:
                 )
                 st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
             else:
-                st.info("Няма достатъчно база данни от пътувания за сравнение.")
+                st.info("Няма достатъчно база данни за сравнение.")
 
         st.markdown("<br>", unsafe_allow_html=True)
         # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
-        if st.button("❌ Затвори прозореца", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
+        if st.button("❌ Затвори", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
             st.rerun()
 
     # === ПОДРЕДБА НА СТАНДАРТНИТЕ БУТОНИ НА ЕКРАНА ===
