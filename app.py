@@ -769,7 +769,23 @@ else:
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
     
-    # Модерен, чист дизайн, перфектен за принтиране на А4 без излишен разход на мастило
+
+    # === КРАЙ НА ОПТИМИЗИРАНИЯ БЛОК ===
+
+
+
+    # === ВЪЗСТАНОВЯВАНЕ НА БУТОНА ЗА СВАЛЯНЕ И ХРОНОЛОГИЯТА ===
+    st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
+    
+    if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
+        hronologia_popup_dialog()
+
+    # Този бутон съдържа вече форматирания за печат pdf_html
+    st.download_button(
+        label="Отчет в PDF",
+        data=pdf_html,
+        file_name=f"Otchet_{trip_id}_2026.html",
+        mime="text/html",    # === ВАРИАНТ 1: КРАЛСКО СИНЬО И СРЕБЪРНО (ОПТИМИЗИРАН ЗА ПЕЧАТ) ===
     pdf_html = f"""<!DOCTYPE html>
     <html>
     <head>
@@ -791,7 +807,7 @@ else:
                 margin: 0 auto;
             }}
             .header-container {{
-                border-bottom: 3px solid #34495e;
+                border-bottom: 3px solid #1b3a4b; /* Кралско синьо */
                 padding-bottom: 12px;
                 margin-bottom: 20px;
                 display: flex;
@@ -799,11 +815,18 @@ else:
                 align-items: flex-end;
             }}
             h2 {{
-                color: #2c3e50;
+                color: #1b3a4b; /* Кралско синьо */
                 margin: 0 0 5px 0;
                 font-size: 24px;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
+            }}
+            h3 {{
+                color: #214e68;
+                border-bottom: 2px solid #dcdde1;
+                padding-bottom: 5px;
+                margin-top: 25px;
+                font-size: 16px;
             }}
             .meta-info {{
                 font-size: 13px;
@@ -811,9 +834,9 @@ else:
                 margin: 0;
             }}
             .summary-box {{
-                background: #f8f9fa;
-                border: 1px solid #e2e8f0;
-                border-left: 5px solid #2ecc71;
+                background: #f5f6fa; /* Светло сребърно/сиво */
+                border: 1px solid #dcdde1;
+                border-left: 5px solid #27ae60; /* Успешно зелено */
                 padding: 15px;
                 border-radius: 6px;
                 margin-bottom: 25px;
@@ -826,8 +849,8 @@ else:
                 font-weight: 600;
             }}
             .summary-amount {{
-                font-size: 22px;
-                color: #27ae60;
+                font-size: 24px;
+                color: #27ae60; /* Успешно зелено */
                 font-weight: bold;
                 margin: 0;
             }}
@@ -838,15 +861,15 @@ else:
                 margin-bottom: 25px;
             }}
             .stat-card {{
-                background: #fdfefe;
-                border: 1px solid #e2e8f0;
+                background: #f8f9fa;
+                border: 1px solid #dcdde1;
                 padding: 12px 15px;
                 border-radius: 6px;
             }}
             .stat-card h4 {{
                 margin: 0 0 8px 0;
-                color: #34495e;
-                border-bottom: 1px solid #ecf0f1;
+                color: #1b3a4b;
+                border-bottom: 1px solid #dcdde1;
                 padding-bottom: 4px;
                 font-size: 14px;
             }}
@@ -857,7 +880,7 @@ else:
                 font-size: 13px;
             }}
             .stat-card li {{
-                margin-bottom: 4px;
+                margin-bottom: 5px;
             }}
             table {{
                 width: 100%;
@@ -866,30 +889,30 @@ else:
                 font-size: 12px;
             }}
             th {{
-                background-color: #34495e;
+                background-color: #1b3a4b; /* Кралско синьо за заглавието на таблицата */
                 color: #ffffff;
                 text-align: left;
-                padding: 8px 10px;
+                padding: 10px;
                 font-weight: 600;
             }}
             td {{
-                padding: 8px 10px;
-                border-bottom: 1px solid #e2e8f0;
+                padding: 10px;
+                border-bottom: 1px solid #dcdde1;
                 color: #333;
             }}
             tr:nth-child(even) {{
-                background-color: #f8f9fa;
+                background-color: #f5f6fa; /* Нежно сребърно за редовете */
             }}
             .fuel-highlight {{
                 color: #c0392b;
                 font-weight: 600;
             }}
             .badge-km {{
-                background: #e1e8ed;
+                background: #dcdde1;
                 padding: 2px 6px;
                 border-radius: 4px;
                 font-size: 11px;
-                color: #4c566a;
+                color: #2c3e50;
                 font-weight: 600;
             }}
             .text-right {{
@@ -897,7 +920,7 @@ else:
             }}
             .total-row {{
                 font-weight: bold;
-                background-color: #eaeded !important;
+                background-color: #dcdde1 !important;
                 font-size: 13px;
             }}
         </style>
@@ -913,7 +936,7 @@ else:
         <div class='summary-box'>
             <div class='summary-title'>Обща стойност на почивката</div>
             <div class='summary-amount'>{grand_total:.2f} EUR</div>
-            <p style='margin: 5px 0 0 0; font-size: 12px; color: #555;'>
+            <p style='margin: 5px 0 0 0; font-size: 12px; color: #5d6d7e;'>
                 (Депозити: {depozit_hotel:.2f} EUR | Разходи на място: {total_on_site:.2f} EUR)
             </p>
         </div>
@@ -973,28 +996,13 @@ else:
     pdf_html += f"""
                 <tr class='total-row'>
                     <td colspan='4' class='text-right'>ОБЩО:</td>
-                    <td class='text-right' style='color: #c0392b;'>{grand_total:.2f} EUR</td>
+                    <td class='text-right' style='color: #1b3a4b;'>{grand_total:.2f} EUR</td>
                 </tr>
             </tbody>
         </table>
     </body>
     </html>"""
-    # === КРАЙ НА ОПТИМИЗИРАНИЯ БЛОК ===
 
-
-
-    # === ВЪЗСТАНОВЯВАНЕ НА БУТОНА ЗА СВАЛЯНЕ И ХРОНОЛОГИЯТА ===
-    st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
-    
-    if st.button("♾️ Хронология на Разходите", use_container_width=True, key="open_hronologia_popup_trigger"):
-        hronologia_popup_dialog()
-
-    # Този бутон съдържа вече форматирания за печат pdf_html
-    st.download_button(
-        label="Отчет в PDF",
-        data=pdf_html,
-        file_name=f"Otchet_{trip_id}_2026.html",
-        mime="text/html",
         use_container_width=True,
         key="st_premium_report_download_btn"
     )
