@@ -1093,7 +1093,7 @@ else:
                         "Пътуване": str(t).replace("_", " ").upper(),
                         "Обща Стойност (EUR)": t_total,
                         "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
-                        "Пари на Ден (EUR)": (t_total / days_count),
+                        "Дневен Разход (EUR)": (t_total / days_count),
                         "DistValid": t_dist > 0
                     })
             except:
