@@ -195,43 +195,13 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("---")
     
-    # 1. АГРЕСИВЕН CSS ЗА ТОТАЛНО СТРЕЧВАНЕ НА ДИАЛОГОВИЯ ПРОЗОРЕЦ НА 100%
-    st.html("""
-    <style>
-        /* Премахва максималните ограничения на ширината на всички вложени контейнери в диалога */
-        div[data-testid="stDialog"] {
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-        }
-        div[data-testid="stDialog"] div[role="dialog"] {
-            max-width: 100vw !important;
-            width: 100vw !important;
-            min-width: 100vw !important;
-            height: auto !important;
-            min-height: 50vh !important;
-            margin: 0 !important;
-            padding: 24px !important;
-            border-radius: 0px !important; /* Прави го изцяло на цял екран */
-        }
-        /* Форсира елементите вътре да заемат пълната ширина */
-        div[data-testid="stDialog"] .stElementContainer {
-            width: 100% !important;
-        }
-        div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-    </style>
-    """)
-    
-    # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ
+    # ДЕФИНИРАНЕ НА ИЗСКАЧАЩИЯ ПРОЗОРЕЦ (MODAL) ЗА ГРАФИКИТЕ
     @st.dialog("📊 Глобален анализ и сравнения", width="large")
     def show_global_analytics_dialog():
-        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Сравнение и ефективност на всички записани пътувания:</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в цял размер!</p>", unsafe_allow_html=True)
         
         chosen_criteria = st.segmented_control(
-            label="Изберете критерий за сравнение:",
+            label="Изберете критерий:",
             options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
             default="Цена за 1 км",
             key="modal_segmented_metric_selector"
@@ -325,7 +295,7 @@ if st.session_state["current_trip"] is None:
                 xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
                 yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
                 margin=dict(l=10, r=110, t=50, b=10),
-                height=380,  # Оптимална височина за широк екран
+                height=300,
                 bargap=0.35
             )
             st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
@@ -333,11 +303,12 @@ if st.session_state["current_trip"] is None:
             st.info("Няма достатъчно база данни за сравнение.")
 
         st.write("---")
-        if st.button("❌ Затвори анализа", key="bottom_modal_close_btn", use_container_width=True):
+        # ФИКС: Ръчно изключваме toggle състоянието преди опресняване
+        if st.button("❌ Затвори", use_container_width=True):
             st.session_state["stable_comparison_toggle"] = False
             st.rerun()
 
-    # ПОДРЕЖДАНЕ НА НАЧАЛНИЯ ЕКРАН
+    # ПОДРЕЖДАНЕ: ПРЕВКЛЮЧВАТЕЛЯТ ВЛЯВО, ЗАГЛАВИЕТО ВДЯСНО
     toggle_col, title_col = st.columns([0.15, 0.85], vertical_alignment="center")
     
     with toggle_col:
@@ -349,13 +320,12 @@ if st.session_state["current_trip"] is None:
         )
         
     with title_col:
-        # Уеднаквяване на шрифта: Използва фабричния стил на приложението, точно като при "Ново пътуване"
-        st.write("Глобален анализ")
+        # ФИКС: Нормален шрифт без удебеляване и без специфични размери
+        st.write("Сравнителен Панел")
         
+    # ПРИ АКТИВИРАНЕ ОТ TOGGLE БУТОНА - ИЗВИКВАМЕ ДИАЛОГОВИЯ ПРОЗОРЕЦ
     if show_comparison:
         show_global_analytics_dialog()
-
-
 
 
 
