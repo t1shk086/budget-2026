@@ -1041,15 +1041,10 @@ else:
         st.markdown("---")
         st.markdown("#### 🔄 Глобални анализи на бранда")
         
-        if "show_comparison_graphic" not in st.session_state:
-            st.session_state.show_comparison_graphic = False
+        # СТАБИЛЕН ПРЕВКЛЮЧВАТЕЛ БЕЗ РЕСТАРТИРАНЕ НА СТРАНИЦАТА
+        show_comparison = st.checkbox("📈 Сравни всички записани пътувания", value=False, key="stable_comparison_toggle")
             
-        # Сигурно превключване на състоянието без срив на родителския прозорец
-        if st.button("📈 Сравни всички записани пътувания", use_container_width=True, type="secondary"):
-            st.session_state.show_comparison_graphic = not st.session_state.show_comparison_graphic
-            st.rerun()
-            
-        if st.session_state.show_comparison_graphic:
+        if show_comparison:
             st.markdown("<br>", unsafe_allow_html=True)
             
             chosen_criteria = st.segmented_control(
@@ -1078,11 +1073,11 @@ else:
                     days_count = 1
                     
                     if not df_t_sett.empty:
-                        # АБСОЛЮТНО СИГУРНО И БЕЗГРЕШНО ИЗВЛИЧАНЕ НА СТОЙНОСТИТЕ ЗА СЕКЦИЯТА С ДАННИ
-                        s_k = float(df_t_sett["start_km"].values[0]) if "start_km" in df_t_sett.columns else 0.0
-                        e_k = float(df_t_sett["end_km"].values[0]) if "end_km" in df_t_sett.columns else 0.0
-                        st_d_str = str(df_t_sett["start_date"].values[0]) if "start_date" in df_t_sett.columns else ""
-                        en_d_str = str(df_t_sett["end_date"].values[0]) if "end_date" in df_t_sett.columns else ""
+                        # Защитен метод за прочитане на първия елемент без сривове в индексите
+                        s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
+                        e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
+                        st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
+                        en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
                         
                         max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
                         eff_e = e_k if e_k > 0 else max_k
@@ -1154,11 +1149,6 @@ else:
                 st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
             else:
                 st.info("Няма достатъчно база данни от пътувания за сравнение.")
-                
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("❌ Затвори анализите", use_container_width=True, type="primary", key="close_inner_comparison_btn"):
-                st.session_state.show_comparison_graphic = False
-                st.rerun()
 
     # === ПОДРЕДБА НА СТАНДАРТНИТЕ БУТОНИ НА ЕКРАНА ===
     st.markdown("<a id='click_scroll_trigger' href='#top_of_page' style='display:none;'></a>", unsafe_allow_html=True)
