@@ -201,13 +201,13 @@ if st.session_state["current_trip"] is None:
     # 1. CSS ЗА ЗАКЛЮЧВАНЕ НА ЕДИН РЕД И ФИКСИРАНЕ НА РАЗСТОЯНИЕТО НА ТЕЛЕФОН
     st.html("""
     <style>
-        /* Държи колоните в една линия винаги */
-        [data-testid="stHorizontalBlock"] {
+        /* Таргетираме само блока на глобалния анализ, ползвайки специфичния key на toggle бутона */
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stCheckbox"] input[id*="stable_comparison_toggle"]) {
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 0px !important; /* Настройка на разстоянието между бутона и текста */
+            gap: 0px !important;
         }
         
         /* ФИКС: Спира разтягането на първата колона и я свива около бутона */
