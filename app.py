@@ -209,7 +209,7 @@ if st.session_state["current_trip"] is None:
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 8px !important; /* Точно 1 чист интервал разстояние */
+            gap: 18px !important; /* Точно 1 чист интервал разстояние */
             margin: 10px 0 !important;
             width: auto !important;
         }
