@@ -768,7 +768,7 @@ else:
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
 
-    # === ОБНОВЕН БРАНДИРАН ГРАДИЕНТЕН ДИЗАЙН (PIXELAPP СТИЛ ЗА ПЕЧАТ) ===
+    # === КОРЕГИРАН ВАРИАНТ (ОРИГИНАЛНО СИНЬО + ЧЕРНИ ЛИНИИ ГОРЕ И ДОЛУ) ===
     pdf_html = f"""<!DOCTYPE html>
     <html>
     <head>
@@ -783,14 +783,13 @@ else:
             body {{
                 font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
                 padding: 25px;
-                color: #2c3e50;
+                color: #2f3542;
                 background-color: #ffffff;
                 max-width: 800px;
                 margin: 0 auto;
             }}
             .header-container {{
-                border-bottom: 4px solid #4facfe; /* Финален бранд цвят */
-                border-image: linear-gradient(to right, #00f2fe 0%, #4facfe 100%) 1;
+                border-bottom: 3px solid #000000; /* ЧЕРНА горна линия */
                 padding-bottom: 12px;
                 margin-bottom: 25px;
                 display: flex;
@@ -798,7 +797,7 @@ else:
                 align-items: flex-end;
             }}
             .header-left h2 {{
-                color: #2c3e50;
+                color: #2f3542;
                 margin: 0 0 4px 0;
                 font-size: 24px;
                 text-transform: uppercase;
@@ -806,16 +805,14 @@ else:
             }}
             .header-right {{
                 text-align: right;
-                font-weight: 800;
-                background: linear-gradient(135deg, #00f2fe, #4facfe);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                font-size: 16px;
+                font-weight: bold;
+                color: #00a8ff; 
+                font-size: 15px;
                 letter-spacing: 0.5px;
             }}
             h3 {{
-                color: #2c3e50;
-                border-bottom: 2px solid #e2e8f0;
+                color: #2f3542;
+                border-bottom: 2px solid #e4e7eb;
                 padding-bottom: 6px;
                 margin-top: 30px;
                 font-size: 15px;
@@ -824,29 +821,29 @@ else:
             }}
             .meta-info {{
                 font-size: 12px;
-                color: #7f8c8d;
+                color: #747d8c;
                 margin: 0;
             }}
             .summary-box {{
-                background: #f0f9ff; /* Свеж, технологичен бранд нюанс */
-                border: 1px solid #bae6fd;
-                border-left: 6px solid #4facfe; /* PixelApp син акцент */
-                padding: 20px;
-                border-radius: 8px;
+                background: #f4f7f9; /* Изчистен сивкаво-син бокс */
+                border: 1px solid #dcdde1;
+                border-left: 6px solid #00a8ff; /* PixelApp син акцент */
+                padding: 18px;
+                border-radius: 6px;
                 margin-bottom: 25px;
-                box-shadow: 0 2px 5px rgba(79, 172, 254, 0.05);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             }}
             .summary-title {{
-                font-size: 11px;
-                color: #7f8c8d;
+                font-size: 12px;
+                color: #747d8c;
                 text-transform: uppercase;
                 margin-bottom: 4px;
                 font-weight: 700;
-                letter-spacing: 0.8px;
+                letter-spacing: 0.5px;
             }}
             .summary-amount {{
-                font-size: 30px;
-                color: #1d4ed8; /* Плътно синьо за максимален контраст на хартия */
+                font-size: 28px;
+                color: #00a8ff; /* PixelApp син акцент за сумата */
                 font-weight: 800;
                 margin: 0;
             }}
@@ -857,17 +854,15 @@ else:
                 margin-bottom: 25px;
             }}
             .stat-card {{
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
-                border-top: 3px solid #00f2fe; /* Малък цветен акцент отгоре */
+                background: #f8f9fa;
+                border: 1px solid #e4e7eb;
                 padding: 14px 16px;
                 border-radius: 6px;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.01);
             }}
             .stat-card h4 {{
                 margin: 0 0 10px 0;
-                color: #2c3e50;
-                border-bottom: 1px solid #f1f5f9;
+                color: #2f3542;
+                border-bottom: 1px solid #ced6e0;
                 padding-bottom: 6px;
                 font-size: 13px;
                 text-transform: uppercase;
@@ -881,10 +876,10 @@ else:
             }}
             .stat-card li {{
                 margin-bottom: 6px;
-                color: #475569;
+                color: #57606f;
             }}
             .stat-card b {{
-                color: #1e293b;
+                color: #2f3542;
             }}
             table {{
                 width: 100%;
@@ -893,30 +888,30 @@ else:
                 font-size: 12px;
             }}
             th {{
-                background-color: #1e293b; /* Тъмен графит */
+                background-color: #2f3542;
                 color: #ffffff;
                 text-align: left;
-                padding: 11px 14px;
+                padding: 10px 12px;
                 font-weight: 600;
             }}
             td {{
-                padding: 10px 14px;
-                border-bottom: 1px solid #f1f5f9;
-                color: #334155;
+                padding: 10px 12px;
+                border-bottom: 1px solid #e4e7eb;
+                color: #2f3542;
             }}
             tr:nth-child(even) {{
-                background-color: #f8fafc;
+                background-color: #fcfcfc;
             }}
             .fuel-highlight {{
-                color: #2563eb;
+                color: #00a8ff;
                 font-weight: 700;
             }}
             .badge-km {{
-                background: #e2e8f0;
+                background: #e4e7eb;
                 padding: 2px 6px;
                 border-radius: 4px;
                 font-size: 11px;
-                color: #334155;
+                color: #2f3542;
                 font-weight: 600;
             }}
             .text-right {{
@@ -924,9 +919,9 @@ else:
             }}
             .total-row {{
                 font-weight: bold;
-                background-color: #f0f9ff !important;
+                background-color: #f4f7f9 !important;
                 font-size: 14px;
-                border-top: 2px solid #4facfe;
+                border-top: 3px solid #000000; /* ЧЕРНА долна линия над ОБЩО */
             }}
         </style>
     </head>
@@ -944,7 +939,7 @@ else:
         <div class='summary-box'>
             <div class='summary-title'>Финално салдо на почивката</div>
             <div class='summary-amount'>{grand_total:.2f} EUR</div>
-            <p style='margin: 6px 0 0 0; font-size: 12px; color: #64748b;'>
+            <p style='margin: 6px 0 0 0; font-size: 12px; color: #747d8c;'>
                 (Предишни депозити: {depozit_hotel:.2f} EUR | Директни разходи на място: {total_on_site:.2f} EUR)
             </p>
         </div>
@@ -1003,8 +998,8 @@ else:
 
     pdf_html += f"""
                 <tr class='total-row'>
-                    <td colspan='4' class='text-right' style='color: #2c3e50;'>ОБЩА СУМА ЗА ПЛАЩАНЕ:</td>
-                    <td class='text-right' style='color: #1d4ed8;'>{grand_total:.2f} EUR</td>
+                    <td colspan='4' class='text-right' style='color: #2f3542;'>ОБЩА СУМА ЗА ПЛАЩАНЕ:</td>
+                    <td class='text-right' style='color: #00a8ff;'>{grand_total:.2f} EUR</td>
                 </tr>
             </tbody>
         </table>
