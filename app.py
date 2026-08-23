@@ -7,7 +7,6 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import io
-import matplotlib.pyplot as plt
 from reportlab.platypus import SimpleDocTemplate, Image as RLImage, Spacer, Paragraph, PageBreak
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
