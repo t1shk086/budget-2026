@@ -7,10 +7,6 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import io
-from reportlab.platypus import SimpleDocTemplate, Image as RLImage, Spacer, Paragraph, PageBreak
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -198,7 +194,7 @@ if "current_trip" not in st.session_state: st.session_state["current_trip"] = No
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
 if st.session_state["current_trip"] is None:
-    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: 4px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
     
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
@@ -1253,117 +1249,6 @@ else:
     </body>
     </html>"""
 
-    # === ГЕНЕРАТОР НА 5-ТЕ ЦВЕТНИ ГРАФИКИ В СЪЩИЯ HTML/PDF ОТЧЕТ ===
-    def build_five_charts_html():
-        """Връща HTML секция с пет цветни Plotly графики за печат/PDF."""
-        try:
-            df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
-            df_all_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-        except Exception:
-            return ""
-
-        all_trips = []
-        try:
-            unique_trips = df_all_data["trip_id"].dropna().unique()
-            for t in unique_trips:
-                if not t or str(t).strip() == "":
-                    continue
-                df_t_data = df_all_data[df_all_data["trip_id"] == t]
-                df_t_sett = df_all_settings[df_all_settings["trip_id"] == t]
-
-                t_dep = float(df_t_data[df_t_data["type"] == "deposit"]["amount"].sum())
-                t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
-                t_total = t_dep + t_site
-                t_hotel_only = float(df_t_data[df_t_data["category"] == "Нощувки/Хотел"]["amount"].sum())
-                t_deposit_only = float(df_t_data[df_t_data["category"] == "Депозит/Резервация"]["amount"].sum())
-                t_accommodation_total = t_hotel_only + t_deposit_only
-
-                t_dist, s_k, e_k = 0.0, 0.0, 0.0
-                days_count = 1
-                if not df_t_sett.empty:
-                    s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns else 0.0
-                    e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns else 0.0
-                    st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns else ""
-                    en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns else ""
-                    max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
-                    eff_e = e_k if e_k > 0 else max_k
-                    t_dist = eff_e - s_k if eff_e > s_k else 0.0
-                    try:
-                        d1 = datetime.datetime.strptime(st_d_str, "%d.%m.%Y")
-                        d2 = datetime.datetime.strptime(en_d_str, "%d.%m.%Y")
-                        days_count = max(1, (d2 - d1).days + 1)
-                    except Exception:
-                        days_count = 1
-
-                all_trips.append({
-                    "Пътуване": str(t).replace("_", " ").upper(),
-                    "Обща Стойност (EUR)": t_total,
-                    "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
-                    "Дневен Разход (EUR)": (t_total / days_count),
-                    "Изминато разстояние (км)": t_dist,
-                    "Нощувки и Хотел (EUR)": t_accommodation_total,
-                })
-        except Exception:
-            return ""
-
-        if not all_trips:
-            return ""
-
-        try:
-            import plotly.express as px
-            df = pd.DataFrame(all_trips)
-            charts = [
-                ("Цена за 1 км (EUR)", "💰 Цена за 1 км", "EUR/км"),
-                ("Дневен Разход (EUR)", "📅 Среднодневен разход", "EUR/ден"),
-                ("Обща Стойност (EUR)", "💸 Обща стойност", "EUR"),
-                ("Изминато разстояние (км)", "🚗 Изминато разстояние", "км"),
-                ("Нощувки и Хотел (EUR)", "🏨 Нощувки и хотел", "EUR"),
-            ]
-            blocks = ["<div class='charts-section'><h2>📊 Анализ на 5 показателя</h2>"]
-            for chart_index, (col, title, unit) in enumerate(charts):
-                d = df.copy()
-                if col == "Цена за 1 км (EUR)":
-                    d = d[d["Изминато разстояние (км)"] > 0]
-                    if d.empty:
-                        d = df.copy()
-                d = d.sort_values(col, ascending=True)
-                fig = px.bar(d, x=col, y="Пътуване", orientation="h", text=col, title=title)
-                fig.update_traces(texttemplate=("%{text:.0f} км" if unit == "км" else "%{text:.2f} " + unit), textposition="outside")
-                fig.update_layout(height=390, margin=dict(l=10, r=90, t=55, b=30), showlegend=False, paper_bgcolor="white", plot_bgcolor="white", font=dict(family="Segoe UI, Arial", size=11))
-                fig.update_xaxes(title_text="", showgrid=True, gridcolor="#e5e7eb")
-                fig.update_yaxes(title_text="", showgrid=False)
-                chart_html = fig.to_html(full_html=False, include_plotlyjs=("inline" if chart_index == 0 else False), config={"displayModeBar": False, "responsive": True})
-                blocks.append(f"<div class='chart-block'>{chart_html}</div>")
-            blocks.append("</div>")
-            return "".join(blocks)
-        except Exception:
-            return ""
-
-    charts_html = build_five_charts_html()
-    charts_css = """<style>
-        body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f5f7fb;color:#2f3542;margin:0;padding:24px}
-        .charts-page{max-width:1000px;margin:0 auto}
-        .charts-header{text-align:center;background:#fff;border-radius:16px;padding:20px 24px;margin-bottom:20px;box-shadow:0 4px 18px rgba(0,0,0,.07)}
-        .charts-header h1{margin:0 0 6px;font-size:28px;font-weight:800}
-        .charts-header p{margin:0;color:#6b7280;font-size:14px}
-        .charts-section{margin-top:10px}
-        .charts-section h2{text-align:center;font-size:20px;margin:0 0 18px}
-        .chart-block{page-break-inside:avoid;margin:0 0 18px;padding:10px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.05)}
-        @media print{body{background:#fff;padding:8mm}.charts-header{box-shadow:none;border:1px solid #ddd}.chart-block{box-shadow:none;page-break-inside:avoid}.charts-section{page-break-before:always}}
-    </style>"""
-    if charts_html:
-        pdf_html = pdf_html.replace("</body>", charts_html + "</body>")
-        pdf_html = pdf_html.replace("</head>", charts_css + "</head>")
-        charts_report_html = f"""<!DOCTYPE html>
-<html lang='bg'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
-<title>5 цветни графики - {str(trip_id).replace('_',' ')}</title>{charts_css}</head>
-<body><div class='charts-page'>
-<div class='charts-header'><h1>📊 Анализ на разходите</h1><p>5 цветни графики • {str(trip_id).replace('_',' ')}</p></div>
-{charts_html}
-</div></body></html>"""
-    else:
-        charts_report_html = ""
-
     # === ИНТЕГРИРАНА МУЛТИФУНКЦИОНАЛНА ДИАЛОГОВА СИСТЕМА ===
     @st.dialog("💾 Действия с отчети", width="large")
     def download_and_compare_dialog():
@@ -1372,7 +1257,7 @@ else:
         
         with col1:
             st.download_button(
-                label="📄 Свали Отчет за Печат (HTML / PDF)",
+                label="📄 Свали Отчет за Печат (PDF/HTML)",
                 data=pdf_html,
                 file_name=f"Otchet_{trip_id}_2026.html",
                 mime="text/html",
@@ -1396,21 +1281,6 @@ else:
                 key="popup_download_excel_btn"
             )
             
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        if charts_report_html:
-            st.download_button(
-                label="📊 Свали 5-те графики — цветен отчет",
-                data=charts_report_html,
-                file_name=f"Grafiki_{trip_id}_2026.html",
-                mime="text/html",
-                use_container_width=True,
-                key="popup_download_five_charts_btn"
-            )
-            st.markdown("<div style='padding:10px 0;color:#666;font-size:13px;'>🎨 Този бутон е отделен от основния отчет. Графиките се свалят със собствената си цветна визия и дизайн. След отваряне използвайте <b>Print → Save as PDF</b>, за да получите цветен PDF.</div>", unsafe_allow_html=True)
-        else:
-            st.warning("Няма достатъчно данни за генериране на петте графики.")
-
         st.markdown("<br>", unsafe_allow_html=True)
         # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
         if st.button("❌ Затвори", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
