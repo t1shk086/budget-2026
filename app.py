@@ -5,6 +5,43 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title='PixelApp — Бюджет на пътуването', page_icon='🐾', layout='wide', initial_sidebar_state='expanded')
 
+# INTERACTION STATE
+for _k,_v in {'page':'Бюджет','action':None,'rank_mode':'Общо'}.items():
+    if _k not in st.session_state: st.session_state[_k]=_v
+
+def nav_to(label):
+    st.session_state.page=label
+    st.session_state.action=None
+
+def choose_action(action):
+    st.session_state.action=action
+
+def save_expense(amount, category, date, description):
+    row=pd.DataFrame([{'trip_id':tid,'date':date.strftime('%d.%m.%Y'),'amount':float(amount),'category':category,'description':description,'type':'expense'}])
+    path=DATA_FILE
+    try:
+        old=pd.read_csv(path,encoding='utf-8')
+        out=pd.concat([old,row],ignore_index=True)
+    except Exception:
+        out=row
+    out.to_csv(path,index=False,encoding='utf-8')
+    st.session_state.action=None
+    st.cache_data.clear()
+    st.toast('Разходът е добавен успешно.', icon='✅')
+
+def save_budget(values):
+    row=pd.DataFrame([{'trip_id':tid,**values}])
+    try:
+        old=pd.read_csv(BUDGET_FILE,encoding='utf-8')
+        if 'trip_id' in old.columns:
+            old=old[old.trip_id.astype(str)!=str(tid)]
+        out=pd.concat([old,row],ignore_index=True)
+    except Exception:
+        out=row
+    out.to_csv(BUDGET_FILE,index=False,encoding='utf-8')
+    st.session_state.action=None
+    st.toast('Бюджетът е записан.', icon='✅')
+
 # =========================
 # DATA
 # =========================
@@ -97,7 +134,7 @@ html,body,[data-testid="stAppViewContainer"]{background:radial-gradient(circle a
 .block-container{max-width:1540px;padding:.65rem .75rem 2.2rem}
 section[data-testid="stSidebar"]{background:linear-gradient(180deg,#06111b,#030a11)!important;border-right:1px solid #0c2b41!important}
 section[data-testid="stSidebar"]>div{padding:18px 12px}
-section[data-testid="stSidebar"] .stButton button{justify-content:flex-start;text-align:left;border:0!important;background:transparent!important;color:#a7bfd0!important;border-radius:10px!important}
+.stButton button{justify-content:flex-start;text-align:left;border:0!important;background:transparent!important;color:#a7bfd0!important;border-radius:10px!important}
 section[data-testid="stSidebar"] .stButton button:hover{background:#092943!important;color:#fff!important}
 .brand{font-size:22px;font-weight:800;display:flex;gap:10px;align-items:center;margin-bottom:18px}.brand span{font-size:25px}
 .hero{display:flex;align-items:center;gap:16px;margin:0 0 10px}.num{width:58px;height:58px;border:3px solid #3ea5ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:800;color:#dceeff;box-shadow:0 0 18px #1673b533}.hero h1{font-size:27px;line-height:1;margin:0;font-weight:800}.hero p{margin:5px 0 0;color:#a7c6d9;font-size:14px}
@@ -114,6 +151,7 @@ section[data-testid="stSidebar"] .stButton button:hover{background:#092943!impor
 .table{width:100%;border-collapse:separate;border-spacing:0;font-size:10px;overflow:hidden;border:1px solid #123a55;border-radius:10px}.table th{color:#8daabd;font-weight:500;background:#071b2a;padding:7px}.table td{padding:7px;border-top:1px solid #0c2a3c;color:#dceaf2}.table td:last-child,.table th:last-child{text-align:right}
 .pill{display:inline-block;padding:6px 10px;border:1px solid #15405d;border-radius:9px;background:#071a2a;color:#a8c0d0;font-size:11px;margin-right:5px}.pill.active{background:#0f4f9d;color:#fff;border-color:#287fe0}
 .bottomspace{height:8px}
+.stButton button{border:1px solid #164663!important;background:linear-gradient(180deg,#092943,#061a29)!important;color:#e7f5ff!important;border-radius:10px!important;font-weight:600!important;min-height:38px}.stButton button:hover{border-color:#2a8fe8!important;box-shadow:0 0 0 1px #2a8fe833,0 5px 18px #0007!important}.stButton button[kind="primary"]{background:linear-gradient(180deg,#1161ad,#0b4480)!important;border-color:#278be7!important}.stButton button p{font-size:12px!important}
 .mobile-bottom{display:none}
 @media(max-width:850px){
  .block-container{padding:.35rem .45rem 5rem}.hero h1{font-size:20px}.hero p{font-size:12px}.num{width:45px;height:45px;font-size:21px}.section-head .num{width:45px;height:45px;flex-basis:45px}.section-head h2{font-size:20px}.top-shell{padding:8px;border-radius:14px}.tripbar{padding-bottom:8px}.tripname{font-size:15px}.tripmeta{font-size:10px}.card{padding:11px}.mobile-bottom{display:block;position:fixed;left:7px;right:7px;bottom:7px;z-index:999;background:#061421f7;border:1px solid #17415d;border-radius:17px;padding:6px;box-shadow:0 8px 35px #000c}.mobile-bottom .stButton button{font-size:9px!important;min-height:42px!important;padding:2px!important;border:0!important;background:transparent!important}.mobile-bottom .stButton:nth-child(3) button{background:linear-gradient(145deg,#1474e5,#31caff)!important;border-radius:50%!important;font-size:22px!important}.desktop-only{display:none!important}
@@ -128,15 +166,84 @@ nav=[('⌂','Начало'),('♧','Пътувания'),('▣','Разходи'
 with st.sidebar:
     st.markdown('<div class="brand"><span>🐾</span> PixelApp</div>',unsafe_allow_html=True)
     for ico,label in nav:
-        active='Бюджет'==label
-        if st.button(f'{ico}   {label}',key='nav_'+label,use_container_width=True): pass
+        active=st.session_state.page==label
+        if st.button(f'{ico}   {label}',key='nav_'+label,use_container_width=True,type='primary' if active else 'secondary'):
+            nav_to(label)
+            st.rerun()
 
 # mobile bottom
 st.markdown('<div class="mobile-bottom">',unsafe_allow_html=True)
 mc=st.columns(5)
 for i,(ico,label) in enumerate([('⌂','Начало'),('▤','Разходи'),('＋','add'),('◫','Карта'),('•••','Още')]):
-    with mc[i]: st.button(ico,key=f'mob_{i}',use_container_width=True)
+    with mc[i]:
+        if st.button(ico,key=f'mob_{i}',use_container_width=True):
+            if label=='add': choose_action('expense')
+            elif label=='Начало': nav_to('Начало')
+            elif label=='Разходи': nav_to('Разходи')
+            elif label=='Карта': nav_to('Карта')
+            else: nav_to('Още')
+            st.rerun()
 st.markdown('</div>',unsafe_allow_html=True)
+
+# =========================
+# WORKING ACTIONS
+# =========================
+if st.session_state.action:
+    act=st.session_state.action
+    with st.container(border=True):
+        if act=='expense':
+            st.subheader('➕ Добави разход')
+            with st.form('add_expense_form',clear_on_submit=True):
+                a,b,c=st.columns(3)
+                with a: amount=st.number_input('Сума (€)',min_value=0.0,step=1.0)
+                with b: category=st.selectbox('Категория',CATEGORIES)
+                with c: date=st.date_input('Дата',datetime.date.today())
+                description=st.text_input('Описание')
+                x,y=st.columns(2)
+                with x: ok=st.form_submit_button('💾 Запази разхода',use_container_width=True,type='primary')
+                with y: cancel=st.form_submit_button('Отказ',use_container_width=True)
+                if ok:
+                    save_expense(amount,category,date,description)
+                    st.rerun()
+                if cancel:
+                    st.session_state.action=None
+                    st.rerun()
+        elif act=='fuel':
+            st.subheader('⛽ Добави зареждане')
+            with st.form('add_fuel_form',clear_on_submit=True):
+                a,b,c=st.columns(3)
+                with a: litres=st.number_input('Литри',min_value=0.0,step=1.0)
+                with b: price=st.number_input('Цена (€)',min_value=0.0,step=0.01)
+                with c: km=st.number_input('Километри',min_value=0,step=1)
+                if st.form_submit_button('💾 Запази зареждането',use_container_width=True,type='primary'):
+                    row=pd.DataFrame([{'trip_id':tid,'date':datetime.date.today().strftime('%d.%m.%Y'),'amount':float(litres*price),'category':'Транспорт','description':f'Гориво — {litres:.2f} л @ {price:.2f} €','type':'fuel','km':int(km)}])
+                    try:
+                        old=pd.read_csv(DATA_FILE,encoding='utf-8'); out=pd.concat([old,row],ignore_index=True)
+                    except Exception: out=row
+                    out.to_csv(DATA_FILE,index=False,encoding='utf-8')
+                    st.session_state.action=None; st.toast('Зареждането е добавено.',icon='⛽'); st.rerun()
+        elif act=='deposit':
+            st.subheader('▤ Добави депозит')
+            with st.form('deposit_form'):
+                dep=st.number_input('Сума (€)',min_value=0.0,step=10.0)
+                note=st.text_input('Описание','Депозит')
+                if st.form_submit_button('💾 Запази депозита',use_container_width=True,type='primary'):
+                    row=pd.DataFrame([{'trip_id':tid,'date':datetime.date.today().strftime('%d.%m.%Y'),'amount':float(dep),'category':'Други','description':note,'type':'deposit'}])
+                    try: old=pd.read_csv(DATA_FILE,encoding='utf-8'); out=pd.concat([old,row],ignore_index=True)
+                    except Exception: out=row
+                    out.to_csv(DATA_FILE,index=False,encoding='utf-8'); st.session_state.action=None; st.toast('Депозитът е добавен.',icon='✅'); st.rerun()
+        elif act=='budget':
+            st.subheader('✎ Редактирай бюджет')
+            with st.form('budget_form'):
+                vals={}
+                cols=st.columns(len(CATEGORIES))
+                for i,c in enumerate(CATEGORIES):
+                    with cols[i]: vals[c]=st.number_input(c,value=float(b[c]),min_value=0.0,step=10.0,key='edit_'+c)
+                x,y=st.columns(2)
+                with x: ok=st.form_submit_button('💾 Запази бюджета',use_container_width=True,type='primary')
+                with y: cancel=st.form_submit_button('Отказ',use_container_width=True)
+                if ok: save_budget(vals); st.rerun()
+                if cancel: st.session_state.action=None; st.rerun()
 
 # =========================
 # 1 — BUDGET + PROGRESS
@@ -144,7 +251,7 @@ st.markdown('</div>',unsafe_allow_html=True)
 st.markdown('<div class="hero"><div class="num">1</div><div><h1>Бюджет на пътуването</h1><p>Планирай, следи и управлявай бюджета си в реално време.</p></div></div>',unsafe_allow_html=True)
 
 st.markdown('<div class="top-shell">',unsafe_allow_html=True)
-st.markdown(f'<div class="tripbar"><div><span class="flag">🇬🇷</span><span class="tripname">Пътуване: {trip_name}</span><div class="tripmeta">{period} ({days(tid)} дни)</div></div><div class="desktop-only"><span class="pill">✎ &nbsp; Редактирай бюджета</span></div></div>',unsafe_allow_html=True)
+st.markdown(f'<div class="tripbar"><div><span class="flag">🇬🇷</span><span class="tripname">Пътуване: {trip_name}</span><div class="tripmeta">{period} ({days(tid)} дни)</div></div><div class="desktop-only"></div>',unsafe_allow_html=True)
 
 c1,c2,c3=st.columns([1.05,1.15,.75],gap='small')
 with c1:
@@ -173,7 +280,10 @@ with c2:
     st.markdown('</div>',unsafe_allow_html=True)
 with c3:
     st.markdown('<div class="card"><h3>Бързи действия</h3>',unsafe_allow_html=True)
-    for txt,ico in [('Добави разход','＋'),('Добави зареждане','⛽'),('Добави депозит','▤'),('Редактирай бюджет','✎')]: st.markdown(f'<div class="quick"><span class="ico">{ico}</span>{txt}<span style="float:right">›</span></div>',unsafe_allow_html=True)
+    qa=[('Добави разход','＋','expense'),('Добави зареждане','⛽','fuel'),('Добави депозит','▤','deposit'),('Редактирай бюджет','✎','budget')]
+    for txt,ico,act in qa:
+        if st.button(f'{ico}  {txt}   ›',key='quick_'+act,use_container_width=True):
+            choose_action(act); st.rerun()
     st.markdown('</div>',unsafe_allow_html=True)
     st.markdown('<div class="card" style="margin-top:8px"><h3>Предупреждения</h3>',unsafe_allow_html=True)
     st.markdown(f'<div class="alert">⚠️ &nbsp; Бюджетът е използван {pct:.0f}%.</div><div class="info" style="margin-top:8px">ℹ️ &nbsp; Оставащ бюджет: <b>{euro(remaining)}</b></div><div class="info" style="margin-top:8px;color:#58e1b2">✓ &nbsp; Няма неплатени депозити.</div>',unsafe_allow_html=True)
@@ -213,12 +323,21 @@ st.markdown('<div class="section-head"><div class="num">5</div><div><h2>Най-�
 st.markdown('<div class="top-shell">',unsafe_allow_html=True)
 rc1,rc2=st.columns([1.15,.9],gap='small')
 with rc1:
-    st.markdown('<div class="card"><div style="margin-bottom:10px"><span class="pill active">Общо</span><span class="pill">Цена/км</span><span class="pill">Километри</span><span class="pill">Разход на ден</span><span class="pill">Хотел/Нощувки</span></div><h3>Топ 6 класации</h3>',unsafe_allow_html=True)
+    st.markdown('<div class="card"><h3>Сравнение / класации</h3>',unsafe_allow_html=True)
+    pm=st.columns(5)
+    for i,mode in enumerate(['Общо','Цена/км','Километри','Разход на ден','Хотел/Нощувки']):
+        with pm[i]:
+            if st.button(mode,key='rank_'+str(i),use_container_width=True,type='primary' if st.session_state.rank_mode==mode else 'secondary'):
+                st.session_state.rank_mode=mode; st.rerun()
+    st.markdown('<h3>Топ 6 класации</h3>',unsafe_allow_html=True)
     ranks=[('🏆','Най-евтино пътуване','Румъния 2025','62.40 €/ден','#ffbd37'),('🌿','Най-икономично пътуване','Гърция 2026','6.2 л/100 км','#35d9a5'),('🔗','Най-дълго пътуване','Италия 2024','2 845 км','#4d9eff'),('🏨','Най-скъп хотел','Испания 2025','158.00 €/нощувка','#b35cff'),('🍴','Най-много за храна','Гърция 2026','312.40 €','#ff8c38'),('★','Най-добро съотношение','Румъния 2025','86.20 €/ден','#ff5f9a')]
     cols=st.columns(2)
     for i,r in enumerate(ranks):
         with cols[i%2]: st.markdown(f'<div class="rank" style="margin-bottom:8px"><div class="r-icon">{r[0]}</div><div><div class="r-title" style="color:{r[4]}">{r[1]}</div><div class="r-name">{r[2]}</div><div class="r-value">{r[3]}</div></div></div>',unsafe_allow_html=True)
-    st.markdown('<div class="card" style="margin-top:8px;padding:8px;text-align:center">↗ &nbsp; Виж всички класации</div>',unsafe_allow_html=True)
+    
+    if st.button('↗  Виж всички класации',key='all_rankings',use_container_width=True):
+        st.session_state.page='Сравнение'; st.toast('Отворени са всички класации.',icon='🏆')
+
     st.markdown('</div>',unsafe_allow_html=True)
 with rc2:
     st.markdown('<div class="card"><h3>Сравнение на пътуванията</h3>',unsafe_allow_html=True)
@@ -227,7 +346,10 @@ with rc2:
     for r in rows: html+=f'<tr><td>{r[0]} {r[1]}</td><td>{r[2]}</td><td>{r[3]}</td><td>{r[4]}</td><td>{r[5]}</td><td>{r[6]}</td></tr>'
     html+='</table>'
     st.markdown(html,unsafe_allow_html=True)
-    st.markdown('<div class="info" style="margin-top:8px;text-align:center">▥ &nbsp; Пълно сравнение</div>',unsafe_allow_html=True)
+    
+    if st.button('▥  Пълно сравнение',key='full_compare',use_container_width=True):
+        st.session_state.page='Сравнение'; st.toast('Отворено е пълното сравнение.',icon='📊')
+
     st.markdown('</div>',unsafe_allow_html=True)
 st.markdown('</div>',unsafe_allow_html=True)
 
@@ -238,7 +360,9 @@ st.markdown('<div class="section-head" style="margin-top:18px"><div class="num">
 st.markdown('<div class="top-shell">',unsafe_allow_html=True)
 for c in CATEGORIES:
     real=float(d[d.category==c].amount.sum()) if not d.empty else 0; planned_c=b[c]; used=real/planned_c*100 if planned_c else 0
-    st.markdown(f'<div class="card" style="margin-bottom:7px;padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center"><div><span style="font-size:18px">{ICONS[c]}</span> <b>{c}</b></div><span class="muted">{euro(planned_c)} ✎</span></div><div style="display:flex;justify-content:space-between;font-size:10px;color:#8daabd;margin-top:7px"><span>{euro(real)} изразходвани</span><b>{used:.0f}%</b></div><div class="progress" style="height:6px;margin:4px 0 0"><div style="width:{min(100,used)}%"></div></div></div>',unsafe_allow_html=True)
+    st.markdown(f'<div class="card" style="margin-bottom:7px;padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center"><div><span style="font-size:18px">{ICONS[c]}</span> <b>{c}</b></div><span class="muted">{euro(planned_c)}</span></div><div style="display:flex;justify-content:space-between;font-size:10px;color:#8daabd;margin-top:7px"><span>{euro(real)} изразходвани</span><b>{used:.0f}%</b></div><div class="progress" style="height:6px;margin:4px 0 0"><div style="width:{min(100,used)}%"></div></div></div>',unsafe_allow_html=True)
+    if st.button(f'✎  Редактирай {c}',key='edit_cat_'+c,use_container_width=True):
+        choose_action('budget'); st.rerun()
 st.markdown(f'<div class="card" style="display:flex;justify-content:space-between"><div><div class="muted">Общо</div><b style="font-size:20px">{euro(planned)}</b></div><div><div class="muted">Изразходвано</div><b style="font-size:20px">{euro(spent)}</b></div><div><div class="muted">Остават</div><b style="font-size:20px;color:#39dca6">{euro(remaining)}</b></div></div>',unsafe_allow_html=True)
 st.markdown('</div>',unsafe_allow_html=True)
 
