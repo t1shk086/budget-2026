@@ -231,7 +231,7 @@ if st.session_state["current_trip"] is None:
             
             chosen_criteria = st.segmented_control(
                 label="Изберете критерий:",
-                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и хотел"],
+                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и депозит"],
                 default="Цена за 1 км",
                 key="modal_segmented_metric_selector"
             )
@@ -283,7 +283,7 @@ if st.session_state["current_trip"] is None:
                         "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
                         "Дневен Разход (EUR)": (t_total / days_count),
                         "Изминато разстояние (км)": t_dist,
-                        "Нощувки и Депозити (EUR)": t_accommodation_total,
+                        "Нощувки и хотел (EUR)": t_accommodation_total,
                         "DistValid": t_dist > 0
                     })
             except:
