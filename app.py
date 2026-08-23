@@ -96,6 +96,21 @@ def save_ui_labels(pet_label, hotel_label, deposit_label):
 
 UI_LABELS = get_ui_labels()
 
+# Визуалното име на категорията следва името на съответния бутон.
+# Каноничните имена в DATA_FILE остават непроменени, за да не се чупят
+# натрупаните данни и изчисленията. Ако канонично име участва в по-дълго
+# име на категория, замяната се прави автоматично и за тази част.
+def get_display_category(category):
+    category_text = str(category)
+    replacements = {
+        "Куче": UI_LABELS.get("pet", "Куче"),
+        "Нощувки/Хотел": UI_LABELS.get("hotel", "Нощувки/Хотел"),
+        "Депозит/Резервация": UI_LABELS.get("deposit", "Депозит/Резервация")
+    }
+    for canonical, label in sorted(replacements.items(), key=lambda item: len(item[0]), reverse=True):
+        category_text = category_text.replace(canonical, label)
+    return category_text
+
 if not os.path.exists(MAP_FILE):
     pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
 
@@ -423,7 +438,8 @@ else:
             try:
                 df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
                 r = df_all.loc[idx]
-                st.markdown(f"**{get_emoji(r['category'])} {r['category']}** — <span style='color:#ff4b4b; font-weight:bold;'>{r['amount']:.2f} EUR</span><br><small>{r['description']}</small>", unsafe_allow_html=True)
+                display_category = get_display_category(r['category'])
+                st.markdown(f"**{get_emoji(r['category'])} {display_category}** — <span style='color:#ff4b4b; font-weight:bold;'>{r['amount']:.2f} EUR</span><br><small>{r['description']}</small>", unsafe_allow_html=True)
             except: 
                 pass
             c_del1, c_del2 = st.columns(2)
@@ -808,10 +824,11 @@ else:
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
+            display_kat = get_display_category(kat)
             st.markdown(f"""
             <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {kat}</span>
+                    <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {display_kat}</span>
                     <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
                 </div>
                 <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
@@ -864,7 +881,8 @@ else:
                         df_cat = df_trip_rows[df_trip_rows["category"] ==  кат]
                         cat_sum = float(df_cat["amount"].sum())
                         
-                        st.markdown(f"### {get_emoji(кат)} {кат}")
+                        display_кат = get_display_category(кат)
+                        st.markdown(f"### {get_emoji(кат)} {display_кат}")
                         st.markdown("<hr style='margin-top:2px; margin-bottom:10px; border-color:rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
                         
                         for _, r in df_cat.iterrows():
@@ -883,7 +901,7 @@ else:
                         # Коригирано от {cat} на {кат}
                         st.markdown(f'''
                             <div class="category-total-box">
-                                Общо за {кат}: {cat_sum:.2f} EUR
+                                Общо за {display_кат}: {cat_sum:.2f} EUR
                             </div>
                         ''', unsafe_allow_html=True)
                         
@@ -934,6 +952,7 @@ else:
                     if idx not in df_all.index:
                         continue
                     r = df_all.loc[idx]
+                    display_category = get_display_category(r["category"])
                     l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
                     col_rec, col_del = st.columns([0.88, 0.12])
                     
@@ -942,7 +961,7 @@ else:
                             <div class="premium-expense-card">
                                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                     <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
-                                        <span>{get_emoji(r["category"])}</span> {r["category"]}
+                                        <span>{get_emoji(r["category"])}</span> {display_category}
                                     </div>
                                     <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
                                         -{r["amount"]:.2f} EUR
@@ -1209,11 +1228,12 @@ else:
         cur_km_val = float(row.get('current_km', 0.0))
         km_td_html = f"<span class='badge-km'>{cur_km_val:.0f} км</span>" if cur_km_val > 0 else "<span style='color:#bbb;'>—</span>"
         formatted_date = str(row['date']).replace(" ", " / ")
+        display_category = get_display_category(row['category'])
         
         pdf_html += f"""
                 <tr>
                     <td>{formatted_date}</td>
-                    <td>{row['category']}</td>
+                    <td>{display_category}</td>
                     <td>{desc_val}</td>
                     <td>{km_td_html}</td>
                     <td class='text-right' style='font-weight: 500;'>{row['amount']:.2f} EUR</td>
