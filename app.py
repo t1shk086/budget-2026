@@ -59,6 +59,42 @@ st.markdown("""
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
+LABELS_FILE = "pixelapp_labels_2026.csv"
+
+# Настройки само за имената на бутоните. Каноничните категории в данните НЕ се променят.
+DEFAULT_UI_LABELS = {
+    "pet": "Куче",
+    "hotel": "Нощувки/Хотел",
+    "deposit": "Депозит/Резервация"
+}
+
+def get_ui_labels():
+    labels = DEFAULT_UI_LABELS.copy()
+    try:
+        if os.path.exists(LABELS_FILE):
+            df = pd.read_csv(LABELS_FILE, encoding="utf-8")
+            if not df.empty:
+                row = df.iloc[0]
+                for key in labels:
+                    value = str(row.get(key, labels[key]))
+                    if value and value != "nan":
+                        labels[key] = value
+    except:
+        pass
+    return labels
+
+def save_ui_labels(pet_label, hotel_label, deposit_label):
+    try:
+        pd.DataFrame([{
+            "pet": pet_label,
+            "hotel": hotel_label,
+            "deposit": deposit_label
+        }]).to_csv(LABELS_FILE, index=False, encoding="utf-8")
+        return True
+    except:
+        return False
+
+UI_LABELS = get_ui_labels()
 
 if not os.path.exists(MAP_FILE):
     pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
@@ -545,10 +581,16 @@ else:
             """, unsafe_allow_html=True)
             
             grid = st.columns(3)
+            display_categories = {
+                "Куче": UI_LABELS["pet"],
+                "Нощувки/Хотел": UI_LABELS["hotel"],
+                "Депозит/Резервация": UI_LABELS["deposit"]
+            }
             for i, kat in enumerate(KATEGORII):
                 with grid[i % 3]:
                     is_disabled = is_trip_finished and (kat == "Транспорт")
-                    if st.button(f"🔒 {kat}" if is_disabled else kat, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
+                    button_label = display_categories.get(kat, kat)
+                    if st.button(f"🔒 {button_label}" if is_disabled else button_label, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
                         desc, is_d = o_input.strip(), (kat == "Депозит/Резервация")
                         if kat == "Транспорт" and any(k in desc.lower() for k in ["газ", "гориво", "зареждане", "бензин", "дизел"]): 
                             fuel_modal(s_input, kat, desc, is_d)
@@ -1420,7 +1462,7 @@ else:
                 import io
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE]:
+                    for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE]:
                         if os.path.exists(file_name):
                             zip_file.write(file_name, arcname=file_name)
                 st.download_button(
@@ -1450,7 +1492,7 @@ else:
                         with zipfile.ZipFile(uploaded_zip) as zip_file:
                             namelist = zip_file.namelist()
                             restored_count = 0
-                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE]:
+                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE]:
                                 if f_name in namelist:
                                     with open(f_name, "wb") as f_out:
                                         f_out.write(zip_file.read(f_name))
@@ -1467,3 +1509,47 @@ else:
                         st.session_state["show_admin_panel"] = False
                         st.session_state["current_trip"] = None
                         st.rerun()
+
+        st.markdown("---")
+        st.markdown("##### 🏷️ Имена на категориите")
+        st.caption("Тези настройки променят само текста на бутоните. Записаните разходи и статистиката остават непроменени.")
+
+        pet_options = ["Куче", "Котка", "Домашен любимец"]
+        accommodation_options = ["Нощувки/Хотел + Депозит/Резервация", "Хотелски такси + Депозит за резервация"]
+
+        current_pet = UI_LABELS["pet"] if UI_LABELS["pet"] in pet_options else "Куче"
+        current_accommodation = (
+            "Хотелски такси + Депозит за резервация"
+            if UI_LABELS["hotel"] == "Хотелски такси" and UI_LABELS["deposit"] == "Депозит за резервация"
+            else "Нощувки/Хотел + Депозит/Резервация"
+        )
+
+        admin_col1, admin_col2 = st.columns(2)
+        with admin_col1:
+            new_pet_label = st.selectbox(
+                "🐾 Име на бутона за домашен любимец:",
+                pet_options,
+                index=pet_options.index(current_pet),
+                key="admin_pet_label"
+            )
+        with admin_col2:
+            new_accommodation_labels = st.selectbox(
+                "🏨 Имена на хотелските категории:",
+                accommodation_options,
+                index=accommodation_options.index(current_accommodation),
+                key="admin_accommodation_labels"
+            )
+
+        if st.button("💾 Запази имената на категориите", use_container_width=True, type="primary", key="save_category_labels_btn"):
+            if new_accommodation_labels == "Хотелски такси + Депозит за резервация":
+                hotel_label = "Хотелски такси"
+                deposit_label = "Депозит за резервация"
+            else:
+                hotel_label = "Нощувки/Хотел"
+                deposit_label = "Депозит/Резервация"
+
+            if save_ui_labels(new_pet_label, hotel_label, deposit_label):
+                st.success("✅ Имената на категориите са запазени.")
+                st.rerun()
+            else:
+                st.error("❌ Неуспешно запазване на имената на категориите.")
