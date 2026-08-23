@@ -142,8 +142,25 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
-# ЛОГОТО ОСТАВА ВИДИМО И НА ЕКРАНА С ГРАФИКИТЕ
-st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: 4px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
+# ------------------------------------------------------------
+# ГОРЕН ХЕДЪР
+# - На началния екран и при графиките показваме пълното лого.
+# - Когато е заредено конкретно пътуване, логото се скрива и
+#   остава само името на дестинацията.
+# ------------------------------------------------------------
+if st.session_state.get("current_trip") is None or st.session_state.get("analytics_page", False):
+    st.markdown(
+        """<div style="width: fit-content; margin: 0 auto 18px auto; text-align: left;">
+            <h1 style="font-family: 'Segoe UI', Roboto, sans-serif; font-weight: 900; font-size: 46px; line-height: 0.95; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin: 0; padding: 0; white-space: nowrap;">🐾 PixelApp</h1>
+            <p style="font-family: 'Segoe UI', Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; line-height: 1; margin: -2px 0 0 46px; padding: 0; white-space: nowrap;">Travel Manager</p>
+        </div>""",
+        unsafe_allow_html=True
+    )
+else:
+    st.markdown(
+        f"<div style='text-align:center; margin: 4px 0 18px 0;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 600; font-size: 30px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 {str(st.session_state['current_trip']).replace('_', ' ')}</h2></div>",
+        unsafe_allow_html=True
+    )
 
 # ------------------------------------------------------------
 # СТРАНИЦА ЗА СРАВНИТЕЛНИ ГРАФИКИ
@@ -552,8 +569,6 @@ else:
     except: 
         pass
 
-    date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-    st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {str(trip_id).replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
     
