@@ -152,7 +152,7 @@ if st.session_state.get("current_trip") is None or st.session_state.get("analyti
     st.markdown(
         """<div style="width: fit-content; margin: 0 auto 18px auto; text-align: left;">
             <h1 style="font-family: 'Segoe UI', Roboto, sans-serif; font-weight: 900; font-size: 46px; line-height: 0.95; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin: 0; padding: 0; white-space: nowrap;">🐾 PixelApp</h1>
-            <p style="font-family: 'Segoe UI', Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; line-height: 1; margin: 3px 0 0 0; padding: 0; white-space: nowrap;">Travel Manager</p>
+            <p style="font-family: 'Segoe UI', Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; line-height: 1; margin: 9px 0 0 0; padding: 0 0 0 31px; white-space: nowrap;">Travel Manager</p>
         </div>""",
         unsafe_allow_html=True
     )
