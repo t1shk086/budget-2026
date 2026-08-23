@@ -409,13 +409,6 @@ if st.session_state["analytics_page"]:
     st.stop()
 
 if st.session_state["current_trip"] is None:
-    st.toggle(
-        label="Сравнителен панел",
-        value=False,
-        key="stable_comparison_toggle",
-        on_change=open_analytics_page
-    )
-    
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
     if existing:
@@ -1561,3 +1554,12 @@ else:
                         st.session_state["show_admin_panel"] = False
                         st.session_state["current_trip"] = None
                         st.rerun()
+
+    # Сравнителният панел остава най-долу на началния екран, както беше първоначално.
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    st.toggle(
+        label="Сравнителен панел",
+        value=False,
+        key="stable_comparison_toggle",
+        on_change=open_analytics_page
+    )
