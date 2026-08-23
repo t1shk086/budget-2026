@@ -457,8 +457,16 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
+    # Сравнителният панел е най-долу САМО на началния екран.
+    # Така не се показва в екрана на конкретно пътуване.
+    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+    st.toggle(
+        label="Сравнителен панел",
+        value=False,
+        key="stable_comparison_toggle",
+        on_change=open_analytics_page
+    )
 
-    
 
 else:
     trip_id = st.session_state["current_trip"]
@@ -1554,12 +1562,3 @@ else:
                         st.session_state["show_admin_panel"] = False
                         st.session_state["current_trip"] = None
                         st.rerun()
-
-    # Сравнителният панел остава най-долу на началния екран, както беше първоначално.
-    st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-    st.toggle(
-        label="Сравнителен панел",
-        value=False,
-        key="stable_comparison_toggle",
-        on_change=open_analytics_page
-    )
