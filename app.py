@@ -1340,9 +1340,29 @@ else:
             return ""
 
     charts_html = build_five_charts_html()
+    charts_css = """<style>
+        body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f5f7fb;color:#2f3542;margin:0;padding:24px}
+        .charts-page{max-width:1000px;margin:0 auto}
+        .charts-header{text-align:center;background:#fff;border-radius:16px;padding:20px 24px;margin-bottom:20px;box-shadow:0 4px 18px rgba(0,0,0,.07)}
+        .charts-header h1{margin:0 0 6px;font-size:28px;font-weight:800}
+        .charts-header p{margin:0;color:#6b7280;font-size:14px}
+        .charts-section{margin-top:10px}
+        .charts-section h2{text-align:center;font-size:20px;margin:0 0 18px}
+        .chart-block{page-break-inside:avoid;margin:0 0 18px;padding:10px;border:1px solid #e5e7eb;border-radius:14px;background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.05)}
+        @media print{body{background:#fff;padding:8mm}.charts-header{box-shadow:none;border:1px solid #ddd}.chart-block{box-shadow:none;page-break-inside:avoid}.charts-section{page-break-before:always}}
+    </style>"""
     if charts_html:
         pdf_html = pdf_html.replace("</body>", charts_html + "</body>")
-        pdf_html = pdf_html.replace("</head>", "<style>.charts-section{page-break-before:always;margin-top:25px}.charts-section h2{text-align:center;font-size:20px;margin:0 0 18px}.chart-block{page-break-inside:avoid;margin:0 0 18px;padding:8px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}@media print{.charts-section{page-break-before:always}.chart-block{page-break-inside:avoid}}</style></head>")
+        pdf_html = pdf_html.replace("</head>", charts_css + "</head>")
+        charts_report_html = f"""<!DOCTYPE html>
+<html lang='bg'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>5 цветни графики - {str(trip_id).replace('_',' ')}</title>{charts_css}</head>
+<body><div class='charts-page'>
+<div class='charts-header'><h1>📊 Анализ на разходите</h1><p>5 цветни графики • {str(trip_id).replace('_',' ')}</p></div>
+{charts_html}
+</div></body></html>"""
+    else:
+        charts_report_html = ""
 
     # === ИНТЕГРИРАНА МУЛТИФУНКЦИОНАЛНА ДИАЛОГОВА СИСТЕМА ===
     @st.dialog("💾 Действия с отчети", width="large")
@@ -1378,7 +1398,19 @@ else:
             
         st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<div style='padding:10px 0;color:#666;font-size:13px;'>📊 Петте цветни графики са включени директно в отчета. Изтеглете HTML файла и изберете <b>Print → Save as PDF</b>, за да получите цветен PDF със същото оформление.</div>", unsafe_allow_html=True)
+        if charts_report_html:
+            st.download_button(
+                label="📊 Свали 5-те графики — цветен отчет",
+                data=charts_report_html,
+                file_name=f"Grafiki_{trip_id}_2026.html",
+                mime="text/html",
+                use_container_width=True,
+                key="popup_download_five_charts_btn"
+            )
+            st.markdown("<div style='padding:10px 0;color:#666;font-size:13px;'>🎨 Този бутон е отделен от основния отчет. Графиките се свалят със собствената си цветна визия и дизайн. След отваряне използвайте <b>Print → Save as PDF</b>, за да получите цветен PDF.</div>", unsafe_allow_html=True)
+        else:
+            st.warning("Няма достатъчно данни за генериране на петте графики.")
+
         st.markdown("<br>", unsafe_allow_html=True)
         # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
         if st.button("❌ Затвори", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
