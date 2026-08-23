@@ -54,11 +54,11 @@ st.markdown("""
     small { color: #7e8494 !important; }
 </style>
 """, unsafe_allow_html=True)
+
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 
-# Динамични имена-синоними (Aliases) за визуализация
 pet_name = st.session_state.get("custom_pet_name", "Куче")
 hotel_name = st.session_state.get("custom_hotel_name", "Нощувки/Хотел")
 deposit_name = st.session_state.get("custom_deposit_name", "Депозит/Резервация")
@@ -84,6 +84,7 @@ def get_trip_data(t_id):
         return r
     except: 
         return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters","current_km"])
+
 def get_trip_settings(t_id):
     d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
     try:
@@ -114,6 +115,7 @@ def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
         df.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
     except: 
         pass
+
 def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
         df = pd.read_csv(DATA_FILE, encoding="utf-8")
@@ -163,7 +165,7 @@ if st.session_state["current_trip"] is None:
         txt = st.text_input("Име на дестинацията:",placeholder="Въведете име...").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
         st.write("---")
-        st.write("🚗 Пътувате ли со свой автомобил?")
+        st.write("🚗 Пътувате ли със собствен автомобил?")
         viber_car = st.radio("Изберете вариант:", ["Не, с друг транспорт", "Да, със собствен автомобил"], index=0)
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
@@ -194,6 +196,7 @@ if st.session_state["current_trip"] is None:
         create_trip_modal()
 
     st.markdown("---")
+    
     st.html("""
     <style>
         div[data-testid="stCheckbox"] > label {
@@ -210,11 +213,7 @@ if st.session_state["current_trip"] is None:
     </style>
     """)
 
-    show_comparison = st.toggle(
-        label="Сравнителен панел",
-        value=False,
-        key="stable_comparison_toggle"
-    )
+    show_comparison = st.toggle(label="Сравнителен панел", value=False, key="stable_comparison_toggle")
         
     if show_comparison:
         @st.dialog("📊 Сравнителен панел", width="large")
@@ -223,10 +222,11 @@ if st.session_state["current_trip"] is None:
             
             chosen_criteria = st.segmented_control(
                 label="Изберете критерий:",
-                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и Хотел"],
+                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и Депозити"],
                 default="Цена за 1 км",
                 key="modal_segmented_metric_selector"
             )
+
             all_trips_computed = []
             try:
                 df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
@@ -259,6 +259,7 @@ if st.session_state["current_trip"] is None:
                         max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
                         eff_e = e_k if e_k > 0 else max_k
                         t_dist = eff_e - s_k if eff_e > s_k else 0.0
+
                         try:
                             d1 = datetime.datetime.strptime(st_d_str, "%d.%m.%Y")
                             d2 = datetime.datetime.strptime(en_d_str, "%d.%m.%Y")
@@ -272,7 +273,7 @@ if st.session_state["current_trip"] is None:
                         "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
                         "Дневен Разход (EUR)": (t_total / days_count),
                         "Изминато разстояние (км)": t_dist,
-                        "Нощувки и Хотел (EUR)": t_accommodation_total,
+                        "Нощувки и Депозити (EUR)": t_accommodation_total,
                         "DistValid": t_dist > 0
                     })
             except:
@@ -299,11 +300,11 @@ if st.session_state["current_trip"] is None:
                     t_format = "%{text:.0f} км"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
                     graph_title = "🚗 Общо изминато разстояние"
-                elif chosen_criteria == "Нощувки и Хотел":
-                    x_col = "Нощувки и Хотел (EUR)"
+                elif chosen_criteria == "Нощувки и Депозити":
+                    x_col = "Нощувки и Депозити (EUR)"
                     t_format = "%{text:,.2f} EUR"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                    graph_title = "🏨 Разходи за Спане, Хотели и Хотелски такси"
+                    graph_title = "🏨 Разходи за Спане, Хотели и Депозити"
                 else: 
                     x_col = "Дневен Разход (EUR)"
                     t_format = "%{text:.2f} EUR/ден"
@@ -318,15 +319,26 @@ if st.session_state["current_trip"] is None:
                     c_scale = [[0, '#2ebd59'], [0.5, '#ffaa00'], [1, '#ff3b30']]
 
                 fig_pixel.update_traces(
-                    marker=dict(color=df_sorted[x_col], colorscale=c_scale, line=dict(width=0), cornerradius=15),
-                    texttemplate=f"<b>{t_format}</b>", textposition='outside', cliponaxis=False
+                    marker=dict(
+                        color=df_sorted[x_col],
+                        colorscale=c_scale,
+                        line=dict(width=0),
+                        cornerradius=15
+                    ),
+                    texttemplate=f"<b>{t_format}</b>",
+                    textposition='outside',
+                    cliponaxis=False
                 )
+
                 fig_pixel.update_layout(
                     title=dict(text=graph_title, font=dict(color="white")),
-                    plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
                     xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
                     yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
-                    margin=dict(l=10, r=110, t=50, b=10), height=320, bargap=0.35
+                    margin=dict(l=10, r=110, t=50, b=10),
+                    height=320,
+                    bargap=0.35
                 )
                 st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
             else:
@@ -342,8 +354,14 @@ if st.session_state["current_trip"] is None:
 else:
     trip_id = st.session_state["current_trip"]
     c_s = get_trip_settings(trip_id)
-    car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
-    st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
+    car_trip = str(c_s["car_trip"])
+    t_fuel = str(c_s["track_fuel"])
+    s_km = float(c_s["start_km"])
+    e_km = float(c_s["end_km"])
+    m_fuel = float(c_s["manual_fuel"])
+    st_date = str(c_s.get("start_date", ""))
+    en_date = str(c_s.get("end_date", ""))
+
     @st.dialog("🗑️ Потвърждение за изтриване")
     def confirm_delete_dialog():
         if "delete_idx" in st.session_state and st.session_state["delete_idx"] is not None:
@@ -352,7 +370,7 @@ else:
             try:
                 df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
                 r = df_all.loc[idx]
-                st.markdown(f"**{get_emoji(r['category'])} {r['category']}** — <span style='color:#ff4b4b; font-weight:bold;'>{r['amount']:.2f} EUR</span><br><small>{r['description']}</small>", unsafe_allow_html=True)
+                st.markdown(f"**{get_emoji(r['category'])} {r['category']}** — {r['amount']:.2f} EUR")
             except: 
                 pass
             c_del1, c_del2 = st.columns(2)
@@ -369,9 +387,10 @@ else:
                 if st.button("✖️ ОТКАЗ", use_container_width=True): 
                     st.session_state["delete_idx"] = None
                     st.rerun()
+
     @st.dialog("🚨 Изтриване на цялото пътуване")
     def confirm_delete_trip_dialog():
-        st.error(f"ВНИМАНИЕ! Изтриване на пътуването до {str(trip_id).replace('_', ' ')}?")
+        st.error(f"ВНИМАНИЕ! Изтриване на почивката?")
         c_tr1, c_tr2 = st.columns(2)
         with c_tr1:
             if st.button("✔️ ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
@@ -392,6 +411,7 @@ else:
     total_on_site = float(df_expenses["amount"].sum())
     categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
     total_liters_sum, auto_fuel_money = 0.0, 0.0
+    
     for _, row in df_expenses.iterrows():
         if row["category"] in categories_totals: 
             categories_totals[row["category"]] += float(row["amount"])
@@ -420,10 +440,13 @@ else:
                 has_progressive_data = True
     except: 
         pass
-    date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-    st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {str(trip_id).replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+
+    if st_date and st_date != "nan":
+        st.markdown(f"<p style='text-align:center;color:#888;'>{st_date} - {en_date}</p>", unsafe_allow_html=True)
+    
+    st.markdown(f"<h2 style='text-align:center;'>🌴 {str(trip_id).replace('_', ' ')}</h2>", unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div id='trip_top_anchor'></div>", unsafe_allow_html=True)
     
     ekran_za_kategorii = st.empty()
 
@@ -432,79 +455,41 @@ else:
         st.rerun()
 
     v_id = st.session_state["form_version"]
-    st.markdown('<div id="target_sum_box" style="position: relative; scroll-margin-top: 30px;"></div>', unsafe_allow_html=True)
-    
     col1, col2 = st.columns(2)
     with col1: 
-        s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
+        s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Сума...", format="%.2f", key=f"su_{v_id}")
     with col2: 
-        o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
+        o_input = st.text_input("Описание", placeholder="Описание...", key=f"op_{v_id}")
 
     is_trip_finished = (e_km > 0.0)
+
     @st.dialog("⛽ Зареждане на гориво")
     def fuel_modal(amount, category, description, is_dep):
         if is_trip_finished: 
             st.error("🔒 Пътуването е приключено!")
             return
-        liters = st.number_input("Литри:", value=None, placeholder="Напишете литри...", step=0.1)
-        fuel_type = st.radio("Тип на зареждането:", ["Да, до горе (Пълен резервоар)", "Не, частично (за конкретна сума)"], index=0)
+        liters = st.number_input("Литри:", value=None, placeholder="Литри...", step=0.1)
+        fuel_type = st.radio("Тип:", ["Да, до горе (Пълен резервоар)", "Не, частично"], index=0)
         
         df_f = get_trip_data(trip_id)[lambda d: (d["category"] == "Транспорт") & (d["current_km"] > 0)].sort_index()
         last_km = float(df_f["current_km"].max()) if not df_f.empty else s_km
-        km_input = st.number_input("Текущи километри на таблото (км):", value=None, placeholder="Въведете км...", step=1.0)
+        km_input = st.number_input("Километри на таблото:", value=None, placeholder="Км...", step=1.0)
         
-        total_segment_liters = 0.0
-        segment_dist = 0.0
-        
-        if liters and km_input and km_input > last_km and "до горе" in fuel_type.lower():
-            df_since_full = df_f[df_f["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
-            if not df_since_full.empty:
-                last_full_km = float(df_since_full.iloc[-1]["current_km"])
-                partial_liters = float(df_f[df_f["current_km"] > last_full_km]["liters"].sum())
-                total_segment_liters = partial_liters + liters
-                segment_dist = km_input - last_full_km
-            else:
-                total_segment_liters = float(df_f["liters"].sum()) + liters + m_fuel
-                segment_dist = km_input - s_km
-            
-            if segment_dist > 0 and total_segment_liters > 0:
-                st.success(f"📊 Реален разход за етапа: **{(total_segment_liters / segment_dist * 100):.1f} л / 100 км**")
         if st.button("💾 Запиши зареждането", use_container_width=True, type="primary"):
-            lit, ckm = (float(liters) if liters is not None else 0.0), (float(km_input) if km_input is not None else 0.0)
+            lit = float(liters) if liters is not None else 0.0
+            ckm = float(km_input) if km_input is not None else 0.0
             is_full = "ПЪЛНО" if "до горе" in fuel_type.lower() else "ЧАСТИЧНО"
             full_desc = f"[{is_full} ЗАРЕЖДАНЕ] {description}"
-            
-            if ckm > last_km and lit > 0 and is_full == "ПЪЛНО":
-                df_since_full = df_f[df_f["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
-                if not df_since_full.empty:
-                    last_full_km = float(df_since_full.iloc[-1]["current_km"])
-                    partial_liters = float(df_f[df_f["current_km"] > last_full_km]["liters"].sum())
-                    t_liters = partial_liters + lit
-                    t_dist = ckm - last_full_km
-                else:
-                    t_liters = float(df_f["liters"].sum()) + lit + m_fuel
-                    t_dist = ckm - s_km
-                
-                if t_dist > 0 and t_liters > 0:
-                    full_desc += f" (Етап: {t_dist:.0f}км, Реален разход: {(t_liters / t_dist * 100):.1f}л/100км)"
             
             if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): 
                 st.session_state["form_version"] += 1
                 st.rerun()
+
     if o_input.strip() and s_input and s_input > 0:
-        header_text = f"Записване на: <b>{s_input:.2f} EUR</b> за <i>\"{o_input.strip()}\"</i>"
         with ekran_za_kategorii.container():
-            st.markdown(f"""
-            <div style='text-align: center; margin: 10px 0 20px 0; animation: fadeIn 0.4s ease-in-out;'>
-                <h3 style='color: #00f2fe; font-family: "Segoe UI", sans-serif; font-weight: 700; margin-bottom: 5px;'>🎯 ИЗБЕРЕТЕ КАТЕГОРИЯ</h3>
-                <p style='color: #aaa; font-size: 14px; margin-bottom: 15px;'>{header_text}</p>
-            </div>
-            <style>
-                @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(-10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
-            </style>
-            """, unsafe_allow_html=True)
-            
+            st.markdown("### 🎯 ИЗБЕРЕТЕ КАТЕГОРИЯ")
             grid = st.columns(3)
+            
             alias_map = {
                 "Храна и напитки": "Храна и напитки",
                 "Транспорт": "Транспорт",
@@ -519,28 +504,27 @@ else:
                 with grid[i % 3]:
                     is_disabled = is_trip_finished and (kat == "Транспорт")
                     if st.button(f"🔒 {display_label}" if is_disabled else display_label, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
-                        desc, is_d = o_input.strip(), (kat == "Депозит/Резервация")
+                        desc = o_input.strip()
+                        is_d = (kat == "Депозит/Резервация")
                         if kat == "Транспорт" and any(k in desc.lower() for k in ["газ", "гориво", "зареждане", "бензин", "дизел"]): 
                             fuel_modal(s_input, kat, desc, is_d)
                         else:
                             if add_expense(trip_id, s_input, kat, desc, is_d): 
                                 st.session_state["form_version"] += 1
                                 st.rerun()
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("❌ ОКОНЧАТЕЛЕН ОТКАЗ / НАЗАД", use_container_width=True):
+            
+            if st.button("❌ ОТКАЗ", use_container_width=True):
                 st.session_state["form_version"] += 1
                 st.rerun()
-            st.markdown("---")
             st.stop()
 
     if car_trip == "Да":
-        is_final_status = True if e_km > s_km else False
-        km_progress_pct = 100 if is_final_status else min(100, max(0, (dist / 1000 * 100))) if dist > 0 else 0
-        finish_icon_html = f"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; left: calc({km_progress_pct}% - 10px); top: -12px; font-size: 16px;'>🚗</div>"
-
         val_real = 0.0
         val_average = 0.0
-        
+        try:
+            df_trans_fuel = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["current_km"] > s_km)].sort_index()
+            df_only_full = df_trans_fuel[df_trans_fuel["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
+            if not df_only_full.empty:
         try:
             df_trans_fuel = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["current_km"] > s_km)].sort_index()
             df_only_full = df_trans_fuel[df_trans_fuel["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
@@ -548,247 +532,121 @@ else:
                 last_full_row = df_only_full.iloc[-1]["description"]
                 import re
                 match = re.search(r"(?:Реален разход:|Разход:)\s*([0-9.]+)", last_full_row)
-                if match:
+                if match: 
                     val_real = float(match.group(1))
-        except:
-            val_real = 0.0
-        try:
-            current_dist = (eff_end_km - s_km) if is_trip_finished else (float(df_expenses["current_km"].max()) - s_km if not df_expenses.empty and "current_km" in df_expenses.columns else 0.0)
-            current_liters = float(df_expenses["liters"].sum()) + m_fuel
-            if current_dist > 0 and current_liters > 0:
-                val_average = (current_liters / current_dist * 100)
-        except:
-            val_average = 0.0
+        except: 
+            pass
 
-        color_gauge_real = "#00f2fe" if val_real < 6.0 else ("#ffa500" if val_real < 8.5 else "#ff4b4b")
-        color_gauge_avg = "#00f2fe" if val_average < 6.0 else ("#ffa500" if val_average < 8.5 else "#ff4b4b")
-        
+        try:
+            current_dist = (eff_end_km - s_km) if e_km > 0 else (float(df_expenses["current_km"].max()) - s_km)
+            current_liters = float(df_expenses["liters"].sum()) + m_fuel
+            if current_dist > 0 and current_liters > 0: 
+                val_average = (current_liters / current_dist * 100)
+        except: 
+            pass
+
         transport_liters = float(df_expenses[df_expenses['category'] == 'Транспорт']['liters'].sum()) + m_fuel
 
-        st.markdown(f"### ⏲ Данни за разход и пробег:")
-        st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 СЛЕДЕНЕ НА ПРОБЕГА</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
-        box_col1, box_col2 = st.columns(2)
-        with box_col1:
-            if is_trip_finished:
-                st.markdown(f"""
-                <div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; height: 100%; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); margin-bottom: 20px;'>
-                    <div style='display: flex; justify-content: space-around; align-items: center; gap: 20px; margin-top: 5px;'>
-                        <div style='display: flex; flex-direction: column; align-items: center;'>
-                            <div style='color: #00f2fe; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 12px;'>РЕАЛЕН РАЗХОД</div>
-                            <div style='width: 95px; height: 95px; border-radius: 50%; border: 4px dashed {color_gauge_real}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 10px;'>
-                                <div style='color: white; font-size: 24px; font-weight: 900; line-height: 1.1;'>{val_real:.1f}</div>
-                                <div style='color: #666; font-size: 9px; font-weight: bold; margin-top: 2px;'>л/100км</div>
-                            </div>
-                            <div style='color: #666; font-size: 10px;'>Етап "до горе"</div>
-                        </div>
-                        <div style='display: flex; flex-direction: column; align-items: center;'>
-                            <div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 12px;'>СРЕДЕН РАЗХОД</div>
-                            <div style='width: 95px; height: 95px; border-radius: 50%; border: 4px dashed {color_gauge_avg}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 10px;'>
-                                <div style='color: white; font-size: 24px; font-weight: 900; line-height: 1.1;'>{val_average:.1f}</div>
-                                <div style='color: #666; font-size: 9px; font-weight: bold; margin-top: 2px;'>л/100км</div>
-                            </div>
-                            <div style='color: #666; font-size: 10px;'>Общо за трипа</div>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                val_active = val_real if val_real > 0.0 else val_average
-                label_active = "последен етап до горе" if val_real > 0.0 else "среден до момента"
-                color_active = color_gauge_real if val_real > 0.0 else color_gauge_avg
-                st.markdown(f"""
-                <div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); margin-bottom: 20px;'>
-                    <div style='color: #888; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 15px;'>ТЕКУЩ РАЗХОД</div>
-                    <div style='width: 110px; height: 110px; border-radius: 50%; border: 4px dashed {color_active}; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.6); margin-bottom: 15px;'>
-                        <div style='color: white; font-size: 28px; font-weight: 900; line-height: 1.1;'>{val_active:.1f}</div>
-                        <div style='color: #666; font-size: 10px; font-weight: bold; margin-top: 2px;'>л/100км</div>
-                    </div>
-                    <div style='color: #666; font-size: 11px;'>{label_active}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-        with box_col2:
-            st.markdown(f"""
-            <div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; height: 100%; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); margin-bottom: 20px;'>
-                <div style='margin-bottom: 15px; width: 100%; text-align: center;'>
-                    <div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 4px;'>💧 ОБЩО ЗАРЕДЕНО ГОРИВО</div>
-                    <div style='color: white; font-size: 26px; font-weight: 800;'>{transport_liters:.1f} <span style='font-size: 13px; color: #666; font-weight: normal;'>литра</span></div>
-                </div>
-                <div style='padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.06); width: 100%; text-align: center;'>
-                    <div style='color: #ffa500; font-weight: bold; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 4px;'>💰 ОБЩА СТОЙНОСТ ТРАНСПОРТ</div>
-                    <div style='color: white; font-size: 26px; font-weight: 800;'>{auto_fuel_money:.2f} <span style='font-size: 13px; color: #666; font-weight: normal;'>EUR</span></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        st.markdown("<br>", unsafe_allow_html=True)
-    @st.dialog("⚙️ Настройки за автомобил и период")
+        st.markdown("### ⏲ Данни за разход и пробег:")
+        c_box1, c_box2 = st.columns(2)
+        with c_box1:
+            st.metric("Изминати км", f"{dist:.0f} км")
+            if val_real > 0: 
+                st.metric("Реален разход", f"{val_real:.1f} л/100км")
+        with c_box2:
+            st.metric("Общо литри", f"{transport_liters:.1f} л")
+            st.metric("Среден разход", f"{val_average:.1f} л/100км")
+
+    @st.dialog("⚙️ Настройки за автомобил")
     def edit_car_modal():
-        v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1, disabled=is_trip_finished)
-        new_sk = st.number_input("Начални километри (км):", value=None if s_km == 0.0 else s_km, placeholder="Въведете началните км...", disabled=is_trip_finished)
-        new_mf = st.number_input("Добави пропуснато гориво (л):", value=None, placeholder="Въведете литри...", min_value=0.0, disabled=is_trip_finished)
+        v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=1 if car_trip == "Да" else 0)
+        new_sk = st.number_input("Начални километри:", value=None if s_km == 0.0 else s_km)
+        new_mf = st.number_input("Добави пропуснато гориво (л):", value=0.0, min_value=0.0)
         
-        has_cash_expense = st.checkbox("💵 Има ли финансов разход за добавеното гориво?") if (new_mf and new_mf > 0 and not is_trip_finished) else False
-        manual_cash_amt = st.number_input("Въведете платена сума (EUR):", value=None, format="%.2f") if has_cash_expense else 0.0
-        try:
-            current_start = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else datetime.date.today()
-            current_end = datetime.datetime.strptime(en_date, "%d.%m.%Y").date() if en_date and en_date != "nan" else datetime.date.today() + datetime.timedelta(days=5)
-        except: 
-            current_start, current_end = datetime.date.today(), datetime.date.today() + datetime.timedelta(days=5)
-        edit_range = st.date_input("Изберете нови дати:", value=[current_start, current_end], key="edit_dates_cal")
-        
-        if m_fuel > 0:
-            st.info(f"📋 Текущо натрупано пропуснато гориво: {m_fuel:.1f} л.")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("💾 Обнови настройките", use_container_width=True, type="primary", disabled=is_trip_finished):
+        if st.button("💾 Обнови настройките", use_container_width=True, type="primary"):
             sk_val = float(new_sk) if new_sk is not None else 0.0
-            added_liters = float(new_mf) if new_mf is not None else 0.0
-            mf_val = max(0.0, m_fuel + added_liters)
-
-            if isinstance(edit_range, (list, tuple)) and len(edit_range) > 0:
-                s_d_str = edit_range[0].strftime("%d.%m.%Y") if hasattr(edit_range[0], "strftime") else st_date
-                e_d_str = edit_range[-1].strftime("%d.%m.%Y") if (len(edit_range) > 1 and hasattr(edit_range[-1], "strftime")) else s_d_str
-            elif hasattr(edit_range, "strftime"):
-                s_d_str = edit_range.strftime("%d.%m.%Y")
-                e_d_str = s_d_str
-            else:
-                s_d_str, e_d_str = st_date, en_date
-
-            if has_cash_expense and manual_cash_amt and manual_cash_amt > 0 and added_liters > 0: 
-                add_expense(trip_id, manual_cash_amt, "Транспорт", f"[ПРОПУСНАТО ГОРИВО] Добавени {added_liters:.1f} литра", False, 0.0, 0.0)
-            
-            save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, s_d_str, e_d_str)
+            mf_val = m_fuel + float(new_mf)
+            save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, st_date, en_date)
             st.session_state["form_version"] += 1
             st.rerun()
-            
-        if m_fuel > 0 and not is_trip_finished:
-            if st.button("🗑️ Изчисти натрупаните ръчни литри и разходи", use_container_width=True):
-                save_trip_settings(trip_id, car_trip, "Да", s_km, e_km, 0.0, st_date, en_date)
-                try:
-                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                    mask_to_delete = (df_all["trip_id"] == trip_id) & (df_all["description"].astype(str).str.contains(r"\[ПРОПУСНАТО ГОРИВО\]"))
-                    df_clean = df_all[~mask_to_delete]
-                    df_clean.to_csv(DATA_FILE, index=False, encoding="utf-8")
-                except:
-                    pass
-                st.session_state["form_version"] += 1
-                st.rerun()
+
     @st.dialog("🏁 Край на пътуването")
     def finish_trip_modal():
-        end_km_input = st.number_input("Финални километри от таблото (км):", value=None if e_km == 0.0 else e_km, step=1.0)
+        end_km_input = st.number_input("Финални километри:", value=None if e_km == 0.0 else e_km)
         if st.button("🔒 ЗАКЛЮЧИ И ПРИКЛЮЧИ", use_container_width=True, type="primary"):
             if end_km_input and end_km_input > s_km: 
                 save_trip_settings(trip_id, car_trip, t_fuel, s_km, float(end_km_input), m_fuel, st_date, en_date)
                 st.session_state["form_version"] += 1
                 st.rerun()
-            else: 
-                st.error(f"Трябва да са над {s_km:.0f} км!")
 
     if car_trip == "Да":
-        col_manage1, col_manage2 = st.columns(2)
-        with col_manage1: 
-            st.button("🔒 Заключени настройки" if is_trip_finished else "⚙️ Настройки автомобил", use_container_width=True, disabled=is_trip_finished, on_click=edit_car_modal)
-        with col_manage2: 
-            st.button("🏁 Пътуването е приключено 🔒" if is_trip_finished else "🏁 Край на пътуването", use_container_width=True, disabled=is_trip_finished, on_click=finish_trip_modal)
-    else:
-        if st.button("🚗 Добави автомобил към пътуването", use_container_width=True): 
-            edit_car_modal()
+        col_m1, col_m2 = st.columns(2)
+        with col_m1: 
+            st.button("⚙️ Настройки автомобил", use_container_width=True, on_click=edit_car_modal)
+        with col_m2: 
+            st.button("🏁 Край на пътуването", use_container_width=True, on_click=finish_trip_modal)
 
-    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### 📊 Анализ на разходите:")
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
+        display_label = pet_name if kat == 'Куче' else (hotel_name if kat == 'Нощувки/Хотел' else kat)
         with stat_grid[idx % 2]:
-            pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
-            display_kat_name = pet_name if kat == 'Куче' else (hotel_name if kat == 'Нощувки/Хотел' else kat)
-            st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-weight: 500; font-size: 15px;">{get_emoji(kat)} {display_kat_name}</span>
-                    <span style="font-weight: bold; color: #ff4b4b; font-size: 15px;">{s_value:.2f} EUR</span>
-                </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                    <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
-                    <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{pct:.1f}%</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"**{get_emoji(kat)} {display_label}:** {s_value:.2f} EUR")
+
     @st.dialog("📊 Разходи по Категории", width="large")
     def разходи_по_категории_dialog():
-        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Преглед на направените разходи, групирани по категории:</p>", unsafe_allow_html=True)
-        st.markdown("""
-            <style>
-                .category-expense-card {
-                    background: rgba(255,255,255,0.02) !important;
-                    padding: 10px 15px !important;
-                    border-radius: 10px !important;
-                    border: 1px solid rgba(250, 250, 250, 0.08) !important;
-                    margin-bottom: 6px !important;
-                    display: flex !important;
-                    justify-content: space-between !important;
-                    align-items: center !important;
-                }
-                .category-total-box {
-                    background: rgba(255, 75, 75, 0.08) !important;
-                    border: 1px dashed rgba(255, 75, 75, 0.3) !important;
-                    padding: 12px !important;
-                    border-radius: 10px !important;
-                    margin-top: 5px !important;
-                    margin-bottom: 25px !important;
-                    text-align: right !important;
-                    font-size: 16px !important;
-                    font-weight: bold !important;
-                    color: #ff4b4b !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
         try:
             df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
             df_trip_rows = df_all[df_all["trip_id"] == trip_id]
-            
-            if df_trip_rows.empty:
-                st.info("Няма регистрирани разходи за това пътуване.")
-            else:
-                записани_категории = df_trip_rows["category"].unique()
-                
-                for кат in KATEGORII:
-                    if кат in записани_категории:
-                        df_cat = df_trip_rows[df_trip_rows["category"] ==  кат]
-                        cat_sum = float(df_cat["amount"].sum())
-                        display_kat_title = pet_name if кат == 'Куче' else (hotel_name if кат == 'Нощувки/Хотел' else кат)
-                        
-                        st.markdown(f"### {get_emoji(кат)} {display_kat_title}")
-                        st.markdown("<hr style='margin-top:2px; margin-bottom:10px; border-color:rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
-                        
-                        for _, r in df_cat.iterrows():
-                            l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
-                            st.markdown(f'''
-                                <div class="category-expense-card">
-                                    <div style="font-size: 14px; color: rgba(250,250,250,0.85);">
-                                        📅 {r["date"].replace(" ", " / ")} — <span>{r["description"]}</span>{l_txt}
-                                    </div>
-                                    <div style="font-size: 14px; font-weight: 600; color: #fafafa;">
-                                        {r["amount"]:.2f} EUR
-                                    </div>
-                                </div>
-                            ''', unsafe_allow_html=True)
-                        st.markdown(f'''
-                            <div class="category-total-box">
-                                Общо за {display_kat_title}: {cat_sum:.2f} EUR
-                            </div>
-                        ''', unsafe_allow_html=True)
-                        
-        except Exception as e:
-            st.error(f"Грешка при зареждане на категориите: {str(e)}")
-            
-        st.markdown("---")
-        if st.button("❌ Затвори", use_container_width=True, key="close_cat_popup_btn"):
+            for kat in KATEGORII:
+                if kat in df_trip_rows["category"].unique():
+                    df_cat = df_trip_rows[df_trip_rows["category"] ==  kat]
+                    display_label = pet_name if kat == 'Куче' else (hotel_name if kat == 'Нощувки/Хотел' else kat)
+                    st.markdown(f"#### {get_emoji(kat)} {display_label}")
+                    for _, r in df_cat.iterrows():
+                        st.write(f"• {r['date']} — {r['description']}: {r['amount']:.2f} EUR")
+        except: 
+            pass
+        if st.button("❌ Затвори", use_container_width=True): 
             st.rerun()
 
-    if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
+    if st.button("📊 Преглед по Категории", use_container_width=True):
         разходи_по_категории_dialog()
+
     st.markdown("---")
-    col_st1, col_st2 = st.columns(2)
-    with col_st1:
-        st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:
+    st.write(f"🏨 Депозити: {depozit_hotel:.2f} EUR")
+    st.write(f"💰 На място: {total_on_site:.2f} EUR")
+
+    if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True):
+        confirm_delete_trip_dialog()
+
+    # --- АДМИНИСТРАТИВНИ ИНСТРУМЕНТИ С НОВИТЕ ОПЦИИ ---
+    if "show_admin_panel" not in st.session_state: 
+        st.session_state["show_admin_panel"] = False
+
+    if st.button("🛠️ Административни Инструменти", use_container_width=True):
+        st.session_state["show_admin_panel"] = not st.session_state["show_admin_panel"]
+        st.rerun()
+
+    if st.session_state["show_admin_panel"]:
+        st.markdown("### ⚙️ Персонализиране на категориите")
+        col_c1, col_c2 = st.columns(2)
+        
+        with col_c1:
+            current_pet_opt = st.session_state.get("custom_pet_name", "Куче")
+            pet_options = ["Куче", "Котка", "Домашен любимец"]
+            pet_idx = pet_options.index(current_pet_opt) if current_pet_opt in pet_options else 0
+            chosen_pet = st.selectbox("Категория 'Куче' да пише:", pet_options, index=pet_idx)
+            if chosen_pet != current_pet_opt:
+                st.session_state["custom_pet_name"] = chosen_pet
+                st.rerun()
+
+        with col_c2:
+            current_hotel_opt = st.session_state.get("custom_hotel_name", "Нощувки/Хотел")
+            hotel_toggle = st.toggle("Детайлни имена за Хотел", value=(current_hotel_opt == "Хотелски такси"))
+            new_hotel = "Хотелски такси" if hotel_toggle else "Нощувки/Хотел"
+            new_deposit = "Депозит за резервация" if hotel_toggle else "Депозит/Резервация"
+            if new_hotel != current_hotel_opt:
+                st.session_state["custom_hotel_name"] = new_hotel
+                st.session_state["custom_deposit_name"] = new_deposit
+                st.rerun()
