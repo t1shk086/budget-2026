@@ -283,7 +283,7 @@ if st.session_state["current_trip"] is None:
                         "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
                         "Дневен Разход (EUR)": (t_total / days_count),
                         "Изминато разстояние (км)": t_dist,
-                        "Нощувки и хотел (EUR)": t_accommodation_total,
+                        "Нощувки и Депозити (EUR)": t_accommodation_total,
                         "DistValid": t_dist > 0
                     })
             except:
