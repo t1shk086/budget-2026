@@ -7,6 +7,11 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import io
+import matplotlib.pyplot as plt
+from reportlab.platypus import SimpleDocTemplate, Image as RLImage, Spacer, Paragraph, PageBreak
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -1249,6 +1254,135 @@ else:
     </body>
     </html>"""
 
+    # === ГЕНЕРАТОР НА ЦВЕТЕН PDF С 5-ТЕ ГРАФИКИ ===
+    def build_five_charts_pdf():
+        """Създава A4 PDF с петте показателя от сравнителния панел."""
+        try:
+            df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
+            df_all_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        except Exception:
+            return None
+
+        all_trips = []
+        try:
+            unique_trips = df_all_data["trip_id"].dropna().unique()
+            for t in unique_trips:
+                if not t or str(t).strip() == "":
+                    continue
+                df_t_data = df_all_data[df_all_data["trip_id"] == t]
+                df_t_sett = df_all_settings[df_all_settings["trip_id"] == t]
+
+                t_dep = float(df_t_data[df_t_data["type"] == "deposit"]["amount"].sum())
+                t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
+                t_total = t_dep + t_site
+
+                # Каноничните категории остават непроменени в данните.
+                t_hotel_only = float(df_t_data[df_t_data["category"] == "Нощувки/Хотел"]["amount"].sum())
+                t_deposit_only = float(df_t_data[df_t_data["category"] == "Депозит/Резервация"]["amount"].sum())
+                t_accommodation_total = t_hotel_only + t_deposit_only
+
+                t_dist, s_k, e_k = 0.0, 0.0, 0.0
+                days_count = 1
+                if not df_t_sett.empty:
+                    s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
+                    e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
+                    st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
+                    en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
+                    max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
+                    eff_e = e_k if e_k > 0 else max_k
+                    t_dist = eff_e - s_k if eff_e > s_k else 0.0
+                    try:
+                        d1 = datetime.datetime.strptime(st_d_str, "%d.%m.%Y")
+                        d2 = datetime.datetime.strptime(en_d_str, "%d.%m.%Y")
+                        days_count = max(1, (d2 - d1).days + 1)
+                    except Exception:
+                        days_count = 1
+
+                all_trips.append({
+                    "Пътуване": str(t).replace("_", " ").upper(),
+                    "Обща Стойност (EUR)": t_total,
+                    "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
+                    "Дневен Разход (EUR)": (t_total / days_count),
+                    "Изминато разстояние (км)": t_dist,
+                    "Нощувки и Хотел (EUR)": t_accommodation_total,
+                })
+        except Exception:
+            return None
+
+        if not all_trips:
+            return None
+
+        df = pd.DataFrame(all_trips)
+        charts = [
+            ("Цена за 1 км", "Цена за 1 км (EUR)", "💰 Цена за 1 км", "EUR/км", True),
+            ("Пари на Ден", "Дневен Разход (EUR)", "📅 Среднодневен разход", "EUR/ден", False),
+            ("Обща Стойност", "Обща Стойност (EUR)", "💸 Обща стойност", "EUR", False),
+            ("Изминати км", "Изминато разстояние (км)", "🚗 Изминато разстояние", "км", False),
+            ("Нощувки и Хотел", "Нощувки и Хотел (EUR)", "🏨 Нощувки и хотел", "EUR", False),
+        ]
+
+        pdf_buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            pdf_buffer, pagesize=A4,
+            rightMargin=1.2*cm, leftMargin=1.2*cm,
+            topMargin=1.0*cm, bottomMargin=1.0*cm
+        )
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle("ChartTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=17, leading=21, spaceAfter=8)
+        sub_style = ParagraphStyle("Sub", parent=styles["Normal"], fontName="Helvetica", fontSize=9, textColor="#555555", spaceAfter=8)
+        story = [Paragraph(f"PixelApp – Анализ на 5 показателя", title_style), Paragraph(f"Цветен отчет за {datetime.date.today().strftime('%d.%m.%Y')}", sub_style)]
+
+        for idx, (_, col, title, unit, ascending_good) in enumerate(charts):
+            d = df.copy()
+            if col == "Цена за 1 км (EUR)":
+                d = d[d["Изминато разстояние (км)"] > 0]
+                if d.empty:
+                    d = df.copy()
+            d = d.sort_values(col, ascending=True)
+
+            fig, ax = plt.subplots(figsize=(7.0, 3.35))
+            vals = d[col].astype(float).tolist()
+            names = d["Пътуване"].tolist()
+            if vals:
+                mn, mx = min(vals), max(vals)
+                if mx > mn:
+                    norm = [(v-mn)/(mx-mn) for v in vals]
+                else:
+                    norm = [0.5] * len(vals)
+                colors = [(0.18 + 0.75*n, 0.25 + 0.45*(1-n), 0.30) for n in norm] if col == "Изминато разстояние (км)" else [(0.18 + 0.75*(1-n), 0.25 + 0.45*n, 0.30) for n in norm]
+                bars = ax.barh(names, vals, color=colors)
+                for bar, val in zip(bars, vals):
+                    if "км" in unit and unit != "EUR/км":
+                        label=f"{val:.0f} км"
+                    elif unit == "EUR/км":
+                        label=f"{val:.2f} EUR/км"
+                    elif unit == "EUR/ден":
+                        label=f"{val:.2f} EUR/ден"
+                    else:
+                        label=f"{val:,.2f} EUR"
+                    ax.text(bar.get_width(), bar.get_y()+bar.get_height()/2, "  "+label, va="center", fontsize=8)
+            ax.set_title(title, fontsize=13, fontweight="bold")
+            ax.set_xlabel("")
+            ax.grid(axis="x", alpha=0.18)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.spines["left"].set_visible(False)
+            ax.tick_params(axis="y", length=0, labelsize=8)
+            ax.tick_params(axis="x", labelsize=7)
+            fig.tight_layout()
+            img_buffer = io.BytesIO()
+            fig.savefig(img_buffer, format="png", dpi=170, bbox_inches="tight")
+            plt.close(fig)
+            img_buffer.seek(0)
+            story.append(RLImage(img_buffer, width=18.2*cm, height=8.3*cm))
+            story.append(Spacer(1, 0.25*cm))
+            if idx == 1 or idx == 3:
+                story.append(PageBreak())
+
+        doc.build(story)
+        pdf_buffer.seek(0)
+        return pdf_buffer.getvalue()
+
     # === ИНТЕГРИРАНА МУЛТИФУНКЦИОНАЛНА ДИАЛОГОВА СИСТЕМА ===
     @st.dialog("💾 Действия с отчети", width="large")
     def download_and_compare_dialog():
@@ -1281,6 +1415,22 @@ else:
                 key="popup_download_excel_btn"
             )
             
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Цветен PDF с всичките 5 графики от сравнителния панел
+        charts_pdf = build_five_charts_pdf()
+        if charts_pdf:
+            st.download_button(
+                label="📈 Свали 5-те графики като цветен PDF",
+                data=charts_pdf,
+                file_name=f"Grafiki_5_pokazately_{trip_id}_2026.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="popup_download_five_charts_pdf_btn"
+            )
+        else:
+            st.warning("Няма достатъчно данни за генериране на PDF с графиките.")
+
         st.markdown("<br>", unsafe_allow_html=True)
         # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
         if st.button("❌ Затвори", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
