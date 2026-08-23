@@ -310,7 +310,7 @@ if st.session_state["current_trip"] is None:
                     t_format = "%{text:.0f} км"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
                     graph_title = "🚗 Общо изминато разстояние"
-                elif chosen_criteria == "Нощувки и хотел":
+                elif chosen_criteria == "Нощувки и депозити":
                     x_col = "Нощувки и депозити (EUR)"
                     t_format = "%{text:,.2f} EUR"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
