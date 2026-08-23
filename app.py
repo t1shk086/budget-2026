@@ -525,10 +525,6 @@ else:
             df_trans_fuel = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["current_km"] > s_km)].sort_index()
             df_only_full = df_trans_fuel[df_trans_fuel["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
             if not df_only_full.empty:
-        try:
-            df_trans_fuel = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["current_km"] > s_km)].sort_index()
-            df_only_full = df_trans_fuel[df_trans_fuel["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
-            if not df_only_full.empty:
                 last_full_row = df_only_full.iloc[-1]["description"]
                 import re
                 match = re.search(r"(?:Реален разход:|Разход:)\s*([0-9.]+)", last_full_row)
@@ -650,3 +646,4 @@ else:
                 st.session_state["custom_hotel_name"] = new_hotel
                 st.session_state["custom_deposit_name"] = new_deposit
                 st.rerun()
+
