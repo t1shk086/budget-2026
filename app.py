@@ -195,45 +195,43 @@ if st.session_state["current_trip"] is None:
 
 
     
-    st.markdown("---")
-    
-    # 1. ЕЛЕГАНТЕН CSS: ПРЕМЕСТВА ФАБРИЧНИЯ НАДПИС ОТДЯСНО НА ТОГЪЛА С 1 ИНТЕРВАЛ РАЗСТОЯНИЕ
-    st.html("""
-    <style>
-        /* Пренастройва контейнера на toggle бутона да подрежда елементите в линия */
-        div[data-testid="stCheckbox"] > label {
-            display: inline-flex !important;
-            flex-direction: row-reverse !important; /* Мести оригиналния текст отдясно */
-            align-items: center !important;
-            gap: 10px !important; /* Разстояние точно колкото 1 интервал */
-            width: auto !important;
-        }
-        /* Подсигурява, че текстът няма да се пречупи на два реда на телефон */
-        div[data-testid="stCheckbox"] p {
-            white-space: nowrap !important;
-            margin: 0 !important;
-        }
-    </style>
-    """)
+    # ------------------------------------------------------------
+    # НАВИГАЦИЯ: Сравнителният панел е отделен ГЛАВЕН ЕКРАН.
+    # Не използваме st.dialog() за графиките.
+    # ------------------------------------------------------------
+    if "analytics_page" not in st.session_state:
+        st.session_state["analytics_page"] = False
 
-    # 2. ОФИЦИАЛЕН TOGGLE БУТОН С ДИРЕКТЕН НАДПИС (БЕЗ ДОПЪЛНИТЕЛНИ КОЛОНИ И HTML)
-    show_comparison = st.toggle(
-        label="Сравнителен панел",
-        value=False,
-        key="stable_comparison_toggle"
-    )
-        
-    # 3. ГЛАВЕН ЕКРАН ЗА СРАВНИТЕЛНИЯ ПАНЕЛ (БЕЗ POPUP / DIALOG)
-    if show_comparison:
+    def open_analytics_page():
+        # В callback НЕ променяме стойността на самия toggle.
+        # Само сменяме страницата.
+        st.session_state["analytics_page"] = True
+
+    if st.session_state["analytics_page"]:
+        # ============================================================
+        # ОТДЕЛЕН ГЛАВЕН ЕКРАН: СРАВНИТЕЛЕН ПАНЕЛ
+        # ============================================================
         st.markdown("## 📊 Сравнителен панел")
-        st.caption("Графиките вече се показват като отделен главен екран, а не в изскачащ прозорец.")
-        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в по-добър мащаб!</p>", unsafe_allow_html=True)
-        
+        st.caption("Сравнителните графики са на отделен главен екран.")
+
+        st.markdown(
+            "<p style='color: #888; margin-bottom: 20px;'>"
+            "Завъртете дисплея, за да видите графиката в по-добър мащаб!"
+            "</p>",
+            unsafe_allow_html=True
+        )
+
         chosen_criteria = st.segmented_control(
             label="Изберете критерий:",
-            options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и Хотел"],
+            options=[
+                "Цена за 1 км",
+                "Пари на Ден",
+                "Обща Стойност",
+                "Изминати км",
+                "Нощувки и Хотел"
+            ],
             default="Цена за 1 км",
-            key="modal_segmented_metric_selector"
+            key="analytics_metric_selector"
         )
 
         all_trips_computed = []
@@ -243,50 +241,97 @@ if st.session_state["current_trip"] is None:
             unique_trips = df_all_data["trip_id"].dropna().unique()
 
             for t in unique_trips:
-                if not t or str(t).strip() == "": continue
-                
+                if not t or str(t).strip() == "":
+                    continue
+
                 df_t_data = df_all_data[df_all_data["trip_id"] == t]
                 df_t_sett = df_all_settings[df_all_settings["trip_id"] == t]
 
-                t_dep = float(df_t_data[df_t_data["type"] == "deposit"]["amount"].sum())
-                t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
+                t_dep = float(
+                    df_t_data[df_t_data["type"] == "deposit"]["amount"].sum()
+                )
+                t_site = float(
+                    df_t_data[df_t_data["type"] == "expense"]["amount"].sum()
+                )
                 t_total = t_dep + t_site
 
-                # Калкулиране на разходи специално за хотел/Нощувки и Хотел
-                t_hotel_only = float(df_t_data[df_t_data["category"] == "Нощувки/Хотел"]["amount"].sum())
-                t_deposit_only = float(df_t_data[df_t_data["category"] == "Депозит/Резервация"]["amount"].sum())
+                t_hotel_only = float(
+                    df_t_data[
+                        df_t_data["category"] == "Нощувки/Хотел"
+                    ]["amount"].sum()
+                )
+                t_deposit_only = float(
+                    df_t_data[
+                        df_t_data["category"] == "Депозит/Резервация"
+                    ]["amount"].sum()
+                )
                 t_accommodation_total = t_hotel_only + t_deposit_only
 
                 t_dist, s_k, e_k = 0.0, 0.0, 0.0
                 days_count = 1
 
                 if not df_t_sett.empty:
-                    s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
-                    e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
-                    st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
-                    en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
+                    s_k = (
+                        float(df_t_sett["start_km"].iloc[0])
+                        if "start_km" in df_t_sett.columns
+                        and not df_t_sett["start_km"].empty
+                        else 0.0
+                    )
+                    e_k = (
+                        float(df_t_sett["end_km"].iloc[0])
+                        if "end_km" in df_t_sett.columns
+                        and not df_t_sett["end_km"].empty
+                        else 0.0
+                    )
 
-                    max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
+                    st_d_str = (
+                        str(df_t_sett["start_date"].iloc[0])
+                        if "start_date" in df_t_sett.columns
+                        and not df_t_sett["start_date"].empty
+                        else ""
+                    )
+                    en_d_str = (
+                        str(df_t_sett["end_date"].iloc[0])
+                        if "end_date" in df_t_sett.columns
+                        and not df_t_sett["end_date"].empty
+                        else ""
+                    )
+
+                    max_k = (
+                        float(
+                            df_t_data[
+                                df_t_data["type"] == "expense"
+                            ]["current_km"].max()
+                        )
+                        if not df_t_data.empty
+                        else 0.0
+                    )
                     eff_e = e_k if e_k > 0 else max_k
                     t_dist = eff_e - s_k if eff_e > s_k else 0.0
 
                     try:
-                        d1 = datetime.datetime.strptime(st_d_str, "%d.%m.%Y")
-                        d2 = datetime.datetime.strptime(en_d_str, "%d.%m.%Y")
+                        d1 = datetime.datetime.strptime(
+                            st_d_str, "%d.%m.%Y"
+                        )
+                        d2 = datetime.datetime.strptime(
+                            en_d_str, "%d.%m.%Y"
+                        )
                         days_count = max(1, (d2 - d1).days + 1)
-                    except:
+                    except Exception:
                         days_count = 1
 
                 all_trips_computed.append({
                     "Пътуване": str(t).replace("_", " ").upper(),
                     "Обща Стойност (EUR)": t_total,
-                    "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
-                    "Дневен Разход (EUR)": (t_total / days_count),
+                    "Цена за 1 км (EUR)": (
+                        t_total / t_dist if t_dist > 0 else 0.0
+                    ),
+                    "Дневен Разход (EUR)": t_total / days_count,
                     "Изминато разстояние (км)": t_dist,
                     "Нощувки и Хотел (EUR)": t_accommodation_total,
                     "DistValid": t_dist > 0
                 })
-        except:
+        except Exception:
             pass
 
         if all_trips_computed:
@@ -297,37 +342,65 @@ if st.session_state["current_trip"] is None:
                 x_col = "Цена за 1 км (EUR)"
                 t_format = "%{text:.2f} EUR/км"
                 df_filtered = df_pixel[df_pixel["DistValid"] == True]
-                if df_filtered.empty: df_filtered = df_pixel
-                df_sorted = df_filtered.sort_values(by=x_col, ascending=True)
+                if df_filtered.empty:
+                    df_filtered = df_pixel
+                df_sorted = df_filtered.sort_values(
+                    by=x_col, ascending=True
+                )
                 graph_title = "💰 Сравнение на ефективността (EUR/1км)"
+
             elif chosen_criteria == "Обща Стойност":
                 x_col = "Обща Стойност (EUR)"
                 t_format = "%{text:,.2f} EUR"
-                df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                df_sorted = df_pixel.sort_values(
+                    by=x_col, ascending=False
+                )
                 graph_title = "💸 Тотална СУМА"
+
             elif chosen_criteria == "Изминати км":
                 x_col = "Изминато разстояние (км)"
                 t_format = "%{text:.0f} км"
-                df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                df_sorted = df_pixel.sort_values(
+                    by=x_col, ascending=False
+                )
                 graph_title = "🚗 Общо изминато разстояние"
+
             elif chosen_criteria == "Нощувки и Хотел":
                 x_col = "Нощувки и Хотел (EUR)"
                 t_format = "%{text:,.2f} EUR"
-                df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                df_sorted = df_pixel.sort_values(
+                    by=x_col, ascending=False
+                )
                 graph_title = "🏨 Разходи за Спане, Хотели и Хотелски такси"
-            else: 
+
+            else:
                 x_col = "Дневен Разход (EUR)"
                 t_format = "%{text:.2f} EUR/ден"
-                df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                df_sorted = df_pixel.sort_values(
+                    by=x_col, ascending=False
+                )
                 graph_title = "📅 Среднодневен разход"
 
-            fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
+            fig_pixel = px.bar(
+                df_sorted,
+                x=x_col,
+                y="Пътуване",
+                orientation="h",
+                text=x_col
+            )
 
-            # Динамична скала на цветовете: за километри "по-дълго" е зелено, за разходи - "по-евтино" е зелено
             if chosen_criteria == "Изминати км":
-                c_scale = [[0, '#ff3b30'], [0.5, '#ffaa00'], [1, '#2ebd59']] # Повече км = по-зелено
+                c_scale = [
+                    [0, "#ff3b30"],
+                    [0.5, "#ffaa00"],
+                    [1, "#2ebd59"]
+                ]
             else:
-                c_scale = [[0, '#2ebd59'], [0.5, '#ffaa00'], [1, '#ff3b30']] # По-малко пари = по-зелено
+                c_scale = [
+                    [0, "#2ebd59"],
+                    [0.5, "#ffaa00"],
+                    [1, "#ff3b30"]
+                ]
 
             fig_pixel.update_traces(
                 marker=dict(
@@ -337,40 +410,80 @@ if st.session_state["current_trip"] is None:
                     cornerradius=15
                 ),
                 texttemplate=f"<b>{t_format}</b>",
-                textposition='outside',
+                textposition="outside",
                 cliponaxis=False
             )
 
             fig_pixel.update_layout(
                 title=dict(text=graph_title, font=dict(color="white")),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
-                yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                xaxis=dict(
+                    showgrid=False,
+                    showline=False,
+                    showticklabels=False,
+                    title=""
+                ),
+                yaxis=dict(
+                    showgrid=False,
+                    showline=False,
+                    title="",
+                    tickfont=dict(color="white")
+                ),
                 margin=dict(l=10, r=110, t=50, b=10),
-                height=320,
+                height=500,
                 bargap=0.35
             )
-            st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
+
+            st.plotly_chart(
+                fig_pixel,
+                use_container_width=True,
+                config={"displayModeBar": False}
+            )
         else:
             st.info("Няма достатъчно база данни за сравнение.")
 
         st.write("---")
-        if st.button("🔙 Назад към основния екран", key="analytics_back_btn", use_container_width=True):
-            st.session_state["stable_comparison_toggle"] = False
+
+        # ВАЖНО:
+        # Тук НЕ пипаме stable_comparison_toggle, защото това е key
+        # на вече създаден widget и Streamlit забранява промяната му.
+        if st.button(
+            "🔙 Назад към основния екран",
+            key="analytics_back_btn",
+            use_container_width=True
+        ):
+            st.session_state["analytics_page"] = False
             st.rerun()
 
+    else:
+        # ============================================================
+        # ОСНОВЕН ЕКРАН
+        # ============================================================
+        st.markdown("---")
 
+        st.html("""
+        <style>
+            div[data-testid="stCheckbox"] > label {
+                display: inline-flex !important;
+                flex-direction: row-reverse !important;
+                align-items: center !important;
+                gap: 10px !important;
+                width: auto !important;
+            }
+            div[data-testid="stCheckbox"] p {
+                white-space: nowrap !important;
+                margin: 0 !important;
+            }
+        </style>
+        """)
 
-
-
-
-
-
-
-
-
-
+        st.toggle(
+            label="Сравнителен панел",
+            value=False,
+            key="stable_comparison_toggle",
+            on_change=open_analytics_page
+        )
 
 else:
     trip_id = st.session_state["current_trip"]
