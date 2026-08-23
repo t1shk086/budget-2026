@@ -231,7 +231,7 @@ if st.session_state["current_trip"] is None:
             
             chosen_criteria = st.segmented_control(
                 label="Изберете критерий:",
-                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност"],
+                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и Депозити"],
                 default="Цена за 1 км",
                 key="modal_segmented_metric_selector"
             )
@@ -251,6 +251,11 @@ if st.session_state["current_trip"] is None:
                     t_dep = float(df_t_data[df_t_data["type"] == "deposit"]["amount"].sum())
                     t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
                     t_total = t_dep + t_site
+
+                    # Калкулиране на разходи специално за хотел/нощувки и депозити
+                    t_hotel_only = float(df_t_data[df_t_data["category"] == "Нощувки/Хотел"]["amount"].sum())
+                    t_deposit_only = float(df_t_data[df_t_data["category"] == "Депозит/Резервация"]["amount"].sum())
+                    t_accommodation_total = t_hotel_only + t_deposit_only
 
                     t_dist, s_k, e_k = 0.0, 0.0, 0.0
                     days_count = 1
@@ -277,6 +282,8 @@ if st.session_state["current_trip"] is None:
                         "Обща Стойност (EUR)": t_total,
                         "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
                         "Дневен Разход (EUR)": (t_total / days_count),
+                        "Изминато разстояние (км)": t_dist,
+                        "Нощувки и Депозити (EUR)": t_accommodation_total,
                         "DistValid": t_dist > 0
                     })
             except:
@@ -297,7 +304,17 @@ if st.session_state["current_trip"] is None:
                     x_col = "Обща Стойност (EUR)"
                     t_format = "%{text:,.2f} EUR"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                    graph_title = "💸 Тотална СУМА "
+                    graph_title = "💸 Тотална СУМА"
+                elif chosen_criteria == "Изминати км":
+                    x_col = "Изминато разстояние (км)"
+                    t_format = "%{text:.0f} км"
+                    df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                    graph_title = "🚗 Общо изминато разстояние"
+                elif chosen_criteria == "Нощувки и Депозити":
+                    x_col = "Нощувки и Депозити (EUR)"
+                    t_format = "%{text:,.2f} EUR"
+                    df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                    graph_title = "🏨 Разходи за Спане, Хотели и Депозити"
                 else: 
                     x_col = "Дневен Разход (EUR)"
                     t_format = "%{text:.2f} EUR/ден"
@@ -306,10 +323,16 @@ if st.session_state["current_trip"] is None:
 
                 fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
 
+                # Динамична скала на цветовете: за километри "по-дълго" е зелено, за разходи - "по-евтино" е зелено
+                if chosen_criteria == "Изминати км":
+                    c_scale = [[0, '#ff3b30'], [0.5, '#ffaa00'], [1, '#2ebd59']] # Повече км = по-зелено
+                else:
+                    c_scale = [[0, '#2ebd59'], [0.5, '#ffaa00'], [1, '#ff3b30']] # По-малко пари = по-зелено
+
                 fig_pixel.update_traces(
                     marker=dict(
                         color=df_sorted[x_col],
-                        colorscale=[[0, '#2ebd59'], [0.5, '#ffaa00'], [1, '#ff3b30']],
+                        colorscale=c_scale,
                         line=dict(width=0),
                         cornerradius=15
                     ),
@@ -338,6 +361,7 @@ if st.session_state["current_trip"] is None:
                 st.rerun()
 
         show_global_analytics_dialog()
+
 
 
 
