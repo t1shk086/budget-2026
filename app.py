@@ -197,30 +197,27 @@ if st.session_state["current_trip"] is None:
     
     st.markdown("---")
     
-    # 2. УПРАВЛЕНИЕ НА ЕКРАНА ЧРЕЗ SESSION STATE И ИЗЧИСТЕН TOGGLE БУТОН
-    if "show_comparison_screen" not in st.session_state:
-        st.session_state["show_comparison_screen"] = False
+    # ==========================================
+    # СТЪПКА 1: Проверяваме състоянието
+    # ==========================================
+    is_analytics_active = (st.session_state.get("current_trip") == "__GLOBAL_ANALYTICS__")
 
-    # Превключвател, който реагира веднага при промяна
-    show_comparison = st.toggle(
-        label="📊 Активирай Сравнителен панел (Цял екран)",
-        value=st.session_state["show_comparison_screen"],
-        key="stable_comparison_toggle"
-    )
-
-    # Синхронизираме състоянието при клик
-    if show_comparison != st.session_state["show_comparison_screen"]:
-        st.session_state["show_comparison_screen"] = show_comparison
-        st.rerun()
-
-    # 3. АКО Е АКТИВИРАНО, ИЗПЪЛНЯВАМЕ КАТО ЦЯЛ НОВ ЕКРАН (СПИРАМЕ ОСТАНАЛИЯ КОД С st.stop())
-    if st.session_state["show_comparison_screen"]:
+    # ==========================================
+    # СТЪПКА 2: Изчертаваме екрана с графиките (АКО Е АКТИВЕН)
+    # ==========================================
+    if is_analytics_active:
         st.header("📊 Глобален сравнителен панел")
-        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Сравнение между всички регистрирани пътувания в системата</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #888; margin-bottom: 20px;'>Сравнение между всички регистрирани пътувания</p>", unsafe_allow_html=True)
         
-        # Бутон за връщане назад в горната част за удобство
-        if st.button("⬅️ Обратно към пътуванията", key="top_back_btn", use_container_width=True):
-            st.session_state["show_comparison_screen"] = False
+        # Тогъл бутон вътре в екрана, за да можеш да го изключиш
+        screen_toggle = st.toggle(
+            label="📊 Сравнителен панел (Цял екран)",
+            value=True,
+            key="inside_screen_toggle"
+        )
+        
+        if not screen_toggle:
+            st.session_state["current_trip"] = None
             st.rerun()
             
         st.write("---")
@@ -256,10 +253,10 @@ if st.session_state["current_trip"] is None:
                 days_count = 1
 
                 if not df_t_sett.empty:
-                    s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
-                    e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
-                    st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
-                    en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
+                    s_k = float(df_t_sett["start_km"].values[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty and pd.notna(df_t_sett["start_km"].values[0]) else 0.0
+                    e_k = float(df_t_sett["end_km"].values[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty and pd.notna(df_t_sett["end_km"].values[0]) else 0.0
+                    st_d_str = str(df_t_sett["start_date"].values[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
+                    en_d_str = str(df_t_sett["end_date"].values[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
 
                     max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
                     eff_e = e_k if e_k > 0 else max_k
@@ -282,7 +279,7 @@ if st.session_state["current_trip"] is None:
                     "DistValid": t_dist > 0
                 })
         except Exception as e:
-            st.error(f"Грешка при четене на данните: {e}")
+            st.error(f"Грешка: {e}")
 
         if all_trips_computed:
             df_pixel = pd.DataFrame(all_trips_computed)
@@ -324,27 +321,16 @@ if st.session_state["current_trip"] is None:
                 c_scale = [[0, '#2ebd59'], [0.5, '#ffaa00'], [1, '#ff3b30']]
 
             fig_pixel.update_traces(
-                marker=dict(
-                    color=df_sorted[x_col],
-                    colorscale=c_scale,
-                    line=dict(width=0),
-                    cornerradius=15
-                ),
-                texttemplate=f"<b>{t_format}</b>",
-                textposition='outside',
-                cliponaxis=False
+                marker=dict(color=df_sorted[x_col], colorscale=c_scale, line=dict(width=0), cornerradius=15),
+                texttemplate=f"<b>{t_format}</b>", textposition='outside', cliponaxis=False
             )
 
-            # Тъй като вече сме на цял екран, вдигаме височината на 450px за по-детайлен изглед
             fig_pixel.update_layout(
                 title=dict(text=graph_title, font=dict(color="white")),
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                 xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
                 yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
-                margin=dict(l=10, r=120, t=50, b=10),
-                height=450,
-                bargap=0.3
+                margin=dict(l=10, r=120, t=50, b=10), height=480, bargap=0.3
             )
             st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
         else:
@@ -352,11 +338,25 @@ if st.session_state["current_trip"] is None:
 
         st.write("---")
         if st.button("❌ Затвори панела и се върни", key="bottom_screen_close_btn", use_container_width=True):
-            st.session_state["show_comparison_screen"] = False
+            st.session_state["current_trip"] = None
             st.rerun()
             
-        # СТОПИРАМЕ ИЗПЪЛНЕНИЕТО НА НАДОЛУ, за да не се рендерират стандартните елементи от главния екран
-        st.stop()
+        st.stop() # Спира кода ТУК, за да скрие всичко останало от началния екран
+
+    # ==========================================
+    # СТЪПКА 3: Показваме Тогъла на началния екран (АКО НЕ Е АКТИВЕН ПАНЕЛА)
+    # ==========================================
+    else:
+        show_comparison = st.toggle(
+            label="📊 Сравнителен панел (Цял екран)",
+            value=False,
+            key="stable_comparison_toggle_switch"
+        )
+
+        if show_comparison:
+            st.session_state["current_trip"] = "__GLOBAL_ANALYTICS__"
+            st.rerun()
+
 
 
 
