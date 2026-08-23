@@ -231,7 +231,7 @@ if st.session_state["current_trip"] is None:
             
             chosen_criteria = st.segmented_control(
                 label="Изберете критерий:",
-                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и депозити"],
+                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и хотел"],
                 default="Цена за 1 км",
                 key="modal_segmented_metric_selector"
             )
@@ -252,7 +252,7 @@ if st.session_state["current_trip"] is None:
                     t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
                     t_total = t_dep + t_site
 
-                    # Калкулиране на разходи специално за хотел/Нощувки и депозити
+                    # Калкулиране на разходи специално за хотел/Нощувки и хотел
                     t_hotel_only = float(df_t_data[df_t_data["category"] == "Нощувки/Хотел"]["amount"].sum())
                     t_deposit_only = float(df_t_data[df_t_data["category"] == "Депозит/Резервация"]["amount"].sum())
                     t_accommodation_total = t_hotel_only + t_deposit_only
@@ -283,7 +283,7 @@ if st.session_state["current_trip"] is None:
                         "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
                         "Дневен Разход (EUR)": (t_total / days_count),
                         "Изминато разстояние (км)": t_dist,
-                        "Нощувки и депозити (EUR)": t_accommodation_total,
+                        "Нощувки и хотел (EUR)": t_accommodation_total,
                         "DistValid": t_dist > 0
                     })
             except:
@@ -310,8 +310,8 @@ if st.session_state["current_trip"] is None:
                     t_format = "%{text:.0f} км"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
                     graph_title = "🚗 Общо изминато разстояние"
-                elif chosen_criteria == "Нощувки и депозити":
-                    x_col = "Нощувки и депозити (EUR)"
+                elif chosen_criteria == "Нощувки и хотел":
+                    x_col = "Нощувки и хотел (EUR)"
                     t_format = "%{text:,.2f} EUR"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
                     graph_title = "🏨 Разходи за Спане, Хотели и Депозити"
