@@ -231,7 +231,7 @@ if st.session_state["current_trip"] is None:
             
             chosen_criteria = st.segmented_control(
                 label="Изберете критерий:",
-                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и Депозити"],
+                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и хотел"],
                 default="Цена за 1 км",
                 key="modal_segmented_metric_selector"
             )
