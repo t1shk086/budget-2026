@@ -765,6 +765,18 @@ with st.sidebar:
 
 if st.session_state.page == "home":
 
+    st.header("✈️ Travel Manager")
+
+    st.write(
+        "Всичко за твоите пътувания и разходи на едно място."
+    )
+
+    st.write("")
+
+    expenses = total_expenses()
+    budget = total_budget()
+    remaining = budget - expenses
+
     # -----------------------------------------------------
     # HEADER
     # -----------------------------------------------------
