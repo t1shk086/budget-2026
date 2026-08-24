@@ -12,7 +12,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 
-st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
@@ -67,95 +67,203 @@ KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "
 # ============================================================
 PX_STAGE1_CSS = r"""
 <style>
-:root { --px-bg:#050b12; --px-panel:#08131e; --px-border:rgba(82,173,255,.20); --px-blue:#4facfe; --px-muted:#8fa3b8; }
-html,body,[data-testid="stAppViewContainer"]{background:radial-gradient(circle at 50% -10%,#0d2740 0,#06101a 34%,#03080d 100%) !important;}
+:root{
+  --px-muted:#8fa3b8;
+}
+html,body,[data-testid="stAppViewContainer"]{
+  background:radial-gradient(circle at 50% -10%,#0d2740 0,#06101a 34%,#03080d 100%) !important;
+  background-attachment:fixed !important;
+}
 [data-testid="stHeader"]{background:transparent !important;}
 [data-testid="stAppViewContainer"] > .main{padding-top:0 !important;}
 .block-container{max-width:1500px !important;padding:1.1rem 1.25rem 5.5rem 1.25rem !important;}
-.px-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(5,15,24,.88);border:1px solid rgba(82,173,255,.18);border-radius:16px;padding:12px 16px;margin:0 0 14px 0;backdrop-filter:blur(12px);}
-.px-brand{display:flex;align-items:center;gap:9px;color:#fff;font-weight:800;font-size:18px;}.px-brand-mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,#176bd0,#0b2d5c);border:1px solid rgba(79,172,254,.55);font-size:18px;}.px-sub{color:var(--px-muted);font-size:12px;margin-top:2px;}
-.px-trip-pill{color:#eaf6ff;font-weight:700;font-size:14px;text-align:right;}.px-trip-pill small{display:block;color:var(--px-muted);font-weight:500;margin-top:2px;}.px-trip-header{justify-content:flex-start !important;padding:9px 14px !important;}.px-trip-pill-left{text-align:left !important;}
-.px-desktop-nav{position:fixed;left:12px;top:86px;width:178px;z-index:9990;padding:12px;background:rgba(5,15,24,.92);border:1px solid rgba(82,173,255,.20);border-radius:18px;box-shadow:0 16px 45px rgba(0,0,0,.42);backdrop-filter:blur(14px);}.px-nav-title{font-weight:800;color:#eaf6ff;margin:0 0 9px 4px;font-size:13px;}
-.px-nav a{display:flex;align-items:center;gap:10px;text-decoration:none;color:#aebed0;padding:10px 11px;border-radius:11px;margin:4px 0;font-size:13px;font-weight:650;border:1px solid transparent;}.px-nav a:hover,.px-nav a.active{color:#fff;background:linear-gradient(90deg,rgba(26,117,216,.55),rgba(25,77,135,.25));border-color:rgba(79,172,254,.35);}.px-nav-ico{width:20px;text-align:center;font-size:15px;}
+
+/* ===== PIXEAPP — ЕДИННА НАВИГАЦИОННА СИСТЕМА ===== */
+section[data-testid="stSidebar"]{
+  background:rgba(4,12,20,.97) !important;
+  border-right:1px solid rgba(82,173,255,.16) !important;
+  box-shadow:14px 0 45px rgba(0,0,0,.22) !important;
+}
+section[data-testid="stSidebar"] > div:first-child{padding:18px 12px 20px !important;}
+.px-sidebar-brand{
+  display:flex;align-items:center;gap:10px;padding:8px 10px 18px;
+  color:#fff;font-weight:800;font-size:18px;
+  border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:14px;
+}
+.px-sidebar-brand .mark{
+  width:36px;height:36px;border-radius:11px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#176bd0,#0b2d5c);
+  border:1px solid rgba(79,172,254,.55);font-size:18px;
+}
+.px-sidebar-title{
+  color:#6f8499;font-size:10px;font-weight:800;letter-spacing:1.4px;
+  text-transform:uppercase;padding:0 10px 8px;
+}
+div[class*="st-key-px_side_"][class*="_wrap"]{margin:0 0 5px !important;}
+div[class*="st-key-px_side_"][class*="_wrap"] button{
+  height:44px !important;min-height:44px !important;width:100% !important;
+  padding:0 12px !important;border-radius:12px !important;
+  border:1px solid transparent !important;
+  background:transparent !important;color:#9fb1c3 !important;
+  box-shadow:none !important;transform:none !important;
+  transition:background .18s ease,border-color .18s ease,color .18s ease,transform .18s ease !important;
+}
+div[class*="st-key-px_side_"][class*="_wrap"] button:hover{
+  color:#f5fbff !important;background:rgba(40,126,221,.12) !important;
+  border-color:rgba(79,172,254,.16) !important;transform:translateX(2px) !important;
+  box-shadow:none !important;
+}
+div[class*="st-key-px_side_"][class*="_wrap"] button p{
+  margin:0 !important;font-size:13px !important;font-weight:650 !important;
+  text-align:left !important;letter-spacing:.1px !important;
+}
+div[class*="st-key-px_side_"][class*="_wrap"] button[data-testid="stBaseButton-primary"]{
+  color:#fff !important;
+  background:linear-gradient(90deg,rgba(35,127,224,.48),rgba(18,67,119,.22)) !important;
+  border-color:rgba(79,172,254,.30) !important;
+  box-shadow:inset 3px 0 0 #4facfe,0 5px 18px rgba(20,91,160,.16) !important;
+}
+div[class*="st-key-px_side_"][class*="_wrap"] button[data-testid="stBaseButton-primary"]:hover{
+  transform:none !important;
+  background:linear-gradient(90deg,rgba(35,127,224,.55),rgba(18,67,119,.28)) !important;
+}
+/* legacy selector intentionally unused */
+.px-nav-button button{
+  height:44px !important;min-height:44px !important;width:100% !important;
+  padding:0 12px !important;border-radius:12px !important;
+  border:1px solid transparent !important;background:transparent !important;
+  color:#9fb1c3 !important;box-shadow:none !important;transform:none !important;
+  transition:background .18s ease,border-color .18s ease,color .18s ease,transform .18s ease !important;
+}
+.px-nav-button button:hover{
+  color:#f5fbff !important;background:rgba(40,126,221,.12) !important;
+  border-color:rgba(79,172,254,.16) !important;transform:translateX(2px) !important;
+  box-shadow:none !important;
+}
+.px-nav-button button p{
+  margin:0 !important;font-size:13px !important;font-weight:650 !important;
+  text-align:left !important;letter-spacing:.1px !important;
+}
+.px-nav-button.active button{
+  color:#fff !important;
+  background:linear-gradient(90deg,rgba(35,127,224,.48),rgba(18,67,119,.22)) !important;
+  border-color:rgba(79,172,254,.30) !important;
+  box-shadow:inset 3px 0 0 #4facfe,0 5px 18px rgba(20,91,160,.16) !important;
+}
+.px-nav-button.active button:hover{
+  transform:none !important;
+  background:linear-gradient(90deg,rgba(35,127,224,.55),rgba(18,67,119,.28)) !important;
+}
+
+/* Основното приложение си запазва отделен стил; навигацията не го променя. */
+button[data-testid="stBaseButton-secondary"],button[data-testid="stBaseButton-primary"]{
+  border-radius:12px !important;transition:all .20s ease !important;
+}
+
+.px-topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  background:rgba(5,15,24,.88);border:1px solid rgba(82,173,255,.18);
+  border-radius:16px;padding:12px 16px;margin:0 0 14px;backdrop-filter:blur(12px);
+}
+.px-brand{display:flex;align-items:center;gap:9px;color:#fff;font-weight:800;font-size:18px;}
+.px-brand-mark{
+  width:34px;height:34px;border-radius:11px;display:grid;place-items:center;
+  background:linear-gradient(145deg,#176bd0,#0b2d5c);
+  border:1px solid rgba(79,172,254,.55);font-size:18px;
+}
+.px-sub{color:var(--px-muted);font-size:12px;margin-top:2px;}
+.px-trip-pill{color:#eaf6ff;font-weight:700;font-size:14px;text-align:right;}
+.px-trip-pill small{display:block;color:var(--px-muted);font-weight:500;margin-top:2px;}
 .px-mobile-nav{display:none;}
-/* Истинският Streamlit бутон „Пътувания“ е позициониран като част от менюто.
-   Контейнерът му не заема място в основното съдържание, за да не размествa навигацията. */
-div.st-key-px_trips_nav_stage18{
-    position:fixed !important;
-    left:24px !important;
-    top:171px !important;
-    width:154px !important;
-    height:40px !important;
-    min-height:40px !important;
-    margin:0 !important;
-    padding:0 !important;
-    z-index:10001 !important;
-}
-div.st-key-px_trips_nav_stage18 > div{margin:0 !important;padding:0 !important;}
-div.st-key-px_trips_nav_stage18 button{
-    width:154px !important;
-    height:40px !important;
-    min-height:40px !important;
-    margin:0 !important;
-    padding:0 11px !important;
-    border-radius:11px !important;
-    border:1px solid rgba(79,172,254,.35) !important;
-    background:linear-gradient(90deg,rgba(26,117,216,.55),rgba(25,77,135,.25)) !important;
-    color:#fff !important;
-    font-size:13px !important;
-    font-weight:650 !important;
-    text-align:left !important;
-    box-shadow:none !important;
-}
-div.st-key-px_trips_nav_stage18 button p{margin:0 !important;}
+
 @media (min-width:901px){.block-container{padding-left:215px !important;}}
+
 @media (max-width:900px){
-div.st-key-px_trips_nav_stage18{left:calc(20% + 6px) !important;top:auto !important;bottom:12px !important;width:calc(20% - 12px) !important;height:51px !important;min-height:51px !important;}
-div.st-key-px_trips_nav_stage18 button{position:static !important;width:100% !important;height:51px !important;min-height:51px !important;margin:0 !important;padding:0 !important;border:1px solid transparent !important;border-radius:13px !important;background:transparent !important;color:#8fa3b8 !important;font-size:9px !important;font-weight:650 !important;box-shadow:none !important;text-align:center !important;z-index:10001 !important;}
-div.st-key-px_trips_nav_stage18 button p{font-size:9px !important;white-space:pre-line !important;line-height:14px !important;}
-.block-container{max-width:100% !important;padding:.65rem .55rem 6.4rem .55rem !important;}
-.px-desktop-nav{display:none !important;}.px-topbar{border-radius:13px;padding:9px 11px;margin-bottom:10px;}.px-brand{font-size:15px;}.px-brand-mark{width:30px;height:30px;border-radius:9px;font-size:16px;}.px-trip-pill{font-size:12px;}.px-trip-pill small{font-size:10px;}
-.px-mobile-nav{display:flex;position:fixed;left:6px;right:6px;bottom:7px;height:61px;z-index:9999;align-items:center;justify-content:space-around;background:rgba(5,14,23,.96);border:1px solid rgba(82,173,255,.22);border-radius:17px;box-shadow:0 12px 35px rgba(0,0,0,.58);backdrop-filter:blur(18px);}
-.px-mobile-nav a{height:51px;min-width:48px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;color:#8fa3b8;font-size:9px;font-weight:650;border-radius:13px;margin:4px;}.px-mobile-nav a:hover,.px-mobile-nav a.active{color:#fff;background:linear-gradient(180deg,rgba(30,126,232,.48),rgba(18,65,116,.22));}.px-mobile-nav .ico{font-size:18px;line-height:18px;}
-button[data-testid="stBaseButton-secondary"],button[data-testid="stBaseButton-primary"]{min-height:44px !important;border-radius:12px !important;}input,textarea{font-size:16px !important;}
+  section[data-testid="stSidebar"]{display:none !important;}
+  .block-container{max-width:100% !important;padding:.65rem .55rem 6.5rem !important;}
+  .px-topbar{border-radius:13px;padding:9px 11px;margin-bottom:10px;}
+  .px-brand{font-size:15px;}
+  .px-brand-mark{width:30px;height:30px;border-radius:9px;font-size:16px;}
+  .px-trip-pill{font-size:12px;}
+  .px-trip-pill small{font-size:10px;}
+  .px-mobile-nav{
+    display:block;position:fixed;left:6px;right:6px;bottom:7px;height:61px;z-index:9999;
+    background:rgba(5,14,23,.97);border:1px solid rgba(82,173,255,.22);
+    border-radius:17px;box-shadow:0 12px 35px rgba(0,0,0,.58);
+    backdrop-filter:blur(18px);padding:5px;
+  }
+  .px-mobile-nav .px-nav-button{margin:0 !important;}
+  .px-mobile-nav /* legacy selector intentionally unused */
+.px-nav-button button{
+    height:51px !important;min-height:51px !important;border:1px solid transparent !important;
+    border-radius:13px !important;padding:0 !important;background:transparent !important;
+    color:#8fa3b8 !important;box-shadow:none !important;transform:none !important;
+  }
+  .px-mobile-nav div[class*="st-key-px_mobile_"][class*="_wrap"] button p{
+    text-align:center !important;font-size:9px !important;line-height:13px !important;
+  }
+  .px-mobile-nav div[class*="st-key-px_mobile_"][class*="_wrap"] button[data-testid="stBaseButton-primary"]{
+    color:#fff !important;
+    background:linear-gradient(180deg,rgba(30,126,232,.48),rgba(18,65,116,.22)) !important;
+    border-color:rgba(79,172,254,.24) !important;box-shadow:none !important;
+  }
 }
 </style>
 """
 st.markdown(PX_STAGE1_CSS, unsafe_allow_html=True)
 
+def _px_nav_action(label):
+    if label == "Пътувания":
+        st.session_state["current_trip"] = None
+        st.rerun()
+    else:
+        st.session_state["px_nav_target"] = label
+        st.rerun()
+
+def _px_nav_button(icon, label, active=False, key_prefix="side"):
+    slug = {"Начало":"home","Пътувания":"trips","Разходи":"expenses","Карта":"map","Още":"more"}[label]
+    with st.container(key=f"px_{key_prefix}_{slug}_wrap"):
+        clicked = st.button(
+            f"{icon}   {label}",
+            key=f"px_{key_prefix}_{slug}",
+            use_container_width=True,
+            type="primary" if active else "secondary"
+        )
+    if clicked:
+        _px_nav_action(label)
+
 def px_shell(trip_id=None, active="home"):
-    # „Пътувания“ трябва да се държи точно като бутона „НАЗАД КЪМ НАЧАЛЕН ЕКРАН“:
-    # връща към екрана с пътуванията в същия Streamlit прозорец.
     if not trip_id:
         return
 
-    nav = f"""
-    <div class="px-desktop-nav">
-        <div class="px-nav-title">Навигация</div>
-        <div class="px-nav">
-            <a class="{'active' if active=='home' else ''}" href="#px-budget"><span class="px-nav-ico">⌂</span>Начало</a>
-            <div class="px-nav-trip-slot"></div>
-            <a class="{'active' if active=='expenses' else ''}" href="#px-expenses"><span class="px-nav-ico">▣</span>Разходи</a>
-            <a class="{'active' if active=='map' else ''}" href="#px-map"><span class="px-nav-ico">⌖</span>Карта</a>
-            <a class="{'active' if active=='more' else ''}" href="#px-more"><span class="px-nav-ico">•••</span>Още</a>
-        </div>
-    </div>
-    """
-    mobile = """
-    <div class="px-mobile-nav">
-        <a href="#px-budget" class="active"><span class="ico">⌂</span>Начало</a>
-        <span class="px-mobile-trip-placeholder"><span class="ico">🧳</span>Пътувания</span>
-        <a href="#px-expenses"><span class="ico">▣</span>Разходи</a>
-        <a href="#px-map"><span class="ico">⌖</span>Карта</a>
-        <a href="#px-more"><span class="ico">•••</span>Още</a>
-    </div>
-    """
-    st.markdown(nav + mobile, unsafe_allow_html=True)
-    # Това е ИСТИНСКИ Streamlit бутон. Няма href, URL, JavaScript или нов tab.
-    with st.container(key="px_trips_nav_stage18"):
-        if st.button("🧳  Пътувания", key="px_trips_nav_button", use_container_width=False):
-            st.session_state["current_trip"] = None
-            st.rerun()
+    with st.sidebar:
+        st.markdown('<div class="px-sidebar-brand"><span class="mark">🐾</span><span>PixelApp</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="px-sidebar-title">Навигация</div>', unsafe_allow_html=True)
+        _px_nav_button("⌂", "Начало", active=="home", "side")
+        _px_nav_button("🧳", "Пътувания", active=="trips", "side")
+        _px_nav_button("▣", "Разходи", active=="expenses", "side")
+        _px_nav_button("⌖", "Карта", active=="map", "side")
+        _px_nav_button("•••", "Още", active=="more", "side")
+
+    # Mobile: същите истински Streamlit бутони, същите действия и същите активни ефекти.
+    st.markdown('<div class="px-mobile-nav">', unsafe_allow_html=True)
+    cols = st.columns(5, gap="small")
+    mobile_items = [
+        ("⌂","Начало","home"),("🧳","Пътувания","trips"),
+        ("▣","Разходи","expenses"),("⌖","Карта","map"),("•••","Още","more")
+    ]
+    for col,(icon,label,nav_key) in zip(cols,mobile_items):
+        with col:
+            _px_nav_button(icon, label, active==nav_key, "mobile")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    clean_trip = str(trip_id).replace("_", " ")
+    st.markdown(
+        f'<div class="px-topbar"><div class="px-brand"><span class="px-brand-mark">🐾</span>'
+        f'<div><div>PixelApp</div><div class="px-sub">Travel Manager</div></div></div>'
+        f'<div class="px-trip-pill">🌴 {clean_trip}<small>Активно пътуване</small></div></div>',
+        unsafe_allow_html=True
+    )
 
 
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
