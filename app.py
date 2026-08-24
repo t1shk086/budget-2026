@@ -1123,7 +1123,7 @@ elif st.session_state.page == "trip":
             )
 
     # =====================================================
-    # EXPENSES BY CATEGORY
+    # EXPENSES BY CATEGORY — MODERN DASHBOARD
     # =====================================================
 
     if trip["expenses"]:
@@ -1162,7 +1162,104 @@ elif st.session_state.page == "trip":
             key=f"category_filter_{trip_id}"
         )
 
-        # Compact category overview.
+        # Modern category cards.
+        category_css = """
+        <style>
+        .tm-cat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin: 10px 0 18px 0;
+        }
+
+        .tm-cat-card {
+            border: 1px solid rgba(120,120,140,.18);
+            border-radius: 18px;
+            padding: 16px;
+            background: linear-gradient(
+                145deg,
+                rgba(255,255,255,.055),
+                rgba(255,255,255,.018)
+            );
+            box-shadow: 0 6px 22px rgba(0,0,0,.06);
+            min-height: 128px;
+        }
+
+        .tm-cat-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .tm-cat-name {
+            font-size: 14px;
+            font-weight: 650;
+            opacity: .86;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tm-cat-pct {
+            font-size: 12px;
+            font-weight: 700;
+            opacity: .65;
+        }
+
+        .tm-cat-amount {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -.5px;
+            margin-top: 13px;
+        }
+
+        .tm-cat-bar {
+            height: 6px;
+            border-radius: 99px;
+            background: rgba(128,128,128,.18);
+            overflow: hidden;
+            margin-top: 13px;
+        }
+
+        .tm-cat-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: linear-gradient(90deg, #7c5cff, #35c7ff);
+        }
+
+        .tm-cat-label {
+            margin-top: 7px;
+            font-size: 11px;
+            opacity: .55;
+        }
+
+        @media (max-width: 900px) {
+            .tm-cat-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 600px) {
+            .tm-cat-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .tm-cat-card {
+                min-height: 112px;
+                padding: 14px;
+            }
+
+            .tm-cat-amount {
+                font-size: 22px;
+            }
+        }
+        </style>
+        """
+
+        cards = []
+
         for category, category_amount in category_totals.items():
 
             percentage = (
@@ -1173,15 +1270,33 @@ elif st.session_state.page == "trip":
                 else 0
             )
 
-            st.write(
-                f"**{category}** — "
-                f"€{category_amount:.2f} · "
-                f"{percentage:.1f}%"
+            cards.append(
+                f"""
+                <div class="tm-cat-card">
+                    <div class="tm-cat-top">
+                        <div class="tm-cat-name">{category}</div>
+                        <div class="tm-cat-pct">{percentage:.1f}%</div>
+                    </div>
+                    <div class="tm-cat-amount">€{category_amount:.2f}</div>
+                    <div class="tm-cat-bar">
+                        <div class="tm-cat-fill"
+                             style="width:{min(percentage, 100):.2f}%;">
+                        </div>
+                    </div>
+                    <div class="tm-cat-label">
+                        от общо €{total_category_expenses:.2f}
+                    </div>
+                </div>
+                """
             )
 
-            st.progress(
-                min(percentage / 100, 1.0)
-            )
+        st.markdown(
+            category_css
+            + '<div class="tm-cat-grid">'
+            + "".join(cards)
+            + "</div>",
+            unsafe_allow_html=True
+        )
 
         st.divider()
 
