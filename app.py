@@ -3,193 +3,202 @@ import sqlite3
 import pandas as pd
 from datetime import datetime
 
-# --- НАСТРОЙКА НА СТРАНИЦАТА ---
-st.set_page_config(
-    page_title="Travel Manager", 
-    page_icon="🚗", 
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# Настройка на страницата
+st.set_page_config(page_title="Pixelapp Travel Manager", page_icon="🚗", layout="centered")
 
-# --- БАЗА ДАННИ (SQLite) ---
-DB_NAME = "travel_manager.db"
-
+# Инициализация на SQLite база данни
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect("travel_manager.db")
     c = conn.cursor()
-    # Таблица за всички разходи (общи и гориво)
-    c.execute('''
+    
+    # Таблица за пътувания
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS trips (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            start_date TEXT,
+            start_km REAL,
+            status TEXT DEFAULT 'Активно'
+        )
+    """)
+    
+    # Таблица за разходи
+    c.execute("""
         CREATE TABLE IF NOT EXISTS expenses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT,
+            trip_id INTEGER,
             amount REAL,
             description TEXT,
             is_fuel INTEGER,
             odometer REAL,
             liters REAL,
-            is_full_tank INTEGER
+            full_tank INTEGER,
+            date TEXT,
+            FOREIGN KEY(trip_id) REFERENCES trips(id)
         )
-    ''')
+    """)
     conn.commit()
     conn.close()
-
-def save_expense(date, amount, description, is_fuel, odometer, liters, is_full_tank):
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute('''
-        INSERT INTO expenses (date, amount, description, is_fuel, odometer, liters, is_full_tank)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (date.strftime("%Y-%m-%d"), amount, description, 1 if is_fuel else 0, odometer, liters, 1 if is_full_tank else 0))
-    conn.commit()
-    conn.close()
-
-def get_expenses():
-    conn = sqlite3.connect(DB_NAME)
-    df = pd.read_sql_query("SELECT * FROM expenses ORDER BY id DESC", conn)
-    conn.close()
-    return df
 
 init_db()
 
-# --- СТИЛИЗАЦИЯ И ДИЗАЙН ---
+# Помощни функции за работа с базата данни
+def get_active_trips():
+    conn = sqlite3.connect("travel_manager.db")
+    df = pd.read_sql_query("SELECT id, name FROM trips WHERE status = 'Активно'", conn)
+    conn.close()
+    return df
+
+def save_trip(name, start_date, start_km):
+    conn = sqlite3.connect("travel_manager.db")
+    c = conn.cursor()
+    c.execute("INSERT INTO trips (name, start_date, start_km) VALUES (?, ?, ?)",
+              (name, str(start_date), start_km))
+    conn.commit()
+    conn.close()
+
+def save_expense(trip_id, amount, description, is_fuel, odometer, liters, full_tank):
+    conn = sqlite3.connect("travel_manager.db")
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO expenses (trip_id, amount, description, is_fuel, odometer, liters, full_tank, date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (trip_id, amount, description, int(is_fuel), odometer, liters, int(full_tank), datetime.now().strftime("%Y-%m-%d %H:%M")))
+    conn.commit()
+    conn.close()
+
+# CSS стилове (коригирани с unsafe_allow_html)
 st.markdown("""
     <style>
     .main-title {
         text-align: center;
-        font-size: 2.8rem;
-        font-weight: 800;
-        margin-bottom: 0px;
-    }
-    .logo-sub {
-        text-align: center;
-        color: #666;
-        font-size: 1.1rem;
-        margin-bottom: 25px;
-    }
-    .quick-btn-container {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 30px;
+        font-size: 2.2rem;
+        font-weight: bold;
+        margin-bottom: 20px;
     }
     .stButton>button {
-        border-radius: 25px;
+        width: 100%;
+        border-radius: 12px;
+        height: 3.2rem;
+        font-size: 1.1rem;
+        font-weight: bold;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Инициализация на състоянието за активния изглед
-if "active_tab" not in st.session_state:
-    st.session_state.active_tab = "Начало"
+# Заглавие на началната страница
+st.markdown("<div class='main-title'>🚗 Pixelapp Travel Manager</div>", unsafe_allow_html=True)
 
-# --- ЦЕНТРАЛНО ЛОГО И ЗАГЛАВИЕ ---
-st.markdown("<div class='main-title'>🚗 TRAVEL MANAGER</div>", unsafe_allow_html=True)
-st.markdown("<div class='logo-sub'>Следене на разходи, километри и зареждания</div>", unsafe_allow_html=True)
+# Бутони за основни действия на началния екран
+col_btn1, col_btn2 = st.columns(2)
 
-# --- ГЛАВНА НАВИГАЦИЯ ---
-col_nav1, col_nav2, col_nav3 = st.columns([1, 1.2, 1])
+with col_btn1:
+    show_expense_dialog = st.button("➕ Бърз разход", type="primary")
 
-with col_nav1:
-    if st.button("🏠 Начало", use_container_width=True, type="primary" if st.session_state.active_tab == "Начало" else "secondary"):
-        st.session_state.active_tab = "Начало"
-        st.rerun()
-
-with col_nav2:
-    if st.button("➕ БЪРЗ РАЗХОД", use_container_width=True, type="primary" if st.session_state.active_tab == "Бърз разход" else "secondary"):
-        st.session_state.active_tab = "Бърз разход"
-        st.rerun()
-
-with col_nav3:
-    if st.button("🗺️ Пътувания & История", use_container_width=True, type="primary" if st.session_state.active_tab == "Пътувания" else "secondary"):
-        st.session_state.active_tab = "Пътувания"
-        st.rerun()
+with col_btn2:
+    show_trip_dialog = st.button("✈️ Ново пътуване")
 
 st.divider()
 
-# ==========================================
-# 1. ЕКРАН: БЪРЗ РАЗХОД (УМНА ФОРМА)
-# ==========================================
-if st.session_state.active_tab == "Бърз разход":
-    st.subheader("⚡ Бързо въвеждане на разход")
+# --- 1. СЕКЦИЯ: НОВО ПЪТУВАНЕ ---
+if show_trip_dialog or st.session_state.get("adding_trip", False):
+    st.session_state["adding_trip"] = True
+    st.subheader("✈️ Започване на ново пътуване")
     
-    with st.container(border=True):
-        col_a, col_b = st.columns([1, 2])
-        
-        with col_a:
-            amount = st.number_input("Сума (лв.) *", min_value=0.01, step=1.0, value=20.0)
-            date_val = st.date_input("Дата", datetime.today())
+    with st.form("new_trip_form"):
+        trip_name = st.text_input("Име на пътуването / Дестинация", placeholder="напр. София - Бургас")
+        col_t1, col_t2 = st.columns(2)
+        with col_t1:
+            trip_date = st.date_input("Дата на тръгване", datetime.today())
+        with col_t2:
+            start_km = st.number_input("Начален километраж", min_value=0.0, step=1.0)
             
-        with col_b:
-            description = st.text_input("Описание *", placeholder="напр. Бензин OMV / Автомивка / Топ кафе...")
+        submit_trip = st.form_submit_button("Запази пътуването")
         
-        # Детекция на ключови думи за гориво
-        FUEL_KEYWORDS = ["газ", "гориво", "зареждане", "бензин", "дизел"]
-        desc_lower = description.lower().strip()
-        is_fuel_detected = any(keyword in desc_lower for keyword in FUEL_KEYWORDS)
-        
-        # Полета за гориво (показват се динамично при засичане на дума)
-        odometer = 0.0
-        liters = 0.0
-        is_full_tank = False
-        
-        if is_fuel_detected:
-            st.info("⛽ **Открито е зареждане с гориво!** Моля, попълнете данните за разхода:")
-            
-            f_col1, f_col2, f_col3 = st.columns(3)
-            with f_col1:
-                odometer = st.number_input("Текущ километраж (km)", min_value=0.0, step=10.0, help="Километражът на таблото")
-            with f_col2:
-                liters = st.number_input("Количество литри (L)", min_value=0.0, step=1.0, help="Заредени литри")
-            with f_col3:
-                st.write("")
-                st.write("")
-                is_full_tank = st.checkbox("Зареждане до горе", value=True)
-                
-        save_btn = st.button("💾 Запази разхода", type="primary", use_container_width=True)
-        
-        if save_btn:
-            if not description:
-                st.error("Моля, въведете описание!")
+        if submit_trip:
+            if not trip_name.strip():
+                st.error("Моля, въведете име на пътуването.")
             else:
-                save_expense(date_val, amount, description, is_fuel_detected, odometer, liters, is_full_tank)
-                st.success("Разходът бе записан успешно!")
-                st.balloons()
+                save_trip(trip_name, trip_date, start_km)
+                st.success(f"Пътуването '{trip_name}' беше създадено успешно!")
+                st.session_state["adding_trip"] = False
+                st.rerun()
 
-# ==========================================
-# 2. ЕКРАН: НАЧАЛО (ТАБЛО)
-# ==========================================
-elif st.session_state.active_tab == "Начало":
-    st.subheader("📊 Преглед и статистика")
+# --- 2. СЕКЦИЯ: БЪРЗ РАЗХОД ---
+if show_expense_dialog or st.session_state.get("adding_expense", False):
+    st.session_state["adding_expense"] = True
+    st.subheader("➕ Бързо въвеждане на разход")
     
-    df = get_expenses()
+    # Зареждаме активните пътувания
+    trips_df = get_active_trips()
+    trip_options = {"Общ разход (без конкретно пътуване)": None}
+    for _, row in trips_df.iterrows():
+        trip_options[row["name"]] = row["id"]
+        
+    selected_trip_name = st.selectbox("Към кое пътуване е разходът?", list(trip_options.keys()))
+    selected_trip_id = trip_options[selected_trip_name]
     
-    if df.empty:
-        st.info("Все още нямате записани разходи. Натиснете бутона '**➕ БЪРЗ РАЗХОД**' по-горе, за да добавите първия!")
-    else:
-        # Метрики
-        total_spent = df['amount'].sum()
-        fuel_df = df[df['is_fuel'] == 1]
-        total_fuel_spent = fuel_df['amount'].sum() if not fuel_df.empty else 0.0
-        total_liters = fuel_df['liters'].sum() if not fuel_df.empty else 0.0
-        
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Общо изхарчени суми", f"{total_spent:.2f} лв.")
-        m2.metric("Разход за гориво", f"{total_fuel_spent:.2f} лв.")
-        m3.metric("Общо заредени литри", f"{total_liters:.1f} L")
-        
-        st.write("### 🕒 Последни 5 записа")
-        st.dataframe(
-            df[['date', 'description', 'amount', 'is_fuel', 'liters', 'odometer']].head(5), 
-            use_container_width=True
-        )
+    description = st.text_input("Описание на разхода", placeholder="напр. Бензин Shell, Сандвичи, Тол такса")
+    amount = st.number_input("Сума (лв.)", min_value=0.0, step=0.1, format="%.2f")
+    
+    # Проверка за ключови думи за гориво
+    fuel_keywords = ["газ", "гориво", "зареждане", "бензин", "дизел", "shell", "omv", "lukoil", "rompetrol"]
+    is_fuel = any(keyword in description.lower() for keyword in fuel_keywords)
+    
+    odometer = 0.0
+    liters = 0.0
+    full_tank = False
+    
+    if is_fuel:
+        st.info("⛽ Открита е дума за гориво! Попълнете данните за зареждането:")
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            odometer = st.number_input("Текущ километраж", min_value=0.0, step=1.0)
+            liters = st.number_input("Заредени литри", min_value=0.0, step=0.1)
+        with col_f2:
+            full_tank = st.checkbox("Зареждане до горе (пълен резервоар)?")
 
-# ==========================================
-# 3. ЕКРАН: ПЪТУВАНИЯ И ИСТОРИЯ
-# ==========================================
-elif st.session_state.active_tab == "Пътувания":
-    st.subheader("🗺️ Пълна история на записите")
-    
-    df = get_expenses()
-    if not df.empty:
-        st.dataframe(df, use_container_width=True)
+    if st.button("Запази разхода", type="primary"):
+        if amount <= 0:
+            st.error("Моля, въведете валидна сума.")
+        else:
+            save_expense(
+                trip_id=selected_trip_id,
+                amount=amount,
+                description=description,
+                is_fuel=is_fuel,
+                odometer=odometer,
+                liters=liters,
+                full_tank=full_tank
+            )
+            st.success("Разходът е записан успешно!")
+            st.session_state["adding_expense"] = False
+            st.rerun()
+
+# --- 3. ПРЕГЛЕД НА ТАБЛИЦИТЕ С ДАННИ ---
+st.subheader("📊 Преглед на данните")
+tab1, tab2 = st.tabs(["✈️ Активни пътувания", "💸 Всички разходи"])
+
+conn = sqlite3.connect("travel_manager.db")
+
+with tab1:
+    trips_data = pd.read_sql_query("SELECT id AS ID, name AS Име, start_date AS Дата, start_km AS 'Нач. KM' FROM trips WHERE status='Активно'", conn)
+    if not trips_data.empty:
+        st.dataframe(trips_data, use_container_width=True)
     else:
-        st.info("Няма налични данни.")
+        st.info("Няма активни пътувания в момента.")
+
+with tab2:
+    expenses_data = pd.read_sql_query("""
+        SELECT e.date AS Дата, COALESCE(t.name, 'Общ разход') AS Пътуване, e.description AS Описание, 
+               e.amount AS Сума, e.liters AS Литри, e.odometer AS Километраж
+        FROM expenses e
+        LEFT JOIN trips t ON e.trip_id = t.id
+        ORDER BY e.id DESC
+    """, conn)
+    if not expenses_data.empty:
+        st.dataframe(expenses_data, use_container_width=True)
+    else:
+        st.info("Все още няма записани разходи.")
+
+conn.close()
