@@ -75,6 +75,133 @@ def open_add_expense(trip_id=None):
     st.rerun()
 
 
+
+<style>
+/* ===== Travel Manager visual layer ===== */
+
+.stApp {
+    background: #08111a;
+}
+
+.block-container {
+    max-width: 1080px;
+    padding-top: 1.6rem;
+    padding-bottom: 4rem;
+}
+
+/* Header */
+.tm-header {
+    padding: 8px 0 18px 0;
+}
+
+.tm-brand {
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #f4f8fb;
+    margin: 0;
+}
+
+.tm-subtitle {
+    color: #8fa1b2;
+    margin-top: 4px;
+    font-size: 0.98rem;
+}
+
+/* Quick action cards */
+.tm-card {
+    background: linear-gradient(145deg, #102130, #0c1823);
+    border: 1px solid #203446;
+    border-radius: 20px;
+    padding: 20px;
+    min-height: 118px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.18);
+}
+
+.tm-card-primary {
+    border-color: #235d83;
+    background: linear-gradient(145deg, #12314a, #0c1c29);
+}
+
+.tm-card-title {
+    color: #f5f8fb;
+    font-size: 1.12rem;
+    font-weight: 750;
+    margin-bottom: 5px;
+}
+
+.tm-card-text {
+    color: #8fa1b2;
+    font-size: .9rem;
+}
+
+/* Metrics */
+div[data-testid="stMetric"] {
+    background: #0d1a26;
+    border: 1px solid #1c3041;
+    border-radius: 16px;
+    padding: 14px 16px;
+}
+
+div[data-testid="stMetricLabel"] {
+    color: #8fa1b2;
+}
+
+div[data-testid="stMetricValue"] {
+    color: #f4f8fb;
+}
+
+/* Buttons */
+.stButton > button {
+    border-radius: 12px;
+    min-height: 44px;
+    font-weight: 650;
+    border: 1px solid #263c4f;
+    background: #101e2a;
+    color: #eef5f9;
+}
+
+.stButton > button:hover {
+    border-color: #2b9cff;
+    background: #15283a;
+    color: #ffffff;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: #09141f;
+    border-right: 1px solid #1a2b3a;
+}
+
+/* Trip containers */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 18px;
+}
+
+/* Mobile */
+@media (max-width: 700px) {
+    .block-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 1rem;
+    }
+
+    .tm-card {
+        min-height: auto;
+        padding: 17px;
+    }
+
+    div[data-testid="stMetric"] {
+        padding: 11px 12px;
+    }
+
+    div[data-testid="stMetricValue"] {
+        font-size: 1.35rem;
+    }
+}
+</style>
+
+
 # =========================================================
 # CSS
 # =========================================================
@@ -264,10 +391,16 @@ with st.sidebar:
 
 if st.session_state.page == "home":
 
-    st.title("✈️ Travel Manager")
-
-    st.caption(
-        "Всичко за твоите пътувания и разходи на едно място."
+    st.markdown(
+        """
+        <div class="tm-header">
+            <div class="tm-brand">✈️ Travel Manager</div>
+            <div class="tm-subtitle">
+                Всичко за твоите пътувания и разходи на едно място.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
     st.write("")
@@ -314,11 +447,14 @@ if st.session_state.page == "home":
 
         st.markdown(
             """
-            ### ➕ Добави разход
-
-            Бързо добавяне на разход
-            към избрано пътуване.
-            """
+            <div class="tm-card tm-card-primary">
+                <div class="tm-card-title">➕ Добави разход</div>
+                <div class="tm-card-text">
+                    Бързо добавяне на разход към избрано пътуване.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
         if st.button(
@@ -333,11 +469,14 @@ if st.session_state.page == "home":
 
         st.markdown(
             """
-            ### ✈️ Ново пътуване
-
-            Създай ново пътуване
-            и задай неговия бюджет.
-            """
+            <div class="tm-card">
+                <div class="tm-card-title">✈️ Ново пътуване</div>
+                <div class="tm-card-text">
+                    Създай ново пътуване и задай неговия бюджет.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
         if st.button(
