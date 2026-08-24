@@ -76,16 +76,14 @@ def save_expense(trip_id, amount, description, is_fuel, odometer, liters, full_t
 # 4. Модерен CSS стил
 st.markdown("""
     <style>
-    /* Основен фон и шрифтове */
     .stApp {
         background-color: #0f172a;
         color: #f8fafc;
     }
     
-    /* Шапка с лого и заглавие */
     .header-container {
         text-align: center;
-        padding: 10px 0 25px 0;
+        padding: 10px 0 20px 0;
     }
     .app-logo {
         font-size: 3.5rem;
@@ -106,36 +104,31 @@ st.markdown("""
         font-weight: 400;
     }
 
-    /* Модернизиране на основните бутони */
+    /* Бутони */
     div.stButton > button {
-        border-radius: 16px !important;
-        height: 3.8rem !important;
+        border-radius: 14px !important;
+        height: 3.6rem !important;
         font-weight: 700 !important;
-        font-size: 1.05rem !important;
+        font-size: 0.98rem !important;
         transition: all 0.2s ease-in-out !important;
-        border: none !important;
+        border: 1px solid #334155 !important;
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
+    div.stButton > button:hover {
+        background-color: #334155 !important;
+        transform: translateY(-2px);
+    }
     
-    /* Главен бутон (+ Бърз разход) */
+    /* Централен бутон (+ Бърз разход) */
     div.stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
         color: white !important;
+        border: none !important;
     }
     div.stButton > button[kind="primary"]:hover {
-        transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
-    }
-    
-    /* Вторичен бутон (Ново пътуване) */
-    div.stButton > button[kind="secondary"] {
-        background-color: #1e293b !important;
-        color: #f8fafc !important;
-        border: 1px solid #334155 !important;
-    }
-    div.stButton > button[kind="secondary"]:hover {
-        background-color: #334155 !important;
-        transform: translateY(-2px);
     }
 
     /* Карти със статистика */
@@ -159,7 +152,6 @@ st.markdown("""
         margin-top: 4px;
     }
 
-    /* Скриване на излишните елементи на Streamlit */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
@@ -232,19 +224,24 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 7. ОСНОВНИ БУТОНИ
-col_b1, col_b2 = st.columns(2)
-with col_b1:
+# 7. НАВИГАЦИЯ С ТРИ БУТОНА (Начало | + Бърз разход | Ново пътуване)
+col_nav1, col_nav2, col_nav3 = st.columns([1, 1.2, 1])
+
+with col_nav1:
+    if st.button("🏠 Начало"):
+        st.rerun()
+
+with col_nav2:
     if st.button("➕ Бърз разход", type="primary"):
         open_expense_dialog()
 
-with col_b2:
-    if st.button("✈️ Ново пътуване", type="secondary"):
+with col_nav3:
+    if st.button("✈️ Пътуване"):
         open_trip_dialog()
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 8. БЪРЗА СТАТИСТИКА И ДАННИ
+# 8. БЪРЗА СТАТИСТИКА
 conn = sqlite3.connect("travel_manager.db")
 
 expenses_df = pd.read_sql_query("SELECT amount, liters FROM expenses", conn)
