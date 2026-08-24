@@ -7,12 +7,8 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import io
-from reportlab.platypus import SimpleDocTemplate, Image as RLImage, Spacer, Paragraph, PageBreak
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
 
-st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 st.markdown("""
 <style>
@@ -61,226 +57,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
-# ============================================================
-# STAGE 1 — RESPONSIVE PIXELAPP SHELL
-# Запазва съществуващата логика/данни и добавя само визуалната рамка.
-# ============================================================
-PX_STAGE1_CSS = r"""
-<style>
-:root{
-  --px-muted:#8fa3b8;
-}
-html,body,[data-testid="stAppViewContainer"]{
-  background:radial-gradient(circle at 50% -10%,#0d2740 0,#06101a 34%,#03080d 100%) !important;
-  background-attachment:fixed !important;
-}
-[data-testid="stHeader"]{background:transparent !important;}
-[data-testid="stAppViewContainer"] > .main{padding-top:0 !important;}
-.block-container{max-width:1500px !important;padding:1.1rem 1.25rem 5.5rem 1.25rem !important;}
-
-/* ===== PIXEAPP — ЕДИННА НАВИГАЦИОННА СИСТЕМА ===== */
-.px-html-nav-item{display:flex !important;align-items:center !important;gap:12px !important;height:44px !important;margin:0 0 5px !important;padding:0 12px !important;border-radius:12px !important;border:1px solid transparent !important;background:transparent !important;color:#9fb1c3 !important;text-decoration:none !important;font-size:13px !important;font-weight:650 !important;transition:background .18s ease,border-color .18s ease,color .18s ease,transform .18s ease !important;box-sizing:border-box !important;}
-.px-html-nav-item:hover{color:#f5fbff !important;background:rgba(40,126,221,.12) !important;border-color:rgba(79,172,254,.16) !important;transform:translateX(2px) !important;}
-.px-html-nav-item.active{color:#fff !important;background:linear-gradient(90deg,rgba(35,127,224,.48),rgba(18,67,119,.22)) !important;border-color:rgba(79,172,254,.30) !important;box-shadow:inset 3px 0 0 #4facfe,0 5px 18px rgba(20,91,160,.16) !important;}
-.px-html-nav-icon{width:22px !important;text-align:center !important;font-size:16px !important;line-height:1 !important;flex:0 0 22px !important;}
-
-section[data-testid="stSidebar"]{
-  background:rgba(4,12,20,.97) !important;
-  border-right:1px solid rgba(82,173,255,.16) !important;
-  box-shadow:14px 0 45px rgba(0,0,0,.22) !important;
-}
-section[data-testid="stSidebar"] > div:first-child{padding:18px 12px 20px !important;}
-.px-sidebar-brand{
-  display:flex;align-items:center;gap:10px;padding:8px 10px 18px;
-  color:#fff;font-weight:800;font-size:18px;
-  border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:14px;
-}
-.px-sidebar-brand .mark{
-  width:36px;height:36px;border-radius:11px;display:grid;place-items:center;
-  background:linear-gradient(145deg,#176bd0,#0b2d5c);
-  border:1px solid rgba(79,172,254,.55);font-size:18px;
-}
-.px-sidebar-title{
-  color:#6f8499;font-size:10px;font-weight:800;letter-spacing:1.4px;
-  text-transform:uppercase;padding:0 10px 8px;
-}
-div[class*="st-key-px_side_"][class*="_wrap"]{margin:0 0 5px !important;}
-div[class*="st-key-px_side_"][class*="_wrap"] button{
-  height:44px !important;min-height:44px !important;width:100% !important;
-  padding:0 12px !important;border-radius:12px !important;
-  border:1px solid transparent !important;
-  background:transparent !important;color:#9fb1c3 !important;
-  box-shadow:none !important;transform:none !important;
-  transition:background .18s ease,border-color .18s ease,color .18s ease,transform .18s ease !important;
-}
-div[class*="st-key-px_side_"][class*="_wrap"] button:hover{
-  color:#f5fbff !important;background:rgba(40,126,221,.12) !important;
-  border-color:rgba(79,172,254,.16) !important;transform:translateX(2px) !important;
-  box-shadow:none !important;
-}
-div[class*="st-key-px_side_"][class*="_wrap"] button p{
-  margin:0 !important;font-size:13px !important;font-weight:650 !important;
-  text-align:left !important;letter-spacing:.1px !important;
-}
-div[class*="st-key-px_side_"][class*="_wrap"] button[data-testid="stBaseButton-primary"]{
-  color:#fff !important;
-  background:linear-gradient(90deg,rgba(35,127,224,.48),rgba(18,67,119,.22)) !important;
-  border-color:rgba(79,172,254,.30) !important;
-  box-shadow:inset 3px 0 0 #4facfe,0 5px 18px rgba(20,91,160,.16) !important;
-}
-div[class*="st-key-px_side_"][class*="_wrap"] button[data-testid="stBaseButton-primary"]:hover{
-  transform:none !important;
-  background:linear-gradient(90deg,rgba(35,127,224,.55),rgba(18,67,119,.28)) !important;
-}
-/* legacy selector intentionally unused */
-.px-nav-button button{
-  height:44px !important;min-height:44px !important;width:100% !important;
-  padding:0 12px !important;border-radius:12px !important;
-  border:1px solid transparent !important;background:transparent !important;
-  color:#9fb1c3 !important;box-shadow:none !important;transform:none !important;
-  transition:background .18s ease,border-color .18s ease,color .18s ease,transform .18s ease !important;
-}
-.px-nav-button button:hover{
-  color:#f5fbff !important;background:rgba(40,126,221,.12) !important;
-  border-color:rgba(79,172,254,.16) !important;transform:translateX(2px) !important;
-  box-shadow:none !important;
-}
-.px-nav-button button p{
-  margin:0 !important;font-size:13px !important;font-weight:650 !important;
-  text-align:left !important;letter-spacing:.1px !important;
-}
-.px-nav-button.active button{
-  color:#fff !important;
-  background:linear-gradient(90deg,rgba(35,127,224,.48),rgba(18,67,119,.22)) !important;
-  border-color:rgba(79,172,254,.30) !important;
-  box-shadow:inset 3px 0 0 #4facfe,0 5px 18px rgba(20,91,160,.16) !important;
-}
-.px-nav-button.active button:hover{
-  transform:none !important;
-  background:linear-gradient(90deg,rgba(35,127,224,.55),rgba(18,67,119,.28)) !important;
-}
-
-
-div[class*="st-key-px_side_trips_wrap"],div[class*="st-key-px_mobile_trips_wrap"]{margin:0 0 5px !important;}
-div[class*="st-key-px_side_trips_wrap"] button,div[class*="st-key-px_mobile_trips_wrap"] button{height:44px !important;min-height:44px !important;width:100% !important;padding:0 12px !important;border-radius:12px !important;border:1px solid transparent !important;background:transparent !important;color:#9fb1c3 !important;box-shadow:none !important;font-size:13px !important;font-weight:650 !important;letter-spacing:.1px !important;}
-div[class*="st-key-px_side_trips_wrap"] button:hover,div[class*="st-key-px_mobile_trips_wrap"] button:hover{color:#f5fbff !important;background:rgba(40,126,221,.12) !important;border-color:rgba(79,172,254,.16) !important;transform:translateX(2px) !important;}
-
-/* Основното приложение си запазва отделен стил; навигацията не го променя. */
-button[data-testid="stBaseButton-secondary"],button[data-testid="stBaseButton-primary"]{
-  border-radius:12px !important;transition:all .20s ease !important;
-}
-
-.px-topbar{
-  display:flex;align-items:center;justify-content:space-between;gap:16px;
-  background:rgba(5,15,24,.88);border:1px solid rgba(82,173,255,.18);
-  border-radius:16px;padding:12px 16px;margin:0 0 14px;backdrop-filter:blur(12px);
-}
-.px-brand{display:flex;align-items:center;gap:9px;color:#fff;font-weight:800;font-size:18px;}
-.px-brand-mark{
-  width:34px;height:34px;border-radius:11px;display:grid;place-items:center;
-  background:linear-gradient(145deg,#176bd0,#0b2d5c);
-  border:1px solid rgba(79,172,254,.55);font-size:18px;
-}
-.px-sub{color:var(--px-muted);font-size:12px;margin-top:2px;}
-.px-trip-pill{color:#eaf6ff;font-weight:700;font-size:14px;text-align:right;}
-.px-trip-pill small{display:block;color:var(--px-muted);font-weight:500;margin-top:2px;}
-.px-mobile-nav{display:none;}
-
-@media (min-width:901px){.block-container{padding-left:215px !important;}}
-
-@media (max-width:900px){
-  section[data-testid="stSidebar"]{display:none !important;}
-  .block-container{max-width:100% !important;padding:.65rem .55rem 6.5rem !important;}
-  .px-topbar{border-radius:13px;padding:9px 11px;margin-bottom:10px;}
-  .px-brand{font-size:15px;}
-  .px-brand-mark{width:30px;height:30px;border-radius:9px;font-size:16px;}
-  .px-trip-pill{font-size:12px;}
-  .px-trip-pill small{font-size:10px;}
-  .px-mobile-nav{
-    display:block;position:fixed;left:6px;right:6px;bottom:7px;height:61px;z-index:9999;
-    background:rgba(5,14,23,.97);border:1px solid rgba(82,173,255,.22);
-    border-radius:17px;box-shadow:0 12px 35px rgba(0,0,0,.58);
-    backdrop-filter:blur(18px);padding:5px;
-  }
-  .px-mobile-nav .px-nav-button{margin:0 !important;}
-  .px-mobile-nav /* legacy selector intentionally unused */
-.px-nav-button button{
-    height:51px !important;min-height:51px !important;border:1px solid transparent !important;
-    border-radius:13px !important;padding:0 !important;background:transparent !important;
-    color:#8fa3b8 !important;box-shadow:none !important;transform:none !important;
-  }
-  .px-mobile-nav div[class*="st-key-px_mobile_"][class*="_wrap"] button p{
-    text-align:center !important;font-size:9px !important;line-height:13px !important;
-  }
-  .px-mobile-nav div[class*="st-key-px_mobile_"][class*="_wrap"] button[data-testid="stBaseButton-primary"]{
-    color:#fff !important;
-    background:linear-gradient(180deg,rgba(30,126,232,.48),rgba(18,65,116,.22)) !important;
-    border-color:rgba(79,172,254,.24) !important;box-shadow:none !important;
-  }
-}
-</style>
-"""
-st.markdown(PX_STAGE1_CSS, unsafe_allow_html=True)
-
-def _px_nav_action(label):
-    if label == "Пътувания":
-        st.session_state["current_trip"] = None
-        st.session_state["px_nav_target"] = "Пътувания"
-        st.rerun()
-
-def _px_active_key(default="home"):
-    target = st.session_state.get("px_nav_target")
-    return {"Начало":"home","Пътувания":"trips","Разходи":"expenses","Карта":"map","Още":"more"}.get(target, default)
-
-def _px_nav_html_item(icon, label, anchor, active=False):
-    cls = "px-html-nav-item active" if active else "px-html-nav-item"
-    return f"<a class=\"{cls}\" href=\"#{anchor}\" data-px-nav=\"{anchor}\"><span class=\"px-html-nav-icon\">{icon}</span><span>{label}</span></a>"
-
-def _px_nav_trip_button(key_prefix="side"):
-    with st.container(key=f"px_{key_prefix}_trips_wrap"):
-        clicked = st.button("🧳   Пътувания", key=f"px_{key_prefix}_trips", use_container_width=True, type="secondary")
-    if clicked:
-        _px_nav_action("Пътувания")
-
-def px_shell(trip_id=None, active="home"):
-    if not trip_id:
-        return
-    with st.sidebar:
-        st.markdown('<div class="px-sidebar-brand"><span class="mark">🐾</span><span>PixelApp</span></div>', unsafe_allow_html=True)
-        st.markdown('<div class="px-sidebar-title">Навигация</div>', unsafe_allow_html=True)
-        st.markdown(_px_nav_html_item("⌂", "Начало", "px-budget", active=="home"), unsafe_allow_html=True)
-        _px_nav_trip_button("side")
-        st.markdown(''.join([
-            _px_nav_html_item("▣", "Разходи", "px-expenses", active=="expenses"),
-            _px_nav_html_item("⌖", "Карта", "px-map", active=="map"),
-            _px_nav_html_item("•••", "Още", "px-more", active=="more")
-        ]), unsafe_allow_html=True)
-
-    st.markdown('<div class="px-mobile-nav">', unsafe_allow_html=True)
-    cols = st.columns(5, gap="small")
-    mobile_items=[("⌂","Начало","px-budget","home"),("🧳","Пътувания",None,"trips"),("▣","Разходи","px-expenses","expenses"),("⌖","Карта","px-map","map"),("•••","Още","px-more","more")]
-    for col,(icon,label,anchor,nav_key) in zip(cols,mobile_items):
-        with col:
-            if label == "Пътувания":
-                _px_nav_trip_button("mobile")
-            else:
-                st.markdown(_px_nav_html_item(icon,label,anchor,active==nav_key), unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown("""
-    <script>
-    (() => {
-      const root=window.parent.document;
-      const items=()=>Array.from(root.querySelectorAll('.px-html-nav-item'));
-      const setActive=id=>items().forEach(a=>a.classList.toggle('active',a.dataset.pxNav===id));
-      const sync=()=>{const id=(window.parent.location.hash||'').replace('#',''); if(id)setActive(id);};
-      items().forEach(a=>a.addEventListener('click',()=>setActive(a.dataset.pxNav)));
-      window.parent.addEventListener('hashchange',sync); sync();
-    })();
-    </script>
-    """, unsafe_allow_html=True)
-
-
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
@@ -415,13 +191,10 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
         return False
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
-if "px_nav_target" not in st.session_state: st.session_state["px_nav_target"] = "Пътувания"
-
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
 if st.session_state["current_trip"] is None:
-    px_shell(active="trips")
-    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: 4px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
     
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
@@ -653,10 +426,6 @@ if st.session_state["current_trip"] is None:
 
 else:
     trip_id = st.session_state["current_trip"]
-    active_nav = _px_active_key("home")
-    px_shell(trip_id, active=active_nav)
-    _px_scroll_to_active(active_nav)
-    st.markdown("<div id='px-budget' style='scroll-margin-top:80px;'></div>", unsafe_allow_html=True)
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
@@ -1049,7 +818,6 @@ else:
 
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<div id='px-expenses' style='scroll-margin-top:80px;'></div>", unsafe_allow_html=True)
     st.markdown("### 📊 Анализ на разходите:")
     
     stat_grid = st.columns(2)
@@ -1481,135 +1249,6 @@ else:
     </body>
     </html>"""
 
-    # === ГЕНЕРАТОР НА ЦВЕТЕН PDF С 5-ТЕ ГРАФИКИ ===
-    def build_five_charts_pdf():
-        """Създава A4 PDF с петте показателя от сравнителния панел."""
-        try:
-            df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
-            df_all_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-        except Exception:
-            return None
-
-        all_trips = []
-        try:
-            unique_trips = df_all_data["trip_id"].dropna().unique()
-            for t in unique_trips:
-                if not t or str(t).strip() == "":
-                    continue
-                df_t_data = df_all_data[df_all_data["trip_id"] == t]
-                df_t_sett = df_all_settings[df_all_settings["trip_id"] == t]
-
-                t_dep = float(df_t_data[df_t_data["type"] == "deposit"]["amount"].sum())
-                t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
-                t_total = t_dep + t_site
-
-                # Каноничните категории остават непроменени в данните.
-                t_hotel_only = float(df_t_data[df_t_data["category"] == "Нощувки/Хотел"]["amount"].sum())
-                t_deposit_only = float(df_t_data[df_t_data["category"] == "Депозит/Резервация"]["amount"].sum())
-                t_accommodation_total = t_hotel_only + t_deposit_only
-
-                t_dist, s_k, e_k = 0.0, 0.0, 0.0
-                days_count = 1
-                if not df_t_sett.empty:
-                    s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
-                    e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
-                    st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
-                    en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
-                    max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
-                    eff_e = e_k if e_k > 0 else max_k
-                    t_dist = eff_e - s_k if eff_e > s_k else 0.0
-                    try:
-                        d1 = datetime.datetime.strptime(st_d_str, "%d.%m.%Y")
-                        d2 = datetime.datetime.strptime(en_d_str, "%d.%m.%Y")
-                        days_count = max(1, (d2 - d1).days + 1)
-                    except Exception:
-                        days_count = 1
-
-                all_trips.append({
-                    "Пътуване": str(t).replace("_", " ").upper(),
-                    "Обща Стойност (EUR)": t_total,
-                    "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
-                    "Дневен Разход (EUR)": (t_total / days_count),
-                    "Изминато разстояние (км)": t_dist,
-                    "Нощувки и Хотел (EUR)": t_accommodation_total,
-                })
-        except Exception:
-            return None
-
-        if not all_trips:
-            return None
-
-        df = pd.DataFrame(all_trips)
-        charts = [
-            ("Цена за 1 км", "Цена за 1 км (EUR)", "💰 Цена за 1 км", "EUR/км", True),
-            ("Пари на Ден", "Дневен Разход (EUR)", "📅 Среднодневен разход", "EUR/ден", False),
-            ("Обща Стойност", "Обща Стойност (EUR)", "💸 Обща стойност", "EUR", False),
-            ("Изминати км", "Изминато разстояние (км)", "🚗 Изминато разстояние", "км", False),
-            ("Нощувки и Хотел", "Нощувки и Хотел (EUR)", "🏨 Нощувки и хотел", "EUR", False),
-        ]
-
-        pdf_buffer = io.BytesIO()
-        doc = SimpleDocTemplate(
-            pdf_buffer, pagesize=A4,
-            rightMargin=1.2*cm, leftMargin=1.2*cm,
-            topMargin=1.0*cm, bottomMargin=1.0*cm
-        )
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle("ChartTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=17, leading=21, spaceAfter=8)
-        sub_style = ParagraphStyle("Sub", parent=styles["Normal"], fontName="Helvetica", fontSize=9, textColor="#555555", spaceAfter=8)
-        story = [Paragraph(f"PixelApp – Анализ на 5 показателя", title_style), Paragraph(f"Цветен отчет за {datetime.date.today().strftime('%d.%m.%Y')}", sub_style)]
-
-        for idx, (_, col, title, unit, ascending_good) in enumerate(charts):
-            d = df.copy()
-            if col == "Цена за 1 км (EUR)":
-                d = d[d["Изминато разстояние (км)"] > 0]
-                if d.empty:
-                    d = df.copy()
-            d = d.sort_values(col, ascending=True)
-
-            fig, ax = plt.subplots(figsize=(7.0, 3.35))
-            vals = d[col].astype(float).tolist()
-            names = d["Пътуване"].tolist()
-            if vals:
-                mn, mx = min(vals), max(vals)
-                if mx > mn:
-                    norm = [(v-mn)/(mx-mn) for v in vals]
-                else:
-                    norm = [0.5] * len(vals)
-                colors = [(0.18 + 0.75*n, 0.25 + 0.45*(1-n), 0.30) for n in norm] if col == "Изминато разстояние (км)" else [(0.18 + 0.75*(1-n), 0.25 + 0.45*n, 0.30) for n in norm]
-                bars = ax.barh(names, vals, color=colors)
-                for bar, val in zip(bars, vals):
-                    if "км" in unit and unit != "EUR/км":
-                        label=f"{val:.0f} км"
-                    elif unit == "EUR/км":
-                        label=f"{val:.2f} EUR/км"
-                    elif unit == "EUR/ден":
-                        label=f"{val:.2f} EUR/ден"
-                    else:
-                        label=f"{val:,.2f} EUR"
-                    ax.text(bar.get_width(), bar.get_y()+bar.get_height()/2, "  "+label, va="center", fontsize=8)
-            ax.set_title(title, fontsize=13, fontweight="bold")
-            ax.set_xlabel("")
-            ax.grid(axis="x", alpha=0.18)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-            ax.spines["left"].set_visible(False)
-            ax.tick_params(axis="y", length=0, labelsize=8)
-            ax.tick_params(axis="x", labelsize=7)
-            fig.tight_layout()
-            img_buffer = io.BytesIO()
-            fig.savefig(img_buffer, format="png", dpi=170, bbox_inches="tight")
-            plt.close(fig)
-            img_buffer.seek(0)
-            story.append(RLImage(img_buffer, width=18.2*cm, height=8.3*cm))
-            story.append(Spacer(1, 0.25*cm))
-            if idx == 1 or idx == 3:
-                story.append(PageBreak())
-
-        doc.build(story)
-        pdf_buffer.seek(0)
-        return pdf_buffer.getvalue()
-
     # === ИНТЕГРИРАНА МУЛТИФУНКЦИОНАЛНА ДИАЛОГОВА СИСТЕМА ===
     @st.dialog("💾 Действия с отчети", width="large")
     def download_and_compare_dialog():
@@ -1643,22 +1282,6 @@ else:
             )
             
         st.markdown("<br>", unsafe_allow_html=True)
-
-        # Цветен PDF с всичките 5 графики от сравнителния панел
-        charts_pdf = build_five_charts_pdf()
-        if charts_pdf:
-            st.download_button(
-                label="📈 Свали 5-те графики като цветен PDF",
-                data=charts_pdf,
-                file_name=f"Grafiki_5_pokazately_{trip_id}_2026.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-                key="popup_download_five_charts_pdf_btn"
-            )
-        else:
-            st.warning("Няма достатъчно данни за генериране на PDF с графиките.")
-
-        st.markdown("<br>", unsafe_allow_html=True)
         # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
         if st.button("❌ Затвори", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
             st.rerun()
@@ -1685,7 +1308,6 @@ else:
 
 
 
-    st.markdown("<div id='px-map' style='scroll-margin-top:80px;'></div>", unsafe_allow_html=True)
     st.subheader("🗺️ Карта на спирките и дестинациите:")
     df_points = get_map_points(trip_id)
     
@@ -1836,7 +1458,6 @@ else:
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("---")
     
-    st.markdown("<div id='px-more' style='scroll-margin-top:80px;'></div>", unsafe_allow_html=True)
     if "show_admin_panel" not in st.session_state:
         st.session_state["show_admin_panel"] = False
 
