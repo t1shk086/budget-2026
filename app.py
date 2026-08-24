@@ -4,13 +4,12 @@ import pandas as pd
 from datetime import datetime
 
 # 1. Настройка на страницата
-st.set_page_config(page_title="Pixelapp Travel Manager", page_icon="🚗", layout="centered")
+st.set_page_config(page_title="Pixelapp Travel Manager", page_icon="🐾", layout="centered")
 
-# 2. Инициализация и авто-миграция на базата данни
+# 2. Инициализация на базата данни
 def init_db():
     conn = sqlite3.connect("travel_manager.db")
     c = conn.cursor()
-    
     c.execute("""
         CREATE TABLE IF NOT EXISTS trips (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,7 +19,6 @@ def init_db():
             status TEXT DEFAULT 'Активно'
         )
     """)
-    
     c.execute("""
         CREATE TABLE IF NOT EXISTS expenses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +33,6 @@ def init_db():
         )
     """)
     
-    # Автоматична проверка и добавяне на липсващи колони
     c.execute("PRAGMA table_info(expenses)")
     existing_columns = [column[1] for column in c.fetchall()]
     required_columns = {
@@ -52,7 +49,7 @@ def init_db():
 
 init_db()
 
-# 3. Помощни функции за данни
+# 3. Помощни функции
 def get_active_trips():
     conn = sqlite3.connect("travel_manager.db")
     df = pd.read_sql_query("SELECT id, name FROM trips WHERE status = 'Активно'", conn)
@@ -62,8 +59,7 @@ def get_active_trips():
 def save_trip(name, start_date, start_km):
     conn = sqlite3.connect("travel_manager.db")
     c = conn.cursor()
-    c.execute("INSERT INTO trips (name, start_date, start_km) VALUES (?, ?, ?)",
-              (name, str(start_date), start_km))
+    c.execute("INSERT INTO trips (name, start_date, start_km) VALUES (?, ?, ?)", (name, str(start_date), start_km))
     conn.commit()
     conn.close()
 
@@ -77,57 +73,130 @@ def save_expense(trip_id, amount, description, is_fuel, odometer, liters, full_t
     conn.commit()
     conn.close()
 
-# 4. Стилизиране
+# 4. Модерен CSS стил
 st.markdown("""
     <style>
-    .main-title {
+    /* Основен фон и шрифтове */
+    .stApp {
+        background-color: #0f172a;
+        color: #f8fafc;
+    }
+    
+    /* Шапка с лого и заглавие */
+    .header-container {
         text-align: center;
-        font-size: 2.2rem;
-        font-weight: bold;
-        margin-bottom: 25px;
+        padding: 10px 0 25px 0;
     }
-    .stButton>button {
-        width: 100%;
-        border-radius: 12px;
-        height: 3.5rem;
-        font-size: 1.1rem;
-        font-weight: bold;
+    .app-logo {
+        font-size: 3.5rem;
+        margin-bottom: 5px;
     }
+    .main-title {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 4px;
+    }
+    .sub-title {
+        color: #94a3b8;
+        font-size: 0.95rem;
+        font-weight: 400;
+    }
+
+    /* Модернизиране на основните бутони */
+    div.stButton > button {
+        border-radius: 16px !important;
+        height: 3.8rem !important;
+        font-weight: 700 !important;
+        font-size: 1.05rem !important;
+        transition: all 0.2s ease-in-out !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Главен бутон (+ Бърз разход) */
+    div.stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+        color: white !important;
+    }
+    div.stButton > button[kind="primary"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    }
+    
+    /* Вторичен бутон (Ново пътуване) */
+    div.stButton > button[kind="secondary"] {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+        border: 1px solid #334155 !important;
+    }
+    div.stButton > button[kind="secondary"]:hover {
+        background-color: #334155 !important;
+        transform: translateY(-2px);
+    }
+
+    /* Карти със статистика */
+    .metric-card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 16px;
+        padding: 16px;
+        text-align: center;
+        margin-bottom: 12px;
+    }
+    .metric-label {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .metric-value {
+        color: #f8fafc;
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+
+    /* Скриване на излишните елементи на Streamlit */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
-# 5. ИЗСКАЧАЩИ ПРОЗОРЦИ (MODALS)
-
-@st.dialog("✈️ Започване на ново пътуване")
+# 5. ИЗСКАЧАЩИ ПРОЗОРЦИ
+@st.dialog("✈️ Ново пътуване")
 def open_trip_dialog():
     with st.form("dialog_trip_form", clear_on_submit=True):
-        trip_name = st.text_input("Име на пътуването / Дестинация", placeholder="напр. София - Бургас")
+        trip_name = st.text_input("Дестинация / Име", placeholder="напр. София - Бургас")
         col1, col2 = st.columns(2)
         with col1:
-            trip_date = st.date_input("Дата на тръгване", datetime.today())
+            trip_date = st.date_input("Дата", datetime.today())
         with col2:
             start_km = st.number_input("Начален километраж", min_value=0.0, step=1.0)
             
-        submit = st.form_submit_button("Запази пътуването", type="primary")
+        submit = st.form_submit_button("Запази", type="primary")
         if submit:
             if not trip_name.strip():
-                st.error("Моля, въведете име на пътуването.")
+                st.error("Моля, въведете име.")
             else:
                 save_trip(trip_name, trip_date, start_km)
-                st.success(f"Пътуването '{trip_name}' е започнато!")
+                st.success("Пътуването е добавено!")
                 st.rerun()
 
-@st.dialog("➕ Бързо въвеждане на разход")
+@st.dialog("➕ Добави разход")
 def open_expense_dialog():
     trips_df = get_active_trips()
     trip_options = {"Общ разход (без пътуване)": None}
     for _, row in trips_df.iterrows():
         trip_options[row["name"]] = row["id"]
         
-    selected_trip_name = st.selectbox("Към кое пътуване е разходът?", list(trip_options.keys()))
+    selected_trip_name = st.selectbox("Към кое пътуване?", list(trip_options.keys()))
     selected_trip_id = trip_options[selected_trip_name]
     
-    description = st.text_input("Описание", placeholder="напр. Бензин Shell, Сандвичи, Тол такса")
+    description = st.text_input("Описание", placeholder="напр. Бензин Shell, Кафе, Тол такса")
     amount = st.number_input("Сума (лв.)", min_value=0.0, step=0.1, format="%.2f")
     
     fuel_keywords = ["газ", "гориво", "зареждане", "бензин", "дизел", "shell", "omv", "lukoil", "rompetrol"]
@@ -138,11 +207,11 @@ def open_expense_dialog():
     full_tank = False
     
     if is_fuel:
-        st.info("⛽ Автоматично засечено зареждане на гориво:")
+        st.info("⛽ Данни за зареждането:")
         col1, col2 = st.columns(2)
         with col1:
-            odometer = st.number_input("Текущ километраж", min_value=0.0, step=1.0)
-            liters = st.number_input("Заредени литри", min_value=0.0, step=0.1)
+            odometer = st.number_input("Километраж", min_value=0.0, step=1.0)
+            liters = st.number_input("Литри", min_value=0.0, step=0.1)
         with col2:
             full_tank = st.checkbox("Зареждане до горе?")
 
@@ -151,47 +220,74 @@ def open_expense_dialog():
             st.error("Моля, въведете сума.")
         else:
             save_expense(selected_trip_id, amount, description, is_fuel, odometer, liters, full_tank)
-            st.success("Разходът е записан!")
+            st.success("Записано!")
             st.rerun()
 
-# 6. НАЧАЛЕН ЕКРАН (ОЛИТЕКСТИРАН И ИЗЧИСТЕН)
-st.markdown("<div class='main-title'>🚗 Pixelapp Travel Manager</div>", unsafe_allow_html=True)
+# 6. ХЕДЪР
+st.markdown("""
+    <div class='header-container'>
+        <div class='app-logo'>🐶</div>
+        <div class='main-title'>Pixelapp Travel</div>
+        <div class='sub-title'>Пробег & Разходи за пътуване</div>
+    </div>
+""", unsafe_allow_html=True)
 
+# 7. ОСНОВНИ БУТОНИ
 col_b1, col_b2 = st.columns(2)
 with col_b1:
     if st.button("➕ Бърз разход", type="primary"):
         open_expense_dialog()
 
 with col_b2:
-    if st.button("✈️ Ново пътуване"):
+    if st.button("✈️ Ново пътуване", type="secondary"):
         open_trip_dialog()
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
-# 7. ТАБЛО С ДАННИ
-st.subheader("📊 Преглед")
-tab1, tab2 = st.tabs(["✈️ Активни пътувания", "💸 Всички разходи"])
-
+# 8. БЪРЗА СТАТИСТИКА И ДАННИ
 conn = sqlite3.connect("travel_manager.db")
 
-with tab1:
-    trips_data = pd.read_sql_query("SELECT id AS ID, name AS Име, start_date AS Дата, start_km AS 'Нач. KM' FROM trips WHERE status='Активно'", conn)
-    if not trips_data.empty:
-        st.dataframe(trips_data, use_container_width=True)
-    else:
-        st.info("Няма активни пътувания в момента.")
+expenses_df = pd.read_sql_query("SELECT amount, liters FROM expenses", conn)
+total_sum = expenses_df["amount"].sum() if not expenses_df.empty else 0.0
+total_liters = expenses_df["liters"].sum() if not expenses_df.empty else 0.0
 
-with tab2:
+m1, m2 = st.columns(2)
+with m1:
+    st.markdown(f"""
+        <div class='metric-card'>
+            <div class='metric-label'>Общо изхарчени</div>
+            <div class='metric-value'>{total_sum:.2f} лв.</div>
+        </div>
+    """, unsafe_allow_html=True)
+with m2:
+    st.markdown(f"""
+        <div class='metric-card'>
+            <div class='metric-label'>Заредено гориво</div>
+            <div class='metric-value'>{total_liters:.1f} L</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+# 9. ТАБЛИЦИ С ИСТОРИЯ
+tab1, tab2 = st.tabs(["📋 Всички разходи", "✈️ Активни пътувания"])
+
+with tab1:
     expenses_data = pd.read_sql_query("""
         SELECT e.date AS Дата, COALESCE(t.name, 'Общ разход') AS Пътуване, e.description AS Описание, 
-               e.amount AS Сума, e.liters AS Литри, e.odometer AS Километраж
+               e.amount AS 'Сума (лв.)', e.liters AS Литри
         FROM expenses e
         LEFT JOIN trips t ON e.trip_id = t.id
         ORDER BY e.id DESC
     """, conn)
     if not expenses_data.empty:
-        st.dataframe(expenses_data, use_container_width=True)
+        st.dataframe(expenses_data, use_container_width=True, hide_index=True)
     else:
         st.info("Все още няма записани разходи.")
+
+with tab2:
+    trips_data = pd.read_sql_query("SELECT name AS Име, start_date AS Дата, start_km AS 'Нач. KM' FROM trips WHERE status='Активно'", conn)
+    if not trips_data.empty:
+        st.dataframe(trips_data, use_container_width=True, hide_index=True)
+    else:
+        st.info("Няма активни пътувания.")
 
 conn.close()
