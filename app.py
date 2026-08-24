@@ -7,8 +7,12 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import io
+from reportlab.platypus import SimpleDocTemplate, Image as RLImage, Spacer, Paragraph, PageBreak
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
 
-st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
 <style>
@@ -57,6 +61,46 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
+# ============================================================
+# STAGE 1 — RESPONSIVE PIXELAPP SHELL
+# Запазва съществуващата логика/данни и добавя само визуалната рамка.
+# ============================================================
+PX_STAGE1_CSS = r"""
+<style>
+:root { --px-bg:#050b12; --px-panel:#08131e; --px-border:rgba(82,173,255,.20); --px-blue:#4facfe; --px-muted:#8fa3b8; }
+html,body,[data-testid="stAppViewContainer"]{background:radial-gradient(circle at 50% -10%,#0d2740 0,#06101a 34%,#03080d 100%) !important;}
+[data-testid="stHeader"]{background:transparent !important;}
+[data-testid="stAppViewContainer"] > .main{padding-top:0 !important;}
+.block-container{max-width:1500px !important;padding:1.1rem 1.25rem 5.5rem 1.25rem !important;}
+.px-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(5,15,24,.88);border:1px solid rgba(82,173,255,.18);border-radius:16px;padding:12px 16px;margin:0 0 14px 0;backdrop-filter:blur(12px);}
+.px-brand{display:flex;align-items:center;gap:9px;color:#fff;font-weight:800;font-size:18px;}.px-brand-mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,#176bd0,#0b2d5c);border:1px solid rgba(79,172,254,.55);font-size:18px;}.px-sub{color:var(--px-muted);font-size:12px;margin-top:2px;}
+.px-trip-pill{color:#eaf6ff;font-weight:700;font-size:14px;text-align:right;}.px-trip-pill small{display:block;color:var(--px-muted);font-weight:500;margin-top:2px;}
+.px-desktop-nav{position:fixed;left:12px;top:86px;width:178px;z-index:9990;padding:12px;background:rgba(5,15,24,.92);border:1px solid rgba(82,173,255,.20);border-radius:18px;box-shadow:0 16px 45px rgba(0,0,0,.42);backdrop-filter:blur(14px);}.px-nav-title{font-weight:800;color:#eaf6ff;margin:0 0 9px 4px;font-size:13px;}
+.px-nav a{display:flex;align-items:center;gap:10px;text-decoration:none;color:#aebed0;padding:10px 11px;border-radius:11px;margin:4px 0;font-size:13px;font-weight:650;border:1px solid transparent;}.px-nav a:hover,.px-nav a.active{color:#fff;background:linear-gradient(90deg,rgba(26,117,216,.55),rgba(25,77,135,.25));border-color:rgba(79,172,254,.35);}.px-nav-ico{width:20px;text-align:center;font-size:15px;}
+.px-mobile-nav{display:none;}
+@media (min-width:901px){.block-container{padding-left:215px !important;}}
+@media (max-width:900px){
+.block-container{max-width:100% !important;padding:.65rem .55rem 6.4rem .55rem !important;}
+.px-desktop-nav{display:none !important;}.px-topbar{border-radius:13px;padding:9px 11px;margin-bottom:10px;}.px-brand{font-size:15px;}.px-brand-mark{width:30px;height:30px;border-radius:9px;font-size:16px;}.px-trip-pill{font-size:12px;}.px-trip-pill small{font-size:10px;}
+.px-mobile-nav{display:flex;position:fixed;left:6px;right:6px;bottom:7px;height:61px;z-index:9999;align-items:center;justify-content:space-around;background:rgba(5,14,23,.96);border:1px solid rgba(82,173,255,.22);border-radius:17px;box-shadow:0 12px 35px rgba(0,0,0,.58);backdrop-filter:blur(18px);}
+.px-mobile-nav a{height:51px;min-width:48px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;color:#8fa3b8;font-size:9px;font-weight:650;border-radius:13px;margin:4px;}.px-mobile-nav a:hover,.px-mobile-nav a.active{color:#fff;background:linear-gradient(180deg,rgba(30,126,232,.48),rgba(18,65,116,.22));}.px-mobile-nav .ico{font-size:18px;line-height:18px;}
+button[data-testid="stBaseButton-secondary"],button[data-testid="stBaseButton-primary"]{min-height:44px !important;border-radius:12px !important;}input,textarea{font-size:16px !important;}
+}
+</style>
+"""
+st.markdown(PX_STAGE1_CSS, unsafe_allow_html=True)
+
+def px_shell(trip_id=None, active="home"):
+    if trip_id:
+        clean_trip = str(trip_id).replace("_", " ")
+        topbar = f"""<div class="px-topbar"><div class="px-brand"><span class="px-brand-mark">🐾</span><div><div>PixelApp</div><div class="px-sub">Travel Manager</div></div></div><div class="px-trip-pill">🌴 {clean_trip}<small>Активно пътуване</small></div></div>"""
+        nav = f"""<div class="px-desktop-nav"><div class="px-nav-title">PixelApp</div><div class="px-nav"><a class="{'active' if active=='home' else ''}" href="#px-budget"><span class="px-nav-ico">⌂</span>Начало</a><a href="?home=1"><span class="px-nav-ico">🧳</span>Пътувания</a><a class="{'active' if active=='expenses' else ''}" href="#px-expenses"><span class="px-nav-ico">▣</span>Разходи</a><a class="{'active' if active=='map' else ''}" href="#px-map"><span class="px-nav-ico">⌖</span>Карта</a><a class="{'active' if active=='more' else ''}" href="#px-more"><span class="px-nav-ico">•••</span>Още</a></div></div>"""
+        mobile = """<div class="px-mobile-nav"><a href="#px-budget" class="active"><span class="ico">⌂</span>Начало</a><a href="?home=1"><span class="ico">🧳</span>Пътувания</a><a href="#px-expenses"><span class="ico">▣</span>Разходи</a><a href="#px-map"><span class="ico">⌖</span>Карта</a><a href="#px-more"><span class="ico">•••</span>Още</a></div>"""
+        st.markdown(topbar + nav + mobile, unsafe_allow_html=True)
+    else:
+        st.markdown("""<div class="px-topbar"><div class="px-brand"><span class="px-brand-mark">🐾</span><div><div>PixelApp</div><div class="px-sub">Travel Manager</div></div></div><div class="px-trip-pill">Вашите пътувания<small>Бюджет • Разходи • Анализи</small></div></div>""", unsafe_allow_html=True)
+
+
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
@@ -193,8 +237,16 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
+try:
+    if st.query_params.get("home") == "1":
+        st.session_state["current_trip"] = None
+        st.query_params.clear()
+except Exception:
+    pass
+
 if st.session_state["current_trip"] is None:
-    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
+    px_shell(active="trips")
+    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: 4px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
     
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
@@ -426,6 +478,8 @@ if st.session_state["current_trip"] is None:
 
 else:
     trip_id = st.session_state["current_trip"]
+    px_shell(trip_id, active="home")
+    st.markdown("<div id='px-budget' style='scroll-margin-top:80px;'></div>", unsafe_allow_html=True)
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
@@ -818,6 +872,7 @@ else:
 
 
     st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div id='px-expenses' style='scroll-margin-top:80px;'></div>", unsafe_allow_html=True)
     st.markdown("### 📊 Анализ на разходите:")
     
     stat_grid = st.columns(2)
@@ -1249,6 +1304,135 @@ else:
     </body>
     </html>"""
 
+    # === ГЕНЕРАТОР НА ЦВЕТЕН PDF С 5-ТЕ ГРАФИКИ ===
+    def build_five_charts_pdf():
+        """Създава A4 PDF с петте показателя от сравнителния панел."""
+        try:
+            df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
+            df_all_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        except Exception:
+            return None
+
+        all_trips = []
+        try:
+            unique_trips = df_all_data["trip_id"].dropna().unique()
+            for t in unique_trips:
+                if not t or str(t).strip() == "":
+                    continue
+                df_t_data = df_all_data[df_all_data["trip_id"] == t]
+                df_t_sett = df_all_settings[df_all_settings["trip_id"] == t]
+
+                t_dep = float(df_t_data[df_t_data["type"] == "deposit"]["amount"].sum())
+                t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
+                t_total = t_dep + t_site
+
+                # Каноничните категории остават непроменени в данните.
+                t_hotel_only = float(df_t_data[df_t_data["category"] == "Нощувки/Хотел"]["amount"].sum())
+                t_deposit_only = float(df_t_data[df_t_data["category"] == "Депозит/Резервация"]["amount"].sum())
+                t_accommodation_total = t_hotel_only + t_deposit_only
+
+                t_dist, s_k, e_k = 0.0, 0.0, 0.0
+                days_count = 1
+                if not df_t_sett.empty:
+                    s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
+                    e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
+                    st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
+                    en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
+                    max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
+                    eff_e = e_k if e_k > 0 else max_k
+                    t_dist = eff_e - s_k if eff_e > s_k else 0.0
+                    try:
+                        d1 = datetime.datetime.strptime(st_d_str, "%d.%m.%Y")
+                        d2 = datetime.datetime.strptime(en_d_str, "%d.%m.%Y")
+                        days_count = max(1, (d2 - d1).days + 1)
+                    except Exception:
+                        days_count = 1
+
+                all_trips.append({
+                    "Пътуване": str(t).replace("_", " ").upper(),
+                    "Обща Стойност (EUR)": t_total,
+                    "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
+                    "Дневен Разход (EUR)": (t_total / days_count),
+                    "Изминато разстояние (км)": t_dist,
+                    "Нощувки и Хотел (EUR)": t_accommodation_total,
+                })
+        except Exception:
+            return None
+
+        if not all_trips:
+            return None
+
+        df = pd.DataFrame(all_trips)
+        charts = [
+            ("Цена за 1 км", "Цена за 1 км (EUR)", "💰 Цена за 1 км", "EUR/км", True),
+            ("Пари на Ден", "Дневен Разход (EUR)", "📅 Среднодневен разход", "EUR/ден", False),
+            ("Обща Стойност", "Обща Стойност (EUR)", "💸 Обща стойност", "EUR", False),
+            ("Изминати км", "Изминато разстояние (км)", "🚗 Изминато разстояние", "км", False),
+            ("Нощувки и Хотел", "Нощувки и Хотел (EUR)", "🏨 Нощувки и хотел", "EUR", False),
+        ]
+
+        pdf_buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            pdf_buffer, pagesize=A4,
+            rightMargin=1.2*cm, leftMargin=1.2*cm,
+            topMargin=1.0*cm, bottomMargin=1.0*cm
+        )
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle("ChartTitle", parent=styles["Heading1"], fontName="Helvetica-Bold", fontSize=17, leading=21, spaceAfter=8)
+        sub_style = ParagraphStyle("Sub", parent=styles["Normal"], fontName="Helvetica", fontSize=9, textColor="#555555", spaceAfter=8)
+        story = [Paragraph(f"PixelApp – Анализ на 5 показателя", title_style), Paragraph(f"Цветен отчет за {datetime.date.today().strftime('%d.%m.%Y')}", sub_style)]
+
+        for idx, (_, col, title, unit, ascending_good) in enumerate(charts):
+            d = df.copy()
+            if col == "Цена за 1 км (EUR)":
+                d = d[d["Изминато разстояние (км)"] > 0]
+                if d.empty:
+                    d = df.copy()
+            d = d.sort_values(col, ascending=True)
+
+            fig, ax = plt.subplots(figsize=(7.0, 3.35))
+            vals = d[col].astype(float).tolist()
+            names = d["Пътуване"].tolist()
+            if vals:
+                mn, mx = min(vals), max(vals)
+                if mx > mn:
+                    norm = [(v-mn)/(mx-mn) for v in vals]
+                else:
+                    norm = [0.5] * len(vals)
+                colors = [(0.18 + 0.75*n, 0.25 + 0.45*(1-n), 0.30) for n in norm] if col == "Изминато разстояние (км)" else [(0.18 + 0.75*(1-n), 0.25 + 0.45*n, 0.30) for n in norm]
+                bars = ax.barh(names, vals, color=colors)
+                for bar, val in zip(bars, vals):
+                    if "км" in unit and unit != "EUR/км":
+                        label=f"{val:.0f} км"
+                    elif unit == "EUR/км":
+                        label=f"{val:.2f} EUR/км"
+                    elif unit == "EUR/ден":
+                        label=f"{val:.2f} EUR/ден"
+                    else:
+                        label=f"{val:,.2f} EUR"
+                    ax.text(bar.get_width(), bar.get_y()+bar.get_height()/2, "  "+label, va="center", fontsize=8)
+            ax.set_title(title, fontsize=13, fontweight="bold")
+            ax.set_xlabel("")
+            ax.grid(axis="x", alpha=0.18)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.spines["left"].set_visible(False)
+            ax.tick_params(axis="y", length=0, labelsize=8)
+            ax.tick_params(axis="x", labelsize=7)
+            fig.tight_layout()
+            img_buffer = io.BytesIO()
+            fig.savefig(img_buffer, format="png", dpi=170, bbox_inches="tight")
+            plt.close(fig)
+            img_buffer.seek(0)
+            story.append(RLImage(img_buffer, width=18.2*cm, height=8.3*cm))
+            story.append(Spacer(1, 0.25*cm))
+            if idx == 1 or idx == 3:
+                story.append(PageBreak())
+
+        doc.build(story)
+        pdf_buffer.seek(0)
+        return pdf_buffer.getvalue()
+
     # === ИНТЕГРИРАНА МУЛТИФУНКЦИОНАЛНА ДИАЛОГОВА СИСТЕМА ===
     @st.dialog("💾 Действия с отчети", width="large")
     def download_and_compare_dialog():
@@ -1282,6 +1466,22 @@ else:
             )
             
         st.markdown("<br>", unsafe_allow_html=True)
+
+        # Цветен PDF с всичките 5 графики от сравнителния панел
+        charts_pdf = build_five_charts_pdf()
+        if charts_pdf:
+            st.download_button(
+                label="📈 Свали 5-те графики като цветен PDF",
+                data=charts_pdf,
+                file_name=f"Grafiki_5_pokazately_{trip_id}_2026.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="popup_download_five_charts_pdf_btn"
+            )
+        else:
+            st.warning("Няма достатъчно данни за генериране на PDF с графиките.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
         # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
         if st.button("❌ Затвори", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
             st.rerun()
@@ -1308,6 +1508,7 @@ else:
 
 
 
+    st.markdown("<div id='px-map' style='scroll-margin-top:80px;'></div>", unsafe_allow_html=True)
     st.subheader("🗺️ Карта на спирките и дестинациите:")
     df_points = get_map_points(trip_id)
     
@@ -1458,6 +1659,7 @@ else:
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("---")
     
+    st.markdown("<div id='px-more' style='scroll-margin-top:80px;'></div>", unsafe_allow_html=True)
     if "show_admin_panel" not in st.session_state:
         st.session_state["show_admin_panel"] = False
 
