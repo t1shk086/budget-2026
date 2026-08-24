@@ -2,11 +2,12 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
+import plotly.express as px
 
 # 1. Настройка на страницата
 st.set_page_config(page_title="Pixelapp Travel Manager", page_icon="🐾", layout="centered")
 
-# 2. Инициализация на базата данни
+# 2. Инициализация и миграция на базата данни
 def init_db():
     conn = sqlite3.connect("travel_manager.db")
     c = conn.cursor()
@@ -23,6 +24,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS expenses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             trip_id INTEGER,
+            category TEXT DEFAULT 'Други',
             amount REAL,
             description TEXT,
             is_fuel INTEGER,
@@ -33,21 +35,24 @@ def init_db():
         )
     """)
     
+    # Миграция: Проверка и добавяне на колона 'category', ако липсва
     c.execute("PRAGMA table_info(expenses)")
-    existing_columns = [column[1] for column in c.fetchall()]
-    required_columns = {
-        "trip_id": "INTEGER", "amount": "REAL", "description": "TEXT",
-        "is_fuel": "INTEGER", "odometer": "REAL", "liters": "REAL",
-        "full_tank": "INTEGER", "date": "TEXT"
-    }
-    for col_name, col_type in required_columns.items():
-        if col_name not in existing_columns:
-            c.execute(f"ALTER TABLE expenses ADD COLUMN {col_name} {col_type}")
+    columns = [column[1] for column in c.fetchall()]
+    if "category" not in columns:
+        c.execute("ALTER TABLE expenses ADD COLUMN category TEXT DEFAULT 'Други'")
             
     conn.commit()
     conn.close()
 
 init_db()
+
+CATEGORIES = [
+    "⛽ Гориво",
+    "🍔 Храна & Напитки",
+    "🅿️ Тол такси & Паркинг",
+    "🔧 Поддръжка & Части",
+    "📦 Други"
+]
 
 # 3. Помощни функции
 def get_active_trips():
@@ -63,17 +68,17 @@ def save_trip(name, start_date, start_km):
     conn.commit()
     conn.close()
 
-def save_expense(trip_id, amount, description, is_fuel, odometer, liters, full_tank):
+def save_expense(trip_id, category, amount, description, is_fuel, odometer, liters, full_tank):
     conn = sqlite3.connect("travel_manager.db")
     c = conn.cursor()
     c.execute("""
-        INSERT INTO expenses (trip_id, amount, description, is_fuel, odometer, liters, full_tank, date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (trip_id, amount, description, int(is_fuel), odometer, liters, int(full_tank), datetime.now().strftime("%Y-%m-%d %H:%M")))
+        INSERT INTO expenses (trip_id, category, amount, description, is_fuel, odometer, liters, full_tank, date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (trip_id, category, amount, description, int(is_fuel), odometer, liters, int(full_tank), datetime.now().strftime("%Y-%m-%d %H:%M")))
     conn.commit()
     conn.close()
 
-# 4. Модерен CSS стил
+# 4. CSS Стилизиране
 st.markdown("""
     <style>
     .stApp {
@@ -121,7 +126,6 @@ st.markdown("""
         transform: translateY(-2px);
     }
     
-    /* Централен бутон (+ Бърз разход) */
     div.stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
         color: white !important;
@@ -188,11 +192,11 @@ def open_expense_dialog():
     selected_trip_name = st.selectbox("Към кое пътуване?", list(trip_options.keys()))
     selected_trip_id = trip_options[selected_trip_name]
     
-    description = st.text_input("Описание", placeholder="напр. Бензин Shell, Кафе, Тол такса")
+    category = st.selectbox("Категория", CATEGORIES)
+    description = st.text_input("Описание", placeholder="напр. Shell, Кафе, Винетка")
     amount = st.number_input("Сума (лв.)", min_value=0.0, step=0.1, format="%.2f")
     
-    fuel_keywords = ["газ", "гориво", "зареждане", "бензин", "дизел", "shell", "omv", "lukoil", "rompetrol"]
-    is_fuel = any(keyword in description.lower() for keyword in fuel_keywords)
+    is_fuel = (category == "⛽ Гориво")
     
     odometer = 0.0
     liters = 0.0
@@ -211,7 +215,7 @@ def open_expense_dialog():
         if amount <= 0:
             st.error("Моля, въведете сума.")
         else:
-            save_expense(selected_trip_id, amount, description, is_fuel, odometer, liters, full_tank)
+            save_expense(selected_trip_id, category, amount, description, is_fuel, odometer, liters, full_tank)
             st.success("Записано!")
             st.rerun()
 
@@ -224,7 +228,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 7. НАВИГАЦИЯ С ТРИ БУТОНА (Начало | + Бърз разход | Ново пътуване)
+# 7. НАВИГАЦИЯ С ТРИ БУТОНА
 col_nav1, col_nav2, col_nav3 = st.columns([1, 1.2, 1])
 
 with col_nav1:
@@ -264,13 +268,34 @@ with m2:
         </div>
     """, unsafe_allow_html=True)
 
-# 9. ТАБЛИЦИ С ИСТОРИЯ
-tab1, tab2 = st.tabs(["📋 Всички разходи", "✈️ Активни пътувания"])
+# 9. ТАБЛИЦИ И ДИАГРАМИ
+tab1, tab2, tab3 = st.tabs(["📊 Сравнение", "📋 Всички разходи", "✈️ Пътувания"])
 
 with tab1:
+    cat_df = pd.read_sql_query("SELECT category AS Категория, SUM(amount) AS Сума FROM expenses GROUP BY category", conn)
+    if not cat_df.empty and cat_df["Сума"].sum() > 0:
+        fig = px.pie(
+            cat_df, 
+            values="Сума", 
+            names="Категория", 
+            hole=0.4,
+            color_discrete_sequence=px.colors.qualitative.Pastel
+        )
+        fig.update_layout(
+            margin=dict(t=10, b=10, l=10, r=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#f8fafc"),
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("Няма данни за показване на диаграма.")
+
+with tab2:
     expenses_data = pd.read_sql_query("""
-        SELECT e.date AS Дата, COALESCE(t.name, 'Общ разход') AS Пътуване, e.description AS Описание, 
-               e.amount AS 'Сума (лв.)', e.liters AS Литри
+        SELECT e.date AS Дата, e.category AS Категория, COALESCE(t.name, 'Общ разход') AS Пътуване, 
+               e.description AS Описание, e.amount AS 'Сума (лв.)', e.liters AS Литри
         FROM expenses e
         LEFT JOIN trips t ON e.trip_id = t.id
         ORDER BY e.id DESC
@@ -280,7 +305,7 @@ with tab1:
     else:
         st.info("Все още няма записани разходи.")
 
-with tab2:
+with tab3:
     trips_data = pd.read_sql_query("SELECT name AS Име, start_date AS Дата, start_km AS 'Нач. KM' FROM trips WHERE status='Активно'", conn)
     if not trips_data.empty:
         st.dataframe(trips_data, use_container_width=True, hide_index=True)
