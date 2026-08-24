@@ -37,6 +37,8 @@ def load_trips():
                 expense["date"] = date.fromisoformat(expense["date"])
                 expense["is_fuel"] = expense.get("is_fuel", False)
                 expense["fuel_liters"] = expense.get("fuel_liters", 0.0)
+                expense["fuel_odometer"] = expense.get("fuel_odometer", 0.0)
+                expense["fuel_full_tank"] = expense.get("fuel_full_tank", False)
 
         return raw
 
@@ -61,7 +63,9 @@ def save_trips():
                     "date": expense["date"].isoformat(),
                     "note": expense["note"],
                     "is_fuel": expense.get("is_fuel", False),
-                    "fuel_liters": expense.get("fuel_liters", 0.0)
+                    "fuel_liters": expense.get("fuel_liters", 0.0),
+                    "fuel_odometer": expense.get("fuel_odometer", 0.0),
+                    "fuel_full_tank": expense.get("fuel_full_tank", False)
                 }
                 for expense in trip["expenses"]
             ]
@@ -737,6 +741,8 @@ elif st.session_state.page == "add_expense":
         fuel_expense = is_fuel_expense(note)
 
         fuel_liters = 0.0
+        fuel_odometer = 0.0
+        fuel_full_tank = False
 
         if fuel_expense:
 
@@ -750,6 +756,20 @@ elif st.session_state.page == "add_expense":
                 step=0.1,
                 format="%.2f",
                 key="fuel_liters"
+            )
+
+            fuel_odometer = st.number_input(
+                "Километраж при зареждане",
+                min_value=0.0,
+                step=1.0,
+                format="%.0f",
+                key="fuel_odometer"
+            )
+
+            fuel_full_tank = st.checkbox(
+                "Пълен резервоар",
+                value=True,
+                key="fuel_full_tank"
             )
 
         st.write("")
@@ -778,7 +798,9 @@ elif st.session_state.page == "add_expense":
                         "date": expense_date,
                         "note": note,
                         "is_fuel": fuel_expense,
-                        "fuel_liters": fuel_liters if fuel_expense else 0.0
+                        "fuel_liters": fuel_liters if fuel_expense else 0.0,
+                        "fuel_odometer": fuel_odometer if fuel_expense else 0.0,
+                        "fuel_full_tank": fuel_full_tank if fuel_expense else False
                     }
                 )
 
@@ -957,6 +979,31 @@ elif st.session_state.page == "trip":
 
         st.subheader("⛽ Гориво")
 
+        full_tank_records = [
+            expense
+            for expense in fuel_expenses
+            if expense.get("fuel_full_tank", False)
+            and expense.get("fuel_odometer", 0.0) > 0
+            and expense.get("fuel_liters", 0.0) > 0
+        ]
+
+        consumption = None
+
+        if len(full_tank_records) >= 2:
+
+            first = full_tank_records[-2]
+            last = full_tank_records[-1]
+
+            km = (
+                last["fuel_odometer"]
+                - first["fuel_odometer"]
+            )
+
+            liters = last["fuel_liters"]
+
+            if km > 0 and liters > 0:
+                consumption = liters / km * 100
+
         fc1, fc2, fc3 = st.columns(3)
 
         with fc1:
@@ -975,6 +1022,12 @@ elif st.session_state.page == "trip":
             st.metric(
                 "Разход за гориво",
                 f"€{total_fuel_cost:.2f}"
+            )
+
+        if consumption is not None:
+            st.metric(
+                "Среден разход",
+                f"{consumption:.2f} л/100 км"
             )
 
     st.subheader("Разходи")
@@ -1017,14 +1070,23 @@ elif st.session_state.page == "trip":
 
                         liters = expense.get("fuel_liters", 0.0)
 
-                        st.caption(
+                        odometer = expense.get("fuel_odometer", 0.0)
+
+                        fuel_caption = (
                             f"⛽ {liters:.2f} л"
                             + (
                                 f" · €{expense['amount'] / liters:.2f}/л"
                                 if liters > 0
                                 else ""
                             )
+                            + (
+                                f" · {odometer:.0f} км"
+                                if odometer > 0
+                                else ""
+                            )
                         )
+
+                        st.caption(fuel_caption)
 
                     st.caption(
                         expense["date"].strftime(
