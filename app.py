@@ -1,5 +1,7 @@
 import streamlit as st
 from datetime import date
+import json
+from pathlib import Path
 
 
 # =========================================================
@@ -17,8 +19,62 @@ st.set_page_config(
 # SESSION STATE
 # =========================================================
 
+DATA_FILE = Path("trips.json")
+
+
+def load_trips():
+    if not DATA_FILE.exists():
+        return {}
+
+    try:
+        raw = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+
+        for trip in raw.values():
+            trip["start_date"] = date.fromisoformat(trip["start_date"])
+            trip["end_date"] = date.fromisoformat(trip["end_date"])
+
+            for expense in trip.get("expenses", []):
+                expense["date"] = date.fromisoformat(expense["date"])
+
+        return raw
+
+    except (json.JSONDecodeError, OSError, ValueError):
+        return {}
+
+
+def save_trips():
+    serializable = {}
+
+    for trip_id, trip in st.session_state.trips.items():
+
+        serializable[trip_id] = {
+            "destination": trip["destination"],
+            "start_date": trip["start_date"].isoformat(),
+            "end_date": trip["end_date"].isoformat(),
+            "budget": trip["budget"],
+            "expenses": [
+                {
+                    "amount": expense["amount"],
+                    "category": expense["category"],
+                    "date": expense["date"].isoformat(),
+                    "note": expense["note"]
+                }
+                for expense in trip["expenses"]
+            ]
+        }
+
+    DATA_FILE.write_text(
+        json.dumps(
+            serializable,
+            ensure_ascii=False,
+            indent=2
+        ),
+        encoding="utf-8"
+    )
+
+
 if "trips" not in st.session_state:
-    st.session_state.trips = {}
+    st.session_state.trips = load_trips()
 
 if "page" not in st.session_state:
     st.session_state.page = "home"
@@ -552,6 +608,8 @@ elif st.session_state.page == "new_trip":
                 "expenses": []
             }
 
+            save_trips()
+
             st.session_state.selected_trip = trip_id
             st.session_state.page = "trip"
 
@@ -683,6 +741,8 @@ elif st.session_state.page == "add_expense":
                         "note": note
                     }
                 )
+
+                save_trips()
 
                 st.session_state.selected_trip = selected_trip
                 st.session_state.expense_trip = None
