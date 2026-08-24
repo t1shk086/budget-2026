@@ -6,7 +6,7 @@ from datetime import datetime
 # Настройка на страницата
 st.set_page_config(page_title="Pixelapp Travel Manager", page_icon="🚗", layout="centered")
 
-# Инициализация и миграция на SQLite база данни
+# Инициализация и пълна миграция на SQLite база данни
 def init_db():
     conn = sqlite3.connect("travel_manager.db")
     c = conn.cursor()
@@ -37,12 +37,25 @@ def init_db():
         )
     """)
     
-    # Автоматична миграция: проверка за trip_id, ако базата данни е от стара версия
+    # Автоматична миграция за всички колони в expenses
     c.execute("PRAGMA table_info(expenses)")
-    columns = [column[1] for column in c.fetchall()]
-    if "trip_id" not in columns:
-        c.execute("ALTER TABLE expenses ADD COLUMN trip_id INTEGER")
-        
+    existing_columns = [column[1] for column in c.fetchall()]
+    
+    required_columns = {
+        "trip_id": "INTEGER",
+        "amount": "REAL",
+        "description": "TEXT",
+        "is_fuel": "INTEGER",
+        "odometer": "REAL",
+        "liters": "REAL",
+        "full_tank": "INTEGER",
+        "date": "TEXT"
+    }
+    
+    for col_name, col_type in required_columns.items():
+        if col_name not in existing_columns:
+            c.execute(f"ALTER TABLE expenses ADD COLUMN {col_name} {col_type}")
+            
     conn.commit()
     conn.close()
 
