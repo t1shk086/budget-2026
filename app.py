@@ -1,7 +1,4 @@
-# Изпълнявам скрипта, за да подготвя файла за вас
-import os
-
-code_content = """import streamlit as st
+import streamlit as st
 import pandas as pd
 import datetime
 import os
@@ -12,7 +9,7 @@ import io
 st.set_page_config(page_title="PixelApp Premium", page_icon="🐾", layout="centered")
 
 # --- ПРЕМИУМ НЕОНОВ ТЪМЕН ДИЗАЙН (CSS) ---
-st.markdown(\"\"\"
+st.markdown("""
 <style>
     html, body, [data-testid="stAppViewContainer"] {
         background: #090b10 !important;
@@ -87,7 +84,7 @@ st.markdown(\"\"\"
         font-weight: 600 !important;
     }
 </style>
-\"\"\", unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # --- ИНТЕЛЕКТУАЛНО ЯДРО И БАЗА ДАННИ ---
 KATEGORII = ["Хотел/Нощувки", "Храна и напитки", "Транспорт", "Куче", "Други"]
@@ -311,45 +308,6 @@ elif st.session_state["current_tab"] == "📊 Разходи":
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# 3. РАЗХОДИ ПО ДНИ (Интерактивна хистограма - Макет 2)
-st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
-st.markdown("#### Разходи по дни (EUR)")
-
-# Групиране на сумите по дати
-df_days = df_trip.groupby("date")["amount"].sum().reset_index()
-
-if not df_days.empty and df_days["amount"].sum() > 0:
-    # Създаване на неон-зелена/неон-синя стълбовидна графика
-    fig_bar = px.bar(
-        df_days, 
-        x="date", 
-        y="amount", 
-        text="amount", 
-        color_discrete_sequence=['#00f2fe']
-    )
-    
-    # Стилизиране на текста над стълбовете и заобляне на ъглите им
-    fig_bar.update_traces(
-        texttemplate='<b>%{text:.1f} €</b>', 
-        textposition='outside', 
-        marker_cornerradius=8,
-        textfont=dict(color="white")
-    )
-    
-    # Изчистване на фона на графиката, за да пасне на тъмния премиум режим
-    fig_bar.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        xaxis=dict(title="", showgrid=False, tickfont=dict(color="#707e94", size=11)),
-        yaxis=dict(title="", showgrid=False, showticklabels=False),
-        margin=dict(l=10, r=10, t=30, b=10),
-        height=220
-    )
-    
-    st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
-else:
-    st.markdown("<p style='color:#707e94; font-size:13px; text-align:center; padding:20px;'>Все още няма регистрирани ежедневни разходи за този трип.</p>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
 # ====================================================================
 # ЕКРАН 3: ИСТОРИЯ, СРАВНЕНИЯ И КЛАСАЦИИ (МАКЕТ 5)
 # ====================================================================
