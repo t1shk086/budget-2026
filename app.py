@@ -6,12 +6,12 @@ from datetime import datetime
 # Настройка на страницата
 st.set_page_config(page_title="Pixelapp Travel Manager", page_icon="🚗", layout="centered")
 
-# Инициализация на SQLite база данни
+# Инициализация и миграция на SQLite база данни
 def init_db():
     conn = sqlite3.connect("travel_manager.db")
     c = conn.cursor()
     
-    # Таблица за пътувания
+    # 1. Създаване на таблица за пътувания
     c.execute("""
         CREATE TABLE IF NOT EXISTS trips (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,7 +22,7 @@ def init_db():
         )
     """)
     
-    # Таблица за разходи
+    # 2. Създаване на таблица за разходи
     c.execute("""
         CREATE TABLE IF NOT EXISTS expenses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,10 +33,16 @@ def init_db():
             odometer REAL,
             liters REAL,
             full_tank INTEGER,
-            date TEXT,
-            FOREIGN KEY(trip_id) REFERENCES trips(id)
+            date TEXT
         )
     """)
+    
+    # Автоматична миграция: проверка за trip_id, ако базата данни е от стара версия
+    c.execute("PRAGMA table_info(expenses)")
+    columns = [column[1] for column in c.fetchall()]
+    if "trip_id" not in columns:
+        c.execute("ALTER TABLE expenses ADD COLUMN trip_id INTEGER")
+        
     conn.commit()
     conn.close()
 
@@ -67,7 +73,7 @@ def save_expense(trip_id, amount, description, is_fuel, odometer, liters, full_t
     conn.commit()
     conn.close()
 
-# CSS стилове (коригирани с unsafe_allow_html)
+# CSS стилове
 st.markdown("""
     <style>
     .main-title {
