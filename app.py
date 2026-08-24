@@ -1290,13 +1290,20 @@ elif st.session_state.page == "trip":
                 """
             )
 
-        st.markdown(
+        category_html = (
             category_css
             + '<div class="tm-cat-grid">'
             + "".join(cards)
-            + "</div>",
-            unsafe_allow_html=True
+            + '</div>'
         )
+
+        try:
+            st.html(category_html)
+        except AttributeError:
+            st.markdown(
+                category_html,
+                unsafe_allow_html=True
+            )
 
         st.divider()
 
