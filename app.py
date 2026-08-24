@@ -3,7 +3,7 @@ from datetime import date
 
 
 # =========================================================
-# PAGE CONFIG
+# CONFIG
 # =========================================================
 
 st.set_page_config(
@@ -26,42 +26,40 @@ if "page" not in st.session_state:
 if "selected_trip" not in st.session_state:
     st.session_state.selected_trip = None
 
+if "expense_trip" not in st.session_state:
+    st.session_state.expense_trip = None
+
 
 # =========================================================
-# HELPER FUNCTIONS
+# DATA
 # =========================================================
 
 def total_expenses():
-    total = 0
-
-    for trip in st.session_state.trips.values():
-        for expense in trip["expenses"]:
-            total += expense["amount"]
-
-    return total
+    return sum(
+        expense["amount"]
+        for trip in st.session_state.trips.values()
+        for expense in trip["expenses"]
+    )
 
 
 def total_budget():
-    total = 0
-
-    for trip in st.session_state.trips.values():
-        total += trip["budget"]
-
-    return total
+    return sum(
+        trip["budget"]
+        for trip in st.session_state.trips.values()
+    )
 
 
 def trip_expenses(trip):
-    total = 0
-
-    for expense in trip["expenses"]:
-        total += expense["amount"]
-
-    return total
+    return sum(
+        expense["amount"]
+        for expense in trip["expenses"]
+    )
 
 
 def go_home():
     st.session_state.page = "home"
     st.session_state.selected_trip = None
+    st.session_state.expense_trip = None
     st.rerun()
 
 
@@ -71,31 +69,193 @@ def open_trip(trip_id):
     st.rerun()
 
 
+def open_add_expense(trip_id=None):
+    st.session_state.expense_trip = trip_id
+    st.session_state.page = "add_expense"
+    st.rerun()
+
+
+# =========================================================
+# CSS
+# =========================================================
+
+st.markdown(
+    """
+    <style>
+
+    /* ------------------------------
+       GLOBAL
+    ------------------------------ */
+
+    .stApp {
+        background: #08111a;
+    }
+
+    .block-container {
+        max-width: 1250px;
+        padding-top: 2rem;
+        padding-bottom: 4rem;
+    }
+
+    /* ------------------------------
+       SIDEBAR
+    ------------------------------ */
+
+    section[data-testid="stSidebar"] {
+        background: #09141f;
+        border-right: 1px solid #1a2a39;
+    }
+
+    section[data-testid="stSidebar"] .block-container {
+        padding-top: 1.5rem;
+    }
+
+    /* ------------------------------
+       BUTTONS
+    ------------------------------ */
+
+    .stButton > button {
+        border-radius: 12px;
+        min-height: 42px;
+        font-weight: 600;
+        border: 1px solid #26394b;
+        background: #101d29;
+        color: #eef5fa;
+    }
+
+    .stButton > button:hover {
+        border-color: #2695ff;
+        color: white;
+        background: #142637;
+    }
+
+    /* ------------------------------
+       METRICS
+    ------------------------------ */
+
+    div[data-testid="stMetric"] {
+        background: #0e1b27;
+        border: 1px solid #1b2d3e;
+        padding: 18px;
+        border-radius: 16px;
+    }
+
+    div[data-testid="stMetricLabel"] {
+        color: #8195a9;
+    }
+
+    div[data-testid="stMetricValue"] {
+        color: #f3f7fb;
+    }
+
+    /* ------------------------------
+       INPUTS
+    ------------------------------ */
+
+    div[data-baseweb="input"] > div,
+    div[data-baseweb="select"] > div {
+        background: #0d1925;
+        border-color: #22374a;
+        border-radius: 10px;
+    }
+
+    /* ------------------------------
+       DIVIDER
+    ------------------------------ */
+
+    hr {
+        border-color: #1a2a39;
+    }
+
+    /* ------------------------------
+       EXPANDER
+    ------------------------------ */
+
+    details {
+        background: #0d1925;
+        border: 1px solid #1b2d3e;
+        border-radius: 14px;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 # =========================================================
 # SIDEBAR
 # =========================================================
 
-st.sidebar.title("✈️ Travel Manager")
+with st.sidebar:
 
-if st.sidebar.button(
-    "Начало",
-    use_container_width=True
-):
-    go_home()
+    st.markdown(
+        "## ✈️ Travel Manager"
+    )
 
-if st.sidebar.button(
-    "Пътувания",
-    use_container_width=True
-):
-    st.session_state.page = "trips"
-    st.rerun()
+    st.caption(
+        "Пътувания и разходи"
+    )
 
-if st.sidebar.button(
-    "Добави разход",
-    use_container_width=True
-):
-    st.session_state.page = "add_expense"
-    st.rerun()
+    st.divider()
+
+    if st.button(
+        "⌂  Начало",
+        use_container_width=True,
+        key="nav_home"
+    ):
+        go_home()
+
+    if st.button(
+        "✈️  Пътувания",
+        use_container_width=True,
+        key="nav_trips"
+    ):
+        st.session_state.page = "trips"
+        st.rerun()
+
+    if st.button(
+        "＋  Добави разход",
+        use_container_width=True,
+        key="nav_expense"
+    ):
+        open_add_expense()
+
+    st.divider()
+
+    st.caption("Планиране")
+
+    if st.button(
+        "📊  Анализи",
+        use_container_width=True,
+        key="nav_analysis"
+    ):
+        st.session_state.page = "analytics"
+        st.rerun()
+
+    if st.button(
+        "🕘  История",
+        use_container_width=True,
+        key="nav_history"
+    ):
+        st.session_state.page = "history"
+        st.rerun()
+
+    if st.button(
+        "⇄  Сравнение",
+        use_container_width=True,
+        key="nav_comparison"
+    ):
+        st.session_state.page = "comparison"
+        st.rerun()
+
+    if st.button(
+        "⚙️  Настройки",
+        use_container_width=True,
+        key="nav_settings"
+    ):
+        st.session_state.page = "settings"
+        st.rerun()
 
 
 # =========================================================
@@ -106,13 +266,11 @@ if st.session_state.page == "home":
 
     st.title("✈️ Travel Manager")
 
-    st.subheader(
-        "Управлявай своите пътувания и разходи"
+    st.caption(
+        "Всичко за твоите пътувания и разходи на едно място."
     )
 
-    st.write(
-        "Добре дошъл в Travel Manager!"
-    )
+    st.write("")
 
     # -----------------------------------------------------
     # DASHBOARD
@@ -122,66 +280,88 @@ if st.session_state.page == "home":
     budget = total_budget()
     remaining = budget - expenses
 
-    col1, col2, col3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
-    with col1:
+    with c1:
         st.metric(
-            "Пътувания",
+            "✈️ Пътувания",
             len(st.session_state.trips)
         )
 
-    with col2:
+    with c2:
         st.metric(
-            "Общо разходи",
+            "💳 Общо разходи",
             f"€{expenses:.2f}"
         )
 
-    with col3:
+    with c3:
         st.metric(
-            "Оставащ бюджет",
+            "💰 Оставащ бюджет",
             f"€{remaining:.2f}"
         )
 
-    st.divider()
+    st.write("")
 
     # -----------------------------------------------------
-    # ACTIONS
+    # QUICK ACTIONS
     # -----------------------------------------------------
 
-    col1, col2 = st.columns(2)
+    st.subheader("Бързи действия")
 
-    with col1:
+    q1, q2 = st.columns(2)
+
+    with q1:
+
+        st.markdown(
+            """
+            ### ➕ Добави разход
+
+            Бързо добавяне на разход
+            към избрано пътуване.
+            """
+        )
 
         if st.button(
-            "➕ Добави разход",
-            use_container_width=True
+            "Добави разход →",
+            use_container_width=True,
+            type="primary",
+            key="quick_add"
         ):
+            open_add_expense()
 
-            st.session_state.page = "add_expense"
-            st.rerun()
+    with q2:
 
-    with col2:
+        st.markdown(
+            """
+            ### ✈️ Ново пътуване
+
+            Създай ново пътуване
+            и задай неговия бюджет.
+            """
+        )
 
         if st.button(
-            "✈️ Ново пътуване",
-            use_container_width=True
+            "Създай пътуване →",
+            use_container_width=True,
+            key="quick_trip"
         ):
-
             st.session_state.page = "new_trip"
             st.rerun()
+
+    st.write("")
+    st.divider()
 
     # -----------------------------------------------------
     # MY TRIPS
     # -----------------------------------------------------
 
-    st.divider()
-
     st.subheader("Моите пътувания")
 
-    if len(st.session_state.trips) == 0:
+    if not st.session_state.trips:
 
         st.info(
-            "Все още нямаш създадени пътувания."
+            "Все още нямаш пътувания. "
+            "Създай първото си пътуване от бутона по-горе."
         )
 
     else:
@@ -189,41 +369,53 @@ if st.session_state.page == "home":
         for trip_id, trip in st.session_state.trips.items():
 
             spent = trip_expenses(trip)
-            remaining_trip = (
-                trip["budget"] - spent
-            )
+            trip_budget = trip["budget"]
+
+            if trip_budget > 0:
+                progress = min(
+                    spent / trip_budget,
+                    1.0
+                )
+            else:
+                progress = 0
 
             with st.container(border=True):
 
-                st.subheader(
-                    f"✈️ {trip['destination']}"
+                c1, c2 = st.columns(
+                    [4, 1]
                 )
 
-                st.write(
-                    f"{trip['start_date'].strftime('%d.%m.%Y')}"
-                    f" – "
-                    f"{trip['end_date'].strftime('%d.%m.%Y')}"
-                )
+                with c1:
 
-                st.write(
-                    f"Похарчено: €{spent:.2f}"
-                )
+                    st.subheader(
+                        f"✈️ {trip['destination']}"
+                    )
 
-                st.write(
-                    f"Бюджет: €{trip['budget']:.2f}"
-                )
+                    st.caption(
+                        f"{trip['start_date'].strftime('%d.%m.%Y')}"
+                        f" – "
+                        f"{trip['end_date'].strftime('%d.%m.%Y')}"
+                    )
 
-                st.write(
-                    f"Остава: €{remaining_trip:.2f}"
-                )
+                    st.progress(
+                        progress
+                    )
 
-                if st.button(
-                    "Отвори пътуването",
-                    key=f"open_{trip_id}",
-                    use_container_width=True
-                ):
+                    st.caption(
+                        f"€{spent:.2f} "
+                        f"от €{trip_budget:.2f}"
+                    )
 
-                    open_trip(trip_id)
+                with c2:
+
+                    st.write("")
+
+                    if st.button(
+                        "Отвори →",
+                        key=f"home_open_{trip_id}",
+                        use_container_width=True
+                    ):
+                        open_trip(trip_id)
 
 
 # =========================================================
@@ -234,8 +426,10 @@ elif st.session_state.page == "new_trip":
 
     st.title("✈️ Ново пътуване")
 
-    if st.button("← Назад"):
-
+    if st.button(
+        "← Назад",
+        key="new_trip_back"
+    ):
         go_home()
 
     st.divider()
@@ -245,16 +439,16 @@ elif st.session_state.page == "new_trip":
         placeholder="Например: Париж"
     )
 
-    col1, col2 = st.columns(2)
+    c1, c2 = st.columns(2)
 
-    with col1:
+    with c1:
 
         start_date = st.date_input(
             "Начална дата",
             value=date.today()
         )
 
-    with col2:
+    with c2:
 
         end_date = st.date_input(
             "Крайна дата",
@@ -267,14 +461,16 @@ elif st.session_state.page == "new_trip":
         step=50.0
     )
 
-    st.divider()
+    st.write("")
 
     if st.button(
         "Създай пътуването",
-        use_container_width=True
+        type="primary",
+        use_container_width=True,
+        key="create_trip"
     ):
 
-        if destination.strip() == "":
+        if not destination.strip():
 
             st.error(
                 "Моля, въведи дестинация."
@@ -284,7 +480,7 @@ elif st.session_state.page == "new_trip":
 
             st.error(
                 "Крайната дата не може да бъде "
-                "преди началната дата."
+                "преди началната."
             )
 
         else:
@@ -296,21 +492,11 @@ elif st.session_state.page == "new_trip":
             )
 
             st.session_state.trips[trip_id] = {
-
-                "destination":
-                    destination.strip(),
-
-                "start_date":
-                    start_date,
-
-                "end_date":
-                    end_date,
-
-                "budget":
-                    budget,
-
-                "expenses":
-                    []
+                "destination": destination.strip(),
+                "start_date": start_date,
+                "end_date": end_date,
+                "budget": budget,
+                "expenses": []
             }
 
             st.session_state.selected_trip = trip_id
@@ -327,20 +513,32 @@ elif st.session_state.page == "add_expense":
 
     st.title("➕ Добави разход")
 
-    if st.button("← Назад"):
+    if st.button(
+        "← Назад",
+        key="expense_back"
+    ):
 
-        go_home()
+        if st.session_state.expense_trip:
+
+            open_trip(
+                st.session_state.expense_trip
+            )
+
+        else:
+
+            go_home()
 
     st.divider()
 
-    if len(st.session_state.trips) == 0:
+    if not st.session_state.trips:
 
         st.warning(
-            "Нямаш създадени пътувания."
+            "Първо трябва да създадеш пътуване."
         )
 
         if st.button(
-            "Създай пътуване"
+            "✈️ Създай пътуване",
+            key="expense_create_trip"
         ):
 
             st.session_state.page = "new_trip"
@@ -352,46 +550,66 @@ elif st.session_state.page == "add_expense":
             st.session_state.trips.keys()
         )
 
+        default_trip = st.session_state.expense_trip
+
+        if default_trip in trip_ids:
+
+            default_index = trip_ids.index(
+                default_trip
+            )
+
+        else:
+
+            default_index = 0
+
         selected_trip = st.selectbox(
             "Към кое пътуване?",
             trip_ids,
+            index=default_index,
             format_func=lambda x:
-                st.session_state.trips[x]["destination"]
+                st.session_state.trips[x]["destination"],
+            key="expense_trip_select"
         )
 
         amount = st.number_input(
             "Сума (€)",
             min_value=0.0,
-            step=1.0
+            step=1.0,
+            key="expense_amount"
         )
 
         category = st.selectbox(
             "Категория",
             [
-                "Храна",
-                "Нощувка",
-                "Транспорт",
-                "Забавления",
-                "Покупки",
-                "Други"
-            ]
+                "🍔 Храна",
+                "🏨 Нощувка",
+                "🚗 Транспорт",
+                "🎟️ Забавления",
+                "🛍️ Покупки",
+                "📱 Други"
+            ],
+            key="expense_category"
         )
 
         expense_date = st.date_input(
             "Дата",
-            value=date.today()
+            value=date.today(),
+            key="expense_date"
         )
 
         note = st.text_input(
             "Бележка",
-            placeholder="Например: Вечеря"
+            placeholder="Например: Вечеря",
+            key="expense_note"
         )
 
-        st.divider()
+        st.write("")
 
         if st.button(
             "Добави разход",
-            use_container_width=True
+            type="primary",
+            use_container_width=True,
+            key="save_expense"
         ):
 
             if amount <= 0:
@@ -414,6 +632,7 @@ elif st.session_state.page == "add_expense":
                 )
 
                 st.session_state.selected_trip = selected_trip
+                st.session_state.expense_trip = None
                 st.session_state.page = "trip"
 
                 st.rerun()
@@ -427,15 +646,31 @@ elif st.session_state.page == "trips":
 
     st.title("✈️ Моите пътувания")
 
-    if st.button(
-        "← Начало"
-    ):
+    c1, c2 = st.columns(
+        [1, 4]
+    )
 
-        go_home()
+    with c1:
+
+        if st.button(
+            "← Начало",
+            key="trips_home"
+        ):
+            go_home()
+
+    with c2:
+
+        if st.button(
+            "＋ Ново пътуване",
+            type="primary",
+            key="trips_new"
+        ):
+            st.session_state.page = "new_trip"
+            st.rerun()
 
     st.divider()
 
-    if len(st.session_state.trips) == 0:
+    if not st.session_state.trips:
 
         st.info(
             "Все още нямаш създадени пътувания."
@@ -453,19 +688,16 @@ elif st.session_state.page == "trips":
                     f"✈️ {trip['destination']}"
                 )
 
-                st.write(
-                    f"Период: "
+                st.caption(
                     f"{trip['start_date'].strftime('%d.%m.%Y')}"
                     f" – "
                     f"{trip['end_date'].strftime('%d.%m.%Y')}"
                 )
 
                 st.write(
-                    f"Бюджет: €{trip['budget']:.2f}"
-                )
-
-                st.write(
-                    f"Похарчено: €{spent:.2f}"
+                    f"Похарчено: €{spent:.2f} "
+                    f"/ "
+                    f"€{trip['budget']:.2f}"
                 )
 
                 if st.button(
@@ -473,12 +705,11 @@ elif st.session_state.page == "trips":
                     key=f"trips_open_{trip_id}",
                     use_container_width=True
                 ):
-
                     open_trip(trip_id)
 
 
 # =========================================================
-# TRIP DETAILS
+# TRIP
 # =========================================================
 
 elif st.session_state.page == "trip":
@@ -489,13 +720,13 @@ elif st.session_state.page == "trip":
         trip_id is None
         or trip_id not in st.session_state.trips
     ):
-
         go_home()
 
     trip = st.session_state.trips[trip_id]
 
     if st.button(
-        "← Моите пътувания"
+        "← Моите пътувания",
+        key="trip_back"
     ):
 
         st.session_state.page = "trips"
@@ -505,7 +736,7 @@ elif st.session_state.page == "trip":
         f"✈️ {trip['destination']}"
     )
 
-    st.write(
+    st.caption(
         f"{trip['start_date'].strftime('%d.%m.%Y')}"
         f" – "
         f"{trip['end_date'].strftime('%d.%m.%Y')}"
@@ -516,48 +747,44 @@ elif st.session_state.page == "trip":
     spent = trip_expenses(trip)
     remaining = trip["budget"] - spent
 
-    col1, col2, col3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
-    with col1:
-
+    with c1:
         st.metric(
-            "Бюджет",
+            "💰 Бюджет",
             f"€{trip['budget']:.2f}"
         )
 
-    with col2:
-
+    with c2:
         st.metric(
-            "Похарчено",
+            "💳 Похарчено",
             f"€{spent:.2f}"
         )
 
-    with col3:
-
+    with c3:
         st.metric(
-            "Остава",
+            "✓ Остава",
             f"€{remaining:.2f}"
+        )
+
+    st.write("")
+
+    if st.button(
+        "➕ Добави разход",
+        type="primary",
+        use_container_width=True,
+        key="trip_add_expense"
+    ):
+
+        open_add_expense(
+            trip_id
         )
 
     st.divider()
 
-    if st.button(
-        "➕ Добави разход",
-        use_container_width=True
-    ):
-
-        st.session_state.page = "add_expense"
-
-        # Запомняме текущото пътуване
-        # за да бъде избрано автоматично
-
-        st.session_state.expense_trip = trip_id
-
-        st.rerun()
-
     st.subheader("Разходи")
 
-    if len(trip["expenses"]) == 0:
+    if not trip["expenses"]:
 
         st.info(
             "Все още няма добавени разходи."
@@ -571,15 +798,15 @@ elif st.session_state.page == "trip":
             reverse=True
         )
 
-        for expense in expenses:
+        for index, expense in enumerate(expenses):
 
             with st.container(border=True):
 
-                col1, col2 = st.columns(
-                    [3, 1]
+                c1, c2 = st.columns(
+                    [4, 1]
                 )
 
-                with col1:
+                with c1:
 
                     st.write(
                         f"**{expense['category']}**"
@@ -597,9 +824,73 @@ elif st.session_state.page == "trip":
                         )
                     )
 
-                with col2:
+                with c2:
 
                     st.metric(
                         "Сума",
                         f"€{expense['amount']:.2f}"
                     )
+
+
+# =========================================================
+# PLACEHOLDER PAGES
+# =========================================================
+
+elif st.session_state.page == "analytics":
+
+    st.title("📊 Анализи")
+
+    st.info(
+        "Тук ще изградим анализа на разходите."
+    )
+
+    if st.button(
+        "← Начало",
+        key="analytics_home"
+    ):
+        go_home()
+
+
+elif st.session_state.page == "history":
+
+    st.title("🕘 История")
+
+    st.info(
+        "Тук ще изградим историята на разходите."
+    )
+
+    if st.button(
+        "← Начало",
+        key="history_home"
+    ):
+        go_home()
+
+
+elif st.session_state.page == "comparison":
+
+    st.title("⇄ Сравнение")
+
+    st.info(
+        "Тук ще изградим сравнението между пътуванията."
+    )
+
+    if st.button(
+        "← Начало",
+        key="comparison_home"
+    ):
+        go_home()
+
+
+elif st.session_state.page == "settings":
+
+    st.title("⚙️ Настройки")
+
+    st.info(
+        "Тук ще изградим настройките."
+    )
+
+    if st.button(
+        "← Начало",
+        key="settings_home"
+    ):
+        go_home()
