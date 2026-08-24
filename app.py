@@ -75,133 +75,6 @@ def open_add_expense(trip_id=None):
     st.rerun()
 
 
-
-<style>
-/* ===== Travel Manager visual layer ===== */
-
-.stApp {
-    background: #08111a;
-}
-
-.block-container {
-    max-width: 1080px;
-    padding-top: 1.6rem;
-    padding-bottom: 4rem;
-}
-
-/* Header */
-.tm-header {
-    padding: 8px 0 18px 0;
-}
-
-.tm-brand {
-    font-size: clamp(1.8rem, 4vw, 2.7rem);
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    color: #f4f8fb;
-    margin: 0;
-}
-
-.tm-subtitle {
-    color: #8fa1b2;
-    margin-top: 4px;
-    font-size: 0.98rem;
-}
-
-/* Quick action cards */
-.tm-card {
-    background: linear-gradient(145deg, #102130, #0c1823);
-    border: 1px solid #203446;
-    border-radius: 20px;
-    padding: 20px;
-    min-height: 118px;
-    box-shadow: 0 10px 28px rgba(0,0,0,.18);
-}
-
-.tm-card-primary {
-    border-color: #235d83;
-    background: linear-gradient(145deg, #12314a, #0c1c29);
-}
-
-.tm-card-title {
-    color: #f5f8fb;
-    font-size: 1.12rem;
-    font-weight: 750;
-    margin-bottom: 5px;
-}
-
-.tm-card-text {
-    color: #8fa1b2;
-    font-size: .9rem;
-}
-
-/* Metrics */
-div[data-testid="stMetric"] {
-    background: #0d1a26;
-    border: 1px solid #1c3041;
-    border-radius: 16px;
-    padding: 14px 16px;
-}
-
-div[data-testid="stMetricLabel"] {
-    color: #8fa1b2;
-}
-
-div[data-testid="stMetricValue"] {
-    color: #f4f8fb;
-}
-
-/* Buttons */
-.stButton > button {
-    border-radius: 12px;
-    min-height: 44px;
-    font-weight: 650;
-    border: 1px solid #263c4f;
-    background: #101e2a;
-    color: #eef5f9;
-}
-
-.stButton > button:hover {
-    border-color: #2b9cff;
-    background: #15283a;
-    color: #ffffff;
-}
-
-/* Sidebar */
-section[data-testid="stSidebar"] {
-    background: #09141f;
-    border-right: 1px solid #1a2b3a;
-}
-
-/* Trip containers */
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    border-radius: 18px;
-}
-
-/* Mobile */
-@media (max-width: 700px) {
-    .block-container {
-        padding-left: 1rem;
-        padding-right: 1rem;
-        padding-top: 1rem;
-    }
-
-    .tm-card {
-        min-height: auto;
-        padding: 17px;
-    }
-
-    div[data-testid="stMetric"] {
-        padding: 11px 12px;
-    }
-
-    div[data-testid="stMetricValue"] {
-        font-size: 1.35rem;
-    }
-}
-</style>
-
-
 # =========================================================
 # CSS
 # =========================================================
@@ -210,74 +83,54 @@ st.markdown(
     """
     <style>
 
-    /* ------------------------------
-       GLOBAL
-    ------------------------------ */
-
     .stApp {
         background: #08111a;
     }
 
     .block-container {
-        max-width: 1250px;
-        padding-top: 2rem;
+        max-width: 1080px;
+        padding-top: 1.6rem;
         padding-bottom: 4rem;
     }
 
-    /* ------------------------------
-       SIDEBAR
-    ------------------------------ */
-
     section[data-testid="stSidebar"] {
         background: #09141f;
-        border-right: 1px solid #1a2a39;
+        border-right: 1px solid #1a2b3a;
     }
 
     section[data-testid="stSidebar"] .block-container {
         padding-top: 1.5rem;
     }
 
-    /* ------------------------------
-       BUTTONS
-    ------------------------------ */
-
     .stButton > button {
         border-radius: 12px;
-        min-height: 42px;
-        font-weight: 600;
-        border: 1px solid #26394b;
-        background: #101d29;
-        color: #eef5fa;
+        min-height: 44px;
+        font-weight: 650;
+        border: 1px solid #263c4f;
+        background: #101e2a;
+        color: #eef5f9;
     }
 
     .stButton > button:hover {
-        border-color: #2695ff;
-        color: white;
-        background: #142637;
+        border-color: #2b9cff;
+        background: #15283a;
+        color: #ffffff;
     }
 
-    /* ------------------------------
-       METRICS
-    ------------------------------ */
-
     div[data-testid="stMetric"] {
-        background: #0e1b27;
-        border: 1px solid #1b2d3e;
-        padding: 18px;
+        background: #0d1a26;
+        border: 1px solid #1c3041;
         border-radius: 16px;
+        padding: 14px 16px;
     }
 
     div[data-testid="stMetricLabel"] {
-        color: #8195a9;
+        color: #8fa1b2;
     }
 
     div[data-testid="stMetricValue"] {
-        color: #f3f7fb;
+        color: #f4f8fb;
     }
-
-    /* ------------------------------
-       INPUTS
-    ------------------------------ */
 
     div[data-baseweb="input"] > div,
     div[data-baseweb="select"] > div {
@@ -286,22 +139,83 @@ st.markdown(
         border-radius: 10px;
     }
 
-    /* ------------------------------
-       DIVIDER
-    ------------------------------ */
-
     hr {
         border-color: #1a2a39;
     }
-
-    /* ------------------------------
-       EXPANDER
-    ------------------------------ */
 
     details {
         background: #0d1925;
         border: 1px solid #1b2d3e;
         border-radius: 14px;
+    }
+
+    .tm-header {
+        padding: 8px 0 18px 0;
+    }
+
+    .tm-brand {
+        font-size: clamp(1.8rem, 4vw, 2.7rem);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        color: #f4f8fb;
+        margin: 0;
+    }
+
+    .tm-subtitle {
+        color: #8fa1b2;
+        margin-top: 4px;
+        font-size: 0.98rem;
+    }
+
+    .tm-card {
+        background: linear-gradient(145deg, #102130, #0c1823);
+        border: 1px solid #203446;
+        border-radius: 20px;
+        padding: 20px;
+        min-height: 118px;
+        box-shadow: 0 10px 28px rgba(0,0,0,.18);
+    }
+
+    .tm-card-primary {
+        border-color: #235d83;
+        background: linear-gradient(145deg, #12314a, #0c1c29);
+    }
+
+    .tm-card-title {
+        color: #f5f8fb;
+        font-size: 1.12rem;
+        font-weight: 750;
+        margin-bottom: 5px;
+    }
+
+    .tm-card-text {
+        color: #8fa1b2;
+        font-size: .9rem;
+    }
+
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        border-radius: 18px;
+    }
+
+    @media (max-width: 700px) {
+        .block-container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-top: 1rem;
+        }
+
+        .tm-card {
+            min-height: auto;
+            padding: 17px;
+        }
+
+        div[data-testid="stMetric"] {
+            padding: 11px 12px;
+        }
+
+        div[data-testid="stMetricValue"] {
+            font-size: 1.35rem;
+        }
     }
 
     </style>
