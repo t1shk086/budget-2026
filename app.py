@@ -53,6 +53,197 @@ st.markdown("""
         border-color: rgba(0, 242, 254, 0.2) !important;
     }
     small { color: #7e8494 !important; }
+
+    /* =========================================================
+       PIXELAPP MOBILE UI — visual layer only
+       Desktop layout/functions remain unchanged.
+       ========================================================= */
+    .pixel-mobile-header, .pixel-mobile-nav { display: none !important; }
+
+    @media (max-width: 700px) {
+        .desktop-home-brand { display: none !important; }
+        html, body {
+            overflow-x: hidden !important;
+        }
+        [data-testid="stAppViewContainer"] {
+            padding-bottom: 88px !important;
+        }
+        [data-testid="stAppViewContainer"] > .main {
+            padding-top: 0 !important;
+        }
+        [data-testid="stMainBlockContainer"] {
+            max-width: 100% !important;
+            padding: 0 10px 90px 10px !important;
+        }
+        .pixel-mobile-header {
+            display: flex !important;
+            position: relative !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            height: 52px !important;
+            padding: 0 5px !important;
+            margin: 0 -2px 8px -2px !important;
+            border-bottom: 1px solid rgba(255,255,255,.08) !important;
+            color: #fff !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        }
+        .pixel-mobile-header .brand {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            font-size: 16px !important;
+            font-weight: 750 !important;
+        }
+        .pixel-mobile-header .brand-icon {
+            width: 29px !important;
+            height: 29px !important;
+            border-radius: 9px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: linear-gradient(135deg,#0d73d7,#1677ff) !important;
+            box-shadow: 0 4px 14px rgba(0,120,255,.25) !important;
+        }
+        .pixel-mobile-header .bell {
+            font-size: 19px !important;
+            opacity: .9 !important;
+        }
+
+        .mobile-trip-card {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 10px !important;
+            background: linear-gradient(135deg, rgba(18,28,40,.96), rgba(11,18,27,.96)) !important;
+            border: 1px solid rgba(80,150,220,.14) !important;
+            border-radius: 14px !important;
+            padding: 13px 14px !important;
+            margin: 0 0 12px 0 !important;
+            box-shadow: 0 7px 22px rgba(0,0,0,.22) !important;
+        }
+        .mobile-trip-card .trip-main { min-width: 0 !important; }
+        .mobile-trip-card .trip-title {
+            font-size: 15px !important;
+            font-weight: 750 !important;
+            color: #f6f8fb !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+        .mobile-trip-card .trip-date {
+            margin-top: 2px !important;
+            font-size: 10.5px !important;
+            color: #788496 !important;
+        }
+        .mobile-trip-card .chevron {
+            font-size: 24px !important;
+            color: #aeb8c6 !important;
+        }
+
+        .mobile-section-card {
+            background: linear-gradient(145deg, rgba(18,28,40,.92), rgba(10,17,25,.96)) !important;
+            border: 1px solid rgba(95,150,210,.13) !important;
+            border-radius: 15px !important;
+            padding: 14px !important;
+            margin: 0 0 12px 0 !important;
+            box-shadow: 0 7px 22px rgba(0,0,0,.18) !important;
+        }
+
+        div.stSelectbox, div.stNumberInput, div.stTextInput, div.stFileUploader {
+            padding: 6px 10px !important;
+            border-radius: 12px !important;
+            margin-bottom: 8px !important;
+            box-shadow: none !important;
+        }
+        button[data-testid="stBaseButton-secondary"],
+        button[data-testid="stBaseButton-primary"] {
+            min-height: 44px !important;
+            border-radius: 12px !important;
+            font-size: 13px !important;
+        }
+        div[data-testid="stHorizontalBlock"] {
+            gap: .55rem !important;
+        }
+        div[data-testid="stHorizontalBlock"] > div {
+            min-width: 0 !important;
+        }
+        h1 { font-size: 30px !important; }
+        h2 { font-size: 22px !important; }
+        h3 { font-size: 18px !important; }
+        h4 { font-size: 15px !important; }
+        [data-testid="stMarkdownContainer"] p {
+            line-height: 1.35 !important;
+        }
+
+        /* Dialogs become phone sheets, similar to the reference design. */
+        div[role="dialog"] {
+            width: calc(100vw - 14px) !important;
+            max-width: calc(100vw - 14px) !important;
+            margin: 7px !important;
+            border-radius: 18px !important;
+        }
+        div[role="dialog"] > div {
+            border-radius: 18px !important;
+        }
+
+        /* Mobile fixed navigation bar. */
+        .pixel-mobile-nav {
+            display: grid !important;
+            grid-template-columns: repeat(5, 1fr) !important;
+            position: fixed !important;
+            left: 7px !important;
+            right: 7px !important;
+            bottom: 7px !important;
+            z-index: 999999 !important;
+            height: 67px !important;
+            padding: 6px 5px 5px 5px !important;
+            background: rgba(9,16,25,.96) !important;
+            border: 1px solid rgba(115,165,220,.16) !important;
+            border-radius: 17px !important;
+            box-shadow: 0 -6px 28px rgba(0,0,0,.38), 0 5px 18px rgba(0,0,0,.32) !important;
+            backdrop-filter: blur(18px) !important;
+            -webkit-backdrop-filter: blur(18px) !important;
+        }
+        .pixel-mobile-nav a {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 2px !important;
+            color: #7d8b9c !important;
+            text-decoration: none !important;
+            font-size: 9px !important;
+            font-weight: 650 !important;
+            border-radius: 12px !important;
+            -webkit-tap-highlight-color: transparent !important;
+        }
+        .pixel-mobile-nav a .nav-icon {
+            font-size: 20px !important;
+            line-height: 22px !important;
+        }
+        .pixel-mobile-nav a.active { color: #66b7ff !important; }
+        .pixel-mobile-nav a.plus {
+            margin-top: -21px !important;
+            width: 52px !important;
+            height: 52px !important;
+            justify-self: center !important;
+            align-self: start !important;
+            border-radius: 50% !important;
+            color: white !important;
+            background: linear-gradient(145deg,#218cff,#1261c7) !important;
+            border: 3px solid rgba(12,23,35,.98) !important;
+            box-shadow: 0 6px 18px rgba(0,105,230,.35) !important;
+        }
+        .pixel-mobile-nav a.plus .nav-icon {
+            font-size: 31px !important;
+            line-height: 31px !important;
+        }
+        .pixel-mobile-nav a.plus .nav-label { display: none !important; }
+
+        /* Keep maps inside the phone width. */
+        iframe { max-width: 100% !important; }
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -192,9 +383,25 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
+if "mobile_open_create" not in st.session_state: st.session_state["mobile_open_create"] = False
+
+# Mobile navigation actions use query parameters only for state-changing actions.
+# Scroll-only actions remain normal in-page anchors and do not touch the app state.
+try:
+    mobile_nav_action = st.query_params.get("mobile_nav", "")
+    if mobile_nav_action == "home":
+        st.session_state["current_trip"] = None
+        st.query_params.clear()
+    elif mobile_nav_action == "create":
+        st.session_state["mobile_open_create"] = True
+        st.query_params.clear()
+except Exception:
+    mobile_nav_action = ""
 
 if st.session_state["current_trip"] is None:
-    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='pixel-mobile-header'><div class='brand'><span class='brand-icon'>🐾</span><span>PixelApp</span></div><span class='bell'>🔔</span></div>", unsafe_allow_html=True)
+    st.markdown("<div id='mobile_home_anchor'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='desktop-home-brand' style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
     
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
@@ -240,6 +447,9 @@ if st.session_state["current_trip"] is None:
                 pass
             st.session_state["current_trip"] = target_id
             st.rerun()
+
+    if st.session_state.pop("mobile_open_create", False):
+        create_trip_modal()
 
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
@@ -429,6 +639,10 @@ else:
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
+
+    st.markdown("<div class='pixel-mobile-header'><div class='brand'><span class='brand-icon'>🐾</span><span>PixelApp</span></div><span class='bell'>🔔</span></div>", unsafe_allow_html=True)
+    mobile_trip_date = f"{st_date} - {en_date}" if st_date and st_date != "nan" else "Пътуване"
+    st.markdown(f"<div class='mobile-trip-card'><div class='trip-main'><div class='trip-title'>🌴 {str(trip_id).replace('_', ' ')}</div><div class='trip-date'>{mobile_trip_date}</div></div><div class='chevron'>›</div></div>", unsafe_allow_html=True)
 
     @st.dialog("🗑️ Потвърждение за изтриване")
     def confirm_delete_dialog():
@@ -1308,6 +1522,7 @@ else:
 
 
 
+    st.markdown("<div id='mobile_map_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
     st.subheader("🗺️ Карта на спирките и дестинациите:")
     df_points = get_map_points(trip_id)
     
@@ -1461,6 +1676,8 @@ else:
     if "show_admin_panel" not in st.session_state:
         st.session_state["show_admin_panel"] = False
 
+    st.markdown("<div id='mobile_more_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
+
     if st.button("🛠️ Административни Инструменти", use_container_width=True, key="toggle_admin_panel_btn"):
         st.session_state["show_admin_panel"] = not st.session_state["show_admin_panel"]
         st.rerun()
@@ -1573,3 +1790,42 @@ else:
                 st.rerun()
             else:
                 st.error("❌ Неуспешно запазване на имената на категориите.")
+
+# =========================================================
+# MOBILE BOTTOM NAVIGATION — visual shell with working anchors/actions
+# =========================================================
+if st.session_state.get("current_trip") is None:
+    mobile_plus_href = "?mobile_nav=create"
+    mobile_expense_href = "#mobile_home_anchor"
+    mobile_map_href = "#mobile_home_anchor"
+    mobile_more_href = "#mobile_home_anchor"
+    mobile_home_active = " active"
+    mobile_expense_active = ""
+else:
+    mobile_plus_href = "#target_sum_box"
+    mobile_expense_href = "#target_sum_box"
+    mobile_map_href = "#mobile_map_anchor"
+    mobile_more_href = "#mobile_more_anchor"
+    mobile_home_active = ""
+    mobile_expense_active = " active"
+
+st.markdown(f"""
+<div class="pixel-mobile-nav">
+    <a class="{mobile_home_active}" href="?mobile_nav=home">
+        <span class="nav-icon">⌂</span><span class="nav-label">Начало</span>
+    </a>
+    <a class="{mobile_expense_active}" href="{mobile_expense_href}">
+        <span class="nav-icon">▤</span><span class="nav-label">Разходи</span>
+    </a>
+    <a class="plus" href="{mobile_plus_href}">
+        <span class="nav-icon">+</span><span class="nav-label">Добави</span>
+    </a>
+    <a href="{mobile_map_href}">
+        <span class="nav-icon">⌖</span><span class="nav-label">Карта</span>
+    </a>
+    <a href="{mobile_more_href}">
+        <span class="nav-icon">•••</span><span class="nav-label">Още</span>
+    </a>
+</div>
+""", unsafe_allow_html=True)
+
