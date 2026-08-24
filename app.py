@@ -1122,6 +1122,69 @@ elif st.session_state.page == "trip":
                 "с отбелязан пълен резервоар."
             )
 
+    # =====================================================
+    # EXPENSES BY CATEGORY
+    # =====================================================
+
+    if trip["expenses"]:
+
+        st.subheader("📊 Разходи по категории")
+
+        category_totals = {}
+
+        for expense in trip["expenses"]:
+
+            category = expense.get(
+                "category",
+                "📱 Други"
+            )
+
+            category_totals[category] = (
+                category_totals.get(category, 0.0)
+                + expense["amount"]
+            )
+
+        category_totals = dict(
+            sorted(
+                category_totals.items(),
+                key=lambda item: item[1],
+                reverse=True
+            )
+        )
+
+        total_category_expenses = sum(
+            category_totals.values()
+        )
+
+        selected_category = st.selectbox(
+            "Покажи категория",
+            ["Всички"] + list(category_totals.keys()),
+            key=f"category_filter_{trip_id}"
+        )
+
+        # Compact category overview.
+        for category, category_amount in category_totals.items():
+
+            percentage = (
+                category_amount
+                / total_category_expenses
+                * 100
+                if total_category_expenses > 0
+                else 0
+            )
+
+            st.write(
+                f"**{category}** — "
+                f"€{category_amount:.2f} · "
+                f"{percentage:.1f}%"
+            )
+
+            st.progress(
+                min(percentage / 100, 1.0)
+            )
+
+        st.divider()
+
     st.subheader("Разходи")
 
     if not trip["expenses"]:
@@ -1133,12 +1196,21 @@ elif st.session_state.page == "trip":
     else:
 
         expenses = sorted(
-            trip["expenses"],
-            key=lambda x: x["date"],
+            enumerate(trip["expenses"]),
+            key=lambda item: item[1]["date"],
             reverse=True
         )
 
-        for index, expense in enumerate(expenses):
+        if selected_category != "Всички":
+
+            expenses = [
+                item
+                for item in expenses
+                if item[1].get("category", "📱 Други")
+                == selected_category
+            ]
+
+        for original_index, expense in expenses:
 
             with st.container(border=True):
 
@@ -1197,13 +1269,13 @@ elif st.session_state.page == "trip":
                     )
 
                 # Двустепенно изтриване, за да няма случайно натискане.
-                confirm_key = f"confirm_delete_{trip_id}_{index}"
+                confirm_key = f"confirm_delete_{trip_id}_{original_index}"
 
                 if not st.session_state.get(confirm_key, False):
 
                     if st.button(
                         "🗑️ Изтрий",
-                        key=f"delete_{trip_id}_{index}",
+                        key=f"delete_{trip_id}_{original_index}",
                         use_container_width=True
                     ):
                         st.session_state[confirm_key] = True
@@ -1221,14 +1293,14 @@ elif st.session_state.page == "trip":
 
                         if st.button(
                             "Да, изтрий",
-                            key=f"confirm_yes_{trip_id}_{index}",
+                            key=f"confirm_yes_{trip_id}_{original_index}",
                             type="primary",
                             use_container_width=True
                         ):
 
                             delete_expense(
                                 trip_id,
-                                index
+                                original_index
                             )
 
                             st.session_state.pop(
@@ -1242,7 +1314,7 @@ elif st.session_state.page == "trip":
 
                         if st.button(
                             "Отказ",
-                            key=f"confirm_no_{trip_id}_{index}",
+                            key=f"confirm_no_{trip_id}_{original_index}",
                             use_container_width=True
                         ):
 
