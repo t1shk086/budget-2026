@@ -134,6 +134,15 @@ def trip_expenses(trip):
     )
 
 
+def delete_expense(trip_id, expense_index):
+    """Delete one expense and immediately persist the change."""
+    expenses = st.session_state.trips[trip_id]["expenses"]
+
+    if 0 <= expense_index < len(expenses):
+        del expenses[expense_index]
+        save_trips()
+
+
 def go_home():
     st.session_state.page = "home"
     st.session_state.selected_trip = None
@@ -1186,6 +1195,63 @@ elif st.session_state.page == "trip":
                         "Сума",
                         f"€{expense['amount']:.2f}"
                     )
+
+                # Двустепенно изтриване, за да няма случайно натискане.
+                confirm_key = f"confirm_delete_{trip_id}_{index}"
+
+                if not st.session_state.get(confirm_key, False):
+
+                    if st.button(
+                        "🗑️ Изтрий",
+                        key=f"delete_{trip_id}_{index}",
+                        use_container_width=True
+                    ):
+                        st.session_state[confirm_key] = True
+                        st.rerun()
+
+                else:
+
+                    st.warning(
+                        "Сигурен ли си, че искаш да изтриеш този разход?"
+                    )
+
+                    d1, d2 = st.columns(2)
+
+                    with d1:
+
+                        if st.button(
+                            "Да, изтрий",
+                            key=f"confirm_yes_{trip_id}_{index}",
+                            type="primary",
+                            use_container_width=True
+                        ):
+
+                            delete_expense(
+                                trip_id,
+                                index
+                            )
+
+                            st.session_state.pop(
+                                confirm_key,
+                                None
+                            )
+
+                            st.rerun()
+
+                    with d2:
+
+                        if st.button(
+                            "Отказ",
+                            key=f"confirm_no_{trip_id}_{index}",
+                            use_container_width=True
+                        ):
+
+                            st.session_state.pop(
+                                confirm_key,
+                                None
+                            )
+
+                            st.rerun()
 
 
 # =========================================================
