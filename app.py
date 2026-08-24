@@ -20,27 +20,34 @@ st.set_page_config(
 if "trips" not in st.session_state:
     st.session_state.trips = {}
 
-if "show_new_trip" not in st.session_state:
-    st.session_state.show_new_trip = False
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+
+if "selected_trip" not in st.session_state:
+    st.session_state.selected_trip = None
 
 if "show_expense" not in st.session_state:
     st.session_state.show_expense = False
 
+if "show_new_trip" not in st.session_state:
+    st.session_state.show_new_trip = False
+
 
 # =========================================================
-# CALCULATIONS
+# FUNCTIONS
 # =========================================================
 
 def total_expenses():
-    total = 0
 
-    for trip in st.session_state.trips.values():
-        total += sum(expense["amount"] for expense in trip["expenses"])
-
-    return total
+    return sum(
+        expense["amount"]
+        for trip in st.session_state.trips.values()
+        for expense in trip["expenses"]
+    )
 
 
 def total_budget():
+
     return sum(
         trip["budget"]
         for trip in st.session_state.trips.values()
@@ -48,194 +55,426 @@ def total_budget():
 
 
 def trip_expenses(trip):
+
     return sum(
         expense["amount"]
         for expense in trip["expenses"]
     )
 
 
-# =========================================================
-# HEADER
-# =========================================================
+def open_trip(trip_id):
 
-st.title("✈️ Travel Manager")
-st.subheader("Управлявай своите пътувания и разходи")
-
-st.write("Добре дошъл в Travel Manager!")
-
-
-# =========================================================
-# DASHBOARD
-# =========================================================
-
-total_trips = len(st.session_state.trips)
-expenses = total_expenses()
-budget = total_budget()
-remaining = budget - expenses
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.metric(
-        "Пътувания",
-        total_trips
-    )
-
-with col2:
-    st.metric(
-        "Общо разходи",
-        f"€{expenses:.2f}"
-    )
-
-with col3:
-    st.metric(
-        "Оставащ бюджет",
-        f"€{remaining:.2f}"
-    )
+    st.session_state.selected_trip = trip_id
+    st.session_state.page = "trip"
+    st.session_state.show_expense = False
+    st.session_state.show_new_trip = False
+    st.rerun()
 
 
-st.divider()
+def go_home():
+
+    st.session_state.page = "home"
+    st.session_state.selected_trip = None
+    st.session_state.show_expense = False
+    st.session_state.show_new_trip = False
+    st.rerun()
 
 
 # =========================================================
-# QUICK ACTIONS
+# HOME PAGE
 # =========================================================
 
-st.subheader("Бързи действия")
+if st.session_state.page == "home":
 
-col1, col2 = st.columns(2)
+    st.title("✈️ Travel Manager")
+    st.subheader("Управлявай своите пътувания и разходи")
 
-with col1:
-    if st.button(
-        "➕  Добави разход",
-        use_container_width=True
-    ):
-        st.session_state.show_expense = True
-        st.session_state.show_new_trip = False
-        st.rerun()
+    st.write("Добре дошъл в Travel Manager!")
 
-with col2:
-    if st.button(
-        "✈️  Ново пътуване",
-        use_container_width=True
-    ):
-        st.session_state.show_new_trip = True
-        st.session_state.show_expense = False
-        st.rerun()
+    # -----------------------------------------------------
+    # DASHBOARD
+    # -----------------------------------------------------
 
+    expenses = total_expenses()
+    budget = total_budget()
+    remaining = budget - expenses
 
-# =========================================================
-# NEW TRIP
-# =========================================================
+    col1, col2, col3 = st.columns(3)
 
-if st.session_state.show_new_trip:
+    with col1:
+        st.metric(
+            "Пътувания",
+            len(st.session_state.trips)
+        )
+
+    with col2:
+        st.metric(
+            "Общо разходи",
+            f"€{expenses:.2f}"
+        )
+
+    with col3:
+        st.metric(
+            "Оставащ бюджет",
+            f"€{remaining:.2f}"
+        )
 
     st.divider()
 
-    st.subheader("✈️ Ново пътуване")
+    # -----------------------------------------------------
+    # QUICK ACTIONS
+    # -----------------------------------------------------
 
-    with st.form("new_trip_form"):
+    st.subheader("Бързи действия")
 
-        destination = st.text_input(
-            "Дестинация",
-            placeholder="Например: Рим"
-        )
+    col1, col2 = st.columns(2)
 
-        col1, col2 = st.columns(2)
+    with col1:
 
-        with col1:
-            start_date = st.date_input(
-                "Начална дата",
-                value=date.today()
-            )
-
-        with col2:
-            end_date = st.date_input(
-                "Крайна дата",
-                value=date.today()
-            )
-
-        budget_value = st.number_input(
-            "Бюджет (€)",
-            min_value=0.0,
-            step=50.0,
-            value=0.0
-        )
-
-        create_trip = st.form_submit_button(
-            "Създай пътуването",
+        if st.button(
+            "➕  Добави разход",
             use_container_width=True
-        )
+        ):
 
-        if create_trip:
+            st.session_state.show_expense = True
+            st.session_state.show_new_trip = False
+            st.rerun()
 
-            if not destination.strip():
-                st.error("Моля, въведи дестинация.")
+    with col2:
 
-            elif end_date < start_date:
-                st.error(
-                    "Крайната дата не може да бъде преди началната дата."
+        if st.button(
+            "✈️  Ново пътуване",
+            use_container_width=True
+        ):
+
+            st.session_state.show_new_trip = True
+            st.session_state.show_expense = False
+            st.rerun()
+
+    # -----------------------------------------------------
+    # NEW TRIP
+    # -----------------------------------------------------
+
+    if st.session_state.show_new_trip:
+
+        st.divider()
+
+        st.subheader("✈️ Ново пътуване")
+
+        with st.form("new_trip_form"):
+
+            destination = st.text_input(
+                "Дестинация",
+                placeholder="Например: Рим"
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                start_date = st.date_input(
+                    "Начална дата",
+                    value=date.today()
                 )
 
-            else:
-
-                trip_id = (
-                    f"{destination.strip()} "
-                    f"{start_date.strftime('%d.%m.%Y')}"
+            with col2:
+                end_date = st.date_input(
+                    "Крайна дата",
+                    value=date.today()
                 )
 
-                st.session_state.trips[trip_id] = {
-                    "destination": destination.strip(),
-                    "start_date": start_date,
-                    "end_date": end_date,
-                    "budget": budget_value,
-                    "expenses": []
-                }
+            budget_value = st.number_input(
+                "Бюджет (€)",
+                min_value=0.0,
+                step=50.0
+            )
 
-                st.session_state.show_new_trip = False
+            create_trip = st.form_submit_button(
+                "Създай пътуването",
+                use_container_width=True
+            )
 
-                st.success(
-                    f"Пътуването „{destination.strip()}“ е създадено!"
+            if create_trip:
+
+                if not destination.strip():
+
+                    st.error(
+                        "Моля, въведи дестинация."
+                    )
+
+                elif end_date < start_date:
+
+                    st.error(
+                        "Крайната дата не може да бъде "
+                        "преди началната дата."
+                    )
+
+                else:
+
+                    trip_id = (
+                        f"{destination.strip()} "
+                        f"{start_date.strftime('%d.%m.%Y')}"
+                    )
+
+                    st.session_state.trips[trip_id] = {
+                        "destination": destination.strip(),
+                        "start_date": start_date,
+                        "end_date": end_date,
+                        "budget": budget_value,
+                        "expenses": []
+                    }
+
+                    st.session_state.show_new_trip = False
+
+                    st.success(
+                        f"Пътуването „{destination.strip()}“ "
+                        "е създадено!"
+                    )
+
+                    st.rerun()
+
+    # -----------------------------------------------------
+    # QUICK EXPENSE
+    # -----------------------------------------------------
+
+    if st.session_state.show_expense:
+
+        st.divider()
+
+        st.subheader("➕ Бързо добавяне на разход")
+
+        if not st.session_state.trips:
+
+            st.info(
+                "Първо създай поне едно пътуване."
+            )
+
+        else:
+
+            trip_options = list(
+                st.session_state.trips.keys()
+            )
+
+            with st.form("home_expense_form"):
+
+                selected_trip = st.selectbox(
+                    "Пътуване",
+                    trip_options
                 )
 
-                st.rerun()
+                amount = st.number_input(
+                    "Сума (€)",
+                    min_value=0.0,
+                    step=1.0
+                )
 
+                category = st.selectbox(
+                    "Категория",
+                    [
+                        "🍔 Храна",
+                        "🏨 Нощувка",
+                        "🚗 Транспорт",
+                        "🎟️ Забавления",
+                        "🛍️ Покупки",
+                        "📱 Други"
+                    ]
+                )
 
-# =========================================================
-# QUICK EXPENSE
-# =========================================================
+                expense_date = st.date_input(
+                    "Дата",
+                    value=date.today()
+                )
 
-if st.session_state.show_expense:
+                note = st.text_input(
+                    "Бележка",
+                    placeholder="Например: Вечеря"
+                )
+
+                add_expense = st.form_submit_button(
+                    "Добави разход",
+                    use_container_width=True
+                )
+
+                if add_expense:
+
+                    if amount <= 0:
+
+                        st.error(
+                            "Моля, въведи сума по-голяма от 0."
+                        )
+
+                    else:
+
+                        st.session_state.trips[
+                            selected_trip
+                        ]["expenses"].append(
+                            {
+                                "amount": amount,
+                                "category": category,
+                                "date": expense_date,
+                                "note": note
+                            }
+                        )
+
+                        st.session_state.show_expense = False
+
+                        st.success(
+                            "Разходът беше добавен успешно!"
+                        )
+
+                        st.rerun()
+
+    # -----------------------------------------------------
+    # MY TRIPS
+    # -----------------------------------------------------
 
     st.divider()
 
-    st.subheader("➕ Бързо добавяне на разход")
+    st.subheader("Моите пътувания")
 
     if not st.session_state.trips:
 
         st.info(
-            "Все още нямаш създадено пътуване. "
-            "Първо създай пътуване."
+            "Все още нямаш създадени пътувания."
         )
 
     else:
 
-        trip_options = list(
-            st.session_state.trips.keys()
+        for trip_id, trip in st.session_state.trips.items():
+
+            spent = trip_expenses(trip)
+            remaining_trip = trip["budget"] - spent
+
+            with st.container(border=True):
+
+                col1, col2 = st.columns([3, 1])
+
+                with col1:
+
+                    st.markdown(
+                        f"### ✈️ {trip['destination']}"
+                    )
+
+                    st.write(
+                        f"{trip['start_date'].strftime('%d.%m.%Y')} "
+                        f"– "
+                        f"{trip['end_date'].strftime('%d.%m.%Y')}"
+                    )
+
+                    st.write(
+                        f"Похарчено: **€{spent:.2f}** "
+                        f"/ Бюджет: **€{trip['budget']:.2f}**"
+                    )
+
+                with col2:
+
+                    st.metric(
+                        "Остава",
+                        f"€{remaining_trip:.2f}"
+                    )
+
+                    if st.button(
+                        "Отвори →",
+                        key=f"open_{trip_id}",
+                        use_container_width=True
+                    ):
+
+                        open_trip(trip_id)
+
+
+# =========================================================
+# TRIP PAGE
+# =========================================================
+
+elif st.session_state.page == "trip":
+
+    trip_id = st.session_state.selected_trip
+
+    if trip_id not in st.session_state.trips:
+
+        go_home()
+
+    trip = st.session_state.trips[trip_id]
+
+    # -----------------------------------------------------
+    # BACK
+    # -----------------------------------------------------
+
+    if st.button("← Моите пътувания"):
+
+        go_home()
+
+    st.divider()
+
+    # -----------------------------------------------------
+    # TRIP HEADER
+    # -----------------------------------------------------
+
+    st.title(
+        f"✈️ {trip['destination']}"
+    )
+
+    st.write(
+        f"{trip['start_date'].strftime('%d.%m.%Y')} "
+        f"– "
+        f"{trip['end_date'].strftime('%d.%m.%Y')}"
+    )
+
+    # -----------------------------------------------------
+    # TRIP STATS
+    # -----------------------------------------------------
+
+    spent = trip_expenses(trip)
+    remaining = trip["budget"] - spent
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        st.metric(
+            "Бюджет",
+            f"€{trip['budget']:.2f}"
         )
 
-        with st.form("expense_form"):
+    with col2:
 
-            selected_trip = st.selectbox(
-                "Пътуване",
-                trip_options
-            )
+        st.metric(
+            "Похарчено",
+            f"€{spent:.2f}"
+        )
+
+    with col3:
+
+        st.metric(
+            "Остава",
+            f"€{remaining:.2f}"
+        )
+
+    st.divider()
+
+    # -----------------------------------------------------
+    # ADD EXPENSE
+    # -----------------------------------------------------
+
+    if st.button(
+        "➕  Добави разход",
+        use_container_width=True
+    ):
+
+        st.session_state.show_expense = True
+        st.rerun()
+
+    if st.session_state.show_expense:
+
+        st.divider()
+
+        st.subheader("Нов разход")
+
+        with st.form("trip_expense_form"):
 
             amount = st.number_input(
                 "Сума (€)",
                 min_value=0.0,
-                step=1.0,
-                value=0.0
+                step=1.0
             )
 
             category = st.selectbox(
@@ -261,22 +500,21 @@ if st.session_state.show_expense:
             )
 
             add_expense = st.form_submit_button(
-                "Добави разход",
+                "Добави",
                 use_container_width=True
             )
 
             if add_expense:
 
                 if amount <= 0:
+
                     st.error(
                         "Моля, въведи сума по-голяма от 0."
                     )
 
                 else:
 
-                    st.session_state.trips[
-                        selected_trip
-                    ]["expenses"].append(
+                    trip["expenses"].append(
                         {
                             "amount": amount,
                             "category": category,
@@ -288,58 +526,60 @@ if st.session_state.show_expense:
                     st.session_state.show_expense = False
 
                     st.success(
-                        "Разходът беше добавен успешно!"
+                        "Разходът беше добавен."
                     )
 
                     st.rerun()
 
+    # -----------------------------------------------------
+    # EXPENSE HISTORY
+    # -----------------------------------------------------
 
-# =========================================================
-# MY TRIPS
-# =========================================================
+    st.divider()
 
-st.divider()
+    st.subheader("Разходи")
 
-st.subheader("Моите пътувания")
+    if not trip["expenses"]:
 
+        st.info(
+            "Все още няма добавени разходи."
+        )
 
-if not st.session_state.trips:
+    else:
 
-    st.info(
-        "Все още нямаш създадени пътувания."
-    )
+        expenses_sorted = sorted(
+            trip["expenses"],
+            key=lambda x: x["date"],
+            reverse=True
+        )
 
-else:
+        for expense in expenses_sorted:
 
-    for trip_id, trip in st.session_state.trips.items():
+            with st.container(border=True):
 
-        spent = trip_expenses(trip)
-        remaining_trip = trip["budget"] - spent
+                col1, col2 = st.columns([3, 1])
 
-        with st.container(border=True):
+                with col1:
 
-            col1, col2 = st.columns([2, 1])
+                    st.write(
+                        f"**{expense['category']}**"
+                    )
 
-            with col1:
+                    if expense["note"]:
 
-                st.markdown(
-                    f"### ✈️ {trip['destination']}"
-                )
+                        st.write(
+                            expense["note"]
+                        )
 
-                st.write(
-                    f"{trip['start_date'].strftime('%d.%m.%Y')} "
-                    f"– "
-                    f"{trip['end_date'].strftime('%d.%m.%Y')}"
-                )
+                    st.caption(
+                        expense["date"].strftime(
+                            "%d.%m.%Y"
+                        )
+                    )
 
-                st.write(
-                    f"Разходи: **€{spent:.2f}** "
-                    f"/ Бюджет: **€{trip['budget']:.2f}**"
-                )
+                with col2:
 
-            with col2:
-
-                st.metric(
-                    "Остава",
-                    f"€{remaining_trip:.2f}"
-                )
+                    st.metric(
+                        "Сума",
+                        f"€{expense['amount']:.2f}"
+                    )
