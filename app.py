@@ -527,60 +527,25 @@ if st.session_state.page == "home":
 
     with q1:
 
-        st.markdown(
-            """
-            <div class="tm-card tm-card-primary">
-                <div class="tm-card-title">
-                    ➕ Добави разход
-                </div>
-
-                <div class="tm-card-text">
-                    Бързо добавяне на разход към
-                    избрано пътуване.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
         if st.button(
-            "Добави разход →",
+            "➕  Добави разход\n\n"
+            "Бързо добавяне на разход към избрано пътуване.",
             use_container_width=True,
             type="primary",
             key="quick_add"
         ):
-
             open_add_expense()
 
     with q2:
 
-        st.markdown(
-            """
-            <div class="tm-card">
-                <div class="tm-card-title">
-                    ✈️ Ново пътуване
-                </div>
-
-                <div class="tm-card-text">
-                    Създай ново пътуване и задай
-                    неговия бюджет.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
         if st.button(
-            "Създай пътуване →",
+            "✈️  Ново пътуване\n\n"
+            "Създай ново пътуване и задай неговия бюджет.",
             use_container_width=True,
             key="quick_trip"
         ):
-
             st.session_state.page = "new_trip"
             st.rerun()
-
-    st.write("")
-    st.divider()
 
     # -----------------------------------------------------
     # MY TRIPS
@@ -2050,3 +2015,97 @@ elif st.session_state.page == "settings":
     ):
 
         go_home()
+/* =====================================================
+   QUICK ACTION BUTTONS
+   ===================================================== */
+
+button[kind="primary"] {
+    min-height: 125px !important;
+    text-align: left !important;
+    padding: 18px 20px !important;
+    border-radius: 20px !important;
+    border: 1px solid #235d83 !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #12314a,
+            #0c1c29
+        ) !important;
+
+    color: #f4f8fb !important;
+
+    box-shadow:
+        0 10px 28px rgba(0,0,0,.18) !important;
+
+    white-space: pre-line !important;
+}
+
+button[kind="primary"]:hover {
+    border-color: #2b9cff !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #16405f,
+            #0e2434
+        ) !important;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 12px 32px rgba(0,0,0,.25) !important;
+}
+
+button[kind="secondary"] {
+    min-height: 125px !important;
+    text-align: left !important;
+    padding: 18px 20px !important;
+    border-radius: 20px !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #102130,
+            #0c1823
+        ) !important;
+
+    border: 1px solid #203446 !important;
+
+    color: #f4f8fb !important;
+
+    box-shadow:
+        0 10px 28px rgba(0,0,0,.18) !important;
+
+    white-space: pre-line !important;
+}
+
+button[kind="secondary"]:hover {
+    border-color: #2b9cff !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            #152b3d,
+            #0d1d2a
+        ) !important;
+
+    transform: translateY(-1px);
+}
+
+@media (max-width: 700px) {
+
+    button[kind="primary"],
+    button[kind="secondary"] {
+
+        min-height: 105px !important;
+
+        padding:
+            15px 16px !important;
+
+        border-radius:
+            17px !important;
+
+    }
+
+}
