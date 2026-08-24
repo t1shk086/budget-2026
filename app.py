@@ -253,6 +253,10 @@ st.markdown(
         padding-top: 1.5rem;
     }
 
+    /* =====================================================
+       STANDARD BUTTONS
+       ===================================================== */
+
     .stButton > button {
         border-radius: 12px;
         min-height: 44px;
@@ -260,6 +264,7 @@ st.markdown(
         border: 1px solid #263c4f;
         background: #101e2a;
         color: #eef5f9;
+        transition: all .18s ease;
     }
 
     .stButton > button:hover {
@@ -267,6 +272,84 @@ st.markdown(
         background: #15283a;
         color: #ffffff;
     }
+
+    /* =====================================================
+       QUICK ACTION BUTTONS
+       ===================================================== */
+
+    .quick-action button {
+        min-height: 125px !important;
+
+        text-align: left !important;
+
+        padding: 18px 20px !important;
+
+        border-radius: 20px !important;
+
+        border: 1px solid #203446 !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                #102130,
+                #0c1823
+            ) !important;
+
+        color: #f4f8fb !important;
+
+        box-shadow:
+            0 10px 28px rgba(0,0,0,.18) !important;
+
+        white-space: pre-line !important;
+
+        transition:
+            transform .18s ease,
+            border-color .18s ease,
+            background .18s ease,
+            box-shadow .18s ease !important;
+    }
+
+    .quick-action button:hover {
+        transform: translateY(-2px);
+
+        border-color: #2b9cff !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                #152b3d,
+                #0d1d2a
+            ) !important;
+
+        box-shadow:
+            0 14px 34px rgba(0,0,0,.25) !important;
+    }
+
+    .quick-action-primary button {
+        border-color: #235d83 !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                #12314a,
+                #0c1c29
+            ) !important;
+    }
+
+    .quick-action-primary button:hover {
+        border-color: #2b9cff !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                #16405f,
+                #0e2434
+            ) !important;
+    }
+
+    /* =====================================================
+       METRICS
+       ===================================================== */
 
     div[data-testid="stMetric"] {
         background: #0d1a26;
@@ -282,6 +365,10 @@ st.markdown(
     div[data-testid="stMetricValue"] {
         color: #f4f8fb;
     }
+
+    /* =====================================================
+       INPUTS
+       ===================================================== */
 
     div[data-baseweb="input"] > div,
     div[data-baseweb="select"] > div {
@@ -299,6 +386,10 @@ st.markdown(
         border: 1px solid #1b2d3e;
         border-radius: 14px;
     }
+
+    /* =====================================================
+       HEADER
+       ===================================================== */
 
     .tm-header {
         padding: 8px 0 18px 0;
@@ -318,21 +409,32 @@ st.markdown(
         font-size: 0.98rem;
     }
 
+    /* =====================================================
+       CARDS
+       ===================================================== */
+
     .tm-card {
         background: linear-gradient(
             145deg,
             #102130,
             #0c1823
         );
+
         border: 1px solid #203446;
+
         border-radius: 20px;
+
         padding: 20px;
+
         min-height: 118px;
-        box-shadow: 0 10px 28px rgba(0,0,0,.18);
+
+        box-shadow:
+            0 10px 28px rgba(0,0,0,.18);
     }
 
     .tm-card-primary {
         border-color: #235d83;
+
         background: linear-gradient(
             145deg,
             #12314a,
@@ -356,6 +458,10 @@ st.markdown(
         border-radius: 18px;
     }
 
+    /* =====================================================
+       MOBILE
+       ===================================================== */
+
     @media (max-width: 700px) {
 
         .block-container {
@@ -377,13 +483,18 @@ st.markdown(
             font-size: 1.35rem;
         }
 
+        .quick-action button {
+            min-height: 105px !important;
+            padding: 15px 16px !important;
+            border-radius: 17px !important;
+        }
+
     }
 
     </style>
     """,
     unsafe_allow_html=True
 )
-
 
 # =========================================================
 # SIDEBAR
@@ -517,36 +628,56 @@ if st.session_state.page == "home":
 
     st.write("")
 
-    # -----------------------------------------------------
-    # QUICK ACTIONS
-    # -----------------------------------------------------
+# -----------------------------------------------------
+# QUICK ACTIONS
+# -----------------------------------------------------
 
-    st.subheader("Бързи действия")
+st.subheader("Бързи действия")
 
-    q1, q2 = st.columns(2)
+q1, q2 = st.columns(2)
 
-    with q1:
+with q1:
 
-        if st.button(
-            "➕  Добави разход\n\n"
-            "Бързо добавяне на разход към избрано пътуване.",
-            use_container_width=True,
-            type="primary",
-            key="quick_add"
-        ):
-            open_add_expense()
+    st.markdown(
+        '<div class="quick-action quick-action-primary">',
+        unsafe_allow_html=True
+    )
 
-    with q2:
+    if st.button(
+        "➕  Добави разход\n\n"
+        "Бързо добавяне на разход към избрано пътуване.",
+        use_container_width=True,
+        type="primary",
+        key="quick_add"
+    ):
+        open_add_expense()
 
-        if st.button(
-            "✈️  Ново пътуване\n\n"
-            "Създай ново пътуване и задай неговия бюджет.",
-            use_container_width=True,
-            key="quick_trip"
-        ):
-            st.session_state.page = "new_trip"
-            st.rerun()
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
 
+
+with q2:
+
+    st.markdown(
+        '<div class="quick-action">',
+        unsafe_allow_html=True
+    )
+
+    if st.button(
+        "✈️  Ново пътуване\n\n"
+        "Създай ново пътуване и задай неговия бюджет.",
+        use_container_width=True,
+        key="quick_trip"
+    ):
+        st.session_state.page = "new_trip"
+        st.rerun()
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
     # -----------------------------------------------------
     # MY TRIPS
     # -----------------------------------------------------
