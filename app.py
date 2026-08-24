@@ -53,6 +53,170 @@ st.markdown("""
         border-color: rgba(0, 242, 254, 0.2) !important;
     }
     small { color: #7e8494 !important; }
+
+    /* =========================================================
+       RESPONSIVE MODE — НЕ ПРОМЕНЯ ДИЗАЙНА/ФУНКЦИОНАЛНОСТТА
+       Desktop: запазва съществуващия вид.
+       Mobile: пренарежда само ширини, колони и размери,
+       за да се използва удобно на тесен екран.
+       ========================================================= */
+
+    /* Всички основни Streamlit контейнери не излизат извън екрана */
+    [data-testid="stAppViewContainer"],
+    [data-testid="stAppViewContainer"] > .main,
+    [data-testid="stMainBlockContainer"] {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Изображения, карти и вградени елементи се свиват според екрана */
+    img, iframe, canvas, svg {
+        max-width: 100% !important;
+    }
+
+    /* Таблици не разтягат страницата хоризонтално */
+    [data-testid="stDataFrame"],
+    [data-testid="stTable"] {
+        max-width: 100% !important;
+        overflow-x: auto !important;
+    }
+
+    /* -------- MOBILE -------- */
+    @media (max-width: 768px) {
+
+        /* По-малки странични отстояния */
+        [data-testid="stMainBlockContainer"] {
+            padding-left: 0.65rem !important;
+            padding-right: 0.65rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        /* Streamlit columns -> една под друга само на телефон */
+        [data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+            gap: 0.65rem !important;
+            width: 100% !important;
+        }
+
+        [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+            width: 100% !important;
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+
+        /* Не допускаме отделни компоненти да създават хоризонтален скрол */
+        [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] > div {
+            max-width: 100% !important;
+        }
+
+        /* Полета и бутони използват цялата налична ширина */
+        div.stSelectbox,
+        div.stNumberInput,
+        div.stTextInput,
+        div.stFileUploader,
+        [data-testid="stButton"],
+        [data-testid="stDownloadButton"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        button[data-testid="stBaseButton-secondary"],
+        button[data-testid="stBaseButton-primary"] {
+            min-height: 42px !important;
+            white-space: normal !important;
+            word-break: normal !important;
+        }
+
+        /* Заглавията се намаляват пропорционално, без да се сменя стилът */
+        h1 {
+            font-size: clamp(32px, 9vw, 46px) !important;
+            line-height: 1.08 !important;
+        }
+
+        h2 {
+            font-size: clamp(22px, 6vw, 30px) !important;
+            line-height: 1.15 !important;
+        }
+
+        h3 {
+            font-size: clamp(18px, 5vw, 24px) !important;
+            line-height: 1.2 !important;
+        }
+
+        /* Toggle / checkbox текстът остава на един ред */
+        div[data-testid="stCheckbox"] > label {
+            max-width: 100% !important;
+        }
+
+        div[data-testid="stCheckbox"] p {
+            white-space: nowrap !important;
+            font-size: 14px !important;
+        }
+
+        /* Диалозите използват почти целия телефонен екран */
+        [data-testid="stDialog"] {
+            width: calc(100vw - 16px) !important;
+            max-width: calc(100vw - 16px) !important;
+            margin: 8px auto !important;
+        }
+
+        [data-testid="stDialog"] > div {
+            max-width: 100% !important;
+        }
+
+        /* Plotly графиките се свиват, без да променяме данните/графиката */
+        .js-plotly-plot,
+        .plot-container,
+        .plotly,
+        .svg-container {
+            max-width: 100% !important;
+        }
+
+        /* Карта / iframe */
+        [data-testid="stIFrame"],
+        iframe {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        /* Дълги имена и текстове не разтягат страницата */
+        p, span, div, label {
+            max-width: 100%;
+        }
+
+        /* Картите/карти-статистики запазват дизайна си,
+           но съдържанието им може да се свие */
+        [data-testid="stMarkdownContainer"] {
+            max-width: 100% !important;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    /* -------- SMALL PHONES -------- */
+    @media (max-width: 420px) {
+
+        [data-testid="stMainBlockContainer"] {
+            padding-left: 0.45rem !important;
+            padding-right: 0.45rem !important;
+        }
+
+        div.stSelectbox,
+        div.stNumberInput,
+        div.stTextInput,
+        div.stFileUploader {
+            padding: 8px 10px !important;
+            border-radius: 12px !important;
+        }
+
+        button[data-testid="stBaseButton-secondary"],
+        button[data-testid="stBaseButton-primary"] {
+            font-size: 13px !important;
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
