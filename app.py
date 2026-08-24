@@ -999,7 +999,24 @@ elif st.session_state.page == "trip":
             else None
         )
 
-        # Реален разход:
+        # СРЕДЕН РАЗХОД:
+        # използва всички налични литри и всички известни километри
+        # между първото и последното зареждане с въведен километраж.
+        overall_consumption = None
+
+        if len(fuel_with_km) >= 2:
+
+            first_odometer = fuel_with_km[0]["fuel_odometer"]
+            last_odometer = fuel_with_km[-1]["fuel_odometer"]
+
+            known_km = last_odometer - first_odometer
+
+            if known_km > 0 and total_fuel_liters > 0:
+                overall_consumption = (
+                    total_fuel_liters / known_km * 100
+                )
+
+        # РЕАЛЕН РАЗХОД:
         # използваме две последователни зареждания, маркирани
         # като "пълен резервоар". Всички литри между тях участват
         # в изчислението, включително непълните зареждания.
@@ -1044,9 +1061,6 @@ elif st.session_state.page == "trip":
             else None
         )
 
-        # Прост среден разход от наличните реални измервания.
-        average_consumption = real_consumption
-
         fc1, fc2, fc3 = st.columns(3)
 
         with fc1:
@@ -1077,16 +1091,27 @@ elif st.session_state.page == "trip":
                 )
 
         with fc5:
-            if average_consumption is not None:
+            if overall_consumption is not None:
                 st.metric(
-                    "Реален среден разход",
-                    f"{average_consumption:.2f} л/100 км"
+                    "Среден разход",
+                    f"{overall_consumption:.2f} л/100 км"
                 )
             else:
                 st.caption(
-                    "За реален разход са нужни поне "
-                    "2 зареждания с отбелязан пълен резервоар."
+                    "За среден разход са нужни поне "
+                    "2 зареждания с известен километраж."
                 )
+
+        if real_consumption is not None:
+            st.metric(
+                "Реален разход",
+                f"{real_consumption:.2f} л/100 км"
+            )
+        else:
+            st.caption(
+                "Реален разход: нужни са поне 2 зареждания "
+                "с отбелязан пълен резервоар."
+            )
 
     st.subheader("Разходи")
 
