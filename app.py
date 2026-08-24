@@ -74,12 +74,17 @@ html,body,[data-testid="stAppViewContainer"]{background:radial-gradient(circle a
 .block-container{max-width:1500px !important;padding:1.1rem 1.25rem 5.5rem 1.25rem !important;}
 .px-topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(5,15,24,.88);border:1px solid rgba(82,173,255,.18);border-radius:16px;padding:12px 16px;margin:0 0 14px 0;backdrop-filter:blur(12px);}
 .px-brand{display:flex;align-items:center;gap:9px;color:#fff;font-weight:800;font-size:18px;}.px-brand-mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,#176bd0,#0b2d5c);border:1px solid rgba(79,172,254,.55);font-size:18px;}.px-sub{color:var(--px-muted);font-size:12px;margin-top:2px;}
-.px-trip-pill{color:#eaf6ff;font-weight:700;font-size:14px;text-align:right;}.px-trip-pill small{display:block;color:var(--px-muted);font-weight:500;margin-top:2px;}
+.px-trip-pill{color:#eaf6ff;font-weight:700;font-size:14px;text-align:right;}.px-trip-pill small{display:block;color:var(--px-muted);font-weight:500;margin-top:2px;}.px-trip-header{justify-content:flex-start !important;padding:9px 14px !important;}.px-trip-pill-left{text-align:left !important;}
 .px-desktop-nav{position:fixed;left:12px;top:86px;width:178px;z-index:9990;padding:12px;background:rgba(5,15,24,.92);border:1px solid rgba(82,173,255,.20);border-radius:18px;box-shadow:0 16px 45px rgba(0,0,0,.42);backdrop-filter:blur(14px);}.px-nav-title{font-weight:800;color:#eaf6ff;margin:0 0 9px 4px;font-size:13px;}
 .px-nav a{display:flex;align-items:center;gap:10px;text-decoration:none;color:#aebed0;padding:10px 11px;border-radius:11px;margin:4px 0;font-size:13px;font-weight:650;border:1px solid transparent;}.px-nav a:hover,.px-nav a.active{color:#fff;background:linear-gradient(90deg,rgba(26,117,216,.55),rgba(25,77,135,.25));border-color:rgba(79,172,254,.35);}.px-nav-ico{width:20px;text-align:center;font-size:15px;}
 .px-mobile-nav{display:none;}
+/* Истинският Streamlit бутон „Пътувания“ стои върху позицията на менюто. */
+button[key="px_trips_nav_stage18"]{position:fixed !important;left:24px !important;top:130px !important;width:154px !important;z-index:10001 !important;height:40px !important;min-height:40px !important;padding:0 11px !important;border-radius:11px !important;border:1px solid rgba(79,172,254,.35) !important;background:linear-gradient(90deg,rgba(26,117,216,.55),rgba(25,77,135,.25)) !important;color:#fff !important;font-size:13px !important;font-weight:650 !important;text-align:left !important;box-shadow:none !important;}
+button[key="px_trips_nav_stage18"] p{margin:0 !important;}
 @media (min-width:901px){.block-container{padding-left:215px !important;}}
 @media (max-width:900px){
+button[key="px_trips_nav_stage18"]{position:fixed !important;left:calc(20% + 6px) !important;bottom:12px !important;top:auto !important;width:calc(20% - 12px) !important;height:51px !important;min-height:51px !important;margin:0 !important;padding:0 !important;border:1px solid transparent !important;border-radius:13px !important;background:transparent !important;color:#8fa3b8 !important;font-size:9px !important;font-weight:650 !important;box-shadow:none !important;text-align:center !important;z-index:10001 !important;}
+button[key="px_trips_nav_stage18"] p{font-size:9px !important;white-space:pre-line !important;line-height:14px !important;}
 .block-container{max-width:100% !important;padding:.65rem .55rem 6.4rem .55rem !important;}
 .px-desktop-nav{display:none !important;}.px-topbar{border-radius:13px;padding:9px 11px;margin-bottom:10px;}.px-brand{font-size:15px;}.px-brand-mark{width:30px;height:30px;border-radius:9px;font-size:16px;}.px-trip-pill{font-size:12px;}.px-trip-pill small{font-size:10px;}
 .px-mobile-nav{display:flex;position:fixed;left:6px;right:6px;bottom:7px;height:61px;z-index:9999;align-items:center;justify-content:space-around;background:rgba(5,14,23,.96);border:1px solid rgba(82,173,255,.22);border-radius:17px;box-shadow:0 12px 35px rgba(0,0,0,.58);backdrop-filter:blur(18px);}
@@ -91,14 +96,37 @@ button[data-testid="stBaseButton-secondary"],button[data-testid="stBaseButton-pr
 st.markdown(PX_STAGE1_CSS, unsafe_allow_html=True)
 
 def px_shell(trip_id=None, active="home"):
-    if trip_id:
-        clean_trip = str(trip_id).replace("_", " ")
-        topbar = f"""<div class="px-topbar"><div class="px-brand"><span class="px-brand-mark">🐾</span><div><div>PixelApp</div><div class="px-sub">Travel Manager</div></div></div><div class="px-trip-pill">🌴 {clean_trip}<small>Активно пътуване</small></div></div>"""
-        nav = f"""<div class="px-desktop-nav"><div class="px-nav-title">PixelApp</div><div class="px-nav"><a class="{'active' if active=='home' else ''}" href="#px-budget"><span class="px-nav-ico">⌂</span>Начало</a><a href="?home=1"><span class="px-nav-ico">🧳</span>Пътувания</a><a class="{'active' if active=='expenses' else ''}" href="#px-expenses"><span class="px-nav-ico">▣</span>Разходи</a><a class="{'active' if active=='map' else ''}" href="#px-map"><span class="px-nav-ico">⌖</span>Карта</a><a class="{'active' if active=='more' else ''}" href="#px-more"><span class="px-nav-ico">•••</span>Още</a></div></div>"""
-        mobile = """<div class="px-mobile-nav"><a href="#px-budget" class="active"><span class="ico">⌂</span>Начало</a><a href="?home=1"><span class="ico">🧳</span>Пътувания</a><a href="#px-expenses"><span class="ico">▣</span>Разходи</a><a href="#px-map"><span class="ico">⌖</span>Карта</a><a href="#px-more"><span class="ico">•••</span>Още</a></div>"""
-        st.markdown(topbar + nav + mobile, unsafe_allow_html=True)
-    else:
-        st.markdown("""<div class="px-topbar"><div class="px-brand"><span class="px-brand-mark">🐾</span><div><div>PixelApp</div><div class="px-sub">Travel Manager</div></div></div><div class="px-trip-pill">Вашите пътувания<small>Бюджет • Разходи • Анализи</small></div></div>""", unsafe_allow_html=True)
+    # „Пътувания“ трябва да се държи точно като бутона „НАЗАД КЪМ НАЧАЛЕН ЕКРАН“:
+    # връща към екрана с пътуванията в същия Streamlit прозорец.
+    if not trip_id:
+        return
+
+    nav = f"""
+    <div class="px-desktop-nav">
+        <div class="px-nav-title">Навигация</div>
+        <div class="px-nav">
+            <a class="{'active' if active=='home' else ''}" href="#px-budget"><span class="px-nav-ico">⌂</span>Начало</a>
+            <div class="px-nav-trip-slot"></div>
+            <a class="{'active' if active=='expenses' else ''}" href="#px-expenses"><span class="px-nav-ico">▣</span>Разходи</a>
+            <a class="{'active' if active=='map' else ''}" href="#px-map"><span class="px-nav-ico">⌖</span>Карта</a>
+            <a class="{'active' if active=='more' else ''}" href="#px-more"><span class="px-nav-ico">•••</span>Още</a>
+        </div>
+    </div>
+    """
+    mobile = """
+    <div class="px-mobile-nav">
+        <a href="#px-budget" class="active"><span class="ico">⌂</span>Начало</a>
+        <span class="px-mobile-trip-placeholder"><span class="ico">🧳</span>Пътувания</span>
+        <a href="#px-expenses"><span class="ico">▣</span>Разходи</a>
+        <a href="#px-map"><span class="ico">⌖</span>Карта</a>
+        <a href="#px-more"><span class="ico">•••</span>Още</a>
+    </div>
+    """
+    st.markdown(nav + mobile, unsafe_allow_html=True)
+    # Това е ИСТИНСКИ Streamlit бутон. Няма href, URL, JavaScript или нов tab.
+    if st.button("🧳  Пътувания", key="px_trips_nav_stage18", use_container_width=False):
+        st.session_state["current_trip"] = None
+        st.rerun()
 
 
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
@@ -235,14 +263,8 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
         return False
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
-if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
-try:
-    if st.query_params.get("home") == "1":
-        st.session_state["current_trip"] = None
-        st.query_params.clear()
-except Exception:
-    pass
+if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
 if st.session_state["current_trip"] is None:
     px_shell(active="trips")
