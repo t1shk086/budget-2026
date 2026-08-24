@@ -751,7 +751,7 @@ elif st.session_state.page == "add_expense":
             )
 
             fuel_liters = st.number_input(
-                "Литри гориво",
+                "Литри гориво (л)",
                 min_value=0.0,
                 step=0.1,
                 format="%.2f",
@@ -759,7 +759,7 @@ elif st.session_state.page == "add_expense":
             )
 
             fuel_odometer = st.number_input(
-                "Километраж при зареждане",
+                "Километраж при зареждане (км)",
                 min_value=0.0,
                 step=1.0,
                 format="%.0f",
