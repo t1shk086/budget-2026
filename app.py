@@ -768,7 +768,7 @@ elif st.session_state.page == "add_expense":
 
             fuel_full_tank = st.checkbox(
                 "Пълен резервоар",
-                value=True,
+                value=False,
                 key="fuel_full_tank"
             )
 
@@ -979,30 +979,73 @@ elif st.session_state.page == "trip":
 
         st.subheader("⛽ Гориво")
 
-        full_tank_records = [
+        # Подреждаме зарежданията по километраж.
+        fuel_with_km = [
             expense
             for expense in fuel_expenses
-            if expense.get("fuel_full_tank", False)
-            and expense.get("fuel_odometer", 0.0) > 0
+            if expense.get("fuel_odometer", 0.0) > 0
             and expense.get("fuel_liters", 0.0) > 0
         ]
 
-        consumption = None
+        fuel_with_km.sort(
+            key=lambda expense: expense["fuel_odometer"]
+        )
 
-        if len(full_tank_records) >= 2:
+        # Средна цена на литър — използва всички зареждания,
+        # независимо дали резервоарът е бил пълен.
+        avg_price_per_liter = (
+            total_fuel_cost / total_fuel_liters
+            if total_fuel_liters > 0
+            else None
+        )
 
-            first = full_tank_records[-2]
-            last = full_tank_records[-1]
+        # Реален разход:
+        # използваме две последователни зареждания, маркирани
+        # като "пълен резервоар". Всички литри между тях участват
+        # в изчислението, включително непълните зареждания.
+        full_indices = [
+            index
+            for index, expense in enumerate(fuel_with_km)
+            if expense.get("fuel_full_tank", False)
+        ]
+
+        real_consumption_values = []
+
+        for position in range(1, len(full_indices)):
+
+            start_index = full_indices[position - 1]
+            end_index = full_indices[position]
+
+            start = fuel_with_km[start_index]
+            end = fuel_with_km[end_index]
 
             km = (
-                last["fuel_odometer"]
-                - first["fuel_odometer"]
+                end["fuel_odometer"]
+                - start["fuel_odometer"]
             )
 
-            liters = last["fuel_liters"]
+            liters_between = sum(
+                expense.get("fuel_liters", 0.0)
+                for expense in fuel_with_km[
+                    start_index + 1:end_index + 1
+                ]
+            )
 
-            if km > 0 and liters > 0:
-                consumption = liters / km * 100
+            if km > 0 and liters_between > 0:
+
+                real_consumption_values.append(
+                    liters_between / km * 100
+                )
+
+        real_consumption = (
+            sum(real_consumption_values)
+            / len(real_consumption_values)
+            if real_consumption_values
+            else None
+        )
+
+        # Прост среден разход от наличните реални измервания.
+        average_consumption = real_consumption
 
         fc1, fc2, fc3 = st.columns(3)
 
@@ -1024,11 +1067,26 @@ elif st.session_state.page == "trip":
                 f"€{total_fuel_cost:.2f}"
             )
 
-        if consumption is not None:
-            st.metric(
-                "Среден разход",
-                f"{consumption:.2f} л/100 км"
-            )
+        fc4, fc5 = st.columns(2)
+
+        with fc4:
+            if avg_price_per_liter is not None:
+                st.metric(
+                    "Средна цена",
+                    f"€{avg_price_per_liter:.2f}/л"
+                )
+
+        with fc5:
+            if average_consumption is not None:
+                st.metric(
+                    "Реален среден разход",
+                    f"{average_consumption:.2f} л/100 км"
+                )
+            else:
+                st.caption(
+                    "За реален разход са нужни поне "
+                    "2 зареждания с отбелязан пълен резервоар."
+                )
 
     st.subheader("Разходи")
 
@@ -1085,6 +1143,9 @@ elif st.session_state.page == "trip":
                                 else ""
                             )
                         )
+
+                        if expense.get("fuel_full_tank", False):
+                            fuel_caption += " · ✓ пълен"
 
                         st.caption(fuel_caption)
 
