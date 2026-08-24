@@ -188,8 +188,6 @@ def trip_expenses(trip):
 
 def delete_expense(trip_id, expense_index):
 
-    """Delete one expense and immediately persist the change."""
-
     expenses = st.session_state.trips[
         trip_id
     ]["expenses"]
@@ -234,6 +232,10 @@ st.markdown(
     """
     <style>
 
+    /* =====================================================
+       GLOBAL
+       ===================================================== */
+
     .stApp {
         background: #08111a;
     }
@@ -252,6 +254,7 @@ st.markdown(
     section[data-testid="stSidebar"] .block-container {
         padding-top: 1.5rem;
     }
+
 
     /* =====================================================
        STANDARD BUTTONS
@@ -273,16 +276,26 @@ st.markdown(
         color: #ffffff;
     }
 
+
     /* =====================================================
        QUICK ACTION BUTTONS
        ===================================================== */
 
+    div[data-testid="stButton"] .quick-action-placeholder {
+        display: none;
+    }
+
+    .quick-action {
+        width: 100%;
+    }
+
     .quick-action button {
         min-height: 125px !important;
+        width: 100% !important;
 
         text-align: left !important;
 
-        padding: 18px 20px !important;
+        padding: 20px !important;
 
         border-radius: 20px !important;
 
@@ -300,12 +313,9 @@ st.markdown(
         box-shadow:
             0 10px 28px rgba(0,0,0,.18) !important;
 
-        white-space: pre-line !important;
-
         transition:
             transform .18s ease,
             border-color .18s ease,
-            background .18s ease,
             box-shadow .18s ease !important;
     }
 
@@ -347,6 +357,7 @@ st.markdown(
             ) !important;
     }
 
+
     /* =====================================================
        METRICS
        ===================================================== */
@@ -366,6 +377,7 @@ st.markdown(
         color: #f4f8fb;
     }
 
+
     /* =====================================================
        INPUTS
        ===================================================== */
@@ -377,6 +389,11 @@ st.markdown(
         border-radius: 10px;
     }
 
+
+    /* =====================================================
+       OTHER
+       ===================================================== */
+
     hr {
         border-color: #1a2a39;
     }
@@ -386,6 +403,7 @@ st.markdown(
         border: 1px solid #1b2d3e;
         border-radius: 14px;
     }
+
 
     /* =====================================================
        HEADER
@@ -409,16 +427,18 @@ st.markdown(
         font-size: 0.98rem;
     }
 
+
     /* =====================================================
        CARDS
        ===================================================== */
 
     .tm-card {
-        background: linear-gradient(
-            145deg,
-            #102130,
-            #0c1823
-        );
+        background:
+            linear-gradient(
+                145deg,
+                #102130,
+                #0c1823
+            );
 
         border: 1px solid #203446;
 
@@ -435,11 +455,12 @@ st.markdown(
     .tm-card-primary {
         border-color: #235d83;
 
-        background: linear-gradient(
-            145deg,
-            #12314a,
-            #0c1c29
-        );
+        background:
+            linear-gradient(
+                145deg,
+                #12314a,
+                #0c1c29
+            );
     }
 
     .tm-card-title {
@@ -458,9 +479,109 @@ st.markdown(
         border-radius: 18px;
     }
 
+
+    /* =====================================================
+       CATEGORY CARDS
+       ===================================================== */
+
+    .tm-cat-grid {
+        display: grid;
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin: 10px 0 18px 0;
+    }
+
+    .tm-cat-card {
+        border: 1px solid
+            rgba(120,120,140,.18);
+
+        border-radius: 18px;
+
+        padding: 16px;
+
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,.055),
+                rgba(255,255,255,.018)
+            );
+
+        box-shadow:
+            0 6px 22px
+            rgba(0,0,0,.06);
+
+        min-height: 128px;
+    }
+
+    .tm-cat-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .tm-cat-name {
+        font-size: 14px;
+        font-weight: 650;
+        opacity: .86;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .tm-cat-pct {
+        font-size: 12px;
+        font-weight: 700;
+        opacity: .65;
+    }
+
+    .tm-cat-amount {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -.5px;
+        margin-top: 13px;
+    }
+
+    .tm-cat-bar {
+        height: 6px;
+        border-radius: 99px;
+        background:
+            rgba(128,128,128,.18);
+        overflow: hidden;
+        margin-top: 13px;
+    }
+
+    .tm-cat-fill {
+        height: 100%;
+        border-radius: 99px;
+        background:
+            linear-gradient(
+                90deg,
+                #7c5cff,
+                #35c7ff
+            );
+    }
+
+    .tm-cat-label {
+        margin-top: 7px;
+        font-size: 11px;
+        opacity: .55;
+    }
+
+
     /* =====================================================
        MOBILE
        ===================================================== */
+
+    @media (max-width: 900px) {
+
+        .tm-cat-grid {
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+        }
+
+    }
 
     @media (max-width: 700px) {
 
@@ -484,9 +605,23 @@ st.markdown(
         }
 
         .quick-action button {
-            min-height: 105px !important;
-            padding: 15px 16px !important;
+            min-height: 108px !important;
+            padding: 16px !important;
             border-radius: 17px !important;
+        }
+
+        .tm-cat-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .tm-cat-card {
+            min-height: 112px;
+            padding: 14px;
+        }
+
+        .tm-cat-amount {
+            font-size: 22px;
         }
 
     }
@@ -495,6 +630,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 # =========================================================
 # SIDEBAR
@@ -580,6 +716,7 @@ if st.session_state.page == "home":
     st.markdown(
         """
         <div class="tm-header">
+
             <div class="tm-brand">
                 ✈️ Travel Manager
             </div>
@@ -588,6 +725,7 @@ if st.session_state.page == "home":
                 Всичко за твоите пътувания и разходи
                 на едно място.
             </div>
+
         </div>
         """,
         unsafe_allow_html=True
@@ -628,61 +766,72 @@ if st.session_state.page == "home":
 
     st.write("")
 
-# -----------------------------------------------------
-# QUICK ACTIONS
-# -----------------------------------------------------
+    # -----------------------------------------------------
+    # QUICK ACTIONS
+    # -----------------------------------------------------
 
-st.subheader("Бързи действия")
-
-q1, q2 = st.columns(2)
-
-with q1:
-
-    st.markdown(
-        '<div class="quick-action quick-action-primary">',
-        unsafe_allow_html=True
+    st.subheader(
+        "Бързи действия"
     )
 
-    if st.button(
-        "➕  Добави разход\n\n"
-        "Бързо добавяне на разход към избрано пътуване.",
-        use_container_width=True,
-        type="primary",
-        key="quick_add"
-    ):
-        open_add_expense()
+    q1, q2 = st.columns(2)
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
+    with q1:
 
+        st.markdown(
+            '<div class="quick-action quick-action-primary">',
+            unsafe_allow_html=True
+        )
 
-with q2:
+        if st.button(
+            "➕  Добави разход\n\n"
+            "Бързо добавяне на разход към избрано пътуване.",
+            use_container_width=True,
+            type="primary",
+            key="quick_add"
+        ):
 
-    st.markdown(
-        '<div class="quick-action">',
-        unsafe_allow_html=True
-    )
+            open_add_expense()
 
-    if st.button(
-        "✈️  Ново пътуване\n\n"
-        "Създай ново пътуване и задай неговия бюджет.",
-        use_container_width=True,
-        key="quick_trip"
-    ):
-        st.session_state.page = "new_trip"
-        st.rerun()
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
+    with q2:
+
+        st.markdown(
+            '<div class="quick-action">',
+            unsafe_allow_html=True
+        )
+
+        if st.button(
+            "✈️  Ново пътуване\n\n"
+            "Създай ново пътуване и задай неговия бюджет.",
+            use_container_width=True,
+            key="quick_trip"
+        ):
+
+            st.session_state.page = "new_trip"
+
+            st.rerun()
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+    st.write("")
+
+    st.divider()
+
     # -----------------------------------------------------
     # MY TRIPS
     # -----------------------------------------------------
 
-    st.subheader("Моите пътувания")
+    st.subheader(
+        "Моите пътувания"
+    )
 
     if not st.session_state.trips:
 
@@ -694,9 +843,12 @@ with q2:
 
     else:
 
-        for trip_id, trip in st.session_state.trips.items():
+        for trip_id, trip in (
+            st.session_state.trips.items()
+        ):
 
             spent = trip_expenses(trip)
+
             trip_budget = trip["budget"]
 
             if trip_budget > 0:
@@ -710,7 +862,9 @@ with q2:
 
                 progress = 0
 
-            with st.container(border=True):
+            with st.container(
+                border=True
+            ):
 
                 c1, c2 = st.columns(
                     [4, 1]
@@ -748,7 +902,9 @@ with q2:
                         use_container_width=True
                     ):
 
-                        open_trip(trip_id)
+                        open_trip(
+                            trip_id
+                        )
 
 
 # =========================================================
@@ -757,7 +913,9 @@ with q2:
 
 elif st.session_state.page == "new_trip":
 
-    st.title("✈️ Ново пътуване")
+    st.title(
+        "✈️ Ново пътуване"
+    )
 
     if st.button(
         "← Назад",
@@ -825,17 +983,31 @@ elif st.session_state.page == "new_trip":
                 + start_date.strftime("%Y%m%d")
             )
 
-            st.session_state.trips[trip_id] = {
-                "destination": destination.strip(),
-                "start_date": start_date,
-                "end_date": end_date,
-                "budget": budget,
-                "expenses": []
+            st.session_state.trips[
+                trip_id
+            ] = {
+                "destination":
+                    destination.strip(),
+
+                "start_date":
+                    start_date,
+
+                "end_date":
+                    end_date,
+
+                "budget":
+                    budget,
+
+                "expenses":
+                    []
             }
 
             save_trips()
 
-            st.session_state.selected_trip = trip_id
+            st.session_state.selected_trip = (
+                trip_id
+            )
+
             st.session_state.page = "trip"
 
             st.rerun()
@@ -847,7 +1019,9 @@ elif st.session_state.page == "new_trip":
 
 elif st.session_state.page == "add_expense":
 
-    st.title("➕ Добави разход")
+    st.title(
+        "➕ Добави разход"
+    )
 
     if st.button(
         "← Назад",
@@ -878,6 +1052,7 @@ elif st.session_state.page == "add_expense":
         ):
 
             st.session_state.page = "new_trip"
+
             st.rerun()
 
     else:
@@ -886,12 +1061,16 @@ elif st.session_state.page == "add_expense":
             st.session_state.trips.keys()
         )
 
-        default_trip = st.session_state.expense_trip
+        default_trip = (
+            st.session_state.expense_trip
+        )
 
         if default_trip in trip_ids:
 
-            default_index = trip_ids.index(
-                default_trip
+            default_index = (
+                trip_ids.index(
+                    default_trip
+                )
             )
 
         else:
@@ -903,7 +1082,9 @@ elif st.session_state.page == "add_expense":
             trip_ids,
             index=default_index,
             format_func=lambda x:
-                st.session_state.trips[x]["destination"],
+                st.session_state.trips[
+                    x
+                ]["destination"],
             key="expense_trip_select"
         )
 
@@ -941,10 +1122,11 @@ elif st.session_state.page == "add_expense":
             key="expense_note"
         )
 
-        # Ако описанието съдържа ключова дума
-        # за гориво, показваме допълнителните полета.
-
-        fuel_expense = is_fuel_expense(note)
+        fuel_expense = (
+            is_fuel_expense(
+                note
+            )
+        )
 
         fuel_liters = 0.0
         fuel_odometer = 0.0
@@ -999,19 +1181,31 @@ elif st.session_state.page == "add_expense":
                     selected_trip
                 ]["expenses"].append(
                     {
-                        "amount": amount,
-                        "category": category,
-                        "date": expense_date,
-                        "note": note,
-                        "is_fuel": fuel_expense,
+                        "amount":
+                            amount,
+
+                        "category":
+                            category,
+
+                        "date":
+                            expense_date,
+
+                        "note":
+                            note,
+
+                        "is_fuel":
+                            fuel_expense,
+
                         "fuel_liters":
                             fuel_liters
                             if fuel_expense
                             else 0.0,
+
                         "fuel_odometer":
                             fuel_odometer
                             if fuel_expense
                             else 0.0,
+
                         "fuel_full_tank":
                             fuel_full_tank
                             if fuel_expense
@@ -1038,7 +1232,9 @@ elif st.session_state.page == "add_expense":
 
 elif st.session_state.page == "trips":
 
-    st.title("✈️ Моите пътувания")
+    st.title(
+        "✈️ Моите пътувания"
+    )
 
     c1, c2 = st.columns(
         [1, 4]
@@ -1061,7 +1257,10 @@ elif st.session_state.page == "trips":
             key="trips_new"
         ):
 
-            st.session_state.page = "new_trip"
+            st.session_state.page = (
+                "new_trip"
+            )
+
             st.rerun()
 
     st.divider()
@@ -1074,11 +1273,17 @@ elif st.session_state.page == "trips":
 
     else:
 
-        for trip_id, trip in st.session_state.trips.items():
+        for trip_id, trip in (
+            st.session_state.trips.items()
+        ):
 
-            spent = trip_expenses(trip)
+            spent = trip_expenses(
+                trip
+            )
 
-            with st.container(border=True):
+            with st.container(
+                border=True
+            ):
 
                 st.subheader(
                     f"✈️ {trip['destination']}"
@@ -1091,7 +1296,8 @@ elif st.session_state.page == "trips":
                 )
 
                 st.write(
-                    f"Похарчено: €{spent:.2f} "
+                    f"Похарчено: "
+                    f"€{spent:.2f} "
                     f"/ "
                     f"€{trip['budget']:.2f}"
                 )
@@ -1102,7 +1308,9 @@ elif st.session_state.page == "trips":
                     use_container_width=True
                 ):
 
-                    open_trip(trip_id)
+                    open_trip(
+                        trip_id
+                    )
 
 
 # =========================================================
@@ -1111,7 +1319,9 @@ elif st.session_state.page == "trips":
 
 elif st.session_state.page == "trip":
 
-    trip_id = st.session_state.selected_trip
+    trip_id = (
+        st.session_state.selected_trip
+    )
 
     if (
         trip_id is None
@@ -1130,6 +1340,7 @@ elif st.session_state.page == "trip":
     ):
 
         st.session_state.page = "trips"
+
         st.rerun()
 
     st.title(
@@ -1144,7 +1355,9 @@ elif st.session_state.page == "trip":
 
     st.divider()
 
-    spent = trip_expenses(trip)
+    spent = trip_expenses(
+        trip
+    )
 
     remaining = (
         trip["budget"]
@@ -1217,9 +1430,9 @@ elif st.session_state.page == "trip":
 
     if fuel_expenses:
 
-        st.subheader("⛽ Гориво")
-
-        # Подреждаме зарежданията по километраж.
+        st.subheader(
+            "⛽ Гориво"
+        )
 
         fuel_with_km = [
             expense
@@ -1236,10 +1449,10 @@ elif st.session_state.page == "trip":
 
         fuel_with_km.sort(
             key=lambda expense:
-                expense["fuel_odometer"]
+                expense[
+                    "fuel_odometer"
+                ]
         )
-
-        # Средна цена на литър.
 
         avg_price_per_liter = (
 
@@ -1251,20 +1464,20 @@ elif st.session_state.page == "trip":
             else None
         )
 
-        # -------------------------------------------------
-        # СРЕДЕН РАЗХОД
-        # -------------------------------------------------
-
         overall_consumption = None
 
         if len(fuel_with_km) >= 2:
 
             first_odometer = (
-                fuel_with_km[0]["fuel_odometer"]
+                fuel_with_km[0][
+                    "fuel_odometer"
+                ]
             )
 
             last_odometer = (
-                fuel_with_km[-1]["fuel_odometer"]
+                fuel_with_km[-1][
+                    "fuel_odometer"
+                ]
             )
 
             known_km = (
@@ -1283,15 +1496,12 @@ elif st.session_state.page == "trip":
                     * 100
                 )
 
-        # -------------------------------------------------
-        # РЕАЛЕН РАЗХОД
-        # -------------------------------------------------
-
         full_indices = [
             index
             for index, expense
-            in enumerate(fuel_with_km)
-
+            in enumerate(
+                fuel_with_km
+            )
             if expense.get(
                 "fuel_full_tank",
                 False
@@ -1306,11 +1516,15 @@ elif st.session_state.page == "trip":
         ):
 
             start_index = (
-                full_indices[position - 1]
+                full_indices[
+                    position - 1
+                ]
             )
 
             end_index = (
-                full_indices[position]
+                full_indices[
+                    position
+                ]
             )
 
             start = fuel_with_km[
@@ -1322,8 +1536,13 @@ elif st.session_state.page == "trip":
             ]
 
             km = (
-                end["fuel_odometer"]
-                - start["fuel_odometer"]
+                end[
+                    "fuel_odometer"
+                ]
+                -
+                start[
+                    "fuel_odometer"
+                ]
             )
 
             liters_between = sum(
@@ -1352,8 +1571,13 @@ elif st.session_state.page == "trip":
 
         real_consumption = (
 
-            sum(real_consumption_values)
-            / len(real_consumption_values)
+            sum(
+                real_consumption_values
+            )
+            /
+            len(
+                real_consumption_values
+            )
 
             if real_consumption_values
 
@@ -1428,6 +1652,8 @@ elif st.session_state.page == "trip":
     # EXPENSES BY CATEGORY
     # =====================================================
 
+    selected_category = "Всички"
+
     if trip["expenses"]:
 
         st.subheader(
@@ -1443,12 +1669,15 @@ elif st.session_state.page == "trip":
                 "📱 Други"
             )
 
-            category_totals[category] = (
+            category_totals[
+                category
+            ] = (
                 category_totals.get(
                     category,
                     0.0
                 )
-                + expense["amount"]
+                +
+                expense["amount"]
             )
 
         category_totals = dict(
@@ -1466,136 +1695,13 @@ elif st.session_state.page == "trip":
 
         selected_category = st.selectbox(
             "Покажи категория",
-            [
-                "Всички"
-            ]
-            + list(
+            ["Всички"]
+            +
+            list(
                 category_totals.keys()
             ),
             key=f"category_filter_{trip_id}"
         )
-
-        # =================================================
-        # CATEGORY CARDS
-        # =================================================
-
-        category_css = """
-        <style>
-
-        .tm-cat-grid {
-            display: grid;
-            grid-template-columns:
-                repeat(3, minmax(0, 1fr));
-            gap: 12px;
-            margin: 10px 0 18px 0;
-        }
-
-        .tm-cat-card {
-            border: 1px solid
-                rgba(120,120,140,.18);
-
-            border-radius: 18px;
-
-            padding: 16px;
-
-            background:
-                linear-gradient(
-                    145deg,
-                    rgba(255,255,255,.055),
-                    rgba(255,255,255,.018)
-                );
-
-            box-shadow:
-                0 6px 22px
-                rgba(0,0,0,.06);
-
-            min-height: 128px;
-        }
-
-        .tm-cat-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .tm-cat-name {
-            font-size: 14px;
-            font-weight: 650;
-            opacity: .86;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .tm-cat-pct {
-            font-size: 12px;
-            font-weight: 700;
-            opacity: .65;
-        }
-
-        .tm-cat-amount {
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: -.5px;
-            margin-top: 13px;
-        }
-
-        .tm-cat-bar {
-            height: 6px;
-            border-radius: 99px;
-            background:
-                rgba(128,128,128,.18);
-            overflow: hidden;
-            margin-top: 13px;
-        }
-
-        .tm-cat-fill {
-            height: 100%;
-            border-radius: 99px;
-            background:
-                linear-gradient(
-                    90deg,
-                    #7c5cff,
-                    #35c7ff
-                );
-        }
-
-        .tm-cat-label {
-            margin-top: 7px;
-            font-size: 11px;
-            opacity: .55;
-        }
-
-        @media (max-width: 900px) {
-
-            .tm-cat-grid {
-                grid-template-columns:
-                    repeat(2, minmax(0, 1fr));
-            }
-
-        }
-
-        @media (max-width: 600px) {
-
-            .tm-cat-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-
-            .tm-cat-card {
-                min-height: 112px;
-                padding: 14px;
-            }
-
-            .tm-cat-amount {
-                font-size: 22px;
-            }
-
-        }
-
-        </style>
-        """
 
         cards = []
 
@@ -1660,10 +1766,11 @@ elif st.session_state.page == "trip":
             )
 
         category_html = (
-            category_css
-            + '<div class="tm-cat-grid">'
-            + "".join(cards)
-            + "</div>"
+            '<div class="tm-cat-grid">'
+            +
+            "".join(cards)
+            +
+            "</div>"
         )
 
         try:
@@ -1679,67 +1786,23 @@ elif st.session_state.page == "trip":
                 unsafe_allow_html=True
             )
 
-        # =================================================
-        # DONUT CHART
-        # =================================================
-
         st.write("")
 
         st.subheader(
             "🍩 Разпределение на разходите"
         )
 
-        # Подготвяме данните директно от
-        # category_totals.
-
-        donut_data = []
-
-        for category, amount in (
-            category_totals.items()
-        ):
-
-            percentage = (
-
-                amount
-                / total_category_expenses
-                * 100
-
-                if total_category_expenses > 0
-
-                else 0
-            )
-
-            donut_data.append(
-                {
-                    "category": category,
-                    "amount": round(
-                        amount,
-                        2
-                    ),
-                    "percentage": round(
-                        percentage,
-                        1
-                    )
-                }
-            )
-
-        # -------------------------------------------------
-        # PLOTLY DONUT
-        # -------------------------------------------------
-
         try:
 
             import plotly.graph_objects as go
 
-            labels = [
-                item["category"]
-                for item in donut_data
-            ]
+            labels = list(
+                category_totals.keys()
+            )
 
-            values = [
-                item["amount"]
-                for item in donut_data
-            ]
+            values = list(
+                category_totals.values()
+            )
 
             fig = go.Figure(
                 data=[
@@ -1804,10 +1867,6 @@ elif st.session_state.page == "trip":
                 )
             )
 
-            # -------------------------------------------------
-            # CENTER TEXT
-            # -------------------------------------------------
-
             fig.add_annotation(
 
                 text=(
@@ -1815,8 +1874,7 @@ elif st.session_state.page == "trip":
                     f"€{total_category_expenses:.2f}"
                     f"</b>"
                     "<br>"
-                    "<span style="
-                    "'font-size:12px'>"
+                    "<span style='font-size:12px'>"
                     "Общо"
                     "</span>"
                 ),
@@ -1890,12 +1948,12 @@ elif st.session_state.page == "trip":
             expenses = [
                 item
                 for item in expenses
-
                 if item[1].get(
                     "category",
                     "📱 Други"
                 )
-                == selected_category
+                ==
+                selected_category
             ]
 
         for original_index, expense in expenses:
@@ -1938,7 +1996,6 @@ elif st.session_state.page == "trip":
                         fuel_caption = (
                             f"⛽ {liters:.2f} л"
                             +
-
                             (
                                 f" · "
                                 f"€{expense['amount'] / liters:.2f}/л"
@@ -1947,9 +2004,7 @@ elif st.session_state.page == "trip":
 
                                 else ""
                             )
-
                             +
-
                             (
                                 f" · "
                                 f"{odometer:.0f} км"
@@ -1985,10 +2040,6 @@ elif st.session_state.page == "trip":
                         "Сума",
                         f"€{expense['amount']:.2f}"
                     )
-
-                # -------------------------------------------------
-                # DELETE CONFIRMATION
-                # -------------------------------------------------
 
                 confirm_key = (
                     f"confirm_delete_"
@@ -2146,97 +2197,3 @@ elif st.session_state.page == "settings":
     ):
 
         go_home()
-/* =====================================================
-   QUICK ACTION BUTTONS
-   ===================================================== */
-
-button[kind="primary"] {
-    min-height: 125px !important;
-    text-align: left !important;
-    padding: 18px 20px !important;
-    border-radius: 20px !important;
-    border: 1px solid #235d83 !important;
-
-    background:
-        linear-gradient(
-            145deg,
-            #12314a,
-            #0c1c29
-        ) !important;
-
-    color: #f4f8fb !important;
-
-    box-shadow:
-        0 10px 28px rgba(0,0,0,.18) !important;
-
-    white-space: pre-line !important;
-}
-
-button[kind="primary"]:hover {
-    border-color: #2b9cff !important;
-
-    background:
-        linear-gradient(
-            145deg,
-            #16405f,
-            #0e2434
-        ) !important;
-
-    transform: translateY(-1px);
-
-    box-shadow:
-        0 12px 32px rgba(0,0,0,.25) !important;
-}
-
-button[kind="secondary"] {
-    min-height: 125px !important;
-    text-align: left !important;
-    padding: 18px 20px !important;
-    border-radius: 20px !important;
-
-    background:
-        linear-gradient(
-            145deg,
-            #102130,
-            #0c1823
-        ) !important;
-
-    border: 1px solid #203446 !important;
-
-    color: #f4f8fb !important;
-
-    box-shadow:
-        0 10px 28px rgba(0,0,0,.18) !important;
-
-    white-space: pre-line !important;
-}
-
-button[kind="secondary"]:hover {
-    border-color: #2b9cff !important;
-
-    background:
-        linear-gradient(
-            145deg,
-            #152b3d,
-            #0d1d2a
-        ) !important;
-
-    transform: translateY(-1px);
-}
-
-@media (max-width: 700px) {
-
-    button[kind="primary"],
-    button[kind="secondary"] {
-
-        min-height: 105px !important;
-
-        padding:
-            15px 16px !important;
-
-        border-radius:
-            17px !important;
-
-    }
-
-}
