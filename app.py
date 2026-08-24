@@ -11,7 +11,8 @@ from pathlib import Path
 st.set_page_config(
     page_title="Travel Manager",
     page_icon="✈️",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 
@@ -213,10 +214,8 @@ def total_expenses():
 
     return sum(
         expense["amount"]
-
         for trip
         in st.session_state.trips.values()
-
         for expense
         in trip["expenses"]
     )
@@ -226,7 +225,6 @@ def total_budget():
 
     return sum(
         trip["budget"]
-
         for trip
         in st.session_state.trips.values()
     )
@@ -236,7 +234,6 @@ def trip_expenses(trip):
 
     return sum(
         expense["amount"]
-
         for expense
         in trip["expenses"]
     )
@@ -301,424 +298,775 @@ def open_add_expense(
 
 st.markdown(
     """
-    <style>
+<style>
 
-    /* =====================================================
-       MODERN FONT
-       ===================================================== */
-
-    @import url(
-        'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
-    );
+@import url(
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
+);
 
 
-    html,
-    body,
-    [class*="css"],
-    .stApp,
-    button,
-    input,
-    textarea,
-    select {
+/* =========================================================
+   GLOBAL
+   ========================================================= */
 
-        font-family:
-            'Inter',
-            -apple-system,
-            BlinkMacSystemFont,
-            'Segoe UI',
-            sans-serif !important;
-    }
+html,
+body,
+.stApp,
+[class*="css"],
+button,
+input,
+textarea,
+select {
+
+    font-family:
+        'Inter',
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        sans-serif !important;
+}
 
 
-    /* =====================================================
-       APP
-       ===================================================== */
+.stApp {
 
-    .stApp {
+    background:
+        #08111a;
+}
 
-        background:
-            #08111a;
-    }
 
+.block-container {
+
+    max-width:
+        1080px;
+
+    padding-top:
+        1.4rem;
+
+    padding-bottom:
+        4rem;
+}
+
+
+/* =========================================================
+   HIDE STREAMLIT DEFAULT ELEMENTS
+   ========================================================= */
+
+#MainMenu {
+
+    visibility:
+        hidden;
+}
+
+
+footer {
+
+    visibility:
+        hidden;
+}
+
+
+header {
+
+    background:
+        transparent !important;
+}
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+section[data-testid="stSidebar"] {
+
+    background:
+        #09141f;
+
+    border-right:
+        1px solid #1a2b3a;
+}
+
+
+section[data-testid="stSidebar"]
+.block-container {
+
+    padding-top:
+        1.2rem;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.stButton > button {
+
+    border-radius:
+        12px;
+
+    min-height:
+        44px;
+
+    font-weight:
+        650;
+
+    border:
+        1px solid #263c4f;
+
+    background:
+        #101e2a;
+
+    color:
+        #eef5f9;
+
+    transition:
+        all .18s ease;
+}
+
+
+.stButton > button:hover {
+
+    border-color:
+        #2b9cff;
+
+    background:
+        #15283a;
+
+    color:
+        #ffffff;
+
+    transform:
+        translateY(-1px);
+}
+
+
+.stButton > button:active {
+
+    transform:
+        translateY(0);
+}
+
+
+.stButton > button[kind="primary"] {
+
+    background:
+        linear-gradient(
+            135deg,
+            #1f8fff,
+            #1673d4
+        ) !important;
+
+    border:
+        1px solid #2b9cff !important;
+
+    color:
+        white !important;
+}
+
+
+/* =========================================================
+   METRICS
+   ========================================================= */
+
+div[data-testid="stMetric"] {
+
+    background:
+        linear-gradient(
+            145deg,
+            #0e1c29,
+            #0b1722
+        );
+
+    border:
+        1px solid #1c3041;
+
+    border-radius:
+        16px;
+
+    padding:
+        14px 16px;
+
+    box-shadow:
+        0 8px 24px rgba(
+            0,
+            0,
+            0,
+            .14
+        );
+}
+
+
+div[data-testid="stMetricLabel"] {
+
+    color:
+        #8fa1b2;
+}
+
+
+div[data-testid="stMetricValue"] {
+
+    color:
+        #f4f8fb;
+}
+
+
+/* =========================================================
+   INPUTS
+   ========================================================= */
+
+div[data-baseweb="input"] > div,
+div[data-baseweb="select"] > div {
+
+    background:
+        #0d1925;
+
+    border-color:
+        #22374a;
+
+    border-radius:
+        10px;
+}
+
+
+/* =========================================================
+   DIVIDER
+   ========================================================= */
+
+hr {
+
+    border-color:
+        #1a2a39;
+}
+
+
+/* =========================================================
+   CONTAINERS
+   ========================================================= */
+
+div[data-testid="stVerticalBlockBorderWrapper"] {
+
+    border-radius:
+        18px;
+
+    border-color:
+        #1c3041;
+}
+
+
+/* =========================================================
+   HOME HERO
+   ========================================================= */
+
+.tm-header {
+
+    position:
+        relative;
+
+    padding:
+        10px 0 24px 0;
+
+    overflow:
+        hidden;
+}
+
+
+.tm-header::before {
+
+    content:
+        "";
+
+    position:
+        absolute;
+
+    width:
+        190px;
+
+    height:
+        190px;
+
+    right:
+        -70px;
+
+    top:
+        -100px;
+
+    border-radius:
+        50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(
+                43,
+                156,
+                255,
+                .16
+            ),
+            transparent 70%
+        );
+
+    pointer-events:
+        none;
+}
+
+
+.tm-brand-row {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        12px;
+}
+
+
+.tm-logo {
+
+    width:
+        48px;
+
+    height:
+        48px;
+
+    min-width:
+        48px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        15px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #173c5c,
+            #0e2538
+        );
+
+    border:
+        1px solid #285878;
+
+    box-shadow:
+        0 8px 24px rgba(
+            0,
+            0,
+            0,
+            .20
+        );
+}
+
+
+.tm-logo svg {
+
+    width:
+        29px;
+
+    height:
+        29px;
+
+    display:
+        block;
+}
+
+
+.tm-brand {
+
+    font-size:
+        clamp(
+            2rem,
+            4vw,
+            2.75rem
+        );
+
+    font-weight:
+        800;
+
+    letter-spacing:
+        -.055em;
+
+    line-height:
+        1;
+
+    color:
+        #f4f8fb;
+
+    margin:
+        0;
+}
+
+
+.tm-brand-accent {
+
+    color:
+        #45b2ff;
+}
+
+
+.tm-subtitle {
+
+    color:
+        #8fa1b2;
+
+    margin:
+        10px 0 0 60px;
+
+    font-size:
+        .96rem;
+
+    font-weight:
+        500;
+
+    letter-spacing:
+        -.015em;
+
+    line-height:
+        1.5;
+
+    max-width:
+        500px;
+}
+
+
+/* =========================================================
+   SECTION TITLE
+   ========================================================= */
+
+.tm-section {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    margin:
+        25px 0 14px 0;
+}
+
+
+.tm-section-title {
+
+    font-size:
+        1.25rem;
+
+    font-weight:
+        750;
+
+    color:
+        #f4f8fb;
+
+    letter-spacing:
+        -.025em;
+}
+
+
+.tm-section-subtitle {
+
+    color:
+        #738697;
+
+    font-size:
+        .78rem;
+}
+
+
+/* =========================================================
+   QUICK ACTIONS
+   ========================================================= */
+
+.tm-quick-grid {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(
+                0,
+                1fr
+            )
+        );
+
+    gap:
+        14px;
+
+    margin:
+        0 0 28px 0;
+}
+
+
+.tm-quick-card {
+
+    position:
+        relative;
+
+    min-height:
+        150px;
+
+    padding:
+        20px;
+
+    border-radius:
+        20px;
+
+    border:
+        1px solid #203446;
+
+    background:
+        linear-gradient(
+            145deg,
+            #102130,
+            #0c1823
+        );
+
+    overflow:
+        hidden;
+
+    box-shadow:
+        0 10px 28px rgba(
+            0,
+            0,
+            0,
+            .15
+        );
+}
+
+
+.tm-quick-card.primary {
+
+    border-color:
+        #235d83;
+
+    background:
+        linear-gradient(
+            145deg,
+            #12314a,
+            #0c1c29
+        );
+}
+
+
+.tm-quick-icon {
+
+    width:
+        42px;
+
+    height:
+        42px;
+
+    border-radius:
+        13px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    font-size:
+        21px;
+
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .06
+        );
+
+    border:
+        1px solid rgba(
+            255,
+            255,
+            255,
+            .08
+        );
+
+    margin-bottom:
+        14px;
+}
+
+
+.tm-quick-title {
+
+    color:
+        #f5f8fb;
+
+    font-size:
+        1.08rem;
+
+    font-weight:
+        750;
+
+    margin-bottom:
+        5px;
+}
+
+
+.tm-quick-text {
+
+    color:
+        #8fa1b2;
+
+    font-size:
+        .86rem;
+
+    line-height:
+        1.45;
+}
+
+
+/* =========================================================
+   TRIP CARD
+   ========================================================= */
+
+.tm-trip-title {
+
+    font-size:
+        1.15rem;
+
+    font-weight:
+        750;
+
+    color:
+        #f4f8fb;
+}
+
+
+.tm-trip-date {
+
+    color:
+        #7f91a1;
+
+    font-size:
+        .82rem;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
 
     .block-container {
 
-        max-width:
-            1080px;
+        padding-left:
+            1rem;
+
+        padding-right:
+            1rem;
 
         padding-top:
-            1.6rem;
+            .9rem;
 
         padding-bottom:
-            4rem;
+            3rem;
     }
 
 
-    /* =====================================================
-       SIDEBAR
-       ===================================================== */
+    .tm-brand-row {
 
-    section[data-testid="stSidebar"] {
-
-        background:
-            #09141f;
-
-        border-right:
-            1px solid #1a2b3a;
-    }
-
-
-    section[data-testid="stSidebar"]
-    .block-container {
-
-        padding-top:
-            1.5rem;
-    }
-
-
-    /* =====================================================
-       BUTTONS
-       ===================================================== */
-
-    .stButton > button {
-
-        border-radius:
-            12px;
-
-        min-height:
-            44px;
-
-        font-weight:
-            650;
-
-        border:
-            1px solid #263c4f;
-
-        background:
-            #101e2a;
-
-        color:
-            #eef5f9;
-
-        transition:
-            all .18s ease;
-    }
-
-
-    .stButton > button:hover {
-
-        border-color:
-            #2b9cff;
-
-        background:
-            #15283a;
-
-        color:
-            #ffffff;
-
-        transform:
-            translateY(-1px);
-    }
-
-
-    .stButton > button:active {
-
-        transform:
-            translateY(0);
-    }
-
-
-    /* =====================================================
-       METRICS
-       ===================================================== */
-
-    div[data-testid="stMetric"] {
-
-        background:
-            #0d1a26;
-
-        border:
-            1px solid #1c3041;
-
-        border-radius:
-            16px;
-
-        padding:
-            14px 16px;
-    }
-
-
-    div[data-testid="stMetricLabel"] {
-
-        color:
-            #8fa1b2;
-    }
-
-
-    div[data-testid="stMetricValue"] {
-
-        color:
-            #f4f8fb;
-    }
-
-
-    /* =====================================================
-       INPUTS
-       ===================================================== */
-
-    div[data-baseweb="input"] > div,
-    div[data-baseweb="select"] > div {
-
-        background:
-            #0d1925;
-
-        border-color:
-            #22374a;
-
-        border-radius:
+        gap:
             10px;
     }
 
 
-    /* =====================================================
-       DIVIDERS
-       ===================================================== */
+    .tm-logo {
 
-    hr {
+        width:
+            43px;
 
-        border-color:
-            #1a2a39;
-    }
+        height:
+            43px;
 
-
-    /* =====================================================
-       EXPANDERS
-       ===================================================== */
-
-    details {
-
-        background:
-            #0d1925;
-
-        border:
-            1px solid #1b2d3e;
+        min-width:
+            43px;
 
         border-radius:
-            14px;
+            13px;
     }
 
 
-    /* =====================================================
-       MAIN HEADER
-       ===================================================== */
+    .tm-logo svg {
 
-    .tm-header {
+        width:
+            26px;
 
-        padding:
-            8px 0 20px 0;
+        height:
+            26px;
     }
 
 
     .tm-brand {
 
-        font-family:
-            'Inter',
-            sans-serif !important;
-
         font-size:
-            clamp(
-                2rem,
-                4vw,
-                2.8rem
-            );
-
-        font-weight:
-            800;
-
-        letter-spacing:
-            -0.055em;
-
-        line-height:
-            1.05;
-
-        color:
-            #f4f8fb;
-
-        margin:
-            0;
+            2rem;
     }
 
 
     .tm-subtitle {
 
-        font-family:
-            'Inter',
-            sans-serif !important;
-
-        color:
-            #8fa1b2;
-
-        margin-top:
-            8px;
+        margin-left:
+            53px;
 
         font-size:
-            0.98rem;
-
-        font-weight:
-            500;
-
-        letter-spacing:
-            -0.015em;
-
-        line-height:
-            1.5;
+            .88rem;
     }
 
 
-    /* =====================================================
-       DASHBOARD CARDS
-       ===================================================== */
+    .tm-quick-grid {
 
-    .tm-card {
+        grid-template-columns:
+            1fr;
 
-        background:
-            linear-gradient(
-                145deg,
-                #102130,
-                #0c1823
-            );
+        gap:
+            11px;
+    }
 
-        border:
-            1px solid #203446;
 
-        border-radius:
-            20px;
-
-        padding:
-            20px;
+    .tm-quick-card {
 
         min-height:
-            118px;
+            132px;
 
-        box-shadow:
-            0 10px 28px rgba(0,0,0,.18);
+        padding:
+            17px;
     }
 
 
-    .tm-card-primary {
+    div[data-testid="stMetric"] {
 
-        border-color:
-            #235d83;
-
-        background:
-            linear-gradient(
-                145deg,
-                #12314a,
-                #0c1c29
-            );
+        padding:
+            11px 12px;
     }
 
 
-    .tm-card-title {
-
-        color:
-            #f5f8fb;
+    div[data-testid="stMetricValue"] {
 
         font-size:
-            1.12rem;
-
-        font-weight:
-            750;
-
-        margin-bottom:
-            5px;
+            1.3rem;
     }
+}
 
-
-    .tm-card-text {
-
-        color:
-            #8fa1b2;
-
-        font-size:
-            .9rem;
-
-        line-height:
-            1.45;
-    }
-
-
-    /* =====================================================
-       CONTAINERS
-       ===================================================== */
-
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-
-        border-radius:
-            18px;
-    }
-
-
-    /* =====================================================
-       MOBILE
-       ===================================================== */
-
-    @media (max-width: 700px) {
-
-        .block-container {
-
-            padding-left:
-                1rem;
-
-            padding-right:
-                1rem;
-
-            padding-top:
-                1rem;
-        }
-
-
-        .tm-card {
-
-            min-height:
-                auto;
-
-            padding:
-                17px;
-        }
-
-
-        div[data-testid="stMetric"] {
-
-            padding:
-                11px 12px;
-        }
-
-
-        div[data-testid="stMetricValue"] {
-
-            font-size:
-                1.35rem;
-        }
-
-
-        .tm-brand {
-
-            font-size:
-                2rem;
-        }
-
-
-        .tm-subtitle {
-
-            font-size:
-                .92rem;
-        }
-
-    }
-
-    </style>
-    """,
+</style>
+""",
     unsafe_allow_html=True
 )
 
@@ -732,13 +1080,17 @@ with st.sidebar:
     st.markdown(
         """
         <div style="
+            display:flex;
+            align-items:center;
+            gap:10px;
             font-family:Inter,sans-serif;
-            font-size:1.35rem;
+            font-size:1.25rem;
             font-weight:800;
             letter-spacing:-.04em;
             color:#f4f8fb;
         ">
-            ✈️ Travel Manager
+            <span style="font-size:1.35rem;">✈️</span>
+            <span>Travel Manager</span>
         </div>
         """,
         unsafe_allow_html=True
@@ -838,15 +1190,58 @@ with st.sidebar:
 if st.session_state.page == "home":
 
     # -----------------------------------------------------
-    # HEADER
+    # HERO
     # -----------------------------------------------------
 
     st.markdown(
         """
         <div class="tm-header">
 
-            <div class="tm-brand">
-                ✈️ Travel Manager
+            <div class="tm-brand-row">
+
+                <div class="tm-logo">
+
+                    <svg
+                        viewBox="0 0 64 64"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                    >
+
+                        <path
+                            d="M9 42
+                               C17 40 23 37 29 31
+                               L40 20
+                               C44 16 49 15 55 17
+                               L46 26
+                               L53 32
+                               C54 33 54 35 52 36
+                               L44 36
+                               L35 45
+                               C32 48 28 49 24 47
+                               L29 41
+                               L20 39
+                               C16 40 12 41 9 42Z"
+                            fill="#45b2ff"
+                        />
+
+                        <path
+                            d="M14 46
+                               C25 44 34 39 42 31"
+                            fill="none"
+                            stroke="#eef8ff"
+                            stroke-width="3"
+                            stroke-linecap="round"
+                            opacity=".9"
+                        />
+
+                    </svg>
+
+                </div>
+
+                <div class="tm-brand">
+                    Travel <span class="tm-brand-accent">Manager</span>
+                </div>
+
             </div>
 
             <div class="tm-subtitle">
@@ -858,9 +1253,6 @@ if st.session_state.page == "home":
         """,
         unsafe_allow_html=True
     )
-
-
-    st.write("")
 
 
     # -----------------------------------------------------
@@ -906,15 +1298,74 @@ if st.session_state.page == "home":
         )
 
 
-    st.write("")
+    # -----------------------------------------------------
+    # QUICK ACTIONS HEADER
+    # -----------------------------------------------------
+
+    st.markdown(
+        """
+        <div class="tm-section">
+
+            <div class="tm-section-title">
+                Бързи действия
+            </div>
+
+            <div class="tm-section-subtitle">
+                Най-често използваните функции
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
     # -----------------------------------------------------
-    # QUICK ACTIONS
+    # QUICK ACTION CARDS
     # -----------------------------------------------------
 
-    st.subheader(
-        "Бързи действия"
+    st.markdown(
+        """
+        <div class="tm-quick-grid">
+
+            <div class="tm-quick-card primary">
+
+                <div class="tm-quick-icon">
+                    ＋
+                </div>
+
+                <div class="tm-quick-title">
+                    Добави разход
+                </div>
+
+                <div class="tm-quick-text">
+                    Бързо добавяне на разход към
+                    избрано пътуване.
+                </div>
+
+            </div>
+
+
+            <div class="tm-quick-card">
+
+                <div class="tm-quick-icon">
+                    ✈️
+                </div>
+
+                <div class="tm-quick-title">
+                    Ново пътуване
+                </div>
+
+                <div class="tm-quick-text">
+                    Създай ново пътуване и задай
+                    неговия бюджет.
+                </div>
+
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
@@ -923,27 +1374,8 @@ if st.session_state.page == "home":
 
     with q1:
 
-        st.markdown(
-            """
-            <div class="tm-card tm-card-primary">
-
-                <div class="tm-card-title">
-                    ➕ Добави разход
-                </div>
-
-                <div class="tm-card-text">
-                    Бързо добавяне на разход към
-                    избрано пътуване.
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-
         if st.button(
-            "Добави разход →",
+            "＋  Добави разход →",
             use_container_width=True,
             type="primary",
             key="quick_add"
@@ -954,27 +1386,8 @@ if st.session_state.page == "home":
 
     with q2:
 
-        st.markdown(
-            """
-            <div class="tm-card">
-
-                <div class="tm-card-title">
-                    ✈️ Ново пътуване
-                </div>
-
-                <div class="tm-card-text">
-                    Създай ново пътуване и задай
-                    неговия бюджет.
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-
         if st.button(
-            "Създай пътуване →",
+            "✈️  Създай пътуване →",
             use_container_width=True,
             key="quick_trip"
         ):
@@ -988,15 +1401,26 @@ if st.session_state.page == "home":
 
     st.write("")
 
-    st.divider()
-
 
     # -----------------------------------------------------
     # MY TRIPS
     # -----------------------------------------------------
 
-    st.subheader(
-        "Моите пътувания"
+    st.markdown(
+        """
+        <div class="tm-section">
+
+            <div class="tm-section-title">
+                Моите пътувания
+            </div>
+
+            <div class="tm-section-subtitle">
+                Твоите активни пътувания
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
@@ -1046,15 +1470,19 @@ if st.session_state.page == "home":
 
                 with c1:
 
-                    st.subheader(
-                        f"✈️ {trip['destination']}"
-                    )
+                    st.markdown(
+                        f"""
+                        <div class="tm-trip-title">
+                            ✈️ {trip['destination']}
+                        </div>
 
-
-                    st.caption(
-                        f"{trip['start_date'].strftime('%d.%m.%Y')}"
-                        f" – "
-                        f"{trip['end_date'].strftime('%d.%m.%Y')}"
+                        <div class="tm-trip-date">
+                            {trip['start_date'].strftime('%d.%m.%Y')}
+                            –
+                            {trip['end_date'].strftime('%d.%m.%Y')}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
                     )
 
 
@@ -2021,242 +2449,248 @@ elif st.session_state.page == "trip":
 
         st.markdown(
             """
-            <style>
+<style>
+
+.tm-cat-grid {
 
-            .tm-cat-grid {
+    display:
+        grid;
 
-                display:
-                    grid;
+    grid-template-columns:
+        repeat(
+            3,
+            minmax(
+                0,
+                1fr
+            )
+        );
 
-                grid-template-columns:
-                    repeat(
-                        3,
-                        minmax(0, 1fr)
-                    );
+    gap:
+        12px;
 
-                gap:
-                    12px;
+    margin:
+        10px 0 18px 0;
+}
 
-                margin:
-                    10px 0 18px 0;
-            }
 
+.tm-cat-card {
 
-            .tm-cat-card {
+    border:
+        1px solid
+        rgba(
+            120,
+            120,
+            140,
+            .18
+        );
 
-                border:
-                    1px solid
-                    rgba(
-                        120,
-                        120,
-                        140,
-                        .18
-                    );
+    border-radius:
+        18px;
 
-                border-radius:
-                    18px;
+    padding:
+        16px;
 
-                padding:
-                    16px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(
+                255,
+                255,
+                255,
+                .055
+            ),
+            rgba(
+                255,
+                255,
+                255,
+                .018
+            )
+        );
 
-                background:
-                    linear-gradient(
-                        145deg,
-                        rgba(
-                            255,
-                            255,
-                            255,
-                            .055
-                        ),
-                        rgba(
-                            255,
-                            255,
-                            255,
-                            .018
-                        )
-                    );
+    box-shadow:
+        0 6px 22px
+        rgba(
+            0,
+            0,
+            0,
+            .06
+        );
 
-                box-shadow:
-                    0 6px 22px
-                    rgba(
-                        0,
-                        0,
-                        0,
-                        .06
-                    );
+    min-height:
+        128px;
+}
 
-                min-height:
-                    128px;
-            }
 
+.tm-cat-top {
 
-            .tm-cat-top {
+    display:
+        flex;
 
-                display:
-                    flex;
+    align-items:
+        center;
 
-                align-items:
-                    center;
+    justify-content:
+        space-between;
 
-                justify-content:
-                    space-between;
+    gap:
+        8px;
+}
 
-                gap:
-                    8px;
-            }
 
+.tm-cat-name {
 
-            .tm-cat-name {
+    font-size:
+        14px;
 
-                font-size:
-                    14px;
+    font-weight:
+        650;
 
-                font-weight:
-                    650;
+    opacity:
+        .86;
 
-                opacity:
-                    .86;
+    overflow:
+        hidden;
 
-                overflow:
-                    hidden;
+    text-overflow:
+        ellipsis;
 
-                text-overflow:
-                    ellipsis;
+    white-space:
+        nowrap;
+}
 
-                white-space:
-                    nowrap;
-            }
 
+.tm-cat-pct {
 
-            .tm-cat-pct {
+    font-size:
+        12px;
 
-                font-size:
-                    12px;
+    font-weight:
+        700;
 
-                font-weight:
-                    700;
+    opacity:
+        .65;
+}
 
-                opacity:
-                    .65;
-            }
 
+.tm-cat-amount {
 
-            .tm-cat-amount {
+    font-size:
+        24px;
 
-                font-size:
-                    24px;
+    font-weight:
+        800;
 
-                font-weight:
-                    800;
+    letter-spacing:
+        -.5px;
 
-                letter-spacing:
-                    -.5px;
+    margin-top:
+        13px;
+}
 
-                margin-top:
-                    13px;
-            }
 
+.tm-cat-bar {
 
-            .tm-cat-bar {
+    height:
+        6px;
 
-                height:
-                    6px;
+    border-radius:
+        99px;
 
-                border-radius:
-                    99px;
+    background:
+        rgba(
+            128,
+            128,
+            128,
+            .18
+        );
 
-                background:
-                    rgba(
-                        128,
-                        128,
-                        128,
-                        .18
-                    );
+    overflow:
+        hidden;
 
-                overflow:
-                    hidden;
+    margin-top:
+        13px;
+}
 
-                margin-top:
-                    13px;
-            }
 
+.tm-cat-fill {
 
-            .tm-cat-fill {
+    height:
+        100%;
 
-                height:
-                    100%;
+    border-radius:
+        99px;
 
-                border-radius:
-                    99px;
+    background:
+        linear-gradient(
+            90deg,
+            #7c5cff,
+            #35c7ff
+        );
+}
 
-                background:
-                    linear-gradient(
-                        90deg,
-                        #7c5cff,
-                        #35c7ff
-                    );
-            }
 
+.tm-cat-label {
 
-            .tm-cat-label {
+    margin-top:
+        7px;
 
-                margin-top:
-                    7px;
+    font-size:
+        11px;
 
-                font-size:
-                    11px;
+    opacity:
+        .55;
+}
 
-                opacity:
-                    .55;
-            }
 
+@media (max-width: 900px) {
 
-            @media (max-width: 900px) {
+    .tm-cat-grid {
 
-                .tm-cat-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(
+                    0,
+                    1fr
+                )
+            );
+    }
 
-                    grid-template-columns:
-                        repeat(
-                            2,
-                            minmax(0, 1fr)
-                        );
-                }
+}
 
-            }
 
+@media (max-width: 600px) {
 
-            @media (max-width: 600px) {
+    .tm-cat-grid {
 
-                .tm-cat-grid {
+        grid-template-columns:
+            1fr;
 
-                    grid-template-columns:
-                        1fr;
+        gap:
+            10px;
+    }
 
-                    gap:
-                        10px;
-                }
 
+    .tm-cat-card {
 
-                .tm-cat-card {
+        min-height:
+            112px;
 
-                    min-height:
-                        112px;
+        padding:
+            14px;
+    }
 
-                    padding:
-                        14px;
-                }
 
+    .tm-cat-amount {
 
-                .tm-cat-amount {
+        font-size:
+            22px;
+    }
 
-                    font-size:
-                        22px;
-                }
+}
 
-            }
-
-            </style>
-            """,
+</style>
+""",
             unsafe_allow_html=True
         )
 
@@ -2283,52 +2717,43 @@ elif st.session_state.page == "trip":
 
             cards.append(
                 f"""
-                <div class="tm-cat-card">
+<div class="tm-cat-card">
 
-                    <div class="tm-cat-top">
+    <div class="tm-cat-top">
 
-                        <div class="tm-cat-name">
-                            {category}
-                        </div>
+        <div class="tm-cat-name">
+            {category}
+        </div>
 
-                        <div class="tm-cat-pct">
-                            {percentage:.1f}%
-                        </div>
+        <div class="tm-cat-pct">
+            {percentage:.1f}%
+        </div>
 
-                    </div>
+    </div>
 
-                    <div class="tm-cat-amount">
-                        €{category_amount:.2f}
-                    </div>
+    <div class="tm-cat-amount">
+        €{category_amount:.2f}
+    </div>
 
-                    <div class="tm-cat-bar">
+    <div class="tm-cat-bar">
 
-                        <div
-                            class="tm-cat-fill"
-                            style="
-                                width:
-                                {min(
-                                    percentage,
-                                    100
-                                ):.2f}%;
-                            "
-                        >
-                        </div>
+        <div
+            class="tm-cat-fill"
+            style="width:{min(percentage, 100):.2f}%"
+        ></div>
 
-                    </div>
+    </div>
 
-                    <div class="tm-cat-label">
-                        от общо
-                        €{total_category_expenses:.2f}
-                    </div>
+    <div class="tm-cat-label">
+        от общо €{total_category_expenses:.2f}
+    </div>
 
-                </div>
-                """
+</div>
+"""
             )
 
 
         category_html = (
-
             '<div class="tm-cat-grid">'
             + "".join(cards)
             + "</div>"
@@ -2635,10 +3060,6 @@ elif st.session_state.page == "trip":
                         f"€{expense['amount']:.2f}"
                     )
 
-
-                # -------------------------------------------------
-                # DELETE
-                # -------------------------------------------------
 
                 confirm_key = (
                     f"confirm_delete_"
