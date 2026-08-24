@@ -79,6 +79,11 @@ html,body,[data-testid="stAppViewContainer"]{
 .block-container{max-width:1500px !important;padding:1.1rem 1.25rem 5.5rem 1.25rem !important;}
 
 /* ===== PIXEAPP — ЕДИННА НАВИГАЦИОННА СИСТЕМА ===== */
+.px-html-nav-item{display:flex !important;align-items:center !important;gap:12px !important;height:44px !important;margin:0 0 5px !important;padding:0 12px !important;border-radius:12px !important;border:1px solid transparent !important;background:transparent !important;color:#9fb1c3 !important;text-decoration:none !important;font-size:13px !important;font-weight:650 !important;transition:background .18s ease,border-color .18s ease,color .18s ease,transform .18s ease !important;box-sizing:border-box !important;}
+.px-html-nav-item:hover{color:#f5fbff !important;background:rgba(40,126,221,.12) !important;border-color:rgba(79,172,254,.16) !important;transform:translateX(2px) !important;}
+.px-html-nav-item.active{color:#fff !important;background:linear-gradient(90deg,rgba(35,127,224,.48),rgba(18,67,119,.22)) !important;border-color:rgba(79,172,254,.30) !important;box-shadow:inset 3px 0 0 #4facfe,0 5px 18px rgba(20,91,160,.16) !important;}
+.px-html-nav-icon{width:22px !important;text-align:center !important;font-size:16px !important;line-height:1 !important;flex:0 0 22px !important;}
+
 section[data-testid="stSidebar"]{
   background:rgba(4,12,20,.97) !important;
   border-right:1px solid rgba(82,173,255,.16) !important;
@@ -155,6 +160,11 @@ div[class*="st-key-px_side_"][class*="_wrap"] button[data-testid="stBaseButton-p
   background:linear-gradient(90deg,rgba(35,127,224,.55),rgba(18,67,119,.28)) !important;
 }
 
+
+div[class*="st-key-px_side_trips_wrap"],div[class*="st-key-px_mobile_trips_wrap"]{margin:0 0 5px !important;}
+div[class*="st-key-px_side_trips_wrap"] button,div[class*="st-key-px_mobile_trips_wrap"] button{height:44px !important;min-height:44px !important;width:100% !important;padding:0 12px !important;border-radius:12px !important;border:1px solid transparent !important;background:transparent !important;color:#9fb1c3 !important;box-shadow:none !important;font-size:13px !important;font-weight:650 !important;letter-spacing:.1px !important;}
+div[class*="st-key-px_side_trips_wrap"] button:hover,div[class*="st-key-px_mobile_trips_wrap"] button:hover{color:#f5fbff !important;background:rgba(40,126,221,.12) !important;border-color:rgba(79,172,254,.16) !important;transform:translateX(2px) !important;}
+
 /* Основното приложение си запазва отделен стил; навигацията не го променя. */
 button[data-testid="stBaseButton-secondary"],button[data-testid="stBaseButton-primary"]{
   border-radius:12px !important;transition:all .20s ease !important;
@@ -217,80 +227,58 @@ def _px_nav_action(label):
         st.session_state["current_trip"] = None
         st.session_state["px_nav_target"] = "Пътувания"
         st.rerun()
-    else:
-        st.session_state["px_nav_target"] = label
-        st.rerun()
 
 def _px_active_key(default="home"):
     target = st.session_state.get("px_nav_target")
-    return {
-        "Начало": "home",
-        "Пътувания": "trips",
-        "Разходи": "expenses",
-        "Карта": "map",
-        "Още": "more",
-    }.get(target, default)
+    return {"Начало":"home","Пътувания":"trips","Разходи":"expenses","Карта":"map","Още":"more"}.get(target, default)
 
-def _px_scroll_to_active(active):
-    anchors = {"home":"px-budget", "expenses":"px-expenses", "map":"px-map", "more":"px-more"}
-    anchor = anchors.get(active)
-    if not anchor:
-        return
-    st.markdown(f"""<script>
-    (() => {{
-      const go = () => {{
-        const el = window.parent.document.getElementById('{anchor}');
-        if (el) el.scrollIntoView({{behavior:'smooth', block:'start'}});
-      }};
-      setTimeout(go, 120);
-      setTimeout(go, 500);
-    }})();
-    </script>""", unsafe_allow_html=True)
+def _px_nav_html_item(icon, label, anchor, active=False):
+    cls = "px-html-nav-item active" if active else "px-html-nav-item"
+    return f"<a class=\"{cls}\" href=\"#{anchor}\" data-px-nav=\"{anchor}\"><span class=\"px-html-nav-icon\">{icon}</span><span>{label}</span></a>"
 
-def _px_nav_button(icon, label, active=False, key_prefix="side"):
-    slug = {"Начало":"home","Пътувания":"trips","Разходи":"expenses","Карта":"map","Още":"more"}[label]
-    with st.container(key=f"px_{key_prefix}_{slug}_wrap"):
-        clicked = st.button(
-            f"{icon}   {label}",
-            key=f"px_{key_prefix}_{slug}",
-            use_container_width=True,
-            type="primary" if active else "secondary"
-        )
+def _px_nav_trip_button(key_prefix="side"):
+    with st.container(key=f"px_{key_prefix}_trips_wrap"):
+        clicked = st.button("🧳   Пътувания", key=f"px_{key_prefix}_trips", use_container_width=True, type="secondary")
     if clicked:
-        _px_nav_action(label)
+        _px_nav_action("Пътувания")
 
 def px_shell(trip_id=None, active="home"):
     if not trip_id:
         return
-
     with st.sidebar:
         st.markdown('<div class="px-sidebar-brand"><span class="mark">🐾</span><span>PixelApp</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="px-sidebar-title">Навигация</div>', unsafe_allow_html=True)
-        _px_nav_button("⌂", "Начало", active=="home", "side")
-        _px_nav_button("🧳", "Пътувания", active=="trips", "side")
-        _px_nav_button("▣", "Разходи", active=="expenses", "side")
-        _px_nav_button("⌖", "Карта", active=="map", "side")
-        _px_nav_button("•••", "Още", active=="more", "side")
+        st.markdown(_px_nav_html_item("⌂", "Начало", "px-budget", active=="home"), unsafe_allow_html=True)
+        _px_nav_trip_button("side")
+        st.markdown(''.join([
+            _px_nav_html_item("▣", "Разходи", "px-expenses", active=="expenses"),
+            _px_nav_html_item("⌖", "Карта", "px-map", active=="map"),
+            _px_nav_html_item("•••", "Още", "px-more", active=="more")
+        ]), unsafe_allow_html=True)
 
-    # Mobile: същите истински Streamlit бутони, същите действия и същите активни ефекти.
     st.markdown('<div class="px-mobile-nav">', unsafe_allow_html=True)
     cols = st.columns(5, gap="small")
-    mobile_items = [
-        ("⌂","Начало","home"),("🧳","Пътувания","trips"),
-        ("▣","Разходи","expenses"),("⌖","Карта","map"),("•••","Още","more")
-    ]
-    for col,(icon,label,nav_key) in zip(cols,mobile_items):
+    mobile_items=[("⌂","Начало","px-budget","home"),("🧳","Пътувания",None,"trips"),("▣","Разходи","px-expenses","expenses"),("⌖","Карта","px-map","map"),("•••","Още","px-more","more")]
+    for col,(icon,label,anchor,nav_key) in zip(cols,mobile_items):
         with col:
-            _px_nav_button(icon, label, active==nav_key, "mobile")
-    st.markdown("</div>", unsafe_allow_html=True)
+            if label == "Пътувания":
+                _px_nav_trip_button("mobile")
+            else:
+                st.markdown(_px_nav_html_item(icon,label,anchor,active==nav_key), unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    clean_trip = str(trip_id).replace("_", " ")
-    st.markdown(
-        f'<div class="px-topbar"><div class="px-brand"><span class="px-brand-mark">🐾</span>'
-        f'<div><div>PixelApp</div><div class="px-sub">Travel Manager</div></div></div>'
-        f'<div class="px-trip-pill">🌴 {clean_trip}<small>Активно пътуване</small></div></div>',
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    <script>
+    (() => {
+      const root=window.parent.document;
+      const items=()=>Array.from(root.querySelectorAll('.px-html-nav-item'));
+      const setActive=id=>items().forEach(a=>a.classList.toggle('active',a.dataset.pxNav===id));
+      const sync=()=>{const id=(window.parent.location.hash||'').replace('#',''); if(id)setActive(id);};
+      items().forEach(a=>a.addEventListener('click',()=>setActive(a.dataset.pxNav)));
+      window.parent.addEventListener('hashchange',sync); sync();
+    })();
+    </script>
+    """, unsafe_allow_html=True)
 
 
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
