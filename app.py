@@ -75,7 +75,7 @@ st.markdown("""
         border-radius: 25px;
     }
     </style>
-""", unsafe_allow_html=True)
+""", unsafe_unsafe_html=True)
 
 # Инициализация на състоянието за активния изглед
 if "active_tab" not in st.session_state:
