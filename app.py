@@ -3,7 +3,6 @@ from datetime import date
 import json
 from pathlib import Path
 
-
 # =========================================================
 # CONFIG
 # =========================================================
@@ -14,7 +13,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
 
 # =========================================================
 # DATA
@@ -32,230 +30,65 @@ FUEL_KEYWORDS = (
 
 
 def load_trips():
-
     if not DATA_FILE.exists():
         return {}
-
     try:
-
-        raw = json.loads(
-            DATA_FILE.read_text(
-                encoding="utf-8"
-            )
-        )
-
+        raw = json.loads(DATA_FILE.read_text(encoding="utf-8"))
         for trip in raw.values():
+            if isinstance(trip.get("start_date"), str):
+                trip["start_date"] = date.fromisoformat(trip["start_date"])
+            if isinstance(trip.get("end_date"), str):
+                trip["end_date"] = date.fromisoformat(trip["end_date"])
 
-            if isinstance(
-                trip.get("start_date"),
-                str
-            ):
-                trip["start_date"] = date.fromisoformat(
-                    trip["start_date"]
-                )
-
-            if isinstance(
-                trip.get("end_date"),
-                str
-            ):
-                trip["end_date"] = date.fromisoformat(
-                    trip["end_date"]
-                )
-
-            trip.setdefault(
-                "destination",
-                ""
-            )
-
-            trip.setdefault(
-                "budget",
-                0.0
-            )
-
-            trip.setdefault(
-                "expenses",
-                []
-            )
+            trip.setdefault("destination", "")
+            trip.setdefault("budget", 0.0)
+            trip.setdefault("expenses", [])
 
             for expense in trip["expenses"]:
-
-                if isinstance(
-                    expense.get("date"),
-                    str
-                ):
-                    expense["date"] = date.fromisoformat(
-                        expense["date"]
-                    )
-
-                expense.setdefault(
-                    "amount",
-                    0.0
-                )
-
-                expense.setdefault(
-                    "category",
-                    "📱 Други"
-                )
-
-                expense.setdefault(
-                    "note",
-                    ""
-                )
-
-                expense.setdefault(
-                    "is_fuel",
-                    False
-                )
-
-                expense.setdefault(
-                    "fuel_liters",
-                    0.0
-                )
-
-                expense.setdefault(
-                    "fuel_odometer",
-                    0.0
-                )
-
-                expense.setdefault(
-                    "fuel_full_tank",
-                    False
-                )
-
+                if isinstance(expense.get("date"), str):
+                    expense["date"] = date.fromisoformat(expense["date"])
+                expense.setdefault("amount", 0.0)
+                expense.setdefault("category", "📱 Други")
+                expense.setdefault("note", "")
+                expense.setdefault("is_fuel", False)
+                expense.setdefault("fuel_liters", 0.0)
+                expense.setdefault("fuel_odometer", 0.0)
+                expense.setdefault("fuel_full_tank", False)
         return raw
-
-    except (
-        json.JSONDecodeError,
-        OSError,
-        ValueError,
-        TypeError,
-    ):
-
+    except (json.JSONDecodeError, OSError, ValueError, TypeError):
         return {}
 
 
 def save_trips():
-
     serializable = {}
-
-    for trip_id, trip in (
-        st.session_state.trips.items()
-    ):
-
+    for trip_id, trip in st.session_state.trips.items():
         serializable[trip_id] = {
-
-            "destination":
-                trip["destination"],
-
-            "start_date":
-                trip["start_date"].isoformat(),
-
-            "end_date":
-                trip["end_date"].isoformat(),
-
-            "budget":
-                float(
-                    trip["budget"]
-                ),
-
+            "destination": trip["destination"],
+            "start_date": trip["start_date"].isoformat(),
+            "end_date": trip["end_date"].isoformat(),
+            "budget": float(trip["budget"]),
             "expenses": []
         }
-
-        for expense in trip.get(
-            "expenses",
-            []
-        ):
-
-            serializable[
-                trip_id
-            ][
-                "expenses"
-            ].append(
-
-                {
-                    "amount":
-                        float(
-                            expense.get(
-                                "amount",
-                                0
-                            )
-                        ),
-
-                    "category":
-                        expense.get(
-                            "category",
-                            "📱 Други"
-                        ),
-
-                    "date":
-                        expense[
-                            "date"
-                        ].isoformat(),
-
-                    "note":
-                        expense.get(
-                            "note",
-                            ""
-                        ),
-
-                    "is_fuel":
-                        expense.get(
-                            "is_fuel",
-                            False
-                        ),
-
-                    "fuel_liters":
-                        float(
-                            expense.get(
-                                "fuel_liters",
-                                0.0
-                            )
-                        ),
-
-                    "fuel_odometer":
-                        float(
-                            expense.get(
-                                "fuel_odometer",
-                                0.0
-                            )
-                        ),
-
-                    "fuel_full_tank":
-                        expense.get(
-                            "fuel_full_tank",
-                            False
-                        ),
-                }
-            )
-
+        for expense in trip.get("expenses", []):
+            serializable[trip_id]["expenses"].append({
+                "amount": float(expense.get("amount", 0)),
+                "category": expense.get("category", "📱 Други"),
+                "date": expense["date"].isoformat(),
+                "note": expense.get("note", ""),
+                "is_fuel": expense.get("is_fuel", False),
+                "fuel_liters": float(expense.get("fuel_liters", 0.0)),
+                "fuel_odometer": float(expense.get("fuel_odometer", 0.0)),
+                "fuel_full_tank": expense.get("fuel_full_tank", False),
+            })
     try:
-
-        DATA_FILE.write_text(
-            json.dumps(
-                serializable,
-                ensure_ascii=False,
-                indent=2
-            ),
-            encoding="utf-8"
-        )
-
+        DATA_FILE.write_text(json.dumps(serializable, ensure_ascii=False, indent=2), encoding="utf-8")
     except OSError as error:
-
-        st.error(
-            f"Неуспешно записване на данните: {error}"
-        )
+        st.error(f"Неуспешно записване на данните: {error}")
 
 
 def is_fuel_expense(text):
-
-    text = (
-        text or ""
-    ).lower()
-
-    return any(
-        keyword in text
-        for keyword in FUEL_KEYWORDS
-    )
+    text = (text or "").lower()
+    return any(keyword in text for keyword in FUEL_KEYWORDS)
 
 
 # =========================================================
@@ -263,22 +96,15 @@ def is_fuel_expense(text):
 # =========================================================
 
 if "trips" not in st.session_state:
-
     st.session_state.trips = load_trips()
 
-
 if "page" not in st.session_state:
-
     st.session_state.page = "home"
 
-
 if "selected_trip" not in st.session_state:
-
     st.session_state.selected_trip = None
 
-
 if "expense_trip" not in st.session_state:
-
     st.session_state.expense_trip = None
 
 
@@ -287,533 +113,96 @@ if "expense_trip" not in st.session_state:
 # =========================================================
 
 def total_expenses():
-
     return sum(
-
-        float(
-            expense.get(
-                "amount",
-                0
-            )
-        )
-
-        for trip
-        in st.session_state.trips.values()
-
-        for expense
-        in trip.get(
-            "expenses",
-            []
-        )
+        float(expense.get("amount", 0))
+        for trip in st.session_state.trips.values()
+        for expense in trip.get("expenses", [])
     )
 
 
 def total_budget():
-
-    return sum(
-
-        float(
-            trip.get(
-                "budget",
-                0
-            )
-        )
-
-        for trip
-        in st.session_state.trips.values()
-    )
+    return sum(float(trip.get("budget", 0)) for trip in st.session_state.trips.values())
 
 
 def trip_expenses(trip):
-
-    return sum(
-
-        float(
-            expense.get(
-                "amount",
-                0
-            )
-        )
-
-        for expense
-        in trip.get(
-            "expenses",
-            []
-        )
-    )
+    return sum(float(expense.get("amount", 0)) for expense in trip.get("expenses", []))
 
 
 # =========================================================
-# NAVIGATION
+# NAVIGATION (Поправено с премахване на st.rerun от тук)
 # =========================================================
 
 def go_home():
-
     st.session_state.page = "home"
-
     st.session_state.selected_trip = None
-
     st.session_state.expense_trip = None
 
-    st.rerun()
-
-
 def open_trip(trip_id):
-
     st.session_state.selected_trip = trip_id
-
     st.session_state.expense_trip = trip_id
-
     st.session_state.page = "trip"
 
-    st.rerun()
-
-
-def open_add_expense(
-    trip_id=None
-):
-
+def open_add_expense(trip_id=None):
     st.session_state.expense_trip = trip_id
-
     st.session_state.page = "add_expense"
 
-    st.rerun()
-
-
 def open_new_trip():
-
     st.session_state.page = "new_trip"
 
-    st.rerun()
-
-
 def open_page(page):
-
     st.session_state.page = page
-
-    st.rerun()
 
 
 # =========================================================
-# CSS
+# CSS (Поправен и затворен блок)
 # =========================================================
 
 st.markdown(
     """
-<style>
-
-@import url(
-'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
-);
-
-html,
-body,
-.stApp,
-button,
-input,
-textarea,
-select {
-
-    font-family:
-        'Inter',
-        -apple-system,
-        BlinkMacSystemFont,
-        'Segoe UI',
-        sans-serif !important;
-}
-
-.stApp {
-
-    background:
-        radial-gradient(
-            circle at top right,
-            rgba(22,135,217,.08),
-            transparent 35%
-        ),
-        #08111a;
-}
-
-.block-container {
-
-    max-width:1080px;
-
-    padding-top:1.5rem;
-
-    padding-bottom:5rem;
-}
-
-
-/* SIDEBAR */
-
-section[data-testid="stSidebar"] {
-
-    background:#09141f;
-
-    border-right:
-        1px solid #1a2b3a;
-}
-
-
-/* BUTTONS */
-
-.stButton > button {
-
-    min-height:44px;
-
-    border-radius:12px;
-
-    border:
-        1px solid #263c4f;
-
-    background:#101e2a;
-
-    color:#eef5f9;
-
-    font-weight:650;
-
-    transition:
-        .15s ease;
-}
-
-.stButton > button:hover {
-
-    background:#152b3d;
-
-    border-color:#2b9cff;
-
-    color:white;
-}
-
-.stButton > button[kind="primary"] {
-
-    background:#1687d9;
-
-    border-color:#1687d9;
-
-    color:white;
-}
-
-.stButton > button[kind="primary"]:hover {
-
-    background:#2199ec;
-
-    border-color:#2199ec;
-}
-
-
-/* METRICS */
-
-div[data-testid="stMetric"] {
-
-    background:
-        linear-gradient(
-            145deg,
-            #10202e,
-            #0c1823
-        );
-
-    border:
-        1px solid #1d3447;
-
-    border-radius:17px;
-
-    padding:15px 17px;
-}
-
-div[data-testid="stMetricLabel"] {
-
-    color:#8fa1b2 !important;
-}
-
-div[data-testid="stMetricValue"] {
-
-    color:#f4f8fb !important;
-}
-
-
-/* INPUTS */
-
-div[data-baseweb="input"] > div,
-div[data-baseweb="select"] > div {
-
-    background:#0d1925 !important;
-
-    border-color:#22374a !important;
-
-    border-radius:10px !important;
-}
-
-
-/* QUICK ACTION CARDS */
-
-.tm-card {
-
-    background:
-        linear-gradient(
-            145deg,
-            #102130,
-            #0c1823
-        );
-
-    border:
-        1px solid #203446;
-
-    border-radius:20px;
-
-    padding:20px;
-
-    min-height:118px;
-
-    margin-bottom:10px;
-}
-
-.tm-card-primary {
-
-    border-color:#235d83;
-
-    background:
-        linear-gradient(
-            145deg,
-            #12314a,
-            #0c1c29
-        );
-}
-
-.tm-card-title {
-
-    color:#f5f8fb;
-
-    font-size:1.12rem;
-
-    font-weight:750;
-
-    margin-bottom:6px;
-}
-
-.tm-card-text {
-
-    color:#8fa1b2;
-
-    font-size:.9rem;
-
-    line-height:1.45;
-}
-
-
-/* TRIP CARDS */
-
-.tm-trip-card {
-
-    background:
-        linear-gradient(
-            145deg,
-            #0f1f2c,
-            #0b1721
-        );
-
-    border:
-        1px solid #1d3446;
-
-    border-radius:18px;
-
-    padding:18px;
-
-    margin-bottom:12px;
-}
-
-.tm-trip-title {
-
-    color:#f4f8fb;
-
-    font-size:1.1rem;
-
-    font-weight:750;
-}
-
-.tm-trip-date {
-
-    color:#8196a8;
-
-    font-size:.84rem;
-
-    margin-top:4px;
-}
-
-
-/* CATEGORY CARDS */
-
-.tm-cat-grid {
-
-    display:grid;
-
-    grid-template-columns:
-        repeat(
-            3,
-            minmax(0,1fr)
-        );
-
-    gap:12px;
-
-    margin:10px 0 20px 0;
-}
-
-.tm-cat-card {
-
-    border:
-        1px solid
-        rgba(120,120,140,.18);
-
-    border-radius:18px;
-
-    padding:16px;
-
-    background:
-        linear-gradient(
-            145deg,
-            rgba(255,255,255,.055),
-            rgba(255,255,255,.018)
-        );
-
-    min-height:128px;
-}
-
-.tm-cat-top {
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:space-between;
-}
-
-.tm-cat-name {
-
-    font-size:14px;
-
-    font-weight:650;
-
-    opacity:.86;
-}
-
-.tm-cat-pct {
-
-    font-size:12px;
-
-    font-weight:700;
-
-    opacity:.65;
-}
-
-.tm-cat-amount {
-
-    font-size:24px;
-
-    font-weight:800;
-
-    margin-top:13px;
-}
-
-.tm-cat-bar {
-
-    height:6px;
-
-    border-radius:99px;
-
-    background:
-        rgba(128,128,128,.18);
-
-    overflow:hidden;
-
-    margin-top:13px;
-}
-
-.tm-cat-fill {
-
-    height:100%;
-
-    border-radius:99px;
-
-    background:
-        linear-gradient(
-            90deg,
-            #7c5cff,
-            #35c7ff
-        );
-}
-
-.tm-cat-label {
-
-    margin-top:7px;
-
-    font-size:11px;
-
-    opacity:.55;
-}
-
-
-/* MOBILE */
-
-@media(max-width:900px){
-
-    .tm-cat-grid{
-
-        grid-template-columns:
-            repeat(
-                2,
-                minmax(0,1fr)
-            );
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    html, body, .stApp, button, input, textarea, select {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     }
-}
-
-@media(max-width:700px){
-
-    .block-container{
-
-        padding-left:1rem;
-
-        padding-right:1rem;
-
-        padding-top:1rem;
+    .stApp {
+        background: radial-gradient(circle, #ffffff 0%, #f0f2f6 100%);
     }
-
-    div[data-testid="stMetric"]{
-
-        padding:
-            11px 12px;
-    }
-
-    div[data-testid="stMetricValue"]{
-
-        font-size:1.3rem;
-    }
-}
-
-@media(max-width:600px){
-
-    .tm-cat-grid{
-
-        grid-template-columns:1fr;
-
-        gap:10px;
-    }
-
-    .tm-cat-card{
-
-        min-height:112px;
-
-        padding:14px;
-    }
-
-    .tm-cat-amount{
-
-        font-size:22px;
-    }
-}
-
-</style>
-""",
+    </style>
+    """,
     unsafe_allow_html=True
 )
+
+
+# =========================================================
+# UI ИНТЕРФЕЙС (Нова секция, за да работи приложението)
+# =========================================================
+
+# Странично меню за навигация
+st.sidebar.title("📌 Навигация")
+if st.sidebar.button("🏠 Начало", on_click=go_home): pass
+if st.sidebar.button("➕ Нова екскурзия", on_click=open_new_trip): pass
+
+# Рендиране на страници в зависимост от състоянието
+if st.session_state.page == "home":
+    st.title("✈️ Добре дошли в Travel Manager")
+    
+    col1, col2 = st.columns(2)
+    col1.metric("Общ Бюджет", f"{total_budget():.2f} лв.")
+    col2.metric("Общи Разходи", f"{total_expenses():.2f} лв.")
+    
+    st.write("Вашите екскурзии ще се покажат тук.")
+
+elif st.session_state.page == "new_trip":
+    st.title("➕ Създай нова екскурзия")
+    # Тук можете да добавите формата за създаване на екскурзия
+
+elif st.session_state.page == "trip":
+    st.title(f"🗺️ Преглед на екскурзия: {st.session_state.selected_trip}")
+
+elif st.session_state.page == "add_expense":
+    st.title("💰 Добави разход")
+
 
 
 # =========================================================
