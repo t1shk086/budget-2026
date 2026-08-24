@@ -791,15 +791,47 @@ with st.sidebar:
 
 if st.session_state.page == "home":
 
+    # -----------------------------------------------------
+    # HEADER
+    # -----------------------------------------------------
+
     st.markdown(
         """
-        <div class="tm-header">
+        <div style="
+            width:100%;
+            padding:10px 0 24px 0;
+            display:block;
+            visibility:visible;
+            opacity:1;
+        ">
 
-            <div class="tm-brand">
+            <div style="
+                display:block;
+                visibility:visible;
+                opacity:1;
+                color:#f4f8fb;
+                font-family:Inter, sans-serif;
+                font-size:clamp(32px, 5vw, 46px);
+                font-weight:800;
+                line-height:1.1;
+                letter-spacing:-1.8px;
+                margin:0;
+                padding:0;
+            ">
                 ✈️ Travel Manager
             </div>
 
-            <div class="tm-subtitle">
+            <div style="
+                display:block;
+                visibility:visible;
+                opacity:1;
+                color:#9aaaba;
+                font-family:Inter, sans-serif;
+                font-size:16px;
+                font-weight:500;
+                line-height:1.5;
+                margin-top:10px;
+            ">
                 Всичко за твоите пътувания и разходи
                 на едно място.
             </div>
@@ -809,40 +841,248 @@ if st.session_state.page == "home":
         unsafe_allow_html=True
     )
 
+    # -----------------------------------------------------
+    # DASHBOARD
+    # -----------------------------------------------------
 
     expenses = total_expenses()
     budget = total_budget()
     remaining = budget - expenses
 
-
     c1, c2, c3 = st.columns(3)
 
-
     with c1:
-
         st.metric(
             "✈️ Пътувания",
             len(st.session_state.trips)
         )
 
-
     with c2:
-
         st.metric(
             "💳 Общо разходи",
             f"€{expenses:.2f}"
         )
 
-
     with c3:
-
         st.metric(
             "💰 Оставащ бюджет",
             f"€{remaining:.2f}"
         )
 
+    st.write("")
+
+    # -----------------------------------------------------
+    # QUICK ACTIONS
+    # -----------------------------------------------------
+
+    st.markdown(
+        """
+        <div style="
+            display:block;
+            visibility:visible;
+            opacity:1;
+            color:#f4f8fb;
+            font-family:Inter, sans-serif;
+            font-size:24px;
+            font-weight:750;
+            line-height:1.3;
+            margin:8px 0 16px 0;
+        ">
+            Бързи действия
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    q1, q2 = st.columns(2)
+
+    with q1:
+
+        st.markdown(
+            """
+            <div style="
+                display:block;
+                background:linear-gradient(
+                    145deg,
+                    #12314a,
+                    #0c1c29
+                );
+                border:1px solid #235d83;
+                border-radius:20px;
+                padding:20px;
+                margin-bottom:10px;
+                min-height:110px;
+                box-sizing:border-box;
+            ">
+
+                <div style="
+                    color:#f5f8fb;
+                    font-family:Inter,sans-serif;
+                    font-size:18px;
+                    font-weight:750;
+                    margin-bottom:7px;
+                ">
+                    ➕ Добави разход
+                </div>
+
+                <div style="
+                    color:#9aaaba;
+                    font-family:Inter,sans-serif;
+                    font-size:14px;
+                    line-height:1.5;
+                ">
+                    Бързо добавяне на разход към
+                    избрано пътуване.
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if st.button(
+            "Добави разход →",
+            use_container_width=True,
+            type="primary",
+            key="quick_add"
+        ):
+            open_add_expense()
+
+    with q2:
+
+        st.markdown(
+            """
+            <div style="
+                display:block;
+                background:linear-gradient(
+                    145deg,
+                    #102130,
+                    #0c1823
+                );
+                border:1px solid #203446;
+                border-radius:20px;
+                padding:20px;
+                margin-bottom:10px;
+                min-height:110px;
+                box-sizing:border-box;
+            ">
+
+                <div style="
+                    color:#f5f8fb;
+                    font-family:Inter,sans-serif;
+                    font-size:18px;
+                    font-weight:750;
+                    margin-bottom:7px;
+                ">
+                    ✈️ Ново пътуване
+                </div>
+
+                <div style="
+                    color:#9aaaba;
+                    font-family:Inter,sans-serif;
+                    font-size:14px;
+                    line-height:1.5;
+                ">
+                    Създай ново пътуване и задай
+                    неговия бюджет.
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if st.button(
+            "Създай пътуване →",
+            use_container_width=True,
+            key="quick_trip"
+        ):
+            st.session_state.page = "new_trip"
+            st.rerun()
 
     st.write("")
+    st.divider()
+
+    # -----------------------------------------------------
+    # MY TRIPS
+    # -----------------------------------------------------
+
+    st.markdown(
+        """
+        <div style="
+            display:block;
+            visibility:visible;
+            opacity:1;
+            color:#f4f8fb;
+            font-family:Inter,sans-serif;
+            font-size:24px;
+            font-weight:750;
+            line-height:1.3;
+            margin:8px 0 16px 0;
+        ">
+            Моите пътувания
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if not st.session_state.trips:
+
+        st.info(
+            "Все още нямаш пътувания. "
+            "Създай първото си пътуване "
+            "от бутона по-горе."
+        )
+
+    else:
+
+        for trip_id, trip in st.session_state.trips.items():
+
+            spent = trip_expenses(trip)
+            trip_budget = trip["budget"]
+
+            if trip_budget > 0:
+                progress = min(
+                    spent / trip_budget,
+                    1.0
+                )
+            else:
+                progress = 0
+
+            with st.container(border=True):
+
+                c1, c2 = st.columns([4, 1])
+
+                with c1:
+
+                    st.subheader(
+                        f"✈️ {trip['destination']}"
+                    )
+
+                    st.caption(
+                        f"{trip['start_date'].strftime('%d.%m.%Y')}"
+                        f" – "
+                        f"{trip['end_date'].strftime('%d.%m.%Y')}"
+                    )
+
+                    st.progress(progress)
+
+                    st.caption(
+                        f"€{spent:.2f} "
+                        f"от "
+                        f"€{trip_budget:.2f}"
+                    )
+
+                with c2:
+
+                    st.write("")
+
+                    if st.button(
+                        "Отвори →",
+                        key=f"home_open_{trip_id}",
+                        use_container_width=True
+                    ):
+                        open_trip(trip_id)
 
 
     # =====================================================
