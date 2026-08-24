@@ -27,26 +27,58 @@ def load_trips():
         return {}
 
     try:
-        raw = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        raw = json.loads(
+            DATA_FILE.read_text(encoding="utf-8")
+        )
 
         for trip in raw.values():
-            trip["start_date"] = date.fromisoformat(trip["start_date"])
-            trip["end_date"] = date.fromisoformat(trip["end_date"])
+
+            trip["start_date"] = date.fromisoformat(
+                trip["start_date"]
+            )
+
+            trip["end_date"] = date.fromisoformat(
+                trip["end_date"]
+            )
 
             for expense in trip.get("expenses", []):
-                expense["date"] = date.fromisoformat(expense["date"])
-                expense["is_fuel"] = expense.get("is_fuel", False)
-                expense["fuel_liters"] = expense.get("fuel_liters", 0.0)
-                expense["fuel_odometer"] = expense.get("fuel_odometer", 0.0)
-                expense["fuel_full_tank"] = expense.get("fuel_full_tank", False)
+
+                expense["date"] = date.fromisoformat(
+                    expense["date"]
+                )
+
+                expense["is_fuel"] = expense.get(
+                    "is_fuel",
+                    False
+                )
+
+                expense["fuel_liters"] = expense.get(
+                    "fuel_liters",
+                    0.0
+                )
+
+                expense["fuel_odometer"] = expense.get(
+                    "fuel_odometer",
+                    0.0
+                )
+
+                expense["fuel_full_tank"] = expense.get(
+                    "fuel_full_tank",
+                    False
+                )
 
         return raw
 
-    except (json.JSONDecodeError, OSError, ValueError):
+    except (
+        json.JSONDecodeError,
+        OSError,
+        ValueError
+    ):
         return {}
 
 
 def save_trips():
+
     serializable = {}
 
     for trip_id, trip in st.session_state.trips.items():
@@ -62,10 +94,22 @@ def save_trips():
                     "category": expense["category"],
                     "date": expense["date"].isoformat(),
                     "note": expense["note"],
-                    "is_fuel": expense.get("is_fuel", False),
-                    "fuel_liters": expense.get("fuel_liters", 0.0),
-                    "fuel_odometer": expense.get("fuel_odometer", 0.0),
-                    "fuel_full_tank": expense.get("fuel_full_tank", False)
+                    "is_fuel": expense.get(
+                        "is_fuel",
+                        False
+                    ),
+                    "fuel_liters": expense.get(
+                        "fuel_liters",
+                        0.0
+                    ),
+                    "fuel_odometer": expense.get(
+                        "fuel_odometer",
+                        0.0
+                    ),
+                    "fuel_full_tank": expense.get(
+                        "fuel_full_tank",
+                        False
+                    )
                 }
                 for expense in trip["expenses"]
             ]
@@ -91,8 +135,13 @@ FUEL_KEYWORDS = (
 
 
 def is_fuel_expense(text):
+
     text = (text or "").lower()
-    return any(keyword in text for keyword in FUEL_KEYWORDS)
+
+    return any(
+        keyword in text
+        for keyword in FUEL_KEYWORDS
+    )
 
 
 if "trips" not in st.session_state:
@@ -113,6 +162,7 @@ if "expense_trip" not in st.session_state:
 # =========================================================
 
 def total_expenses():
+
     return sum(
         expense["amount"]
         for trip in st.session_state.trips.values()
@@ -121,6 +171,7 @@ def total_expenses():
 
 
 def total_budget():
+
     return sum(
         trip["budget"]
         for trip in st.session_state.trips.values()
@@ -128,6 +179,7 @@ def total_budget():
 
 
 def trip_expenses(trip):
+
     return sum(
         expense["amount"]
         for expense in trip["expenses"]
@@ -135,30 +187,42 @@ def trip_expenses(trip):
 
 
 def delete_expense(trip_id, expense_index):
+
     """Delete one expense and immediately persist the change."""
-    expenses = st.session_state.trips[trip_id]["expenses"]
+
+    expenses = st.session_state.trips[
+        trip_id
+    ]["expenses"]
 
     if 0 <= expense_index < len(expenses):
+
         del expenses[expense_index]
+
         save_trips()
 
 
 def go_home():
+
     st.session_state.page = "home"
     st.session_state.selected_trip = None
     st.session_state.expense_trip = None
+
     st.rerun()
 
 
 def open_trip(trip_id):
+
     st.session_state.selected_trip = trip_id
     st.session_state.page = "trip"
+
     st.rerun()
 
 
 def open_add_expense(trip_id=None):
+
     st.session_state.expense_trip = trip_id
     st.session_state.page = "add_expense"
+
     st.rerun()
 
 
@@ -255,7 +319,11 @@ st.markdown(
     }
 
     .tm-card {
-        background: linear-gradient(145deg, #102130, #0c1823);
+        background: linear-gradient(
+            145deg,
+            #102130,
+            #0c1823
+        );
         border: 1px solid #203446;
         border-radius: 20px;
         padding: 20px;
@@ -265,7 +333,11 @@ st.markdown(
 
     .tm-card-primary {
         border-color: #235d83;
-        background: linear-gradient(145deg, #12314a, #0c1c29);
+        background: linear-gradient(
+            145deg,
+            #12314a,
+            #0c1c29
+        );
     }
 
     .tm-card-title {
@@ -285,6 +357,7 @@ st.markdown(
     }
 
     @media (max-width: 700px) {
+
         .block-container {
             padding-left: 1rem;
             padding-right: 1rem;
@@ -303,6 +376,7 @@ st.markdown(
         div[data-testid="stMetricValue"] {
             font-size: 1.35rem;
         }
+
     }
 
     </style>
@@ -395,9 +469,13 @@ if st.session_state.page == "home":
     st.markdown(
         """
         <div class="tm-header">
-            <div class="tm-brand">✈️ Travel Manager</div>
+            <div class="tm-brand">
+                ✈️ Travel Manager
+            </div>
+
             <div class="tm-subtitle">
-                Всичко за твоите пътувания и разходи на едно място.
+                Всичко за твоите пътувания и разходи
+                на едно място.
             </div>
         </div>
         """,
@@ -417,18 +495,21 @@ if st.session_state.page == "home":
     c1, c2, c3 = st.columns(3)
 
     with c1:
+
         st.metric(
             "✈️ Пътувания",
             len(st.session_state.trips)
         )
 
     with c2:
+
         st.metric(
             "💳 Общо разходи",
             f"€{expenses:.2f}"
         )
 
     with c3:
+
         st.metric(
             "💰 Оставащ бюджет",
             f"€{remaining:.2f}"
@@ -449,9 +530,13 @@ if st.session_state.page == "home":
         st.markdown(
             """
             <div class="tm-card tm-card-primary">
-                <div class="tm-card-title">➕ Добави разход</div>
+                <div class="tm-card-title">
+                    ➕ Добави разход
+                </div>
+
                 <div class="tm-card-text">
-                    Бързо добавяне на разход към избрано пътуване.
+                    Бързо добавяне на разход към
+                    избрано пътуване.
                 </div>
             </div>
             """,
@@ -464,6 +549,7 @@ if st.session_state.page == "home":
             type="primary",
             key="quick_add"
         ):
+
             open_add_expense()
 
     with q2:
@@ -471,9 +557,13 @@ if st.session_state.page == "home":
         st.markdown(
             """
             <div class="tm-card">
-                <div class="tm-card-title">✈️ Ново пътуване</div>
+                <div class="tm-card-title">
+                    ✈️ Ново пътуване
+                </div>
+
                 <div class="tm-card-text">
-                    Създай ново пътуване и задай неговия бюджет.
+                    Създай ново пътуване и задай
+                    неговия бюджет.
                 </div>
             </div>
             """,
@@ -485,6 +575,7 @@ if st.session_state.page == "home":
             use_container_width=True,
             key="quick_trip"
         ):
+
             st.session_state.page = "new_trip"
             st.rerun()
 
@@ -501,7 +592,8 @@ if st.session_state.page == "home":
 
         st.info(
             "Все още нямаш пътувания. "
-            "Създай първото си пътуване от бутона по-горе."
+            "Създай първото си пътуване "
+            "от бутона по-горе."
         )
 
     else:
@@ -512,11 +604,14 @@ if st.session_state.page == "home":
             trip_budget = trip["budget"]
 
             if trip_budget > 0:
+
                 progress = min(
                     spent / trip_budget,
                     1.0
                 )
+
             else:
+
                 progress = 0
 
             with st.container(border=True):
@@ -543,7 +638,8 @@ if st.session_state.page == "home":
 
                     st.caption(
                         f"€{spent:.2f} "
-                        f"от €{trip_budget:.2f}"
+                        f"от "
+                        f"€{trip_budget:.2f}"
                     )
 
                 with c2:
@@ -555,6 +651,7 @@ if st.session_state.page == "home":
                         key=f"home_open_{trip_id}",
                         use_container_width=True
                     ):
+
                         open_trip(trip_id)
 
 
@@ -570,6 +667,7 @@ elif st.session_state.page == "new_trip":
         "← Назад",
         key="new_trip_back"
     ):
+
         go_home()
 
     st.divider()
@@ -741,12 +839,15 @@ elif st.session_state.page == "add_expense":
 
         note = st.text_input(
             "Описание",
-            placeholder="Например: Вечеря, бензин, зареждане",
+            placeholder=(
+                "Например: Вечеря, бензин, зареждане"
+            ),
             key="expense_note"
         )
 
-        # Ако описанието съдържа ключова дума за гориво,
-        # показваме допълнително поле за литри.
+        # Ако описанието съдържа ключова дума
+        # за гориво, показваме допълнителните полета.
+
         fuel_expense = is_fuel_expense(note)
 
         fuel_liters = 0.0
@@ -807,16 +908,29 @@ elif st.session_state.page == "add_expense":
                         "date": expense_date,
                         "note": note,
                         "is_fuel": fuel_expense,
-                        "fuel_liters": fuel_liters if fuel_expense else 0.0,
-                        "fuel_odometer": fuel_odometer if fuel_expense else 0.0,
-                        "fuel_full_tank": fuel_full_tank if fuel_expense else False
+                        "fuel_liters":
+                            fuel_liters
+                            if fuel_expense
+                            else 0.0,
+                        "fuel_odometer":
+                            fuel_odometer
+                            if fuel_expense
+                            else 0.0,
+                        "fuel_full_tank":
+                            fuel_full_tank
+                            if fuel_expense
+                            else False
                     }
                 )
 
                 save_trips()
 
-                st.session_state.selected_trip = selected_trip
+                st.session_state.selected_trip = (
+                    selected_trip
+                )
+
                 st.session_state.expense_trip = None
+
                 st.session_state.page = "trip"
 
                 st.rerun()
@@ -840,6 +954,7 @@ elif st.session_state.page == "trips":
             "← Начало",
             key="trips_home"
         ):
+
             go_home()
 
     with c2:
@@ -849,6 +964,7 @@ elif st.session_state.page == "trips":
             type="primary",
             key="trips_new"
         ):
+
             st.session_state.page = "new_trip"
             st.rerun()
 
@@ -889,6 +1005,7 @@ elif st.session_state.page == "trips":
                     key=f"trips_open_{trip_id}",
                     use_container_width=True
                 ):
+
                     open_trip(trip_id)
 
 
@@ -904,9 +1021,12 @@ elif st.session_state.page == "trip":
         trip_id is None
         or trip_id not in st.session_state.trips
     ):
+
         go_home()
 
-    trip = st.session_state.trips[trip_id]
+    trip = st.session_state.trips[
+        trip_id
+    ]
 
     if st.button(
         "← Моите пътувания",
@@ -929,23 +1049,30 @@ elif st.session_state.page == "trip":
     st.divider()
 
     spent = trip_expenses(trip)
-    remaining = trip["budget"] - spent
+
+    remaining = (
+        trip["budget"]
+        - spent
+    )
 
     c1, c2, c3 = st.columns(3)
 
     with c1:
+
         st.metric(
             "💰 Бюджет",
             f"€{trip['budget']:.2f}"
         )
 
     with c2:
+
         st.metric(
             "💳 Похарчено",
             f"€{spent:.2f}"
         )
 
     with c3:
+
         st.metric(
             "✓ Остава",
             f"€{remaining:.2f}"
@@ -966,16 +1093,24 @@ elif st.session_state.page == "trip":
 
     st.divider()
 
-    # Горивна статистика — подготвя данните за бъдещия
-    # отделен модул "Гориво", без да променя останалите разходи.
+    # =====================================================
+    # FUEL STATISTICS
+    # =====================================================
+
     fuel_expenses = [
         expense
         for expense in trip["expenses"]
-        if expense.get("is_fuel", False)
+        if expense.get(
+            "is_fuel",
+            False
+        )
     ]
 
     total_fuel_liters = sum(
-        expense.get("fuel_liters", 0.0)
+        expense.get(
+            "fuel_liters",
+            0.0
+        )
         for expense in fuel_expenses
     )
 
@@ -989,61 +1124,106 @@ elif st.session_state.page == "trip":
         st.subheader("⛽ Гориво")
 
         # Подреждаме зарежданията по километраж.
+
         fuel_with_km = [
             expense
             for expense in fuel_expenses
-            if expense.get("fuel_odometer", 0.0) > 0
-            and expense.get("fuel_liters", 0.0) > 0
+            if expense.get(
+                "fuel_odometer",
+                0.0
+            ) > 0
+            and expense.get(
+                "fuel_liters",
+                0.0
+            ) > 0
         ]
 
         fuel_with_km.sort(
-            key=lambda expense: expense["fuel_odometer"]
+            key=lambda expense:
+                expense["fuel_odometer"]
         )
 
-        # Средна цена на литър — използва всички зареждания,
-        # независимо дали резервоарът е бил пълен.
+        # Средна цена на литър.
+
         avg_price_per_liter = (
-            total_fuel_cost / total_fuel_liters
+
+            total_fuel_cost
+            / total_fuel_liters
+
             if total_fuel_liters > 0
+
             else None
         )
 
-        # СРЕДЕН РАЗХОД:
-        # използва всички налични литри и всички известни километри
-        # между първото и последното зареждане с въведен километраж.
+        # -------------------------------------------------
+        # СРЕДЕН РАЗХОД
+        # -------------------------------------------------
+
         overall_consumption = None
 
         if len(fuel_with_km) >= 2:
 
-            first_odometer = fuel_with_km[0]["fuel_odometer"]
-            last_odometer = fuel_with_km[-1]["fuel_odometer"]
+            first_odometer = (
+                fuel_with_km[0]["fuel_odometer"]
+            )
 
-            known_km = last_odometer - first_odometer
+            last_odometer = (
+                fuel_with_km[-1]["fuel_odometer"]
+            )
 
-            if known_km > 0 and total_fuel_liters > 0:
+            known_km = (
+                last_odometer
+                - first_odometer
+            )
+
+            if (
+                known_km > 0
+                and total_fuel_liters > 0
+            ):
+
                 overall_consumption = (
-                    total_fuel_liters / known_km * 100
+                    total_fuel_liters
+                    / known_km
+                    * 100
                 )
 
-        # РЕАЛЕН РАЗХОД:
-        # използваме две последователни зареждания, маркирани
-        # като "пълен резервоар". Всички литри между тях участват
-        # в изчислението, включително непълните зареждания.
+        # -------------------------------------------------
+        # РЕАЛЕН РАЗХОД
+        # -------------------------------------------------
+
         full_indices = [
             index
-            for index, expense in enumerate(fuel_with_km)
-            if expense.get("fuel_full_tank", False)
+            for index, expense
+            in enumerate(fuel_with_km)
+
+            if expense.get(
+                "fuel_full_tank",
+                False
+            )
         ]
 
         real_consumption_values = []
 
-        for position in range(1, len(full_indices)):
+        for position in range(
+            1,
+            len(full_indices)
+        ):
 
-            start_index = full_indices[position - 1]
-            end_index = full_indices[position]
+            start_index = (
+                full_indices[position - 1]
+            )
 
-            start = fuel_with_km[start_index]
-            end = fuel_with_km[end_index]
+            end_index = (
+                full_indices[position]
+            )
+
+            start = fuel_with_km[
+                start_index
+            ]
+
+            end = fuel_with_km[
+                end_index
+            ]
 
             km = (
                 end["fuel_odometer"]
@@ -1051,40 +1231,57 @@ elif st.session_state.page == "trip":
             )
 
             liters_between = sum(
-                expense.get("fuel_liters", 0.0)
-                for expense in fuel_with_km[
-                    start_index + 1:end_index + 1
+                expense.get(
+                    "fuel_liters",
+                    0.0
+                )
+
+                for expense
+                in fuel_with_km[
+                    start_index + 1:
+                    end_index + 1
                 ]
             )
 
-            if km > 0 and liters_between > 0:
+            if (
+                km > 0
+                and liters_between > 0
+            ):
 
                 real_consumption_values.append(
-                    liters_between / km * 100
+                    liters_between
+                    / km
+                    * 100
                 )
 
         real_consumption = (
+
             sum(real_consumption_values)
             / len(real_consumption_values)
+
             if real_consumption_values
+
             else None
         )
 
         fc1, fc2, fc3 = st.columns(3)
 
         with fc1:
+
             st.metric(
                 "Зареждания",
                 len(fuel_expenses)
             )
 
         with fc2:
+
             st.metric(
                 "Общо литри",
                 f"{total_fuel_liters:.2f} л"
             )
 
         with fc3:
+
             st.metric(
                 "Разход за гориво",
                 f"€{total_fuel_cost:.2f}"
@@ -1093,42 +1290,53 @@ elif st.session_state.page == "trip":
         fc4, fc5 = st.columns(2)
 
         with fc4:
+
             if avg_price_per_liter is not None:
+
                 st.metric(
                     "Средна цена",
                     f"€{avg_price_per_liter:.2f}/л"
                 )
 
         with fc5:
+
             if overall_consumption is not None:
+
                 st.metric(
                     "Среден разход",
                     f"{overall_consumption:.2f} л/100 км"
                 )
+
             else:
+
                 st.caption(
                     "За среден разход са нужни поне "
                     "2 зареждания с известен километраж."
                 )
 
         if real_consumption is not None:
+
             st.metric(
                 "Реален разход",
                 f"{real_consumption:.2f} л/100 км"
             )
+
         else:
+
             st.caption(
-                "Реален разход: нужни са поне 2 зареждания "
-                "с отбелязан пълен резервоар."
+                "Реален разход: нужни са поне 2 "
+                "зареждания с отбелязан пълен резервоар."
             )
 
     # =====================================================
-    # EXPENSES BY CATEGORY — MODERN DASHBOARD
+    # EXPENSES BY CATEGORY
     # =====================================================
 
     if trip["expenses"]:
 
-        st.subheader("📊 Разходи по категории")
+        st.subheader(
+            "📊 Разходи по категории"
+        )
 
         category_totals = {}
 
@@ -1140,14 +1348,18 @@ elif st.session_state.page == "trip":
             )
 
             category_totals[category] = (
-                category_totals.get(category, 0.0)
+                category_totals.get(
+                    category,
+                    0.0
+                )
                 + expense["amount"]
             )
 
         category_totals = dict(
             sorted(
                 category_totals.items(),
-                key=lambda item: item[1],
+                key=lambda item:
+                    item[1],
                 reverse=True
             )
         )
@@ -1158,30 +1370,49 @@ elif st.session_state.page == "trip":
 
         selected_category = st.selectbox(
             "Покажи категория",
-            ["Всички"] + list(category_totals.keys()),
+            [
+                "Всички"
+            ]
+            + list(
+                category_totals.keys()
+            ),
             key=f"category_filter_{trip_id}"
         )
 
-        # Modern category cards.
+        # =================================================
+        # CATEGORY CARDS
+        # =================================================
+
         category_css = """
         <style>
+
         .tm-cat-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
             gap: 12px;
             margin: 10px 0 18px 0;
         }
 
         .tm-cat-card {
-            border: 1px solid rgba(120,120,140,.18);
+            border: 1px solid
+                rgba(120,120,140,.18);
+
             border-radius: 18px;
+
             padding: 16px;
-            background: linear-gradient(
-                145deg,
-                rgba(255,255,255,.055),
-                rgba(255,255,255,.018)
-            );
-            box-shadow: 0 6px 22px rgba(0,0,0,.06);
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(255,255,255,.055),
+                    rgba(255,255,255,.018)
+                );
+
+            box-shadow:
+                0 6px 22px
+                rgba(0,0,0,.06);
+
             min-height: 128px;
         }
 
@@ -1217,7 +1448,8 @@ elif st.session_state.page == "trip":
         .tm-cat-bar {
             height: 6px;
             border-radius: 99px;
-            background: rgba(128,128,128,.18);
+            background:
+                rgba(128,128,128,.18);
             overflow: hidden;
             margin-top: 13px;
         }
@@ -1225,7 +1457,12 @@ elif st.session_state.page == "trip":
         .tm-cat-fill {
             height: 100%;
             border-radius: 99px;
-            background: linear-gradient(90deg, #7c5cff, #35c7ff);
+            background:
+                linear-gradient(
+                    90deg,
+                    #7c5cff,
+                    #35c7ff
+                );
         }
 
         .tm-cat-label {
@@ -1235,12 +1472,16 @@ elif st.session_state.page == "trip":
         }
 
         @media (max-width: 900px) {
+
             .tm-cat-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
             }
+
         }
 
         @media (max-width: 600px) {
+
             .tm-cat-grid {
                 grid-template-columns: 1fr;
                 gap: 10px;
@@ -1254,38 +1495,70 @@ elif st.session_state.page == "trip":
             .tm-cat-amount {
                 font-size: 22px;
             }
+
         }
+
         </style>
         """
 
         cards = []
 
-        for category, category_amount in category_totals.items():
+        for category, category_amount in (
+            category_totals.items()
+        ):
 
             percentage = (
+
                 category_amount
                 / total_category_expenses
                 * 100
+
                 if total_category_expenses > 0
+
                 else 0
             )
 
             cards.append(
                 f"""
                 <div class="tm-cat-card">
+
                     <div class="tm-cat-top">
-                        <div class="tm-cat-name">{category}</div>
-                        <div class="tm-cat-pct">{percentage:.1f}%</div>
-                    </div>
-                    <div class="tm-cat-amount">€{category_amount:.2f}</div>
-                    <div class="tm-cat-bar">
-                        <div class="tm-cat-fill"
-                             style="width:{min(percentage, 100):.2f}%;">
+
+                        <div class="tm-cat-name">
+                            {category}
                         </div>
+
+                        <div class="tm-cat-pct">
+                            {percentage:.1f}%
+                        </div>
+
                     </div>
+
+                    <div class="tm-cat-amount">
+                        €{category_amount:.2f}
+                    </div>
+
+                    <div class="tm-cat-bar">
+
+                        <div
+                            class="tm-cat-fill"
+                            style="
+                                width:
+                                {min(
+                                    percentage,
+                                    100
+                                ):.2f}%;
+                            "
+                        >
+                        </div>
+
+                    </div>
+
                     <div class="tm-cat-label">
-                        от общо €{total_category_expenses:.2f}
+                        от общо
+                        €{total_category_expenses:.2f}
                     </div>
+
                 </div>
                 """
             )
@@ -1294,20 +1567,210 @@ elif st.session_state.page == "trip":
             category_css
             + '<div class="tm-cat-grid">'
             + "".join(cards)
-            + '</div>'
+            + "</div>"
         )
 
         try:
-            st.html(category_html)
+
+            st.html(
+                category_html
+            )
+
         except AttributeError:
+
             st.markdown(
                 category_html,
                 unsafe_allow_html=True
             )
 
+        # =================================================
+        # DONUT CHART
+        # =================================================
+
+        st.write("")
+
+        st.subheader(
+            "🍩 Разпределение на разходите"
+        )
+
+        # Подготвяме данните директно от
+        # category_totals.
+
+        donut_data = []
+
+        for category, amount in (
+            category_totals.items()
+        ):
+
+            percentage = (
+
+                amount
+                / total_category_expenses
+                * 100
+
+                if total_category_expenses > 0
+
+                else 0
+            )
+
+            donut_data.append(
+                {
+                    "category": category,
+                    "amount": round(
+                        amount,
+                        2
+                    ),
+                    "percentage": round(
+                        percentage,
+                        1
+                    )
+                }
+            )
+
+        # -------------------------------------------------
+        # PLOTLY DONUT
+        # -------------------------------------------------
+
+        try:
+
+            import plotly.graph_objects as go
+
+            labels = [
+                item["category"]
+                for item in donut_data
+            ]
+
+            values = [
+                item["amount"]
+                for item in donut_data
+            ]
+
+            fig = go.Figure(
+                data=[
+                    go.Pie(
+
+                        labels=labels,
+
+                        values=values,
+
+                        hole=0.62,
+
+                        textinfo="none",
+
+                        hovertemplate=(
+                            "<b>%{label}</b><br>"
+                            "Сума: €%{value:.2f}<br>"
+                            "Дял: %{percent}"
+                            "<extra></extra>"
+                        ),
+
+                        marker=dict(
+                            line=dict(
+                                color="#08111a",
+                                width=2
+                            )
+                        )
+                    )
+                ]
+            )
+
+            fig.update_layout(
+
+                height=430,
+
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=15,
+                    b=15
+                ),
+
+                showlegend=True,
+
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=-0.08,
+                    xanchor="center",
+                    x=0.5
+                ),
+
+                paper_bgcolor=(
+                    "rgba(0,0,0,0)"
+                ),
+
+                plot_bgcolor=(
+                    "rgba(0,0,0,0)"
+                ),
+
+                font=dict(
+                    color="#eef5f9"
+                )
+            )
+
+            # -------------------------------------------------
+            # CENTER TEXT
+            # -------------------------------------------------
+
+            fig.add_annotation(
+
+                text=(
+                    f"<b>"
+                    f"€{total_category_expenses:.2f}"
+                    f"</b>"
+                    "<br>"
+                    "<span style="
+                    "'font-size:12px'>"
+                    "Общо"
+                    "</span>"
+                ),
+
+                x=0.5,
+
+                y=0.5,
+
+                xref="paper",
+
+                yref="paper",
+
+                showarrow=False,
+
+                font=dict(
+                    size=20,
+                    color="#f4f8fb"
+                )
+            )
+
+            st.plotly_chart(
+
+                fig,
+
+                use_container_width=True,
+
+                config={
+                    "displayModeBar": False,
+                    "responsive": True
+                },
+
+                key=f"donut_chart_{trip_id}"
+            )
+
+        except ImportError:
+
+            st.warning(
+                "За интерактивната графика е необходима "
+                "библиотеката Plotly."
+            )
+
         st.divider()
 
-    st.subheader("Разходи")
+    # =====================================================
+    # EXPENSE LIST
+    # =====================================================
+
+    st.subheader(
+        "Разходи"
+    )
 
     if not trip["expenses"]:
 
@@ -1318,8 +1781,11 @@ elif st.session_state.page == "trip":
     else:
 
         expenses = sorted(
-            enumerate(trip["expenses"]),
-            key=lambda item: item[1]["date"],
+            enumerate(
+                trip["expenses"]
+            ),
+            key=lambda item:
+                item[1]["date"],
             reverse=True
         )
 
@@ -1328,13 +1794,19 @@ elif st.session_state.page == "trip":
             expenses = [
                 item
                 for item in expenses
-                if item[1].get("category", "📱 Други")
+
+                if item[1].get(
+                    "category",
+                    "📱 Други"
+                )
                 == selected_category
             ]
 
         for original_index, expense in expenses:
 
-            with st.container(border=True):
+            with st.container(
+                border=True
+            ):
 
                 c1, c2 = st.columns(
                     [4, 1]
@@ -1352,30 +1824,58 @@ elif st.session_state.page == "trip":
                             expense["note"]
                         )
 
-                    if expense.get("is_fuel", False):
+                    if expense.get(
+                        "is_fuel",
+                        False
+                    ):
 
-                        liters = expense.get("fuel_liters", 0.0)
+                        liters = expense.get(
+                            "fuel_liters",
+                            0.0
+                        )
 
-                        odometer = expense.get("fuel_odometer", 0.0)
+                        odometer = expense.get(
+                            "fuel_odometer",
+                            0.0
+                        )
 
                         fuel_caption = (
                             f"⛽ {liters:.2f} л"
-                            + (
-                                f" · €{expense['amount'] / liters:.2f}/л"
+                            +
+
+                            (
+                                f" · "
+                                f"€{expense['amount'] / liters:.2f}/л"
+
                                 if liters > 0
+
                                 else ""
                             )
-                            + (
-                                f" · {odometer:.0f} км"
+
+                            +
+
+                            (
+                                f" · "
+                                f"{odometer:.0f} км"
+
                                 if odometer > 0
+
                                 else ""
                             )
                         )
 
-                        if expense.get("fuel_full_tank", False):
-                            fuel_caption += " · ✓ пълен"
+                        if expense.get(
+                            "fuel_full_tank",
+                            False
+                        ):
 
-                        st.caption(fuel_caption)
+                            fuel_caption += (
+                                " · ✓ пълен"
+                            )
+
+                        st.caption(
+                            fuel_caption
+                        )
 
                     st.caption(
                         expense["date"].strftime(
@@ -1390,23 +1890,42 @@ elif st.session_state.page == "trip":
                         f"€{expense['amount']:.2f}"
                     )
 
-                # Двустепенно изтриване, за да няма случайно натискане.
-                confirm_key = f"confirm_delete_{trip_id}_{original_index}"
+                # -------------------------------------------------
+                # DELETE CONFIRMATION
+                # -------------------------------------------------
 
-                if not st.session_state.get(confirm_key, False):
+                confirm_key = (
+                    f"confirm_delete_"
+                    f"{trip_id}_"
+                    f"{original_index}"
+                )
+
+                if not st.session_state.get(
+                    confirm_key,
+                    False
+                ):
 
                     if st.button(
                         "🗑️ Изтрий",
-                        key=f"delete_{trip_id}_{original_index}",
+                        key=(
+                            f"delete_"
+                            f"{trip_id}_"
+                            f"{original_index}"
+                        ),
                         use_container_width=True
                     ):
-                        st.session_state[confirm_key] = True
+
+                        st.session_state[
+                            confirm_key
+                        ] = True
+
                         st.rerun()
 
                 else:
 
                     st.warning(
-                        "Сигурен ли си, че искаш да изтриеш този разход?"
+                        "Сигурен ли си, че искаш "
+                        "да изтриеш този разход?"
                     )
 
                     d1, d2 = st.columns(2)
@@ -1415,7 +1934,11 @@ elif st.session_state.page == "trip":
 
                         if st.button(
                             "Да, изтрий",
-                            key=f"confirm_yes_{trip_id}_{original_index}",
+                            key=(
+                                f"confirm_yes_"
+                                f"{trip_id}_"
+                                f"{original_index}"
+                            ),
                             type="primary",
                             use_container_width=True
                         ):
@@ -1436,7 +1959,11 @@ elif st.session_state.page == "trip":
 
                         if st.button(
                             "Отказ",
-                            key=f"confirm_no_{trip_id}_{original_index}",
+                            key=(
+                                f"confirm_no_"
+                                f"{trip_id}_"
+                                f"{original_index}"
+                            ),
                             use_container_width=True
                         ):
 
@@ -1454,7 +1981,9 @@ elif st.session_state.page == "trip":
 
 elif st.session_state.page == "analytics":
 
-    st.title("📊 Анализи")
+    st.title(
+        "📊 Анализи"
+    )
 
     st.info(
         "Тук ще изградим анализа на разходите."
@@ -1464,12 +1993,15 @@ elif st.session_state.page == "analytics":
         "← Начало",
         key="analytics_home"
     ):
+
         go_home()
 
 
 elif st.session_state.page == "history":
 
-    st.title("🕘 История")
+    st.title(
+        "🕘 История"
+    )
 
     st.info(
         "Тук ще изградим историята на разходите."
@@ -1479,27 +2011,34 @@ elif st.session_state.page == "history":
         "← Начало",
         key="history_home"
     ):
+
         go_home()
 
 
 elif st.session_state.page == "comparison":
 
-    st.title("⇄ Сравнение")
+    st.title(
+        "⇄ Сравнение"
+    )
 
     st.info(
-        "Тук ще изградим сравнението между пътуванията."
+        "Тук ще изградим сравнението "
+        "между пътуванията."
     )
 
     if st.button(
         "← Начало",
         key="comparison_home"
     ):
+
         go_home()
 
 
 elif st.session_state.page == "settings":
 
-    st.title("⚙️ Настройки")
+    st.title(
+        "⚙️ Настройки"
+    )
 
     st.info(
         "Тук ще изградим настройките."
@@ -1509,4 +2048,5 @@ elif st.session_state.page == "settings":
         "← Начало",
         key="settings_home"
     ):
+
         go_home()
