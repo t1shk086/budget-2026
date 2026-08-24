@@ -238,12 +238,10 @@ st.markdown(
 html,
 body,
 .stApp,
-.stApp *,
 button,
 input,
 textarea,
 select {
-
     font-family:
         'Inter',
         -apple-system,
