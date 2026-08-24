@@ -630,6 +630,7 @@ def category_chart(df_trip):
 # HOME
 # ============================================================
 def page_home():
+    global df_data, df_settings
     top_bar()
 
     st.markdown("""
@@ -1125,6 +1126,7 @@ def render_rankings():
 
 
 def render_history():
+    global df_data
     if not st.session_state.current_trip:
         st.info("Избери пътуване от Начало.")
         return
