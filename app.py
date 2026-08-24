@@ -79,12 +79,12 @@ html,body,[data-testid="stAppViewContainer"]{background:radial-gradient(circle a
 .px-nav a{display:flex;align-items:center;gap:10px;text-decoration:none;color:#aebed0;padding:10px 11px;border-radius:11px;margin:4px 0;font-size:13px;font-weight:650;border:1px solid transparent;}.px-nav a:hover,.px-nav a.active{color:#fff;background:linear-gradient(90deg,rgba(26,117,216,.55),rgba(25,77,135,.25));border-color:rgba(79,172,254,.35);}.px-nav-ico{width:20px;text-align:center;font-size:15px;}
 .px-mobile-nav{display:none;}
 /* Истинският Streamlit бутон „Пътувания“ стои върху позицията на менюто. */
-button[key="px_trips_nav_stage18"]{position:fixed !important;left:24px !important;top:130px !important;width:154px !important;z-index:10001 !important;height:40px !important;min-height:40px !important;padding:0 11px !important;border-radius:11px !important;border:1px solid rgba(79,172,254,.35) !important;background:linear-gradient(90deg,rgba(26,117,216,.55),rgba(25,77,135,.25)) !important;color:#fff !important;font-size:13px !important;font-weight:650 !important;text-align:left !important;box-shadow:none !important;}
-button[key="px_trips_nav_stage18"] p{margin:0 !important;}
+div.st-key-px_trips_nav_stage18 button{position:fixed !important;left:24px !important;top:130px !important;width:154px !important;z-index:10001 !important;height:40px !important;min-height:40px !important;padding:0 11px !important;border-radius:11px !important;border:1px solid rgba(79,172,254,.35) !important;background:linear-gradient(90deg,rgba(26,117,216,.55),rgba(25,77,135,.25)) !important;color:#fff !important;font-size:13px !important;font-weight:650 !important;text-align:left !important;box-shadow:none !important;}
+div.st-key-px_trips_nav_stage18 button p{margin:0 !important;}
 @media (min-width:901px){.block-container{padding-left:215px !important;}}
 @media (max-width:900px){
-button[key="px_trips_nav_stage18"]{position:fixed !important;left:calc(20% + 6px) !important;bottom:12px !important;top:auto !important;width:calc(20% - 12px) !important;height:51px !important;min-height:51px !important;margin:0 !important;padding:0 !important;border:1px solid transparent !important;border-radius:13px !important;background:transparent !important;color:#8fa3b8 !important;font-size:9px !important;font-weight:650 !important;box-shadow:none !important;text-align:center !important;z-index:10001 !important;}
-button[key="px_trips_nav_stage18"] p{font-size:9px !important;white-space:pre-line !important;line-height:14px !important;}
+div.st-key-px_trips_nav_stage18 button{position:fixed !important;left:calc(20% + 6px) !important;bottom:12px !important;top:auto !important;width:calc(20% - 12px) !important;height:51px !important;min-height:51px !important;margin:0 !important;padding:0 !important;border:1px solid transparent !important;border-radius:13px !important;background:transparent !important;color:#8fa3b8 !important;font-size:9px !important;font-weight:650 !important;box-shadow:none !important;text-align:center !important;z-index:10001 !important;}
+div.st-key-px_trips_nav_stage18 button p{font-size:9px !important;white-space:pre-line !important;line-height:14px !important;}
 .block-container{max-width:100% !important;padding:.65rem .55rem 6.4rem .55rem !important;}
 .px-desktop-nav{display:none !important;}.px-topbar{border-radius:13px;padding:9px 11px;margin-bottom:10px;}.px-brand{font-size:15px;}.px-brand-mark{width:30px;height:30px;border-radius:9px;font-size:16px;}.px-trip-pill{font-size:12px;}.px-trip-pill small{font-size:10px;}
 .px-mobile-nav{display:flex;position:fixed;left:6px;right:6px;bottom:7px;height:61px;z-index:9999;align-items:center;justify-content:space-around;background:rgba(5,14,23,.96);border:1px solid rgba(82,173,255,.22);border-radius:17px;box-shadow:0 12px 35px rgba(0,0,0,.58);backdrop-filter:blur(18px);}
@@ -124,9 +124,10 @@ def px_shell(trip_id=None, active="home"):
     """
     st.markdown(nav + mobile, unsafe_allow_html=True)
     # Това е ИСТИНСКИ Streamlit бутон. Няма href, URL, JavaScript или нов tab.
-    if st.button("🧳  Пътувания", key="px_trips_nav_stage18", use_container_width=False):
-        st.session_state["current_trip"] = None
-        st.rerun()
+    with st.container(key="px_trips_nav_stage18"):
+        if st.button("🧳  Пътувания", key="px_trips_nav_button", use_container_width=False):
+            st.session_state["current_trip"] = None
+            st.rerun()
 
 
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
