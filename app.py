@@ -35,6 +35,8 @@ def load_trips():
 
             for expense in trip.get("expenses", []):
                 expense["date"] = date.fromisoformat(expense["date"])
+                expense["is_fuel"] = expense.get("is_fuel", False)
+                expense["fuel_liters"] = expense.get("fuel_liters", 0.0)
 
         return raw
 
@@ -57,7 +59,9 @@ def save_trips():
                     "amount": expense["amount"],
                     "category": expense["category"],
                     "date": expense["date"].isoformat(),
-                    "note": expense["note"]
+                    "note": expense["note"],
+                    "is_fuel": expense.get("is_fuel", False),
+                    "fuel_liters": expense.get("fuel_liters", 0.0)
                 }
                 for expense in trip["expenses"]
             ]
@@ -71,6 +75,20 @@ def save_trips():
         ),
         encoding="utf-8"
     )
+
+
+FUEL_KEYWORDS = (
+    "газ",
+    "гориво",
+    "зареждане",
+    "бензин",
+    "дизел",
+)
+
+
+def is_fuel_expense(text):
+    text = (text or "").lower()
+    return any(keyword in text for keyword in FUEL_KEYWORDS)
 
 
 if "trips" not in st.session_state:
@@ -709,10 +727,30 @@ elif st.session_state.page == "add_expense":
         )
 
         note = st.text_input(
-            "Бележка",
-            placeholder="Например: Вечеря",
+            "Описание",
+            placeholder="Например: Вечеря, бензин, зареждане",
             key="expense_note"
         )
+
+        # Ако описанието съдържа ключова дума за гориво,
+        # показваме допълнително поле за литри.
+        fuel_expense = is_fuel_expense(note)
+
+        fuel_liters = 0.0
+
+        if fuel_expense:
+
+            st.info(
+                "⛽ Разпознат е разход за гориво."
+            )
+
+            fuel_liters = st.number_input(
+                "Литри гориво",
+                min_value=0.0,
+                step=0.1,
+                format="%.2f",
+                key="fuel_liters"
+            )
 
         st.write("")
 
@@ -738,7 +776,9 @@ elif st.session_state.page == "add_expense":
                         "amount": amount,
                         "category": category,
                         "date": expense_date,
-                        "note": note
+                        "note": note,
+                        "is_fuel": fuel_expense,
+                        "fuel_liters": fuel_liters if fuel_expense else 0.0
                     }
                 )
 
@@ -895,6 +935,48 @@ elif st.session_state.page == "trip":
 
     st.divider()
 
+    # Горивна статистика — подготвя данните за бъдещия
+    # отделен модул "Гориво", без да променя останалите разходи.
+    fuel_expenses = [
+        expense
+        for expense in trip["expenses"]
+        if expense.get("is_fuel", False)
+    ]
+
+    total_fuel_liters = sum(
+        expense.get("fuel_liters", 0.0)
+        for expense in fuel_expenses
+    )
+
+    total_fuel_cost = sum(
+        expense["amount"]
+        for expense in fuel_expenses
+    )
+
+    if fuel_expenses:
+
+        st.subheader("⛽ Гориво")
+
+        fc1, fc2, fc3 = st.columns(3)
+
+        with fc1:
+            st.metric(
+                "Зареждания",
+                len(fuel_expenses)
+            )
+
+        with fc2:
+            st.metric(
+                "Общо литри",
+                f"{total_fuel_liters:.2f} л"
+            )
+
+        with fc3:
+            st.metric(
+                "Разход за гориво",
+                f"€{total_fuel_cost:.2f}"
+            )
+
     st.subheader("Разходи")
 
     if not trip["expenses"]:
@@ -929,6 +1011,19 @@ elif st.session_state.page == "trip":
 
                         st.write(
                             expense["note"]
+                        )
+
+                    if expense.get("is_fuel", False):
+
+                        liters = expense.get("fuel_liters", 0.0)
+
+                        st.caption(
+                            f"⛽ {liters:.2f} л"
+                            + (
+                                f" · €{expense['amount'] / liters:.2f}/л"
+                                if liters > 0
+                                else ""
+                            )
                         )
 
                     st.caption(
