@@ -239,35 +239,76 @@ elif st.session_state["current_tab"] == "📊 Разходи":
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ====================================================================
-# ЧАСТ ОТ ЕКРАН 2: ПЛАНИРАН БЮДЖЕТ ПО КАТЕГОРИИ И РАЗХОДИ ПО ДНИ
-# ====================================================================
+    # ====================================================================
+    # ЧАСТ ОТ ЕКРАН 2: ПЛАНИРАН БЮДЖЕТ ПО КАТЕГОРИИ И РАЗХОДИ ПО ДНИ
+    # ====================================================================
 
-# 2. ПЛАНИРАН БЮДЖЕТ ПО КАТЕГОРИИ (Прогрес ленти - Макет 1)
-st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
-st.markdown("#### Бюджет по категории")
+    # 2. ПЛАНИРАН БЮДЖЕТ ПО КАТЕГОРИИ (Прогрес ленти - Макет 1)
+    st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
+    st.markdown("#### Бюджет по категории")
 
-for cat in KATEGORII:
-    # Вземаме сбора на разходите за текущата категория за избраното пътуване
-    cat_spent = float(df_trip[df_trip["category"] == cat]["amount"].sum())
-    
-    # Примерно пропорционално разпределение на лимита на категорията спрямо общия бюджет
-    cat_limit = planned_budget / len(KATEGORII) 
-    cat_pct = min(100, int((cat_spent / cat_limit) * 100)) if cat_limit > 0 else 0
-    
-    # Определяне на динамичен цвят на лентата в зависимост от натоварването на бюджета
-    bar_color = "linear-gradient(90deg, #00f2fe, #4facfe)" if cat_pct < 75 else "linear-gradient(90deg, #ffaa00, #ff4b4b)"
-    
-    st.markdown(f"""
-    <div style='display:flex; justify-content:space-between; margin-top:14px; font-size:13px;'>
-        <span style='font-weight: 500;'>{cat}</span>
-        <span style='font-weight:bold; color:#707e94;'>{cat_spent:.2f} € / <span style='color:#fafafa;'>{cat_limit:.0f} €</span></span>
-    </div>
-    <div class='progress-bg' style='background: rgba(255,255,255,0.05); border-radius: 10px; height: 10px; width: 100%; margin-top: 8px; overflow: hidden; position: relative;'>
-        <div class='progress-fill' style='height: 100%; border-radius: 10px; width: {cat_pct}%; background: {bar_color}; transition: width 0.5s ease-in-out;'></div>
-    </div>
-    """, unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
+    for cat in KATEGORII:
+        # Вземаме сбора на разходите за текущата категория за избраното пътуване
+        cat_spent = float(df_trip[df_trip["category"] == cat]["amount"].sum())
+        
+        # Примерно пропорционално разпределение на лимита на категорията спрямо общия бюджет
+        cat_limit = planned_budget / len(KATEGORII) 
+        cat_pct = min(100, int((cat_spent / cat_limit) * 100)) if cat_limit > 0 else 0
+        
+        # Определяне на динамичен цвят на лентата в зависимост от натоварването на бюджета
+        bar_color = "linear-gradient(90deg, #00f2fe, #4facfe)" if cat_pct < 75 else "linear-gradient(90deg, #ffaa00, #ff4b4b)"
+        
+        st.markdown(f"""
+        <div style='display:flex; justify-content:space-between; margin-top:14px; font-size:13px;'>
+            <span style='font-weight: 500;'>{cat}</span>
+            <span style='font-weight:bold; color:#707e94;'>{cat_spent:.2f} € / <span style='color:#fafafa;'>{cat_limit:.0f} €</span></span>
+        </div>
+        <div class='progress-bg' style='background: rgba(255,255,255,0.05); border-radius: 10px; height: 10px; width: 100%; margin-top: 8px; overflow: hidden; position: relative;'>
+            <div class='progress-fill' style='height: 100%; border-radius: 10px; width: {cat_pct}%; background: {bar_color}; transition: width 0.5s ease-in-out;'></div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+    # 3. РАЗХОДИ ПО ДНИ (Интерактивна хистограма - Макет 2)
+    st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
+    st.markdown("#### Разходи по дни (EUR)")
+
+    # Групиране на сумите по дати
+    df_days = df_trip.groupby("date")["amount"].sum().reset_index()
+
+    if not df_days.empty and df_days["amount"].sum() > 0:
+        # Създаване на неон-зелена/неон-синя стълбовидна графика
+        fig_bar = px.bar(
+            df_days, 
+            x="date", 
+            y="amount", 
+            text="amount", 
+            color_discrete_sequence=['#00f2fe']
+        )
+        
+        # Стилизиране на текста над стълбовете и заобляне на ъглите им
+        fig_bar.update_traces(
+            texttemplate='<b>%{text:.1f} €</b>', 
+            textposition='outside', 
+            marker_cornerradius=8,
+            textfont=dict(color="white")
+        )
+        
+        # Изчистване на фона на графиката, за да пасне на тъмния премиум режим
+        fig_bar.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(title="", showgrid=False, tickfont=dict(color="#707e94", size=11)),
+            yaxis=dict(title="", showgrid=False, showticklabels=False),
+            margin=dict(l=10, r=10, t=30, b=10),
+            height=220
+        )
+        
+        st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+    else:
+        st.markdown("<p style='color:#707e94; font-size:13px; text-align:center; padding:20px;'>Все още няма регистрирани ежедневни разходи за този трип.</p>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # 3. РАЗХОДИ ПО ДНИ (Интерактивна хистограма - Макет 2)
