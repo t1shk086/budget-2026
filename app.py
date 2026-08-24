@@ -215,10 +215,37 @@ st.markdown(PX_STAGE1_CSS, unsafe_allow_html=True)
 def _px_nav_action(label):
     if label == "Пътувания":
         st.session_state["current_trip"] = None
+        st.session_state["px_nav_target"] = "Пътувания"
         st.rerun()
     else:
         st.session_state["px_nav_target"] = label
         st.rerun()
+
+def _px_active_key(default="home"):
+    target = st.session_state.get("px_nav_target")
+    return {
+        "Начало": "home",
+        "Пътувания": "trips",
+        "Разходи": "expenses",
+        "Карта": "map",
+        "Още": "more",
+    }.get(target, default)
+
+def _px_scroll_to_active(active):
+    anchors = {"home":"px-budget", "expenses":"px-expenses", "map":"px-map", "more":"px-more"}
+    anchor = anchors.get(active)
+    if not anchor:
+        return
+    st.markdown(f"""<script>
+    (() => {{
+      const go = () => {{
+        const el = window.parent.document.getElementById('{anchor}');
+        if (el) el.scrollIntoView({{behavior:'smooth', block:'start'}});
+      }};
+      setTimeout(go, 120);
+      setTimeout(go, 500);
+    }})();
+    </script>""", unsafe_allow_html=True)
 
 def _px_nav_button(icon, label, active=False, key_prefix="side"):
     slug = {"Начало":"home","Пътувания":"trips","Разходи":"expenses","Карта":"map","Още":"more"}[label]
@@ -400,6 +427,7 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
         return False
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
+if "px_nav_target" not in st.session_state: st.session_state["px_nav_target"] = "Пътувания"
 
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
@@ -637,7 +665,9 @@ if st.session_state["current_trip"] is None:
 
 else:
     trip_id = st.session_state["current_trip"]
-    px_shell(trip_id, active="home")
+    active_nav = _px_active_key("home")
+    px_shell(trip_id, active=active_nav)
+    _px_scroll_to_active(active_nav)
     st.markdown("<div id='px-budget' style='scroll-margin-top:80px;'></div>", unsafe_allow_html=True)
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
