@@ -1328,7 +1328,7 @@ else:
                             compare_color = "#aeb5c0"
 
                 st.markdown(f"""
-                <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);border-radius:16px;padding:15px 16px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;margin-top:2px;margin-bottom:20px;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
                     <div style='display:flex;justify-content:space-between;align-items:center;gap:10px;'>
                         <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
                         <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
@@ -1353,7 +1353,7 @@ else:
                         </div>
                     </div>
                     <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_display_h)}</div>
-                    <div style='margin-top:10px;padding:10px 11px;border-radius:11px;background:rgba(255,255,255,.035);font-size:11px;color:{compare_color};font-weight:800;line-height:1.4;'>{compare_html}</div>
+                    <div style='margin-top:10px;padding:10px 11px;border-radius:11px;background:rgba(0,0,0,0.18);border:1px solid rgba(255,255,255,0.06);font-size:11px;color:{compare_color};font-weight:800;line-height:1.4;'>{compare_html}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
