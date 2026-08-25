@@ -363,7 +363,7 @@ if st.session_state["current_trip"] is None:
         c1, c2 = st.columns(2)
         with c1:
             amount = st.number_input(
-                "Сума (EUR)", min_value=None, value=10.00, step=1.00,
+                "Сума (EUR)", min_value=None, value=None, placeholder="Въведете разход...", step=1.00,
                 format="%.2f", key="quick_expense_amount"
             )
         with c2:
@@ -884,7 +884,7 @@ else:
     
     col1, col2 = st.columns(2)
     with col1: 
-        s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
+        s_input = st.number_input("СУМА (EUR)",  format="%.2f", key=f"su_{v_id}")
     with col2: 
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
