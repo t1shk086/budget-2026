@@ -1334,9 +1334,8 @@ else:
 
                 st.markdown(f"""
                 <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;margin-top:2px;margin-bottom:20px;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
-                    <div style='display:flex;justify-content:space-between;align-items:center;gap:10px;'>
-                        <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:1px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
-                        <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
+                    <div style='display:flex;justify-content:center;align-items:center;gap:10px;'>
+                        <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:1px;text-align:center;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
                     </div>
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
                     <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;'>
@@ -1818,7 +1817,6 @@ else:
                 cards_css = """
                 <style>
                 .tm-budget-mini-card {
-                    margin-bottom:3px;
                     position:relative; overflow:hidden; min-height:146px;
                     margin-bottom:1px !important;
                     padding:20px; border-radius:16px;
@@ -1854,11 +1852,8 @@ else:
                 pace_col1, pace_col2, pace_col3 = st.columns(3)
                 with pace_col1:
                     st.markdown(daily_compact, unsafe_allow_html=True)
-                    # Ясен малък spacer за мобилния режим, където Streamlit подрежда колоните вертикално.
-                    st.markdown("<div style='height:3px;line-height:3px;font-size:0;'></div>", unsafe_allow_html=True)
                 with pace_col2:
                     st.markdown(pace_compact, unsafe_allow_html=True)
-                    st.markdown("<div style='height:3px;line-height:3px;font-size:0;'></div>", unsafe_allow_html=True)
                 with pace_col3:
                     st.markdown(health_card_compact, unsafe_allow_html=True)
                 st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
