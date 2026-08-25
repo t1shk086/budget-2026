@@ -301,7 +301,7 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
     
-    @st.dialog("Създаване на ново приключение")
+    @st.dialog("➕ Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:",placeholder="Въведете име...").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
@@ -311,7 +311,7 @@ if st.session_state["current_trip"] is None:
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
-        if st.button("✔️ Създай и Отвори", use_container_width=True, type="primary") and txt:
+        if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)):
                 s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
@@ -333,10 +333,10 @@ if st.session_state["current_trip"] is None:
             st.session_state["current_trip"] = target_id
             st.rerun()
 
-    if st.button("Ново пътуване", use_container_width=True): 
+    if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
-    @st.dialog("➕ Бърз разход", width="large")
+    @st.dialog("⚡ Бърз разход", width="large")
     def quick_expense_modal():
         # Използваме абсолютно същия списък като полето „Изберете пътуване до:“ на началния екран.
         existing_quick = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
@@ -451,7 +451,7 @@ if st.session_state["current_trip"] is None:
                         )
 
         if st.button(
-            "✔️ Запиши", use_container_width=True,
+            "✅ ЗАПИШИ РАЗХОДА", use_container_width=True,
             type="primary", key="quick_expense_save"
         ):
             # Не допускаме float(None) при празно поле за сумата.
@@ -515,7 +515,7 @@ if st.session_state["current_trip"] is None:
 
     quick_col1, quick_col2 = st.columns(2)
     with quick_col1:
-        if st.button("➕ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
+        if st.button("⚡ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
             quick_expense_modal()
     with quick_col2:
         if st.button("📌 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
@@ -610,7 +610,7 @@ if st.session_state["current_trip"] is None:
                     st.error("Неуспешно зареждане на последните разходи.")
 
                 st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-                if st.button("❌ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
+                if st.button("✕ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
                     st.rerun()
             recent_expenses_modal()
 
@@ -843,9 +843,12 @@ else:
     df_expenses = df_trip[df_trip["type"] == "expense"]
     total_on_site = float(df_expenses["amount"].sum())
     categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
+    # Платеният депозит е свързан с настаняването, затова го включваме
+    # директно в "Нощувки/Хотел" за анализа и категорийния бюджет.
+    categories_totals["Нощувки/Хотел"] = depozit_hotel
     total_liters_sum, auto_fuel_money = 0.0, 0.0
     for _, row in df_expenses.iterrows():
-        if row["category"] in categories_totals: 
+        if row["category"] in categories_totals:
             categories_totals[row["category"]] += float(row["amount"])
         if row["category"] == "Транспорт":
             if float(row.get("liters", 0)) > 0: 
@@ -889,7 +892,7 @@ else:
     
     col1, col2 = st.columns(2)
     with col1: 
-        s_input = st.number_input("Сума (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
+        s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
     with col2: 
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
@@ -1327,8 +1330,10 @@ else:
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
-            # Оригиналният процентен бар остава винаги: дял от общо изхарченото.
-            pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
+            # Процентният бар показва дела на категорията от всички изхарчени средства
+            # за пътуването, включително платените депозити.
+            grand_total_for_analysis = depozit_hotel + total_on_site
+            pct = (s_value / grand_total_for_analysis * 100) if grand_total_for_analysis > 0 else 0.0
             display_kat = get_display_category(kat)
             budget = float(category_budgets.get(kat, 0.0) or 0.0) if active_budget_mode == "category" else 0.0
 
