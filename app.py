@@ -333,10 +333,10 @@ if st.session_state["current_trip"] is None:
             st.session_state["current_trip"] = target_id
             st.rerun()
 
-    if st.button("➕ Ново пътуване", use_container_width=True): 
+    if st.button("🟣 Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
-    @st.dialog("⚡ Бърз разход", width="large")
+    @st.dialog("➕ Бърз разход", width="large")
     def quick_expense_modal():
         # Използваме абсолютно същия списък като полето „Изберете пътуване до:“ на началния екран.
         existing_quick = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
