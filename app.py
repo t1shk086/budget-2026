@@ -1334,11 +1334,23 @@ else:
                         <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
                     </div>
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
-                    <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin-top:14px;'>
-                        <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Литри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{liters_h:.1f} л</div></div>
-                        <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Стойност</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>€{amount_h:.2f}</div></div>
-                        <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Цена / л</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>€{ppl_h:.2f}</div></div>
-                        <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Километри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{km_h:.0f} км</div></div>
+                    <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;'>
+                        <div style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:11px 12px;border-radius:14px;box-shadow:4px 4px 12px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.035);'>
+                            <div style='font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;'>Литри</div>
+                            <div style='font-size:21px;color:#fff;font-weight:900;margin-top:3px;'>{liters_h:.1f} <span style='font-size:11px;color:#666;font-weight:normal;'>л</span></div>
+                        </div>
+                        <div style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:11px 12px;border-radius:14px;box-shadow:4px 4px 12px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.035);'>
+                            <div style='font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;'>Стойност</div>
+                            <div style='font-size:21px;color:#fff;font-weight:900;margin-top:3px;'>€{amount_h:.2f}</div>
+                        </div>
+                        <div style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:11px 12px;border-radius:14px;box-shadow:4px 4px 12px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.035);'>
+                            <div style='font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;'>Цена / л</div>
+                            <div style='font-size:21px;color:#fff;font-weight:900;margin-top:3px;'>€{ppl_h:.2f}</div>
+                        </div>
+                        <div style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:11px 12px;border-radius:14px;box-shadow:4px 4px 12px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.035);'>
+                            <div style='font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;'>Километри</div>
+                            <div style='font-size:21px;color:#fff;font-weight:900;margin-top:3px;'>{km_h:.0f} <span style='font-size:11px;color:#666;font-weight:normal;'>км</span></div>
+                        </div>
                     </div>
                     <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_display_h)}</div>
                     <div style='margin-top:10px;padding:10px 11px;border-radius:11px;background:rgba(255,255,255,.035);font-size:11px;color:{compare_color};font-weight:800;line-height:1.4;'>{compare_html}</div>
