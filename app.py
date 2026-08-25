@@ -1721,7 +1721,7 @@ else:
                 )
 
                 daily_card = f"""
-                <div style='background:linear-gradient(135deg,rgba(0,242,254,.07),rgba(255,255,255,.02));border:1px solid rgba(0,242,254,.14);padding:15px 16px;border-radius:16px;height:100%;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                <div style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:16px;height:100%;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,.3);'>
                     <div style='font-size:12px;color:#8b929e;font-weight:700;letter-spacing:.3px;'>📅 ДНЕВЕН БЮДЖЕТ</div>
                     <div style='font-size:26px;color:#ffffff;font-weight:900;margin-top:6px;'>€{daily_target:.2f}</div>
                     <div style='font-size:11px;color:#7e8494;margin-top:2px;'>планиран среден бюджет на ден</div>
@@ -1731,7 +1731,7 @@ else:
                 """
 
                 pace_card = f"""
-                <div style='background:linear-gradient(135deg,rgba(255,212,59,.07),rgba(255,255,255,.02));border:1px solid rgba(255,212,59,.14);padding:15px 16px;border-radius:16px;height:100%;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                <div style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:16px;height:100%;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,.3);'>
                     <div style='font-size:12px;color:#8b929e;font-weight:700;letter-spacing:.3px;'>📈 ТЕМП НА ХАРЧЕНЕ</div>
                     <div style='font-size:26px;color:#ffffff;font-weight:900;margin-top:6px;'>€{avg_daily_spend:.2f}</div>
                     <div style='font-size:11px;color:#7e8494;margin-top:2px;'>средно изхарчено на ден</div>
@@ -1778,9 +1778,11 @@ else:
                 <style>
                 .tm-budget-mini-card {
                     position:relative; overflow:hidden; min-height:146px;
-                    padding:16px 16px 14px 16px; border-radius:18px;
+                    padding:20px; border-radius:16px;
                     font-family:inherit;
-                    box-shadow: 0 8px 0 rgba(0,0,0,.22), 0 14px 24px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.08);
+                    background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));
+                    border:1px solid rgba(255,255,255,.08);
+                    box-shadow:4px 4px 12px rgba(0,0,0,.3);
                     transform: translateY(0); transition: transform .18s ease, box-shadow .18s ease;
                 }
                 .tm-budget-mini-card:after {
@@ -1797,7 +1799,7 @@ else:
                 st.markdown(cards_css, unsafe_allow_html=True)
 
                 health_card_compact = f"""
-                <div class='tm-budget-mini-card' style='background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.018));border:1px solid {health_color}33;'>
+                <div class='tm-budget-mini-card'>
                     <div class='tm-budget-mini-label' style='color:{health_color};'>{health_icon} БЮДЖЕТ</div>
                     <div class='tm-budget-mini-value' style='font-size:15px;line-height:1.2;color:{health_color};margin-top:9px;'>{health_title}</div>
                     <div class='tm-budget-mini-line'>Реално: <b style='color:#fff;'>€{daily_spent_total:.2f}</b></div>
@@ -1805,8 +1807,8 @@ else:
                     <div class='tm-budget-mini-sub' style='color:{health_color};font-weight:800;'>{health_text}</div>
                 </div>
                 """
-                daily_compact = daily_card.replace("padding:15px 16px;border-radius:16px;height:100%;", "padding:16px;height:100%;border-radius:18px;box-shadow:0 8px 0 rgba(0,0,0,.22),0 14px 24px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.08);")
-                pace_compact = pace_card.replace("padding:15px 16px;border-radius:16px;height:100%;", "padding:16px;height:100%;border-radius:18px;box-shadow:0 8px 0 rgba(0,0,0,.22),0 14px 24px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.08);")
+                daily_compact = daily_card
+                pace_compact = pace_card
 
                 pace_col1, pace_col2, pace_col3 = st.columns(3)
                 with pace_col1:
