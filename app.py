@@ -1323,13 +1323,11 @@ else:
 
                 if fuel_count > 1:
                     st.markdown("<div class='compact-fuel-nav-marker'></div>", unsafe_allow_html=True)
-                    nav_prev, nav_mid, nav_next = st.columns([0.18, 0.64, 0.18], gap="small")
-                    with nav_prev:
-                        st.button("‹", use_container_width=True, key=f"fuel_prev_{trip_id}", on_click=_navigate_fuel, args=("prev", trip_id))
-                    with nav_mid:
-                        st.markdown(f"<div style='text-align:center;padding-top:7px;color:#8b929e;font-size:11px;line-height:1.25;'>Зареждане<br><b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>", unsafe_allow_html=True)
-                    with nav_next:
-                        st.button("›", use_container_width=True, key=f"fuel_next_{trip_id}", on_click=_navigate_fuel, args=("next", trip_id))
+                    nav = st.container(horizontal=True, horizontal_alignment="center", vertical_alignment="center", gap="small")
+                    with nav:
+                        st.button("‹", key=f"fuel_prev_{trip_id}", on_click=_navigate_fuel, args=("prev", trip_id), width="content")
+                        st.markdown(f"<div style='text-align:center;min-width:90px;padding-top:3px;color:#8b929e;font-size:11px;line-height:1.25;'>Зареждане <b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>", unsafe_allow_html=True)
+                        st.button("›", key=f"fuel_next_{trip_id}", on_click=_navigate_fuel, args=("next", trip_id), width="content")
         except Exception:
             pass
 
@@ -2359,12 +2357,11 @@ else:
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
             icon = "✅" if item_done else "⬜"
-            task_col, del_col = st.columns([0.88, 0.12], gap="small")
-            with task_col:
+            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
+            with task_row:
                 task_label = f"{icon} {title}"
-                st.button(task_label, use_container_width=True, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,))
-            with del_col:
-                st.button("🗑️", use_container_width=True, key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,))
+                st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
+                st.button("🗑️", key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,), width="content")
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
