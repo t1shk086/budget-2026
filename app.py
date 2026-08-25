@@ -977,12 +977,15 @@ elif st.session_state.page == "trip":
         if total_fuel_liters > 0 else None
     )
     overall_consumption = None
+    total_distance = 0.0
+    first_odometer = None
+    last_odometer = None
     if len(fuel_with_km) >= 2:
-        first = fuel_with_km[0]["fuel_odometer"]
-        last = fuel_with_km[-1]["fuel_odometer"]
-        km = last - first
-        if km > 0 and total_fuel_liters > 0:
-            overall_consumption = total_fuel_liters / km * 100
+        first_odometer = fuel_with_km[0]["fuel_odometer"]
+        last_odometer = fuel_with_km[-1]["fuel_odometer"]
+        total_distance = max(last_odometer - first_odometer, 0.0)
+        if total_distance > 0 and total_fuel_liters > 0:
+            overall_consumption = total_fuel_liters / total_distance * 100
 
     for section in st.session_state.trip_layout:
 
@@ -1058,13 +1061,21 @@ elif st.session_state.page == "trip":
             if not categories:
                 st.info("Все още няма разходи по категории.")
             else:
+                category_names = [item["category"] for item in categories]
+                selected_category = st.selectbox(
+                    "Покажи категория",
+                    ["Всички"] + category_names,
+                    key=f"category_filter_{trip_id}",
+                )
                 for item in categories:
+                    if selected_category != "Всички" and item["category"] != selected_category:
+                        continue
                     html = '<div class="tm-trip-analysis"><div class="tm-category-row"><div class="tm-category-row-top"><div class="tm-category-name">{}</div><div class="tm-category-value">€{:.2f}</div></div><div class="tm-roundbar"><div class="tm-roundbar-fill" style="width:{:.1f}%"></div></div><div class="tm-category-percent">{:.1f}%</div></div></div>'.format(item['category'], item['amount'], min(item['percentage'],100), item['percentage'])
                     st.markdown(html, unsafe_allow_html=True)
             st.divider()
 
         elif section == "fuel":
-            st.subheader("⛽ Гориво")
+            st.subheader("🚗 Гориво и километраж")
             if not fuel_expenses:
                 st.info("Все още няма отчетени разходи за гориво.")
             else:
@@ -1085,6 +1096,25 @@ elif st.session_state.page == "trip":
                         st.metric("Среден разход", f"{overall_consumption:.2f} л/100 км")
                     else:
                         st.caption("За среден разход са нужни поне 2 зареждания с известен километраж.")
+
+                st.write("")
+                st.markdown("**🛣️ Пробег**")
+                if total_distance > 0 and first_odometer is not None and last_odometer is not None:
+                    st.markdown(
+                        f"""
+                        <div style="margin:8px 0 4px 0;padding:14px 16px;border:1px solid rgba(120,120,140,.18);border-radius:16px;background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.018));">
+                            <div style="display:flex;justify-content:space-between;align-items:end;gap:12px;">
+                                <div><div style="font-size:12px;opacity:.55;">Начален километраж</div><div style="font-size:16px;font-weight:700;">{first_odometer:,.0f} км</div></div>
+                                <div style="text-align:center;"><div style="font-size:12px;opacity:.55;">Изминат пробег</div><div style="font-size:25px;font-weight:800;">{total_distance:,.0f} км</div></div>
+                                <div style="text-align:right;"><div style="font-size:12px;opacity:.55;">Последен километраж</div><div style="font-size:16px;font-weight:700;">{last_odometer:,.0f} км</div></div>
+                            </div>
+                            <div style="height:9px;border-radius:999px;background:rgba(128,128,128,.18);overflow:hidden;margin-top:14px;"><div style="height:100%;width:100%;border-radius:999px;background:linear-gradient(90deg,#7c5cff,#35c7ff);"></div></div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.info("За пробег са нужни поне 2 зареждания с въведен километраж.")
             st.divider()
 
 # =========================================================
@@ -1150,7 +1180,7 @@ elif st.session_state.page == "settings":
     labels = {
         "expenses": "📜 Разходи",
         "categories": "📊 Разходи по категории",
-        "fuel": "⛽ Гориво",
+        "fuel": "🚗 Гориво и километраж",
     }
 
     st.markdown("**1. Какво да се показва?**")
