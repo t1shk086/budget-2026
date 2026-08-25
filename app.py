@@ -1395,6 +1395,8 @@ else:
 
     # =========================================================
     # ДНЕВЕН БЮДЖЕТ + ТЕМП НА ХАРЧЕНЕ
+    # Хотелът и депозитът НЕ участват в тези два показателя.
+    # Общият бюджет и общата прогрес лента продължават да включват всичко.
     # =========================================================
     if active_budget_mode != "none" and active_budget_total > 0:
         try:
@@ -1407,15 +1409,32 @@ else:
                 elapsed_days = max(1, min(total_days, (today_obj - start_date_obj).days + 1))
                 days_remaining = max(0, total_days - elapsed_days)
 
-                daily_target = active_budget_total / total_days
-                avg_daily_spend = active_budget_spent / elapsed_days
-                projected_total = avg_daily_spend * total_days
-                forecast_delta = active_budget_total - projected_total
+                # Хотел + депозит се отделят от ежедневното харчене.
+                hotel_spent_for_pace = float(df_expenses[df_expenses["category"] == "Нощувки/Хотел"]["amount"].sum())
+                deposit_spent_for_pace = float(depozit_hotel)
 
-                daily_remaining_budget = active_budget_remaining / days_remaining if days_remaining > 0 else active_budget_remaining
+                # Разходи на място без хотел. Депозитите не са в total_on_site,
+                # но ги изваждаме отделно от бюджетния пул за яснота.
+                daily_spent_total = max(0.0, float(total_on_site) - hotel_spent_for_pace)
+
+                if active_budget_mode == "category":
+                    # При категориален бюджет махаме бюджета на хотелската категория.
+                    hotel_budget_for_pace = float(category_budgets.get("Нощувки/Хотел", 0.0) or 0.0)
+                    daily_budget_total = max(0.0, float(active_budget_total) - hotel_budget_for_pace)
+                else:
+                    # При общ бюджет махаме вече платения хотел + депозит от дневния пул.
+                    daily_budget_total = max(0.0, float(active_budget_total) - hotel_spent_for_pace - deposit_spent_for_pace)
+
+                daily_budget_remaining = daily_budget_total - daily_spent_total
+                daily_target = daily_budget_total / total_days
+                avg_daily_spend = daily_spent_total / elapsed_days
+                projected_total = avg_daily_spend * total_days
+                forecast_delta = daily_budget_total - projected_total
+
+                daily_remaining_budget = daily_budget_remaining / days_remaining if days_remaining > 0 else daily_budget_remaining
                 daily_status = (
-                    f"€{daily_remaining_budget:.2f} / ден" if days_remaining > 0 and active_budget_remaining >= 0
-                    else "Бюджетът е изчерпан" if active_budget_remaining < 0
+                    f"€{daily_remaining_budget:.2f} / ден" if days_remaining > 0 and daily_budget_remaining >= 0
+                    else "Бюджетът е изчерпан" if daily_budget_remaining < 0
                     else "Пътуването приключва днес"
                 )
 
