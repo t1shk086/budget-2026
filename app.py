@@ -445,15 +445,14 @@ def _delete_plan_item(item_id):
     except Exception:
         pass
 
-def _add_plan_item_callback(input_key, trip_id):
-    """Добавя задачата и изчиства полето за следващия запис."""
-    try:
-        value = str(st.session_state.get(input_key, "") or "").strip()
-        if value:
-            if add_trip_plan_item(trip_id, value):
-                st.session_state[input_key] = ""
-    except Exception:
-        pass
+def _add_plan_item_and_clear(t_id, title, widget_key):
+    """Добавя задачата и веднага изчиства полето за следващ запис."""
+    cleaned = str(title or "").strip()
+    if not cleaned:
+        return
+    if add_trip_plan_item(t_id, cleaned):
+        st.session_state[widget_key] = ""
+
 
 
 if st.session_state["current_trip"] is None:
@@ -1292,6 +1291,16 @@ else:
                 ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
                 date_h = str(fr.get("date", ""))
                 desc_h = str(fr.get("description", ""))
+                # По-чисто визуално описание на зареждането. Данните в CSV остават непроменени.
+                import re
+                desc_display_h = desc_h
+                fuel_match_h = re.match(r'^\[(?:\s*)ЧАСТИЧНО\s+ЗАРЕЖДАНЕ(?:\s*)\](.*)$', desc_h, flags=re.IGNORECASE)
+                if fuel_match_h:
+                    desc_display_h = f"Частично — {fuel_match_h.group(1).strip()}"
+                else:
+                    fuel_match_h = re.match(r'^\[(?:\s*)ПЪЛНО\s+ЗАРЕЖДАНЕ(?:\s*)\](.*)$', desc_h, flags=re.IGNORECASE)
+                    if fuel_match_h:
+                        desc_display_h = f"До горе — {fuel_match_h.group(1).strip()}"
 
                 compare_html = "⚪ Няма предишно зареждане за сравнение."
                 compare_color = "#7e8494"
@@ -1318,7 +1327,6 @@ else:
                         <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
                         <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
                     </div>
-                    <div style='font-size:15px;font-weight:800;color:#ffffff;margin-top:10px;'>Зареждане {fuel_count - fuel_idx} от {fuel_count}</div>
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
                     <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin-top:14px;'>
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Литри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{liters_h:.1f} л</div></div>
@@ -1326,7 +1334,7 @@ else:
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Цена / л</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>€{ppl_h:.2f}</div></div>
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Километри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{km_h:.0f} км</div></div>
                     </div>
-                    <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_h)}</div>
+                    <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_display_h)}</div>
                     <div style='margin-top:10px;padding:10px 11px;border-radius:11px;background:rgba(255,255,255,.035);font-size:11px;color:{compare_color};font-weight:800;line-height:1.4;'>{compare_html}</div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1336,7 +1344,7 @@ else:
                     nav = st.container(horizontal=True, horizontal_alignment="center", vertical_alignment="center", gap="small")
                     with nav:
                         st.button("‹", key=f"fuel_prev_{trip_id}", on_click=_navigate_fuel, args=("prev", trip_id), width="content")
-                        st.markdown(f"<div style='text-align:center;min-width:55px;padding-top:3px;color:#8b929e;font-size:12px;line-height:1.25;'><b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='text-align:center;min-width:55px;padding-top:3px;color:#8b929e;font-size:11px;line-height:1.25;'><b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>", unsafe_allow_html=True)
                         st.button("›", key=f"fuel_next_{trip_id}", on_click=_navigate_fuel, args=("next", trip_id), width="content")
         except Exception:
             pass
@@ -2301,14 +2309,17 @@ else:
         }
 
 
-        /* Визуално подравняване: името на задачата винаги започва отляво. */
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button:first-child {
+        /* Само бутоните на задачите: ляво подравняване на текста, без промяна на mobile layout-а. */
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button {
             justify-content: flex-start !important;
             text-align: left !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button:first-child p {
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button > div,
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button p {
+            justify-content: flex-start !important;
             text-align: left !important;
             width: 100% !important;
+            margin-left: 0 !important;
         }
 
         /* Компактен ред за задачите: текстът + кошчето остават на един ред. */
@@ -2343,32 +2354,6 @@ else:
     </style>
     """, unsafe_allow_html=True)
 
-    # САМО за бутоните на задачите: текстът е винаги вляво,
-    # без промяна на мобилния horizontal layout от v41.
-    st.markdown("""
-    <style>
-        button[aria-label^="⬜ "],
-        button[aria-label^="✅ "] {
-            justify-content: flex-start !important;
-            text-align: left !important;
-        }
-        button[aria-label^="⬜ "] > div,
-        button[aria-label^="✅ "] > div {
-            width: 100% !important;
-            justify-content: flex-start !important;
-            text-align: left !important;
-        }
-        button[aria-label^="⬜ "] p,
-        button[aria-label^="✅ "] p,
-        button[aria-label^="⬜ "] span,
-        button[aria-label^="✅ "] span {
-            width: 100% !important;
-            text-align: left !important;
-            justify-content: flex-start !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
     # =========================================================
     # 🧳 ПЛАН НА ПЪТУВАНЕТО
     # =========================================================
@@ -2386,12 +2371,20 @@ else:
     st.progress(plan_pct / 100.0, text=f"{plan_pct:.1f}%")
 
     plan_col1, plan_col2 = st.columns([1, 1])
-    plan_input_key = f"trip_plan_new_{trip_id}"
     with plan_col1:
-        st.text_input("Добави задача", placeholder="напр. Резервация за ресторант...", key=plan_input_key)
+        plan_input_key = f"trip_plan_new_{trip_id}"
+        new_plan_item = st.text_input("Добави задача", placeholder="напр. Резервация за ресторант...", key=plan_input_key)
     with plan_col2:
         st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-        st.button("➕ Добави в плана", use_container_width=True, key=f"trip_plan_add_{trip_id}", on_click=_add_plan_item_callback, args=(plan_input_key, trip_id))
+        plan_input_key = f"trip_plan_new_{trip_id}"
+        if st.button(
+            "➕ Добави в плана",
+            use_container_width=True,
+            key=f"trip_plan_add_{trip_id}",
+            on_click=_add_plan_item_and_clear,
+            args=(trip_id, new_plan_item, plan_input_key),
+        ):
+            pass
 
     if not plan_df.empty:
         st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
