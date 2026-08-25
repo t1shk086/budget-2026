@@ -2499,17 +2499,12 @@ else:
     </style>
     """, unsafe_allow_html=True)
 
+    st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n3'>3</span><span>ПЛАН НА ПЪТУВАНЕТО</span></div>", unsafe_allow_html=True)
+
     st.markdown(f"""
-    <div class="tm-plan-header">
-        <div class="tm-plan-title-wrap">
-            <div class="tm-section-number tm-n3">3</div>
-            <div class="tm-plan-title">ПЛАН НА ПЪТУВАНЕТО</div>
-        </div>
-        <div class="tm-plan-count">{plan_done}/{plan_total} изпълнени</div>
-    </div>
     <div class="tm-plan-progress-wrap">
         <div class="tm-plan-progress"><div class="tm-plan-progress-fill" style="width:{plan_pct:.2f}%;"></div></div>
-        <div class="tm-plan-progress-meta">{plan_pct:.1f}% завършено</div>
+        <div class="tm-plan-progress-meta">{plan_pct:.1f}% завършено · {plan_done}/{plan_total} изпълнени</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2547,7 +2542,7 @@ else:
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
-
+    st.markdown("---")
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
     df_points = get_map_points(trip_id)
     
