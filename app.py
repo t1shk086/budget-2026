@@ -336,57 +336,196 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
+    # 1. ЕЛЕГАНТЕН CSS: ПРЕМЕСТВА ФАБРИЧНИЯ НАДПИС ОТДЯСНО НА ТОГЪЛА С 1 ИНТЕРВАЛ РАЗСТОЯНИЕ
+    st.html("""
+    <style>
+        /* Пренастройва контейнера на toggle бутона да подрежда елементите в линия */
+        div[data-testid="stCheckbox"] > label {
+            display: inline-flex !important;
+            flex-direction: row-reverse !important; /* Мести оригиналния текст отдясно */
+            align-items: center !important;
+            gap: 10px !important; /* Разстояние точно колкото 1 интервал */
+            width: auto !important;
+        }
+        /* Подсигурява, че текстът няма да се пречупи на два реда на телефон */
+        div[data-testid="stCheckbox"] p {
+            white-space: nowrap !important;
+            margin: 0 !important;
+        }
+    </style>
+    """)
+
+    # 2. ОФИЦИАЛЕН TOGGLE БУТОН С ДИРЕКТЕН НАДПИС (БЕЗ ДОПЪЛНИТЕЛНИ КОЛОНИ И HTML)
+    show_comparison = st.toggle(
+        label="Сравнителен панел",
+        value=False,
+        key="stable_comparison_toggle"
+    )
+        
+    # 3. КОРЕКТНА И СТАБИЛНА ФУНКЦИЯ ЗА ДИАЛОГОВИЯ ПРОЗОРЕЦ
+    if show_comparison:
+        @st.dialog("📊 Сравнителен панел", width="large")
+        def show_global_analytics_dialog():
+            st.markdown("<p style='color: #888; margin-bottom: 20px;'>Завъртете дисплея, за да видите графиката в по-добър мащаб!</p>", unsafe_allow_html=True)
+            
+            chosen_criteria = st.segmented_control(
+                label="Изберете критерий:",
+                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и Хотел"],
+                default="Цена за 1 км",
+                key="modal_segmented_metric_selector"
+            )
+
+            all_trips_computed = []
+            try:
+                df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
+                df_all_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                unique_trips = df_all_data["trip_id"].dropna().unique()
+
+                for t in unique_trips:
+                    if not t or str(t).strip() == "": continue
+                    
+                    df_t_data = df_all_data[df_all_data["trip_id"] == t]
+                    df_t_sett = df_all_settings[df_all_settings["trip_id"] == t]
+
+                    t_dep = float(df_t_data[df_t_data["type"] == "deposit"]["amount"].sum())
+                    t_site = float(df_t_data[df_t_data["type"] == "expense"]["amount"].sum())
+                    t_total = t_dep + t_site
+
+                    # Калкулиране на разходи специално за хотел/Нощувки и Хотел
+                    t_hotel_only = float(df_t_data[df_t_data["category"] == "Нощувки/Хотел"]["amount"].sum())
+                    t_deposit_only = float(df_t_data[df_t_data["category"] == "Депозит/Резервация"]["amount"].sum())
+                    t_accommodation_total = t_hotel_only + t_deposit_only
+
+                    t_dist, s_k, e_k = 0.0, 0.0, 0.0
+                    days_count = 1
+
+                    if not df_t_sett.empty:
+                        s_k = float(df_t_sett["start_km"].iloc[0]) if "start_km" in df_t_sett.columns and not df_t_sett["start_km"].empty else 0.0
+                        e_k = float(df_t_sett["end_km"].iloc[0]) if "end_km" in df_t_sett.columns and not df_t_sett["end_km"].empty else 0.0
+                        st_d_str = str(df_t_sett["start_date"].iloc[0]) if "start_date" in df_t_sett.columns and not df_t_sett["start_date"].empty else ""
+                        en_d_str = str(df_t_sett["end_date"].iloc[0]) if "end_date" in df_t_sett.columns and not df_t_sett["end_date"].empty else ""
+
+                        max_k = float(df_t_data[df_t_data["type"] == "expense"]["current_km"].max()) if not df_t_data.empty else 0.0
+                        eff_e = e_k if e_k > 0 else max_k
+                        t_dist = eff_e - s_k if eff_e > s_k else 0.0
+
+                        try:
+                            d1 = datetime.datetime.strptime(st_d_str, "%d.%m.%Y")
+                            d2 = datetime.datetime.strptime(en_d_str, "%d.%m.%Y")
+                            days_count = max(1, (d2 - d1).days + 1)
+                        except:
+                            days_count = 1
+
+                    all_trips_computed.append({
+                        "Пътуване": str(t).replace("_", " ").upper(),
+                        "Обща Стойност (EUR)": t_total,
+                        "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
+                        "Дневен Разход (EUR)": (t_total / days_count),
+                        "Изминато разстояние (км)": t_dist,
+                        "Нощувки и Хотел (EUR)": t_accommodation_total,
+                        "DistValid": t_dist > 0
+                    })
+            except:
+                pass
+
+            if all_trips_computed:
+                df_pixel = pd.DataFrame(all_trips_computed)
+                import plotly.express as px
+
+                if chosen_criteria == "Цена за 1 км":
+                    x_col = "Цена за 1 км (EUR)"
+                    t_format = "%{text:.2f} EUR/км"
+                    df_filtered = df_pixel[df_pixel["DistValid"] == True]
+                    if df_filtered.empty: df_filtered = df_pixel
+                    df_sorted = df_filtered.sort_values(by=x_col, ascending=True)
+                    graph_title = "💰 Сравнение на ефективността (EUR/1км)"
+                elif chosen_criteria == "Обща Стойност":
+                    x_col = "Обща Стойност (EUR)"
+                    t_format = "%{text:,.2f} EUR"
+                    df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                    graph_title = "💸 Тотална СУМА"
+                elif chosen_criteria == "Изминати км":
+                    x_col = "Изминато разстояние (км)"
+                    t_format = "%{text:.0f} км"
+                    df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                    graph_title = "🚗 Общо изминато разстояние"
+                elif chosen_criteria == "Нощувки и Хотел":
+                    x_col = "Нощувки и Хотел (EUR)"
+                    t_format = "%{text:,.2f} EUR"
+                    df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                    graph_title = "🏨 Разходи за Спане, Хотели и Хотелски такси"
+                else: 
+                    x_col = "Дневен Разход (EUR)"
+                    t_format = "%{text:.2f} EUR/ден"
+                    df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
+                    graph_title = "📅 Среднодневен разход"
+
+                fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
+
+                # Динамична скала на цветовете: за километри "по-дълго" е зелено, за разходи - "по-евтино" е зелено
+                if chosen_criteria == "Изминати км":
+                    c_scale = [[0, '#ff3b30'], [0.5, '#ffaa00'], [1, '#2ebd59']] # Повече км = по-зелено
+                else:
+                    c_scale = [[0, '#2ebd59'], [0.5, '#ffaa00'], [1, '#ff3b30']] # По-малко пари = по-зелено
+
+                fig_pixel.update_traces(
+                    marker=dict(
+                        color=df_sorted[x_col],
+                        colorscale=c_scale,
+                        line=dict(width=0),
+                        cornerradius=15
+                    ),
+                    texttemplate=f"<b>{t_format}</b>",
+                    textposition='outside',
+                    cliponaxis=False
+                )
+
+                fig_pixel.update_layout(
+                    title=dict(text=graph_title, font=dict(color="white")),
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
+                    yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
+                    margin=dict(l=10, r=110, t=50, b=10),
+                    height=320,
+                    bargap=0.35
+                )
+                st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.info("Няма достатъчно база данни за сравнение.")
+
+            st.write("---")
+            if st.button("❌ Затвори", key="bottom_modal_close_btn", use_container_width=True):
+                st.session_state["stable_comparison_toggle"] = False
+                st.rerun()
+
+        show_global_analytics_dialog()
+
+
+
+
+
+
     # =========================================================
     # БЪРЗИ ДЕЙСТВИЯ НА НАЧАЛНИЯ ЕКРАН
     # =========================================================
     @st.dialog("⚡ Бърз разход", width="large")
     def quick_expense_modal():
-        # Източникът е списъкът с ПЪТУВАНИЯ, а не всички trip_id, които
-        # случайно присъстват в стари записи. Приоритет е SETTINGS_FILE,
-        # след което добавяме само trip_id от DATA_FILE, които не са старо
-        # "сираче". Това запазва само реално съществуващите пътувания.
-        active_trip_ids = []
-        try:
-            settings_ids = []
-            if os.path.exists(SETTINGS_FILE):
-                df_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-                if "trip_id" in df_settings.columns:
-                    settings_ids = [
-                        str(x).strip() for x in df_settings["trip_id"].dropna().tolist()
-                        if str(x).strip() and str(x).strip().lower() != "nan"
-                    ]
+        # Използваме абсолютно същия списък като полето „Изберете пътуване до:“ на началния екран.
+        existing_quick = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
+        existing_quick = [t for t in existing_quick if pd.notna(t) and str(t).strip() != ""]
 
-            data_ids = []
-            if os.path.exists(DATA_FILE):
-                df_data_ids = pd.read_csv(DATA_FILE, encoding="utf-8")
-                if "trip_id" in df_data_ids.columns:
-                    data_ids = [
-                        str(x).strip() for x in df_data_ids["trip_id"].dropna().tolist()
-                        if str(x).strip() and str(x).strip().lower() != "nan"
-                    ]
-
-            # Пътуване се счита за актуално, ако фигурира в настройките.
-            # Ако старите данни съдържат пътуване без настройки, то не се показва.
-            active_trip_ids = list(dict.fromkeys(settings_ids))
-
-            # За съвместимост: ако няма никакви settings записи, използваме
-            # текущите DATA записи като fallback.
-            if not active_trip_ids:
-                active_trip_ids = list(dict.fromkeys(data_ids))
-        except Exception:
-            active_trip_ids = []
-
-        if not active_trip_ids:
+        if not existing_quick:
             st.info("Първо създайте поне едно пътуване.")
             return
 
-        trip_display = [t.replace("_", " ") for t in active_trip_ids]
+        trip_display = [t.replace("_", " ") for t in existing_quick]
         selected_trip_display = st.selectbox(
             "Пътуване",
             trip_display,
             key="quick_expense_trip"
         )
-        selected_trip = active_trip_ids[trip_display.index(selected_trip_display)]
+        selected_trip = existing_quick[trip_display.index(selected_trip_display)]
         quick_settings = get_trip_settings(selected_trip)
         quick_car_trip = str(quick_settings.get("car_trip", "Не")) == "Да"
         quick_start_km = float(quick_settings.get("start_km", 0.0) or 0.0)
