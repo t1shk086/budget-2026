@@ -301,7 +301,7 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
     
-    @st.dialog("➕ Създаване на ново приключение")
+    @st.dialog("Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:",placeholder="Въведете име...").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
@@ -333,10 +333,10 @@ if st.session_state["current_trip"] is None:
             st.session_state["current_trip"] = target_id
             st.rerun()
 
-    if st.button("➕ Ново пътуване", use_container_width=True): 
+    if st.button("Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
-    @st.dialog("⚡ Бърз разход", width="large")
+    @st.dialog("➕ Бърз разход", width="large")
     def quick_expense_modal():
         # Използваме абсолютно същия списък като полето „Изберете пътуване до:“ на началния екран.
         existing_quick = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
@@ -451,7 +451,7 @@ if st.session_state["current_trip"] is None:
                         )
 
         if st.button(
-            "✅ ЗАПИШИ РАЗХОДА", use_container_width=True,
+            "✔️ Запиши", use_container_width=True,
             type="primary", key="quick_expense_save"
         ):
             # Не допускаме float(None) при празно поле за сумата.
@@ -515,11 +515,11 @@ if st.session_state["current_trip"] is None:
 
     quick_col1, quick_col2 = st.columns(2)
     with quick_col1:
-        if st.button("⚡ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
+        if st.button("➕ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
             quick_expense_modal()
     with quick_col2:
-        if st.button("📌 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
-            @st.dialog("📌 Последни разходи", width="large")
+        if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
+            @st.dialog("➖ Последни разходи", width="large")
             def recent_expenses_modal():
                 st.markdown("""
                 <style>
@@ -610,7 +610,7 @@ if st.session_state["current_trip"] is None:
                     st.error("Неуспешно зареждане на последните разходи.")
 
                 st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-                if st.button("✕ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
+                if st.button("❌ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
                     st.rerun()
             recent_expenses_modal()
 
@@ -892,7 +892,7 @@ else:
     
     col1, col2 = st.columns(2)
     with col1: 
-        s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
+        s_input = st.number_input("Сума (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
     with col2: 
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
