@@ -368,7 +368,7 @@ if st.session_state["current_trip"] is None:
             )
         with c2:
             description = st.text_input(
-                "Описание", placeholder="Например: обяд, паркинг...",
+                "Описание", placeholder="Например: обяд, зареждане...",
                 key="quick_expense_description"
             )
 
@@ -451,7 +451,7 @@ if st.session_state["current_trip"] is None:
                         )
 
         if st.button(
-            "✅ ЗАПИШИ РАЗХОДА", use_container_width=True,
+            "✔️ Запиши", use_container_width=True,
             type="primary", key="quick_expense_save"
         ):
             # Не допускаме float(None) при празно поле за сумата.
@@ -515,11 +515,11 @@ if st.session_state["current_trip"] is None:
 
     quick_col1, quick_col2 = st.columns(2)
     with quick_col1:
-        if st.button("⚡ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
+        if st.button("➕ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
             quick_expense_modal()
     with quick_col2:
-        if st.button("📌 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
-            @st.dialog("📌 Последни разходи", width="large")
+        if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
+            @st.dialog("➖ Последни разходи", width="large")
             def recent_expenses_modal():
                 st.markdown("""
                 <style>
@@ -889,7 +889,7 @@ else:
     
     col1, col2 = st.columns(2)
     with col1: 
-        s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
+        s_input = st.number_input("Сума (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
     with col2: 
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
