@@ -60,7 +60,6 @@ KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
-CATEGORY_BUDGETS_FILE = "trip_category_budgets_2026.csv"
 
 # Настройки само за имената на бутоните. Каноничните категории в данните НЕ се променят.
 DEFAULT_UI_LABELS = {
@@ -175,33 +174,54 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     except: 
         return False
 
+
+# =========================================================
+# БЮДЖЕТИ ПО КАТЕГОРИИ
+# =========================================================
+CATEGORY_BUDGETS_FILE = "trip_category_budgets_2026.csv"
+
 def get_category_budgets(t_id):
-    budgets = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
+    result = {cat: 0.0 for cat in KATEGORII if cat != "Депозит/Резервация"}
     try:
-        if os.path.exists(CATEGORY_BUDGETS_FILE):
-            df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
-            rows = df[df["trip_id"].astype(str) == str(t_id)]
-            for _, row in rows.iterrows():
-                cat = str(row.get("category", ""))
-                if cat in budgets:
-                    budgets[cat] = max(0.0, float(row.get("budget", 0.0)))
+        if not os.path.exists(CATEGORY_BUDGETS_FILE):
+            return result
+        df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+        if df.empty or not {"trip_id", "category", "budget"}.issubset(df.columns):
+            return result
+        rows = df[df["trip_id"].astype(str) == str(t_id)]
+        for _, row in rows.iterrows():
+            cat = str(row["category"])
+            if cat in result:
+                try:
+                    result[cat] = max(0.0, float(row["budget"]))
+                except (TypeError, ValueError):
+                    pass
     except Exception:
         pass
-    return budgets
+    return result
 
 def save_category_budgets(t_id, budgets):
     try:
+        columns = ["trip_id", "category", "budget"]
         if os.path.exists(CATEGORY_BUDGETS_FILE):
             df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+            if not set(columns).issubset(df.columns):
+                df = pd.DataFrame(columns=columns)
         else:
-            df = pd.DataFrame(columns=["trip_id", "category", "budget"])
-        if not df.empty:
-            df = df[df["trip_id"].astype(str) != str(t_id)]
+            df = pd.DataFrame(columns=columns)
+
+        df = df[df["trip_id"].astype(str) != str(t_id)]
         rows = []
-        for cat, amount in budgets.items():
-            amount = max(0.0, float(amount or 0.0))
+        for cat in KATEGORII:
+            if cat == "Депозит/Резервация":
+                continue
+            try:
+                amount = max(0.0, float(budgets.get(cat, 0.0)))
+            except (TypeError, ValueError):
+                amount = 0.0
             if amount > 0:
                 rows.append({"trip_id": str(t_id), "category": cat, "budget": amount})
+
         if rows:
             df = pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
         df.to_csv(CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8")
@@ -854,34 +874,63 @@ else:
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### 📊 Анализ на разходите:")
-    
+
+    # Бюджетите са отделни от съществуващите разходи и не променят старите данни.
     category_budgets = get_category_budgets(trip_id)
+    budget_total = sum(v for v in category_budgets.values() if v > 0)
+    budget_spent = sum(float(categories_totals.get(cat, 0.0)) for cat in category_budgets if category_budgets.get(cat, 0) > 0)
+    budget_remaining = budget_total - budget_spent
 
-    @st.dialog("🎯 Бюджети по категории", width="large")
-    def category_budgets_dialog():
-        st.markdown("<p style='color:#888; margin-bottom:18px;'>Задай отделен лимит за всяка категория. Остави 0, ако не искаш бюджет.</p>", unsafe_allow_html=True)
-        budget_inputs = {}
-        budget_categories = [k for k in KATEGORII if k != "Депозит/Резервация"]
-        cols = st.columns(2)
-        for i, cat in enumerate(budget_categories):
-            with cols[i % 2]:
-                budget_inputs[cat] = st.number_input(
-                    f"{get_emoji(cat)} {get_display_category(cat)} (EUR)",
-                    min_value=0.0,
-                    value=float(category_budgets.get(cat, 0.0)),
-                    step=50.0,
-                    format="%.2f",
-                    key=f"budget_input_{trip_id}_{i}"
-                )
-        if st.button("💾 Запази бюджетите", use_container_width=True, type="primary", key=f"save_cat_budgets_{trip_id}"):
-            if save_category_budgets(trip_id, budget_inputs):
-                st.success("✅ Бюджетите по категории са запазени.")
-                st.rerun()
-            else:
-                st.error("❌ Неуспешно запазване на бюджетите.")
+    budget_col1, budget_col2 = st.columns([2, 1])
+    with budget_col1:
+        st.markdown("""
+        <div style="background:linear-gradient(135deg,rgba(255,212,59,.10),rgba(255,255,255,.025));border:1px solid rgba(255,212,59,.28);padding:14px 16px;border-radius:16px;margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:800;color:#ffd43b;letter-spacing:.3px;">🎯 БЮДЖЕТИ ПО КАТЕГОРИИ</div>
+            <div style="font-size:11px;color:#9aa1ad;margin-top:4px;">Задай отделен лимит за всяка категория и го следи директно върху лентата.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with budget_col2:
+        if st.button("🎯 Настрой бюджети", use_container_width=True, key=f"open_category_budgets_{trip_id}"):
+            @st.dialog("🎯 Бюджети по категории", width="large")
+            def _category_budget_dialog():
+                st.markdown("Задай максимална сума за всяка категория. **0 EUR = без бюджет.**")
+                inputs = {}
+                budget_cats = [cat for cat in KATEGORII if cat != "Депозит/Резервация"]
+                c1, c2 = st.columns(2)
+                for i, cat in enumerate(budget_cats):
+                    with (c1 if i % 2 == 0 else c2):
+                        inputs[cat] = st.number_input(
+                            f"{get_emoji(cat)} {get_display_category(cat)}",
+                            min_value=0.0,
+                            value=float(category_budgets.get(cat, 0.0)),
+                            step=50.0,
+                            format="%.2f",
+                            key=f"cat_budget_{trip_id}_{i}"
+                        )
+                if st.button("💾 Запази бюджетите", type="primary", use_container_width=True, key=f"save_category_budgets_{trip_id}"):
+                    if save_category_budgets(trip_id, inputs):
+                        st.success("Бюджетите са запазени.")
+                        st.rerun()
+                    else:
+                        st.error("Неуспешно записване на бюджетите.")
+            _category_budget_dialog()
 
-    if st.button("🎯 Бюджети по категории", use_container_width=True, key=f"open_cat_budgets_{trip_id}"):
-        category_budgets_dialog()
+    if budget_total > 0:
+        total_pct = max(0.0, min(100.0, budget_spent / budget_total * 100.0))
+        remaining_text = f"Остават {budget_remaining:.2f} EUR" if budget_remaining >= 0 else f"Над бюджета с {abs(budget_remaining):.2f} EUR"
+        remaining_color = "#8bd5ff" if budget_remaining >= 0 else "#ff4b4b"
+        st.markdown(f"""
+        <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 15px;border-radius:14px;margin-bottom:15px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px;">
+                <span style="color:#aeb5c0;font-weight:700;">Общо по зададени категории</span>
+                <span style="font-weight:800;">{budget_spent:.2f} / {budget_total:.2f} EUR</span>
+            </div>
+            <div style="height:10px;background:rgba(0,0,0,.45);border-radius:20px;overflow:hidden;">
+                <div style="width:{total_pct:.2f}%;height:100%;background:{'#ff4b4b' if budget_remaining < 0 else 'linear-gradient(90deg,#4facfe,#00f2fe)'};border-radius:20px;"></div>
+            </div>
+            <div style="text-align:right;font-size:11px;color:{remaining_color};font-weight:800;margin-top:5px;">{remaining_text}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
@@ -890,38 +939,34 @@ else:
             budget = float(category_budgets.get(kat, 0.0))
             if budget > 0:
                 ratio = s_value / budget
-                actual_pct = min(100.0, ratio * 100.0)
+                fill_pct = min(100.0, max(0.0, ratio * 100.0))
                 over = s_value > budget
                 bar_color = "#ff4b4b" if over else "#4facfe"
                 remaining = budget - s_value
-                status_text = (f"<span style='color:#ff4b4b;font-weight:800;'>Над бюджета с {abs(remaining):.2f} EUR</span>" if over else f"<span style='color:#8bd5ff;font-weight:700;'>Остават {remaining:.2f} EUR</span>")
-                marker_pct = min(100.0, max(0.0, 100.0))
-                budget_label = f"Бюджет: {budget:.2f} EUR"
-                percent_label = f"{ratio * 100:.1f}% от бюджета"
+                status = (f"<span style='color:#ff4b4b;font-weight:800;'>Над бюджета с {abs(remaining):.2f} EUR</span>" if over else f"<span style='color:#8bd5ff;font-weight:800;'>Остават {remaining:.2f} EUR</span>")
+                # Жълтата линия е самият лимит. Лентата е мащабирана спрямо бюджета.
+                marker_html = "<div style='position:absolute;right:0;top:-3px;width:3px;height:19px;background:#ffd43b;border-radius:3px;box-shadow:0 0 8px rgba(255,212,59,.75);'></div>"
+                subline = f"Бюджет {budget:.2f} EUR · {ratio*100:.1f}%"
             else:
-                actual_pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
-                bar_color = "#4facfe"
-                status_text = "<span style='color:#777;'>Няма зададен бюджет</span>"
-                marker_pct = None
-                budget_label = "Бюджет: —"
-                percent_label = f"{actual_pct:.1f}% от общите разходи"
+                fill_pct = (s_value / total_on_site * 100.0) if total_on_site > 0 else 0.0
+                bar_color = "linear-gradient(90deg,#4facfe,#00f2fe)"
+                status = "<span style='color:#777;'>Няма зададен бюджет</span>"
+                marker_html = ""
+                subline = f"{fill_pct:.1f}% от общите разходи"
 
-            marker_html = (f"<div style='position:absolute;left:calc({marker_pct}% - 1px);top:-4px;width:3px;height:24px;background:#ffd43b;border-radius:3px;box-shadow:0 0 7px rgba(255,212,59,.75);'></div>" if marker_pct is not None else "")
             st.markdown(f"""
-            <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.09);padding:15px;border-radius:16px;margin-bottom:12px;box-shadow:4px 4px 12px rgba(0,0,0,.25);">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:10px;">
-                    <span style="font-weight:650;font-size:15px;">{get_emoji(kat)} {display_kat}</span>
-                    <span style="font-weight:800;color:#ff4b4b;font-size:15px;">{s_value:.2f} EUR</span>
+            <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);padding:14px;border-radius:14px;margin-bottom:12px;box-shadow:4px 4px 10px rgba(0,0,0,0.3);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;gap:8px;">
+                    <span style="font-weight:600;font-size:15px;">{get_emoji(kat)} {display_kat}</span>
+                    <span style="font-weight:800;color:{'#ff4b4b' if budget > 0 and s_value > budget else '#ff4b4b'};font-size:15px;">{s_value:.2f} EUR</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:#8f96a3;margin-bottom:7px;">
-                    <span>{budget_label}</span><span>{percent_label}</span>
-                </div>
-                <div style="position:relative;background:rgba(0,0,0,.45);height:13px;border-radius:20px;overflow:visible;margin:4px 0 9px;">
-                    <div style="width:{actual_pct:.2f}%;height:100%;background:{bar_color};border-radius:20px;box-shadow:0 0 8px rgba(79,172,254,.28);"></div>
+                <div style="font-size:11px;color:#8f96a3;margin-bottom:7px;">{subline}</div>
+                <div style="background:rgba(0,0,0,.42);height:16px;border-radius:20px;padding:2px;position:relative;overflow:visible;">
+                    <div style="width:{fill_pct:.2f}%;height:100%;background:{bar_color};border-radius:20px;box-shadow:0 0 8px rgba(0,242,254,.22);"></div>
                     {marker_html}
                 </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;">
-                    <span style="color:#ffd43b;">{('🟡 лимит' if budget > 0 else '')}</span>{status_text}
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;">
+                    <span style="color:#ffd43b;">{'🟡 Бюджет' if budget > 0 else ''}</span>{status}
                 </div>
             </div>
             """, unsafe_allow_html=True)
