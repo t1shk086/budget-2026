@@ -409,6 +409,28 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
+# =========================================================
+# МОБИЛНО ИЗТРИВАНЕ НА ЗАДАЧА ЧРЕЗ SWIPE
+# =========================================================
+try:
+    _delete_task_q = st.query_params.get("delete_task")
+    _toggle_task_q = st.query_params.get("toggle_task")
+    if _delete_task_q:
+        delete_trip_plan_item(str(_delete_task_q))
+        st.query_params.clear()
+        st.rerun()
+    elif _toggle_task_q:
+        _df_plan_q = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        _mask_q = _df_plan_q["item_id"].astype(str) == str(_toggle_task_q)
+        if _mask_q.any():
+            _current_q = bool(_df_plan_q.loc[_mask_q, "done"].iloc[0])
+            _df_plan_q.loc[_mask_q, "done"] = not _current_q
+            update_trip_plan(_df_plan_q)
+        st.query_params.clear()
+        st.rerun()
+except Exception:
+    pass
+
 if st.session_state["current_trip"] is None:
     st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
     
@@ -1341,7 +1363,7 @@ else:
                     viewport.addEventListener('touchend',e=>{{const t=e.changedTouches[0];const dx=t.clientX-startX;const dy=t.clientY-startY;if(moved && Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)){{moveFuel(dx<0?1:-1);}}}});
                 </script>
                 """
-                components.html(carousel_html, height=min(370, 250 + max(0, len(cards)-4)*4), scrolling=False)
+                components.html(carousel_html, height=500, scrolling=False)
         except Exception:
             pass
 
@@ -2281,9 +2303,9 @@ else:
         <div style='font-size:15px;font-weight:800;color:#8b929e;letter-spacing:.3px;'>🧳 ПЛАН НА ПЪТУВАНЕТО</div>
         <div style='font-size:11px;color:#7e8494;'>{plan_done}/{plan_total} изпълнени</div>
     </div>
-    <div style="background:rgba(0,0,0,.42);height:14px;border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.5),inset -1px -1px 2px rgba(255,255,255,.05);position:relative;display:flex;align-items:center;overflow:hidden;font-family:inherit;">
-        <div style="width:{plan_pct:.2f}%;height:100%;background:linear-gradient(90deg,#a66cff,#4facfe);border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.25),inset 0 2px 2px rgba(255,255,255,.25);"></div>
-        <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,.85);text-shadow:1px 1px 2px rgba(0,0,0,.8);">{plan_pct:.1f}%</span>
+    <div style="background:rgba(0,0,0,0.4);height:16px;border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,0.5),inset -1px -1px 2px rgba(255,255,255,0.05);position:relative;display:flex;align-items:center;overflow:hidden;margin-bottom:4px;font-family:inherit;">
+        <div style="width:{plan_pct:.2f}%;height:100%;background:linear-gradient(90deg,#4facfe 0%,#00f2fe 100%);border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,0.35),inset 0 2px 2px rgba(255,255,255,0.3);transition:width .5s ease-in-out;"></div>
+        <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,0.85);text-shadow:1px 1px 2px rgba(0,0,0,0.8);font-family:inherit;">{plan_pct:.1f}%</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2300,33 +2322,52 @@ else:
                 st.warning("Въведете задача за пътуването.")
 
     if not plan_df.empty:
-        # Чист списък — без per-task менюта, които се разтягат на мобилен.
+        # Мобилен списък: докосване = статус, swipe наляво = изтриване.
+        task_cards = []
         for _, plan_row in plan_df.iterrows():
+            item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
-            label = f"✅ {plan_row['title']}" if item_done else f"⬜ {plan_row['title']}"
-            if st.button(label, use_container_width=True, key=f"plan_row_{plan_row['item_id']}"):
-                plan_all = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
-                mask = plan_all["item_id"].astype(str) == str(plan_row["item_id"])
-                plan_all.loc[mask, "done"] = not item_done
-                update_trip_plan(plan_all)
-                st.rerun()
+            safe_title = html.escape(str(plan_row["title"]))
+            icon = "✅" if item_done else "⬜"
+            row_html = f"""
+            <div class='task-swipe-row' data-delete-url='?delete_task={html.escape(item_id)}' data-toggle-url='?toggle_task={html.escape(item_id)}'>
+                <a class='task-delete-bg' href='?delete_task={html.escape(item_id)}' target='_top'>🗑️</a>
+                <a class='task-front' href='?toggle_task={html.escape(item_id)}' target='_top'>
+                    <span class='task-icon'>{icon}</span>
+                    <span class='task-title'>{safe_title}</span>
+                </a>
+            </div>
+            """
+            task_cards.append(row_html)
 
-        action_options = [f"{i+1}. {r['title']}" for i, (_, r) in enumerate(plan_df.iterrows())]
-        selected_action = st.selectbox("Управление на задача", action_options, key=f"plan_action_select_{trip_id}")
-        selected_item_id = str(plan_df.iloc[action_options.index(selected_action)]["item_id"])
-        selected_done = bool(plan_df.iloc[action_options.index(selected_action)].get("done", False))
-        action_col1, action_col2 = st.columns(2)
-        with action_col1:
-            if st.button("↔️ Промени статус", use_container_width=True, key=f"plan_action_toggle_{trip_id}"):
-                plan_all = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
-                mask = plan_all["item_id"].astype(str) == selected_item_id
-                plan_all.loc[mask, "done"] = not selected_done
-                update_trip_plan(plan_all)
-                st.rerun()
-        with action_col2:
-            if st.button("🗑️ Изтрий задача", use_container_width=True, key=f"plan_action_delete_{trip_id}"):
-                if delete_trip_plan_item(selected_item_id):
-                    st.rerun()
+        task_html = """
+        <style>
+            .task-swipe-wrap{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;flex-direction:column;gap:8px;}
+            .task-swipe-row{position:relative;overflow:hidden;border-radius:13px;min-height:48px;touch-action:pan-y;}
+            .task-delete-bg{position:absolute;inset:0;background:linear-gradient(90deg,#ff4b4b,#b91c1c);color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:flex-end;padding-right:18px;font-size:18px;font-weight:900;}
+            .task-front{position:relative;z-index:2;display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 13px;background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.08);border-radius:13px;color:#fff;text-decoration:none;box-sizing:border-box;transform:translateX(0);transition:transform .18s ease;box-shadow:0 5px 14px rgba(0,0,0,.16);}
+            .task-icon{font-size:15px;flex:0 0 auto;}
+            .task-title{font-size:13px;line-height:1.35;word-break:break-word;}
+            .task-hint{font-size:10px;color:#7e8494;margin-top:7px;text-align:right;}
+        </style>
+        <div class='task-swipe-wrap'>
+        """ + "".join(task_cards) + """
+            <div class='task-hint'>Плъзни наляво за изтриване · докосни за статус</div>
+        </div>
+        <script>
+        (function(){
+            const rows=document.querySelectorAll('.task-swipe-row');
+            rows.forEach(row=>{
+                const front=row.querySelector('.task-front');
+                let sx=0,sy=0,moved=false;
+                front.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;moved=false;front.style.transition='none';},{passive:true});
+                front.addEventListener('touchmove',e=>{const t=e.touches[0];const dx=t.clientX-sx;const dy=t.clientY-sy;if(Math.abs(dx)>12 && Math.abs(dx)>Math.abs(dy)){moved=true;const x=Math.max(-92,Math.min(0,dx));front.style.transform=`translateX(${x}px)`;}},{passive:true});
+                front.addEventListener('touchend',e=>{const t=e.changedTouches[0];const dx=t.clientX-sx;const dy=t.clientY-sy;front.style.transition='transform .18s ease';if(moved && dx<-55 && Math.abs(dx)>Math.abs(dy)){const del=row.querySelector('.task-delete-bg');del.click();}else{front.style.transform='translateX(0)';}});
+            });
+        })();
+        </script>
+        """
+        components.html(task_html, height=max(82, len(task_cards)*56+36), scrolling=False)
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
