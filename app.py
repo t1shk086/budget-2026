@@ -451,7 +451,7 @@ if st.session_state["current_trip"] is None:
                         )
 
         if st.button(
-            "✅ ЗАПИШИ РАЗХОДА", use_container_width=True,
+            "✔️ Запиши", use_container_width=True,
             type="primary", key="quick_expense_save"
         ):
             desc = description.strip() or "Бърз разход"
@@ -510,7 +510,7 @@ if st.session_state["current_trip"] is None:
 
     quick_col1, quick_col2 = st.columns(2)
     with quick_col1:
-        if st.button("⚡ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
+        if st.button("➕ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
             quick_expense_modal()
     with quick_col2:
         if st.button("📌 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
