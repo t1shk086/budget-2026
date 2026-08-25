@@ -177,7 +177,39 @@ def trip_expenses(trip):
         float(expense.get("amount", 0))
         for expense in trip.get("expenses", [])
     )
+def category_breakdown(trip):
+    categories = {}
 
+    for expense in trip.get("expenses", []):
+        category = expense.get("category", "📱 Други")
+        amount = float(expense.get("amount", 0))
+
+        categories[category] = categories.get(category, 0) + amount
+
+    total = sum(categories.values())
+
+    result = []
+
+    for category, amount in sorted(
+        categories.items(),
+        key=lambda item: item[1],
+        reverse=True,
+    ):
+        percentage = (
+            (amount / total) * 100
+            if total > 0
+            else 0
+        )
+
+        result.append(
+            {
+                "category": category,
+                "amount": amount,
+                "percentage": percentage,
+            }
+        )
+
+    return result
 
 # =========================================================
 # NAVIGATION
