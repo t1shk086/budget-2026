@@ -333,7 +333,7 @@ if st.session_state["current_trip"] is None:
             st.session_state["current_trip"] = target_id
             st.rerun()
 
-    if st.button("🟣 Ново пътуване", use_container_width=True): 
+    if st.button("Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
     @st.dialog("➕ Бърз разход", width="large")
