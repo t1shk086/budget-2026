@@ -336,6 +336,98 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
+    # =========================================================
+    # БЪРЗИ ДЕЙСТВИЯ НА НАЧАЛНИЯ ЕКРАН
+    # =========================================================
+    @st.dialog("⚡ Бърз разход", width="large")
+    def quick_expense_modal():
+        trip_ids = []
+        try:
+            if os.path.exists(SETTINGS_FILE):
+                df_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                if "trip_id" in df_settings.columns:
+                    trip_ids.extend([str(x) for x in df_settings["trip_id"].dropna().tolist() if str(x).strip()])
+            if os.path.exists(DATA_FILE):
+                df_data = pd.read_csv(DATA_FILE, encoding="utf-8")
+                if "trip_id" in df_data.columns:
+                    trip_ids.extend([str(x) for x in df_data["trip_id"].dropna().tolist() if str(x).strip()])
+        except Exception:
+            pass
+
+        trip_ids = list(dict.fromkeys(trip_ids))
+        trip_display = [t.replace("_", " ") for t in trip_ids]
+
+        if not trip_display:
+            st.info("Първо създайте поне едно пътуване.")
+            return
+
+        selected_trip_display = st.selectbox("Пътуване", trip_display, key="quick_expense_trip")
+        selected_trip = trip_ids[trip_display.index(selected_trip_display)]
+
+        c1, c2 = st.columns(2)
+        with c1:
+            amount = st.number_input("Сума (EUR)", min_value=0.01, value=10.00, step=1.00, format="%.2f", key="quick_expense_amount")
+        with c2:
+            description = st.text_input("Описание", placeholder="Например: обяд, паркинг...", key="quick_expense_description")
+
+        category_options = [cat for cat in KATEGORII if cat != "Депозит/Резервация"]
+        selected_category = st.selectbox(
+            "Категория",
+            category_options,
+            format_func=lambda cat: f"{get_emoji(cat)} {get_display_category(cat)}",
+            key="quick_expense_category"
+        )
+
+        if st.button("✅ ЗАПИШИ РАЗХОДА", use_container_width=True, type="primary", key="quick_expense_save"):
+            if not description.strip():
+                description = "Бърз разход"
+            if add_expense(selected_trip, float(amount), selected_category, description.strip(), False):
+                st.success("✅ Разходът е записан успешно.")
+                st.rerun()
+            else:
+                st.error("❌ Разходът не можа да бъде записан.")
+
+    quick_col1, quick_col2 = st.columns(2)
+    with quick_col1:
+        if st.button("⚡ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
+            quick_expense_modal()
+    with quick_col2:
+        if st.button("📌 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
+            @st.dialog("📌 Последни разходи", width="large")
+            def recent_expenses_modal():
+                try:
+                    df_recent = pd.read_csv(DATA_FILE, encoding="utf-8")
+                    if df_recent.empty:
+                        st.info("Все още няма записани разходи.")
+                        return
+                    recent = df_recent.tail(5).iloc[::-1]
+                    for _, row in recent.iterrows():
+                        cat = str(row.get("category", "Други"))
+                        trip_name = str(row.get("trip_id", "")).replace("_", " ")
+                        amount_value = float(row.get("amount", 0.0))
+                        date_value = str(row.get("date", ""))
+                        desc_value = str(row.get("description", "Без описание"))
+                        display_cat = get_display_category(cat)
+                        emoji = get_emoji(cat)
+                        is_dep = str(row.get("type", "expense")) == "deposit"
+                        amount_color = "#ff4b4b" if is_dep else "#00f2fe"
+                        st.markdown(f"""
+                        <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.08);padding:12px 14px;border-radius:14px;margin-bottom:8px;font-family:inherit;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                                <div style="min-width:0;">
+                                    <div style="font-size:14px;font-weight:700;font-family:inherit;">{emoji} {display_cat}</div>
+                                    <div style="font-size:11px;color:#7e8494;margin-top:3px;font-family:inherit;">{trip_name} · {date_value}</div>
+                                </div>
+                                <div style="font-size:15px;font-weight:800;color:{amount_color};white-space:nowrap;font-family:inherit;">{amount_value:.2f} EUR</div>
+                            </div>
+                            <div style="font-size:12px;color:#b7bec9;margin-top:7px;font-family:inherit;">{desc_value}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                except Exception:
+                    st.info("Няма налична история на разходите.")
+            recent_expenses_modal()
+
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
     
     st.markdown("---")
