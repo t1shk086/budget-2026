@@ -1819,6 +1819,7 @@ else:
                 <style>
                 .tm-budget-mini-card {
                     position:relative; overflow:hidden; min-height:146px;
+                    margin-bottom:1px !important;
                     padding:20px; border-radius:16px;
                     font-family:inherit;
                     background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));
@@ -1833,8 +1834,6 @@ else:
                 .tm-budget-mini-value { font-size:24px; font-weight:900; color:#fff; margin-top:5px; line-height:1.05; }
                 .tm-budget-mini-sub { font-size:10px; color:#7e8494; margin-top:4px; }
                 .tm-budget-mini-line { font-size:11px; color:#b7bec9; margin-top:10px; }
-                /* Само трите бюджетни карти: минимално визуално отстояние, без да променяме responsive подреждането на Streamlit */
-                .tm-budget-card-inner { margin-bottom:1px !important; box-sizing:border-box !important; }
                 </style>
                 """
                 st.markdown(cards_css, unsafe_allow_html=True)
