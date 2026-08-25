@@ -2453,16 +2453,6 @@ else:
 
     st.markdown("""
     <style>
-        div[data-testid="stVerticalBlockBorderWrapper"]:has(.tm-plan-wrap-marker) {
-            border: 1px solid rgba(255,255,255,.08) !important;
-            border-radius: 16px !important;
-            padding: 0 !important;
-            background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01)) !important;
-            box-shadow: 4px 4px 12px rgba(0,0,0,.30) !important;
-            margin-top: 10px !important;
-            margin-bottom: 16px !important;
-            overflow: hidden !important;
-        }
         .tm-plan-header {
             display:flex; justify-content:space-between; align-items:center; gap:10px;
             margin:14px 14px 10px 14px;
@@ -2498,68 +2488,65 @@ else:
             padding-top:2px;
         }
         @media (max-width:640px) {
-            div[data-testid="stVerticalBlockBorderWrapper"]:has(.tm-plan-wrap-marker) { padding:0 !important; }
             .tm-plan-title { font-size:14px; }
             .tm-plan-header { margin:12px 12px 9px 12px; }
             .tm-plan-progress-wrap { margin:0 12px 10px 12px; }
             .tm-plan-list { margin:0 8px 8px 8px; }
         }
         @media (max-width:640px) {
-            div[data-testid="stVerticalBlockBorderWrapper"]:has(.tm-plan-wrap-marker) { padding:0 !important; }
             .tm-plan-title { font-size:14px; }
         }
     </style>
     """, unsafe_allow_html=True)
 
-    with st.container(border=True):
-        st.markdown("<div class='tm-plan-wrap-marker' style='display:none'></div>", unsafe_allow_html=True)
-        st.markdown(f"""
-        <div class="tm-plan-header">
-            <div class="tm-plan-title-wrap">
-                <div class="tm-section-number tm-n3">3</div>
-                <div class="tm-plan-title">ПЛАН НА ПЪТУВАНЕТО</div>
-            </div>
-            <div class="tm-plan-count">{plan_done}/{plan_total} изпълнени</div>
+    st.markdown(f"""
+    <div class="tm-plan-header">
+        <div class="tm-plan-title-wrap">
+            <div class="tm-section-number tm-n3">3</div>
+            <div class="tm-plan-title">ПЛАН НА ПЪТУВАНЕТО</div>
         </div>
-        <div class="tm-plan-progress-wrap">
-            <div class="tm-plan-progress"><div class="tm-plan-progress-fill" style="width:{plan_pct:.2f}%;"></div></div>
-            <div class="tm-plan-progress-meta">{plan_pct:.1f}% завършено</div>
-        </div>
-        """, unsafe_allow_html=True)
+        <div class="tm-plan-count">{plan_done}/{plan_total} изпълнени</div>
+    </div>
+    <div class="tm-plan-progress-wrap">
+        <div class="tm-plan-progress"><div class="tm-plan-progress-fill" style="width:{plan_pct:.2f}%;"></div></div>
+        <div class="tm-plan-progress-meta">{plan_pct:.1f}% завършено</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        plan_col1, plan_col2 = st.columns([1, 1])
-        with plan_col1:
-            plan_input_key = f"trip_plan_new_{trip_id}"
-            new_plan_item = st.text_input("Добави задача", placeholder="напр. Резервация за ресторант...", key=plan_input_key)
-        with plan_col2:
-            st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-            plan_input_key = f"trip_plan_new_{trip_id}"
-            if st.button(
-                "➕ Добави в плана",
-                use_container_width=True,
-                key=f"trip_plan_add_{trip_id}",
-                on_click=_add_plan_item_and_clear,
-                args=(trip_id, plan_input_key),
-            ):
-                pass
+    plan_col1, plan_col2 = st.columns([1, 1])
+    with plan_col1:
+        plan_input_key = f"trip_plan_new_{trip_id}"
+        new_plan_item = st.text_input("Добави задача", placeholder="напр. Резервация за ресторант...", key=plan_input_key)
+    with plan_col2:
+        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+        plan_input_key = f"trip_plan_new_{trip_id}"
+        if st.button(
+            "➕ Добави в плана",
+            use_container_width=True,
+            key=f"trip_plan_add_{trip_id}",
+            on_click=_add_plan_item_and_clear,
+            args=(trip_id, plan_input_key),
+        ):
+            pass
 
-        if not plan_df.empty:
-            st.markdown("<div class='tm-plan-list'>", unsafe_allow_html=True)
-            for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
-                st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
-                item_id = str(plan_row["item_id"])
-                item_done = bool(plan_row.get("done", False))
-                title = str(plan_row.get("title", "Задача"))
-                icon = "✅" if item_done else "⬜"
-                task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
-                with task_row:
-                    left_shift = max(18, min(55, 72 - len(title)))
-                    task_label = f"{icon} {title}" + "\u00a0" * left_shift
-                    st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
-                    st.button("🗑️", key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,), width="content")
-            st.markdown("</div>", unsafe_allow_html=True)
-        else:
-            st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
+    if not plan_df.empty:
+        st.markdown("<div class='tm-plan-list'>", unsafe_allow_html=True)
+        for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
+            st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
+            item_id = str(plan_row["item_id"])
+            item_done = bool(plan_row.get("done", False))
+            title = str(plan_row.get("title", "Задача"))
+            icon = "✅" if item_done else "⬜"
+            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
+            with task_row:
+                left_shift = max(18, min(55, 72 - len(title)))
+                task_label = f"{icon} {title}" + "\u00a0" * left_shift
+                st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
+                st.button("🗑️", key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,), width="content")
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
+
 
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
     df_points = get_map_points(trip_id)
