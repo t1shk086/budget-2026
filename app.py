@@ -108,18 +108,6 @@ if "selected_trip" not in st.session_state:
 if "expense_trip" not in st.session_state:
     st.session_state.expense_trip = None
 
-DEFAULT_TRIP_LAYOUT = ["expenses", "categories", "fuel"]
-if "trip_layout" not in st.session_state:
-    st.session_state.trip_layout = load_settings().get(
-        "trip_layout",
-        DEFAULT_TRIP_LAYOUT.copy(),
-    )
-
-
-# =========================================================
-# DATA
-# =========================================================
-
 def load_settings():
     defaults = {"trip_layout": ["expenses", "categories", "fuel"]}
 
@@ -162,6 +150,18 @@ def save_settings():
     except OSError as error:
         st.error(f"Неуспешно записване на настройките: {error}")
 
+
+DEFAULT_TRIP_LAYOUT = ["expenses", "categories", "fuel"]
+if "trip_layout" not in st.session_state:
+    st.session_state.trip_layout = load_settings().get(
+        "trip_layout",
+        DEFAULT_TRIP_LAYOUT.copy(),
+    )
+
+
+# =========================================================
+# DATA
+# =========================================================
 
 def total_expenses():
     return sum(
