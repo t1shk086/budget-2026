@@ -1852,14 +1852,36 @@ else:
                 daily_compact = daily_card
                 pace_compact = pace_card
 
-                pace_col1, pace_col2, pace_col3 = st.columns(3)
-                with pace_col1:
-                    st.markdown(daily_compact, unsafe_allow_html=True)
-                with pace_col2:
-                    st.markdown(pace_compact, unsafe_allow_html=True)
-                with pace_col3:
-                    st.markdown(health_card_compact, unsafe_allow_html=True)
-                st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+                # Един собствен HTML контейнер за трите карти.
+                # Така spacing-ът работи надеждно и при мобилното подреждане,
+                # без да разчитаме на поведението на st.columns.
+                three_budget_cards = f"""
+                <style>
+                    .tm-budget-three-cards {{
+                        display:grid;
+                        grid-template-columns:repeat(3,minmax(0,1fr));
+                        gap:6px;
+                        width:100%;
+                        align-items:stretch;
+                    }}
+                    .tm-budget-three-cards > .tm-budget-slot {{
+                        min-width:0;
+                    }}
+                    @media (max-width: 640px) {{
+                        .tm-budget-three-cards {{
+                            grid-template-columns:1fr;
+                            gap:6px;
+                        }}
+                    }}
+                </style>
+                <div class='tm-budget-three-cards'>
+                    <div class='tm-budget-slot'>{daily_compact}</div>
+                    <div class='tm-budget-slot'>{pace_compact}</div>
+                    <div class='tm-budget-slot'>{health_card_compact}</div>
+                </div>
+                <div style='height:14px'></div>
+                """
+                st.markdown(three_budget_cards, unsafe_allow_html=True)
         except Exception:
             pass
 
