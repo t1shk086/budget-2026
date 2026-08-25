@@ -521,6 +521,12 @@ if st.session_state["current_trip"] is None:
                     if df_recent.empty:
                         st.info("Все още няма записани разходи.")
                         return
+                    # Чете директно от актуалния CSV при всяко отваряне,
+                    # така изтрит разход никога не остава като старо състояние.
+                    df_recent = pd.read_csv(DATA_FILE, encoding="utf-8")
+                    if df_recent.empty:
+                        st.info("Все още няма записани разходи.")
+                        return
                     recent = df_recent.tail(5).iloc[::-1]
                     for _, row in recent.iterrows():
                         cat = str(row.get("category", "Други"))
@@ -1824,6 +1830,15 @@ else:
             if st.button("❌ Отказ", use_container_width=True): 
                 st.session_state["active_click"] = None
                 st.rerun()
+    def _delete_map_point(idx):
+        try:
+            df_map = pd.read_csv(MAP_FILE, encoding="utf-8")
+            if idx in df_map.index:
+                df_map = df_map.drop(index=idx)
+                df_map.to_csv(MAP_FILE, index=False, encoding="utf-8")
+        except Exception:
+            pass
+
     if not df_points.empty:
         st.markdown("#### 📍 Любими места от пътуването:")
         st.markdown("---")
@@ -1836,10 +1851,15 @@ else:
                 with col_p_txt:
                     st.markdown(f"{color_emojis.get(pt_row['color'], '🔵')} **{pt_row['title']}** <small>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small>", unsafe_allow_html=True)
                 with col_p_del:
-                    if st.button("❌", key=f"del_pin_{idx}", use_container_width=True, disabled=is_trip_finished):
-                        df_all_map.drop(idx).to_csv(MAP_FILE, index=False, encoding="utf-8")
-                        st.rerun()
-        except:
+                    st.button(
+                        "❌",
+                        key=f"del_pin_{idx}",
+                        use_container_width=True,
+                        disabled=is_trip_finished,
+                        on_click=_delete_map_point,
+                        args=(idx,)
+                    )
+        except Exception:
             pass
             
     st.markdown("---")
