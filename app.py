@@ -2312,7 +2312,9 @@ else:
         }
 
         /* Компактен ред за задачите: текстът + кошчето остават на един ред. */
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] {
+        /* Задачите: използваме контейнера, който съдържа маркера, като котва.
+           Това е по-надеждно от + sibling, защото Streamlit добавя междинни wrappers. */
+        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] {
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: nowrap !important;
@@ -2321,34 +2323,45 @@ else:
             gap: 0.25rem !important;
             align-items: center !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
             min-width: 0 !important;
             width: auto !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(1) {
+        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child {
             flex: 1 1 auto !important;
             max-width: calc(100% - 48px) !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(2) {
+        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:last-child {
             flex: 0 0 42px !important;
             max-width: 42px !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button {
+        /* Ключовото: Streamlit центрира съдържанието вътрешно.
+           Нулираме всички възможни flex/text нива до самия текст. */
+        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] button {
             width: 100% !important;
             min-width: 0 !important;
             min-height: 38px !important;
             padding: 0.15rem 0.25rem !important;
+            display: flex !important;
             justify-content: flex-start !important;
+            align-items: center !important;
             text-align: left !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button > div {
+        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] button > div,
+        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] button > div > div,
+        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] button [data-testid="stMarkdownContainer"] {
             width: 100% !important;
+            max-width: none !important;
+            display: flex !important;
             justify-content: flex-start !important;
+            align-items: center !important;
             text-align: left !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button p {
+        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] button p {
             width: 100% !important;
+            max-width: none !important;
             text-align: left !important;
+            text-indent: 0 !important;
             margin: 0 !important;
         }
     }
