@@ -1105,20 +1105,235 @@ elif st.session_state.page == "trip":
         elif section == "categories":
             st.subheader("📊 Разходи по категории")
             categories = category_breakdown(trip)
+
             if not categories:
                 st.info("Все още няма разходи по категории.")
             else:
-                category_names = [item["category"] for item in categories]
+                category_names = [
+                    item["category"]
+                    for item in categories
+                ]
+
                 selected_category = st.selectbox(
                     "Покажи категория",
                     ["Всички"] + category_names,
                     key=f"category_filter_{trip_id}",
                 )
+
+                if selected_category == "Всички":
+                    visible_expenses = list(
+                        trip.get("expenses", [])
+                    )
+                    selected_title = "Всички категории"
+                else:
+                    visible_expenses = [
+                        expense
+                        for expense in trip.get("expenses", [])
+                        if expense.get(
+                            "category",
+                            "📱 Други",
+                        ) == selected_category
+                    ]
+                    selected_title = selected_category
+
+                total_visible = sum(
+                    float(expense.get("amount", 0.0))
+                    for expense in visible_expenses
+                )
+                count_visible = len(visible_expenses)
+
+                total_trip = sum(
+                    float(expense.get("amount", 0.0))
+                    for expense in trip.get("expenses", [])
+                )
+
+                percentage_visible = (
+                    total_visible / total_trip * 100
+                    if total_trip > 0
+                    else 0.0
+                )
+
+                average_visible = (
+                    total_visible / count_visible
+                    if count_visible > 0
+                    else 0.0
+                )
+
+                st.markdown(
+                    f"""
+                    <div class="tm-trip-analysis"
+                         style="margin:12px 0 14px 0;">
+                        <div style="font-size:12px;opacity:.58;">
+                            Избрана категория
+                        </div>
+                        <div style="font-size:20px;font-weight:800;margin-top:3px;">
+                            {selected_title}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                a1, a2, a3 = st.columns(3)
+
+                with a1:
+                    st.metric(
+                        "💶 Общо",
+                        f"€{total_visible:.2f}",
+                    )
+
+                with a2:
+                    st.metric(
+                        "🧾 Брой разходи",
+                        count_visible,
+                    )
+
+                with a3:
+                    st.metric(
+                        "📈 Дял",
+                        f"{percentage_visible:.1f}%",
+                    )
+
+                st.write("")
+
                 for item in categories:
-                    if selected_category != "Всички" and item["category"] != selected_category:
+                    if (
+                        selected_category != "Всички"
+                        and item["category"] != selected_category
+                    ):
                         continue
-                    html = '<div class="tm-trip-analysis"><div class="tm-category-row"><div class="tm-category-row-top"><div class="tm-category-name">{}</div><div class="tm-category-value">€{:.2f}</div></div><div class="tm-roundbar"><div class="tm-roundbar-fill" style="width:{:.1f}%"></div></div><div class="tm-category-percent">{:.1f}%</div></div></div>'.format(item['category'], item['amount'], min(item['percentage'],100), item['percentage'])
-                    st.markdown(html, unsafe_allow_html=True)
+
+                    html = (
+                        '<div class="tm-trip-analysis">'
+                        '<div class="tm-category-row">'
+                        '<div class="tm-category-row-top">'
+                        '<div class="tm-category-name">{}</div>'
+                        '<div class="tm-category-value">€{:.2f}</div>'
+                        '</div>'
+                        '<div class="tm-roundbar">'
+                        '<div class="tm-roundbar-fill" style="width:{:.1f}%"></div>'
+                        '</div>'
+                        '<div class="tm-category-percent">{:.1f}%</div>'
+                        '</div></div>'
+                    ).format(
+                        item["category"],
+                        item["amount"],
+                        min(item["percentage"], 100),
+                        item["percentage"],
+                    )
+
+                    st.markdown(
+                        html,
+                        unsafe_allow_html=True,
+                    )
+
+                st.markdown(
+                    "**🧾 Разходи в избраната категория**"
+                )
+
+                if not visible_expenses:
+                    st.info(
+                        "Няма разходи в избраната категория."
+                    )
+                else:
+                    filtered_expenses = sorted(
+                        visible_expenses,
+                        key=lambda expense: expense.get(
+                            "date",
+                            date.min,
+                        ),
+                        reverse=True,
+                    )
+
+                    for expense in filtered_expenses:
+                        with st.container(border=True):
+                            ec1, ec2 = st.columns([4, 1])
+
+                            with ec1:
+                                category_name = expense.get(
+                                    "category",
+                                    "📱 Други",
+                                )
+                                note = expense.get(
+                                    "note",
+                                    "",
+                                )
+
+                                st.write(
+                                    f"**{category_name}**"
+                                )
+
+                                if note:
+                                    st.caption(note)
+
+                                expense_date = expense.get("date")
+                                caption = (
+                                    expense_date.strftime("%d.%m.%Y")
+                                    if expense_date
+                                    else ""
+                                )
+
+                                if expense.get(
+                                    "is_fuel",
+                                    False,
+                                ):
+                                    liters = float(
+                                        expense.get(
+                                            "fuel_liters",
+                                            0.0,
+                                        )
+                                    )
+                                    odometer = float(
+                                        expense.get(
+                                            "fuel_odometer",
+                                            0.0,
+                                        )
+                                    )
+
+                                    fuel_info = (
+                                        f"⛽ {liters:.2f} л"
+                                    )
+
+                                    if liters > 0:
+                                        price = (
+                                            float(
+                                                expense.get(
+                                                    "amount",
+                                                    0.0,
+                                                )
+                                            )
+                                            / liters
+                                        )
+                                        fuel_info += (
+                                            f" · €{price:.2f}/л"
+                                        )
+
+                                    if odometer > 0:
+                                        fuel_info += (
+                                            f" · {odometer:.0f} км"
+                                        )
+
+                                    if expense.get(
+                                        "fuel_full_tank",
+                                        False,
+                                    ):
+                                        fuel_info += " · ✓ пълен"
+
+                                    caption += f" · {fuel_info}"
+
+                                if caption:
+                                    st.caption(caption)
+
+                            with ec2:
+                                st.metric(
+                                    "Сума",
+                                    f"€{float(expense.get('amount', 0.0)):.2f}",
+                                )
+
+                st.caption(
+                    f"Среден разход: €{average_visible:.2f}"
+                )
+
             st.divider()
 
         elif section == "fuel":
