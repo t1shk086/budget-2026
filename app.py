@@ -451,8 +451,6 @@ def _add_plan_item_callback(input_key, trip_id):
         value = str(st.session_state.get(input_key, "") or "").strip()
         if value:
             if add_trip_plan_item(trip_id, value):
-                # Важно: изчистваме самото state поле на text_input,
-                # за да не остава името на предишната задача.
                 st.session_state[input_key] = ""
     except Exception:
         pass
@@ -1294,16 +1292,6 @@ else:
                 ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
                 date_h = str(fr.get("date", ""))
                 desc_h = str(fr.get("description", ""))
-                # По-чисто визуално описание на зареждането. Данните в CSV остават непроменени.
-                import re
-                desc_display_h = desc_h
-                fuel_match_h = re.match(r'^\[(?:\s*)ЧАСТИЧНО\s+ЗАРЕЖДАНЕ(?:\s*)\](.*)$', desc_h, flags=re.IGNORECASE)
-                if fuel_match_h:
-                    desc_display_h = f"Частично — {fuel_match_h.group(1).strip()}"
-                else:
-                    fuel_match_h = re.match(r'^\[(?:\s*)ПЪЛНО\s+ЗАРЕЖДАНЕ(?:\s*)\](.*)$', desc_h, flags=re.IGNORECASE)
-                    if fuel_match_h:
-                        desc_display_h = f"До горе — {fuel_match_h.group(1).strip()}"
 
                 compare_html = "⚪ Няма предишно зареждане за сравнение."
                 compare_color = "#7e8494"
@@ -1330,6 +1318,7 @@ else:
                         <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
                         <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
                     </div>
+                    <div style='font-size:15px;font-weight:800;color:#ffffff;margin-top:10px;'>Зареждане {fuel_count - fuel_idx} от {fuel_count}</div>
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
                     <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin-top:14px;'>
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Литри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{liters_h:.1f} л</div></div>
@@ -1337,7 +1326,7 @@ else:
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Цена / л</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>€{ppl_h:.2f}</div></div>
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Километри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{km_h:.0f} км</div></div>
                     </div>
-                    <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_display_h)}</div>
+                    <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_h)}</div>
                     <div style='margin-top:10px;padding:10px 11px;border-radius:11px;background:rgba(255,255,255,.035);font-size:11px;color:{compare_color};font-weight:800;line-height:1.4;'>{compare_html}</div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1347,7 +1336,7 @@ else:
                     nav = st.container(horizontal=True, horizontal_alignment="center", vertical_alignment="center", gap="small")
                     with nav:
                         st.button("‹", key=f"fuel_prev_{trip_id}", on_click=_navigate_fuel, args=("prev", trip_id), width="content")
-                        st.markdown(f"<div style='text-align:center;min-width:55px;padding-top:3px;color:#8b929e;font-size:11px;line-height:1.25;'><b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='text-align:center;min-width:55px;padding-top:3px;color:#8b929e;font-size:12px;line-height:1.25;'><b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>", unsafe_allow_html=True)
                         st.button("›", key=f"fuel_next_{trip_id}", on_click=_navigate_fuel, args=("next", trip_id), width="content")
         except Exception:
             pass
@@ -2311,10 +2300,19 @@ else:
             padding: 0.1rem 0.2rem !important;
         }
 
+
+        /* Визуално подравняване: името на задачата винаги започва отляво. */
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button:first-child {
+            justify-content: flex-start !important;
+            text-align: left !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button:first-child p {
+            text-align: left !important;
+            width: 100% !important;
+        }
+
         /* Компактен ред за задачите: текстът + кошчето остават на един ред. */
-        /* Задачите: използваме контейнера, който съдържа маркера, като котва.
-           Това е по-надеждно от + sibling, защото Streamlit добавя междинни wrappers. */
-        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] {
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] {
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: nowrap !important;
@@ -2323,46 +2321,23 @@ else:
             gap: 0.25rem !important;
             align-items: center !important;
         }
-        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
             min-width: 0 !important;
             width: auto !important;
         }
-        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child {
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(1) {
             flex: 1 1 auto !important;
             max-width: calc(100% - 48px) !important;
         }
-        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:last-child {
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(2) {
             flex: 0 0 42px !important;
             max-width: 42px !important;
         }
-        /* Ключовото: Streamlit центрира съдържанието вътрешно.
-           Нулираме всички възможни flex/text нива до самия текст. */
-        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] button {
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button {
             width: 100% !important;
             min-width: 0 !important;
             min-height: 38px !important;
             padding: 0.15rem 0.25rem !important;
-            display: flex !important;
-            justify-content: flex-start !important;
-            align-items: center !important;
-            text-align: left !important;
-        }
-        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] button > div,
-        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] button > div > div,
-        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] button [data-testid="stMarkdownContainer"] {
-            width: 100% !important;
-            max-width: none !important;
-            display: flex !important;
-            justify-content: flex-start !important;
-            align-items: center !important;
-            text-align: left !important;
-        }
-        div[data-testid="stVerticalBlock"]:has(.compact-task-row-marker) div[data-testid="stHorizontalBlock"] button p {
-            width: 100% !important;
-            max-width: none !important;
-            text-align: left !important;
-            text-indent: 0 !important;
-            margin: 0 !important;
         }
     }
     </style>
@@ -2390,23 +2365,15 @@ else:
         st.text_input("Добави задача", placeholder="напр. Резервация за ресторант...", key=plan_input_key)
     with plan_col2:
         st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-        st.button(
-            "➕ Добави в плана",
-            use_container_width=True,
-            key=f"trip_plan_add_{trip_id}",
-            on_click=_add_plan_item_callback,
-            args=(plan_input_key, trip_id),
-        )
+        st.button("➕ Добави в плана", use_container_width=True, key=f"trip_plan_add_{trip_id}", on_click=_add_plan_item_callback, args=(plan_input_key, trip_id))
 
     if not plan_df.empty:
+        st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
         for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
             icon = "✅" if item_done else "⬜"
-            # Маркерът е пред всеки ред, за да може CSS селекторът
-            # да хване всеки бутон поотделно, а не само първата задача.
-            st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
             task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
             with task_row:
                 task_label = f"{icon} {title}"
@@ -2415,7 +2382,7 @@ else:
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
-    st.markdown("---")
+    st.markdown("<div style='height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(0,242,254,0.22),rgba(255,255,255,0.02));margin:20px 0 18px 0;'></div>", unsafe_allow_html=True)
     st.markdown("<div style='font-size:15px;font-weight:800;color:#8b929e;letter-spacing:.3px;margin-bottom:10px;'>🗺️ КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</div>", unsafe_allow_html=True)
     df_points = get_map_points(trip_id)
     
