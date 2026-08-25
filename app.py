@@ -1246,124 +1246,78 @@ else:
             """, unsafe_allow_html=True)
             
         # =========================================================
-        # ⛽ УМЕН АНАЛИЗ НА ЗАРЕЖДАНИЯТА — МОБИЛЕН SWIPE CAROUSEL
+        # ⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА — АДАПТИВНА МОБИЛНА КАРТА
         # =========================================================
         try:
             fuel_rows = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["liters"] > 0)].copy().sort_index()
             if not fuel_rows.empty:
                 fuel_rows = fuel_rows.iloc[::-1].copy()  # последното първо
-                cards = []
-                chronological = fuel_rows.iloc[::-1]
+                fuel_count = len(fuel_rows)
+                fuel_key = f"fuel_history_index_{trip_id}"
+                if fuel_key not in st.session_state or st.session_state[fuel_key] >= fuel_count:
+                    st.session_state[fuel_key] = 0
 
-                for pos, (idx, fr) in enumerate(fuel_rows.iterrows()):
-                    liters_h = float(fr.get("liters", 0) or 0)
-                    amount_h = float(fr.get("amount", 0) or 0)
-                    km_h = float(fr.get("current_km", 0) or 0)
-                    ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
-                    date_h = str(fr.get("date", ""))
-                    desc_h = str(fr.get("description", ""))
+                fuel_idx = st.session_state[fuel_key]
+                fr = fuel_rows.iloc[fuel_idx]
+                liters_h = float(fr.get("liters", 0) or 0)
+                amount_h = float(fr.get("amount", 0) or 0)
+                km_h = float(fr.get("current_km", 0) or 0)
+                ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
+                date_h = str(fr.get("date", ""))
+                desc_h = str(fr.get("description", ""))
 
-                    # Сравнение с непосредственото предходно зареждане
-                    chronological_pos = len(chronological) - 1 - pos
-                    compare_html = "<div class='fuel-muted'>Няма предишно зареждане за сравнение.</div>"
-                    if chronological_pos > 0:
-                        prev_fr = chronological.iloc[chronological_pos - 1]
-                        prev_l = float(prev_fr.get("liters", 0) or 0)
-                        prev_a = float(prev_fr.get("amount", 0) or 0)
-                        prev_ppl = (prev_a / prev_l) if prev_l > 0 else 0.0
-                        if prev_ppl > 0 and ppl_h > 0:
-                            delta = ppl_h - prev_ppl
-                            if delta < 0:
-                                compare_html = f"<div class='fuel-good'>🟢 €{abs(delta):.2f}/л по-евтино</div><div class='fuel-compare-sub'>Предишно €{prev_ppl:.2f}/л · Сега €{ppl_h:.2f}/л</div>"
-                            elif delta > 0:
-                                compare_html = f"<div class='fuel-warn'>🟠 €{delta:.2f}/л по-скъпо</div><div class='fuel-compare-sub'>Предишно €{prev_ppl:.2f}/л · Сега €{ppl_h:.2f}/л</div>"
-                            else:
-                                compare_html = f"<div class='fuel-same'>⚪ Същата цена: €{ppl_h:.2f}/л</div>"
+                compare_html = "⚪ Няма предишно зареждане за сравнение."
+                compare_color = "#7e8494"
+                if fuel_idx < fuel_count - 1:
+                    prev_fr = fuel_rows.iloc[fuel_idx + 1]
+                    prev_l = float(prev_fr.get("liters", 0) or 0)
+                    prev_a = float(prev_fr.get("amount", 0) or 0)
+                    prev_ppl = (prev_a / prev_l) if prev_l > 0 else 0.0
+                    if prev_ppl > 0 and ppl_h > 0:
+                        delta = ppl_h - prev_ppl
+                        if delta < 0:
+                            compare_html = f"🟢 €{abs(delta):.2f}/л по-евтино · предишно €{prev_ppl:.2f}/л → сега €{ppl_h:.2f}/л"
+                            compare_color = "#63d391"
+                        elif delta > 0:
+                            compare_html = f"🟠 €{delta:.2f}/л по-скъпо · предишно €{prev_ppl:.2f}/л → сега €{ppl_h:.2f}/л"
+                            compare_color = "#ffb348"
+                        else:
+                            compare_html = f"⚪ Същата цена · €{ppl_h:.2f}/л"
+                            compare_color = "#aeb5c0"
 
-                    title = "Последно зареждане" if pos == 0 else f"Зареждане {len(fuel_rows)-pos} от {len(fuel_rows)}"
-                    cards.append(f"""
-                    <div class='fuel-slide'>
-                        <div class='fuel-top'>
-                            <div class='fuel-title'>⛽ {html.escape(title)}</div>
-                            <div class='fuel-date'>{html.escape(date_h)}</div>
-                        </div>
-                        <div class='fuel-grid'>
-                            <div><div class='fuel-label'>Литри</div><div class='fuel-value'>{liters_h:.1f} л</div></div>
-                            <div><div class='fuel-label'>Стойност</div><div class='fuel-value'>€{amount_h:.2f}</div></div>
-                            <div><div class='fuel-label'>Цена / л</div><div class='fuel-value'>€{ppl_h:.2f}</div></div>
-                            <div><div class='fuel-label'>Километри</div><div class='fuel-value'>{km_h:.0f} км</div></div>
-                        </div>
-                        <div class='fuel-desc'>{html.escape(desc_h)}</div>
-                        <div class='fuel-compare'>{compare_html}</div>
-                    </div>""")
-
-                slides = "".join(cards)
-                dots = "".join(f"<span class='fuel-dot{' active' if i == 0 else ''}'></span>" for i in range(len(cards)))
-                carousel_html = f"""
-                <style>
-                    .fuel-carousel-wrap{{background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);border-radius:16px;padding:14px 14px 12px;box-shadow:0 6px 18px rgba(0,0,0,.16);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}}
-                    .fuel-head{{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}}
-                    .fuel-head-title{{font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;}}
-                    .fuel-head-count{{font-size:11px;color:#7e8494;}}
-                    .fuel-viewport{{overflow:hidden;border-radius:14px;touch-action:pan-y;}}
-                    .fuel-track{{display:flex;transition:transform .28s ease;will-change:transform;}}
-                    .fuel-slide{{min-width:100%;box-sizing:border-box;padding:2px 2px 0;}}
-                    .fuel-top{{display:flex;justify-content:space-between;align-items:center;gap:10px;}}
-                    .fuel-title{{font-size:15px;font-weight:800;color:#fff;}}
-                    .fuel-date{{font-size:10px;color:#7e8494;white-space:nowrap;}}
-                    .fuel-grid{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px;}}
-                    .fuel-label{{font-size:9px;color:#7e8494;text-transform:uppercase;letter-spacing:.2px;}}
-                    .fuel-value{{font-size:17px;color:#fff;font-weight:900;margin-top:3px;white-space:nowrap;}}
-                    .fuel-desc{{font-size:11px;color:#aeb5c0;margin-top:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}}
-                    .fuel-compare{{margin-top:9px;padding:9px 10px;border-radius:11px;background:rgba(255,255,255,.035);}}
-                    .fuel-good{{font-size:11px;color:#63d391;font-weight:800;}}
-                    .fuel-warn{{font-size:11px;color:#ffb348;font-weight:800;}}
-                    .fuel-same{{font-size:11px;color:#aeb5c0;font-weight:800;}}
-                    .fuel-muted{{font-size:11px;color:#7e8494;}}
-                    .fuel-compare-sub{{font-size:10px;color:#7e8494;margin-top:3px;}}
-                    .fuel-nav{{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;}}
-                    .fuel-arrow{{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:#fff;width:30px;height:30px;border-radius:10px;font-size:15px;cursor:pointer;}}
-                    .fuel-dots{{display:flex;gap:5px;align-items:center;justify-content:center;max-width:180px;overflow:hidden;}}
-                    .fuel-dot{{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.18);display:block;}}
-                    .fuel-dot.active{{width:16px;border-radius:8px;background:#00d9ff;}}
-                    @media(max-width:700px){{
-                        .fuel-grid{{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;}}
-                        .fuel-value{{font-size:16px;}}
-                        .fuel-date{{font-size:9px;}}
-                    }}
-                </style>
-                <div class='fuel-carousel-wrap'>
-                    <div class='fuel-head'>
-                        <div class='fuel-head-title'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
-                        <div class='fuel-head-count'>{len(cards)} {'зареждане' if len(cards)==1 else 'зареждания'}</div>
+                st.markdown(f"""
+                <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);border-radius:16px;padding:15px 16px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                    <div style='display:flex;justify-content:space-between;align-items:center;gap:10px;'>
+                        <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
+                        <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
                     </div>
-                    <div class='fuel-viewport' id='fuelViewport'>
-                        <div class='fuel-track' id='fuelTrack'>{slides}</div>
+                    <div style='font-size:15px;font-weight:800;color:#ffffff;margin-top:10px;'>Зареждане {fuel_count - fuel_idx} от {fuel_count}</div>
+                    <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
+                    <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin-top:14px;'>
+                        <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Литри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{liters_h:.1f} л</div></div>
+                        <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Стойност</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>€{amount_h:.2f}</div></div>
+                        <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Цена / л</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>€{ppl_h:.2f}</div></div>
+                        <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Километри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{km_h:.0f} км</div></div>
                     </div>
-                    <div class='fuel-nav'>
-                        <button class='fuel-arrow' onclick='moveFuel(-1)'>‹</button>
-                        <div class='fuel-dots' id='fuelDots'>{dots}</div>
-                        <button class='fuel-arrow' onclick='moveFuel(1)'>›</button>
-                    </div>
+                    <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_h)}</div>
+                    <div style='margin-top:10px;padding:10px 11px;border-radius:11px;background:rgba(255,255,255,.035);font-size:11px;color:{compare_color};font-weight:800;line-height:1.4;'>{compare_html}</div>
                 </div>
-                <script>
-                    let fuelIndex = 0;
-                    const fuelCount = {len(cards)};
-                    const track = document.getElementById('fuelTrack');
-                    const viewport = document.getElementById('fuelViewport');
-                    const dots = Array.from(document.querySelectorAll('.fuel-dot'));
-                    function renderFuel(){{
-                        track.style.transform = `translateX(-${{fuelIndex*100}}%)`;
-                        dots.forEach((d,i)=>d.classList.toggle('active',i===fuelIndex));
-                    }}
-                    function moveFuel(dir){{fuelIndex=(fuelIndex+dir+fuelCount)%fuelCount;renderFuel();}}
-                    let startX=0,startY=0,moved=false;
-                    viewport.addEventListener('touchstart',e=>{{const t=e.touches[0];startX=t.clientX;startY=t.clientY;moved=false;}},{{passive:true}});
-                    viewport.addEventListener('touchmove',e=>{{const t=e.touches[0];const dx=t.clientX-startX;const dy=t.clientY-startY;if(Math.abs(dx)>12 && Math.abs(dx)>Math.abs(dy)){{moved=true;e.preventDefault();}}}},{{passive:false}});
-                    viewport.addEventListener('touchend',e=>{{const t=e.changedTouches[0];const dx=t.clientX-startX;const dy=t.clientY-startY;if(moved && Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)){{moveFuel(dx<0?1:-1);}}}});
-                </script>
-                """
-                components.html(carousel_html, height=500, scrolling=False)
+                """, unsafe_allow_html=True)
+
+                nav1, nav2, nav3 = st.columns([1, 2, 1])
+                with nav1:
+                    if st.button("‹", use_container_width=True, key=f"fuel_prev_{trip_id}"):
+                        st.session_state[fuel_key] = (fuel_idx + 1) % fuel_count
+                        st.rerun()
+                with nav2:
+                    st.markdown(f"<div style='text-align:center;color:#7e8494;font-size:11px;padding-top:8px;'>Плъзнете с ← → или използвайте стрелките</div>", unsafe_allow_html=True)
+                with nav3:
+                    if st.button("›", use_container_width=True, key=f"fuel_next_{trip_id}"):
+                        st.session_state[fuel_key] = (fuel_idx - 1) % fuel_count
+                        st.rerun()
+
+                if fuel_count > 1:
+                    st.caption("Пълна история: сменяйте зарежданията със стрелките по-горе.")
         except Exception:
             pass
 
@@ -2303,11 +2257,8 @@ else:
         <div style='font-size:15px;font-weight:800;color:#8b929e;letter-spacing:.3px;'>🧳 ПЛАН НА ПЪТУВАНЕТО</div>
         <div style='font-size:11px;color:#7e8494;'>{plan_done}/{plan_total} изпълнени</div>
     </div>
-    <div style="background:rgba(0,0,0,0.4);height:16px;border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,0.5),inset -1px -1px 2px rgba(255,255,255,0.05);position:relative;display:flex;align-items:center;overflow:hidden;margin-bottom:4px;font-family:inherit;">
-        <div style="width:{plan_pct:.2f}%;height:100%;background:linear-gradient(90deg,#4facfe 0%,#00f2fe 100%);border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,0.35),inset 0 2px 2px rgba(255,255,255,0.3);transition:width .5s ease-in-out;"></div>
-        <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,0.85);text-shadow:1px 1px 2px rgba(0,0,0,0.8);font-family:inherit;">{plan_pct:.1f}%</span>
-    </div>
     """, unsafe_allow_html=True)
+    st.progress(plan_pct / 100.0, text=f"{plan_pct:.1f}%")
 
     plan_col1, plan_col2 = st.columns([1, 1])
     with plan_col1:
@@ -2322,52 +2273,25 @@ else:
                 st.warning("Въведете задача за пътуването.")
 
     if not plan_df.empty:
-        # Мобилен списък: докосване = статус, swipe наляво = изтриване.
-        task_cards = []
-        for _, plan_row in plan_df.iterrows():
+        for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
-            safe_title = html.escape(str(plan_row["title"]))
-            icon = "✅" if item_done else "⬜"
-            row_html = f"""
-            <div class='task-swipe-row' data-delete-url='?delete_task={html.escape(item_id)}' data-toggle-url='?toggle_task={html.escape(item_id)}'>
-                <a class='task-delete-bg' href='?delete_task={html.escape(item_id)}' target='_top'>🗑️</a>
-                <a class='task-front' href='?toggle_task={html.escape(item_id)}' target='_top'>
-                    <span class='task-icon'>{icon}</span>
-                    <span class='task-title'>{safe_title}</span>
-                </a>
-            </div>
-            """
-            task_cards.append(row_html)
-
-        task_html = """
-        <style>
-            .task-swipe-wrap{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;flex-direction:column;gap:8px;}
-            .task-swipe-row{position:relative;overflow:hidden;border-radius:13px;min-height:48px;touch-action:pan-y;}
-            .task-delete-bg{position:absolute;inset:0;background:linear-gradient(90deg,#ff4b4b,#b91c1c);color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:flex-end;padding-right:18px;font-size:18px;font-weight:900;}
-            .task-front{position:relative;z-index:2;display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 13px;background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.08);border-radius:13px;color:#fff;text-decoration:none;box-sizing:border-box;transform:translateX(0);transition:transform .18s ease;box-shadow:0 5px 14px rgba(0,0,0,.16);}
-            .task-icon{font-size:15px;flex:0 0 auto;}
-            .task-title{font-size:13px;line-height:1.35;word-break:break-word;}
-            .task-hint{font-size:10px;color:#7e8494;margin-top:7px;text-align:right;}
-        </style>
-        <div class='task-swipe-wrap'>
-        """ + "".join(task_cards) + """
-            <div class='task-hint'>Плъзни наляво за изтриване · докосни за статус</div>
-        </div>
-        <script>
-        (function(){
-            const rows=document.querySelectorAll('.task-swipe-row');
-            rows.forEach(row=>{
-                const front=row.querySelector('.task-front');
-                let sx=0,sy=0,moved=false;
-                front.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;moved=false;front.style.transition='none';},{passive:true});
-                front.addEventListener('touchmove',e=>{const t=e.touches[0];const dx=t.clientX-sx;const dy=t.clientY-sy;if(Math.abs(dx)>12 && Math.abs(dx)>Math.abs(dy)){moved=true;const x=Math.max(-92,Math.min(0,dx));front.style.transform=`translateX(${x}px)`;}},{passive:true});
-                front.addEventListener('touchend',e=>{const t=e.changedTouches[0];const dx=t.clientX-sx;const dy=t.clientY-sy;front.style.transition='transform .18s ease';if(moved && dx<-55 && Math.abs(dx)>Math.abs(dy)){const del=row.querySelector('.task-delete-bg');del.click();}else{front.style.transform='translateX(0)';}});
-            });
-        })();
-        </script>
-        """
-        components.html(task_html, height=max(82, len(task_cards)*56+36), scrolling=False)
+            title = str(plan_row.get("title", "Задача"))
+            toggle_label = f"✅ {title}" if item_done else f"⬜ {title}"
+            col_task, col_del = st.columns([0.86, 0.14], vertical_alignment="center")
+            with col_task:
+                if st.button(toggle_label, use_container_width=True, key=f"task_toggle_{trip_id}_{item_id}"):
+                    df_task = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+                    mask_task = df_task["item_id"].astype(str) == item_id
+                    if mask_task.any():
+                        current_done = str(df_task.loc[mask_task, "done"].iloc[0]).lower() in ("true", "1", "yes", "да")
+                        df_task.loc[mask_task, "done"] = not current_done
+                        df_task.to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
+                    st.rerun()
+            with col_del:
+                if st.button("🗑️", use_container_width=True, key=f"task_delete_{trip_id}_{item_id}"):
+                    if delete_trip_plan_item(item_id):
+                        st.rerun()
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
