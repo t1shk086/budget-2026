@@ -2453,7 +2453,7 @@ else:
 
     st.markdown("""
     <style>
-        div[data-testid="stVerticalBlock"]:has(.tm-plan-wrap-marker) {
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(.tm-plan-wrap-marker) {
             border: 1px solid rgba(155,124,255,.38) !important;
             border-radius: 18px !important;
             padding: 16px !important;
@@ -2470,13 +2470,13 @@ else:
         .tm-plan-progress-fill { height:100%; background:linear-gradient(90deg,#9b7cff,#b79cff); border-radius:99px; }
         .tm-plan-progress-text { margin-top:5px; text-align:right; color:#8f96a3; font-size:10px; }
         @media (max-width:640px) {
-            div[data-testid="stVerticalBlock"]:has(.tm-plan-wrap-marker) { padding:13px !important; }
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.tm-plan-wrap-marker) { padding:13px !important; }
             .tm-plan-title { font-size:14px; }
         }
     </style>
     """, unsafe_allow_html=True)
 
-    with st.container(border=False):
+    with st.container(border=True):
         st.markdown("<div class='tm-plan-wrap-marker' style='display:none'></div>", unsafe_allow_html=True)
         st.markdown(f"""
         <div class="tm-plan-header">
