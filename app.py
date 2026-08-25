@@ -134,7 +134,7 @@ def get_trip_data(t_id):
         return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters","current_km"])
 
 def get_trip_settings(t_id):
-    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
+    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": "", "budget": 0.0}
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
@@ -148,17 +148,26 @@ def get_trip_settings(t_id):
                 "end_km": float(res.get("end_km", 0.0)), 
                 "manual_fuel": float(res.get("manual_fuel", 0.0)), 
                 "start_date": str(res.get("start_date", "")), 
-                "end_date": str(res.get("end_date", ""))
+                "end_date": str(res.get("end_date", "")),
+                "budget": float(res.get("budget", 0.0) if pd.notna(res.get("budget", 0.0)) else 0.0)
             }
     except: 
         pass
     return d
 
-def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
+def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d="", budget=None):
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         df = df[df["trip_id"] != t_id]
-        new_row = pd.DataFrame([{"trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f), "start_date": str(s_d), "end_date": str(e_d)}])
+        if budget is None:
+            old_budget = 0.0
+            if not df.empty and "budget" in df.columns:
+                try:
+                    old_budget = float(df.loc[df["trip_id"] == t_id, "budget"].iloc[0]) if not df.loc[df["trip_id"] == t_id].empty else 0.0
+                except:
+                    old_budget = 0.0
+            budget = old_budget
+        new_row = pd.DataFrame([{"trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f), "start_date": str(s_d), "end_date": str(e_d), "budget": float(budget or 0.0)}])
         df = pd.concat([df, new_row], ignore_index=True)
         df.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
     except: 
@@ -219,6 +228,7 @@ if st.session_state["current_trip"] is None:
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
+        new_budget = st.number_input("🎯 Бюджет за пътуването (EUR):", min_value=0.0, value=0.0, step=50.0, help="Оставете 0, ако не желаете да задавате бюджет.")
         if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)):
                 s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
@@ -230,7 +240,7 @@ if st.session_state["current_trip"] is None:
                 s_d_str, e_d_str = "", ""
             sk = float(new_skm) if new_skm is not None else 0.0
             target_id = txt.replace(" ", "_")
-            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
+            save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str, new_budget)
             try:
                 geolocator = Nominatim(user_agent="pixelapp_travel_manager_2026")
                 location = geolocator.geocode(f"{txt}, Europe", language="bg,en")
@@ -282,7 +292,7 @@ if st.session_state["current_trip"] is None:
             
             chosen_criteria = st.segmented_control(
                 label="Изберете критерий:",
-                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и Хотел"],
+                options=["Цена за 1 км", "Пари на Ден", "Обща Стойност", "Изминати км", "Нощувки и Хотел", "Бюджет срещу Реално"],
                 default="Цена за 1 км",
                 key="modal_segmented_metric_selector"
             )
@@ -307,6 +317,12 @@ if st.session_state["current_trip"] is None:
                     t_hotel_only = float(df_t_data[df_t_data["category"] == "Нощувки/Хотел"]["amount"].sum())
                     t_deposit_only = float(df_t_data[df_t_data["category"] == "Депозит/Резервация"]["amount"].sum())
                     t_accommodation_total = t_hotel_only + t_deposit_only
+                    t_budget = 0.0
+                    if not df_t_sett.empty and "budget" in df_t_sett.columns:
+                        try:
+                            t_budget = float(df_t_sett["budget"].iloc[0])
+                        except:
+                            t_budget = 0.0
 
                     t_dist, s_k, e_k = 0.0, 0.0, 0.0
                     days_count = 1
@@ -335,6 +351,8 @@ if st.session_state["current_trip"] is None:
                         "Дневен Разход (EUR)": (t_total / days_count),
                         "Изминато разстояние (км)": t_dist,
                         "Нощувки и Хотел (EUR)": t_accommodation_total,
+                        "Бюджет (EUR)": t_budget,
+                        "Отклонение от бюджета (EUR)": t_total - t_budget if t_budget > 0 else 0.0,
                         "DistValid": t_dist > 0
                     })
             except:
@@ -346,63 +364,111 @@ if st.session_state["current_trip"] is None:
 
                 if chosen_criteria == "Цена за 1 км":
                     x_col = "Цена за 1 км (EUR)"
-                    t_format = "%{text:.2f} EUR/км"
-                    df_filtered = df_pixel[df_pixel["DistValid"] == True]
-                    if df_filtered.empty: df_filtered = df_pixel
-                    df_sorted = df_filtered.sort_values(by=x_col, ascending=True)
-                    graph_title = "💰 Сравнение на ефективността (EUR/1км)"
+                    df_sorted = df_pixel[df_pixel["DistValid"] == True]
+                    if df_sorted.empty: df_sorted = df_pixel
+                    df_sorted = df_sorted.sort_values(by=x_col, ascending=True)
+                    graph_title = "💰 Ефективност на пътуванията"
+                    value_suffix = " EUR/км"
                 elif chosen_criteria == "Обща Стойност":
                     x_col = "Обща Стойност (EUR)"
-                    t_format = "%{text:,.2f} EUR"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                    graph_title = "💸 Тотална СУМА"
+                    graph_title = "💸 Обща стойност на пътуванията"
+                    value_suffix = " EUR"
                 elif chosen_criteria == "Изминати км":
                     x_col = "Изминато разстояние (км)"
-                    t_format = "%{text:.0f} км"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                    graph_title = "🚗 Общо изминато разстояние"
+                    graph_title = "🚗 Изминато разстояние"
+                    value_suffix = " км"
                 elif chosen_criteria == "Нощувки и Хотел":
                     x_col = "Нощувки и Хотел (EUR)"
-                    t_format = "%{text:,.2f} EUR"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
-                    graph_title = "🏨 Разходи за Спане, Хотели и Хотелски такси"
-                else: 
+                    graph_title = "🏨 Хотели и нощувки"
+                    value_suffix = " EUR"
+                elif chosen_criteria == "Бюджет срещу Реално":
+                    budget_df = df_pixel[df_pixel["Бюджет (EUR)"] > 0].copy()
+                    if budget_df.empty:
+                        st.info("Задайте бюджет поне на едно пътуване, за да използвате това сравнение.")
+                    else:
+                        budget_df["Реално"] = budget_df["Обща Стойност (EUR)"]
+                        budget_df["Бюджет"] = budget_df["Бюджет (EUR)"]
+                        budget_df = budget_df.sort_values(by="Реално", ascending=False)
+                        fig_budget = px.bar(
+                            budget_df,
+                            x="Реално",
+                            y="Пътуване",
+                            orientation="h",
+                            text="Реално",
+                            custom_data=["Бюджет"]
+                        )
+                        fig_budget.add_bar(
+                            x=budget_df["Бюджет"],
+                            y=budget_df["Пътуване"],
+                            name="Бюджет",
+                            opacity=0.35
+                        )
+                        fig_budget.update_traces(
+                            selector=dict(name="Реално"),
+                            marker=dict(line=dict(width=0), cornerradius=12),
+                            texttemplate="%{text:,.0f} EUR",
+                            textposition="outside",
+                            cliponaxis=False,
+                            hovertemplate="Реално: %{x:,.2f} EUR<extra></extra>"
+                        )
+                        fig_budget.update_traces(
+                            selector=dict(name="Бюджет"),
+                            marker=dict(line=dict(width=0), cornerradius=12),
+                            hovertemplate="Бюджет: %{x:,.2f} EUR<extra></extra>"
+                        )
+                        fig_budget.update_layout(
+                            title=dict(text="🎯 Бюджет срещу реален разход", font=dict(color="white", size=20)),
+                            plot_bgcolor="rgba(0,0,0,0)",
+                            paper_bgcolor="rgba(0,0,0,0)",
+                            xaxis=dict(showgrid=False, showline=False, title="EUR", tickfont=dict(color="#9aa0ad")),
+                            yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
+                            margin=dict(l=10, r=100, t=65, b=20),
+                            height=max(330, 70 * len(budget_df)),
+                            bargap=0.28,
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                            hoverlabel=dict(bgcolor="#171a21", font_color="white")
+                        )
+                        st.plotly_chart(fig_budget, use_container_width=True, config={"displayModeBar": False})
+                        st.markdown("<div style='color:#8b93a1;font-size:12px;margin-top:-8px;'>По-ниската реална стойност спрямо бюджета означава спестяване.</div>", unsafe_allow_html=True)
+                else:
                     x_col = "Дневен Разход (EUR)"
-                    t_format = "%{text:.2f} EUR/ден"
                     df_sorted = df_pixel.sort_values(by=x_col, ascending=False)
                     graph_title = "📅 Среднодневен разход"
+                    value_suffix = " EUR/ден"
 
-                fig_pixel = px.bar(df_sorted, x=x_col, y="Пътуване", orientation='h', text=x_col)
-
-                # Динамична скала на цветовете: за километри "по-дълго" е зелено, за разходи - "по-евтино" е зелено
-                if chosen_criteria == "Изминати км":
-                    c_scale = [[0, '#ff3b30'], [0.5, '#ffaa00'], [1, '#2ebd59']] # Повече км = по-зелено
-                else:
-                    c_scale = [[0, '#2ebd59'], [0.5, '#ffaa00'], [1, '#ff3b30']] # По-малко пари = по-зелено
-
-                fig_pixel.update_traces(
-                    marker=dict(
-                        color=df_sorted[x_col],
-                        colorscale=c_scale,
-                        line=dict(width=0),
-                        cornerradius=15
-                    ),
-                    texttemplate=f"<b>{t_format}</b>",
-                    textposition='outside',
-                    cliponaxis=False
-                )
-
-                fig_pixel.update_layout(
-                    title=dict(text=graph_title, font=dict(color="white")),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
-                    yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
-                    margin=dict(l=10, r=110, t=50, b=10),
-                    height=320,
-                    bargap=0.35
-                )
-                st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
+                if chosen_criteria != "Бюджет срещу Реално":
+                    fig_pixel = px.bar(
+                        df_sorted,
+                        x=x_col,
+                        y="Пътуване",
+                        orientation="h",
+                        text=x_col
+                    )
+                    fig_pixel.update_traces(
+                        marker=dict(
+                            line=dict(width=0),
+                            cornerradius=12
+                        ),
+                        texttemplate=f"%{{text:,.2f}}{value_suffix}",
+                        textposition="outside",
+                        cliponaxis=False,
+                        hovertemplate=f"%{{y}}<br><b>%{{x:,.2f}}{value_suffix}</b><extra></extra>"
+                    )
+                    fig_pixel.update_layout(
+                        title=dict(text=graph_title, font=dict(color="white", size=20)),
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        xaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.07)", showline=False, title=""),
+                        yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
+                        margin=dict(l=10, r=110, t=65, b=20),
+                        height=max(330, 62 * len(df_sorted)),
+                        bargap=0.32,
+                        hoverlabel=dict(bgcolor="#171a21", font_color="white")
+                    )
+                    st.plotly_chart(fig_pixel, use_container_width=True, config={"displayModeBar": False})
             else:
                 st.info("Няма достатъчно база данни за сравнение.")
 
@@ -428,6 +494,7 @@ else:
     trip_id = st.session_state["current_trip"]
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
+    trip_budget = float(c_s.get("budget", 0.0) or 0.0)
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
 
     @st.dialog("🗑️ Потвърждение за изтриване")
@@ -1008,6 +1075,45 @@ else:
     
     avg_con_txt = f"{(total_liters_calculated / dist * 100):.1f} л / 100 км" if dist > 0 else (f"{progressive_avg_con:.1f} л / 100 км" if has_progressive_data else "Няма данни")
     grand_total = depozit_hotel + total_on_site
+    budget_remaining = trip_budget - grand_total if trip_budget > 0 else 0.0
+    budget_pct = min(100.0, (grand_total / trip_budget * 100.0)) if trip_budget > 0 else 0.0
+
+    @st.dialog("🎯 Бюджет на пътуването")
+    def budget_settings_dialog():
+        st.markdown("<p style='color:#8b93a1;'>Задайте или променете бюджета. Историята на разходите няма да бъде променена.</p>", unsafe_allow_html=True)
+        new_budget_value = st.number_input("Бюджет (EUR)", min_value=0.0, value=float(trip_budget), step=50.0)
+        if trip_budget > 0:
+            st.caption(f"Текущо изразходвано: {grand_total:.2f} EUR")
+        if st.button("💾 Запази бюджета", use_container_width=True, type="primary", key="save_trip_budget_btn"):
+            save_trip_settings(trip_id, car_trip, t_fuel, s_km, e_km, m_fuel, st_date, en_date, new_budget_value)
+            st.rerun()
+
+    budget_status_html = ""
+    if trip_budget > 0:
+        if budget_remaining >= 0:
+            status_text = f"Остават {budget_remaining:.2f} EUR"
+            status_color = "#2ebd59"
+        else:
+            status_text = f"Над бюджета с {abs(budget_remaining):.2f} EUR"
+            status_color = "#ff4b4b"
+        budget_status_html = f"""
+        <div style='background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018));border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:16px 18px;margin:8px 0 18px;box-shadow:0 10px 30px rgba(0,0,0,.22);'>
+            <div style='display:flex;justify-content:space-between;align-items:center;gap:10px;'>
+                <div><div style='font-size:11px;color:#8b93a1;font-weight:800;letter-spacing:.7px;'>🎯 БЮДЖЕТ</div><div style='font-size:24px;font-weight:850;color:#fff;margin-top:2px;'>{grand_total:.2f} <span style='font-size:13px;color:#8b93a1;'>/ {trip_budget:.2f} EUR</span></div></div>
+                <div style='text-align:right;color:{status_color};font-weight:800;font-size:13px;'>{status_text}<br><span style='color:#8b93a1;font-weight:600;'>{budget_pct:.0f}% използван</span></div>
+            </div>
+            <div style='height:9px;background:rgba(0,0,0,.38);border-radius:20px;margin-top:13px;overflow:hidden;'><div style='width:{budget_pct:.2f}%;height:100%;background:linear-gradient(90deg,#00f2fe,#4facfe);border-radius:20px;'></div></div>
+        </div>
+        """
+    else:
+        budget_status_html = """
+        <div style='background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));border:1px dashed rgba(255,255,255,.12);border-radius:18px;padding:15px 18px;margin:8px 0 18px;color:#8b93a1;'>
+            <b style='color:#fff;'>🎯 Няма зададен бюджет</b><br><span style='font-size:12px;'>Добавете бюджет, за да следите автоматично оставащата сума и прогнозата.</span>
+        </div>
+        """
+    st.markdown(budget_status_html, unsafe_allow_html=True)
+    if st.button("🎯 Настрой бюджет", use_container_width=True, key="open_budget_settings_btn"):
+        budget_settings_dialog()
     period_html = f" • <b>Период:</b> {st_date} - {en_date}" if st_date and st_date != "nan" else ""
     dist_html = f" • <b>Общо изминати:</b> {dist:.0f} км" if dist > 0 else ""
 
