@@ -921,7 +921,8 @@ else:
         active_budget_spent = sum(float(categories_totals.get(cat, 0.0)) for cat in category_budgets if category_budgets.get(cat, 0) > 0)
     else:
         active_budget_total = global_budget
-        active_budget_spent = total_on_site
+        # При общ бюджет следим всичко изхарчено до момента — включително депозити.
+        active_budget_spent = depozit_hotel + total_on_site
     active_budget_remaining = active_budget_total - active_budget_spent
 
     budget_col1, budget_col2 = st.columns([2, 1])
@@ -978,14 +979,18 @@ else:
         budget_label = "Общ бюджет" if active_budget_mode == "global" else "Общо по зададени категории"
         st.markdown(f"""
         <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 15px;border-radius:14px;margin-bottom:15px;font-family:inherit;">
-            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px;font-family:inherit;">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:7px;font-family:inherit;">
                 <span style="color:#aeb5c0;font-weight:700;font-family:inherit;">{budget_label}</span>
                 <span style="font-weight:800;font-family:inherit;">{active_budget_spent:.2f} / {active_budget_total:.2f} EUR</span>
             </div>
-            <div style="height:10px;background:rgba(0,0,0,.45);border-radius:20px;overflow:hidden;">
-                <div style="width:{total_pct_budget:.2f}%;height:100%;background:{'#ff4b4b' if active_budget_remaining < 0 else 'linear-gradient(90deg,#4facfe,#00f2fe)'};border-radius:20px;"></div>
+            <div style="height:16px;background:rgba(0,0,0,.45);border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.5), inset -1px -1px 2px rgba(255,255,255,.05);position:relative;display:flex;align-items:center;overflow:hidden;">
+                <div style="width:{total_pct_budget:.2f}%;height:100%;background:{'#ff4b4b' if active_budget_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.35),inset 0 2px 2px rgba(255,255,255,.3);transition:width .5s ease-in-out;"></div>
+                <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,.85);text-shadow:1px 1px 2px rgba(0,0,0,.8);font-family:inherit;">{total_pct_budget:.1f}%</span>
             </div>
-            <div style="text-align:right;font-size:11px;color:{remaining_color};font-weight:800;margin-top:5px;font-family:inherit;">{remaining_text}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;font-family:inherit;">
+                <span style="color:#ffd43b;font-family:inherit;">🟡 Бюджет</span>
+                <span style="color:{remaining_color};font-weight:800;font-family:inherit;">{remaining_text}</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
