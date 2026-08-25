@@ -610,7 +610,7 @@ if st.session_state["current_trip"] is None:
                     st.error("Неуспешно зареждане на последните разходи.")
 
                 st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-                if st.button("✕ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
+                if st.button("❌ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
                     st.rerun()
             recent_expenses_modal()
 
