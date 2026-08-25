@@ -2463,13 +2463,47 @@ else:
             margin-bottom: 16px !important;
             overflow: hidden !important;
         }
-        .tm-plan-header { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:14px 14px 10px 14px; }
+        .tm-plan-header {
+            display:flex; justify-content:space-between; align-items:center; gap:10px;
+            margin:14px 14px 10px 14px;
+            padding-bottom:10px;
+            border-bottom:1px solid rgba(255,255,255,.06);
+        }
         .tm-plan-title-wrap { display:flex; align-items:center; gap:10px; min-width:0; }
         .tm-plan-title { color:#fff; font-size:15px; font-weight:800; letter-spacing:.25px; }
-        .tm-plan-count { color:#b6bcc8; font-size:11px; white-space:nowrap; }
-        .tm-plan-progress { height:6px; width:calc(100% - 28px); margin:0 14px; background:rgba(255,255,255,.07); border-radius:99px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.35); }
-        .tm-plan-progress-fill { height:100%; background:linear-gradient(90deg,#9b7cff,#b79cff); border-radius:99px; }
-        .tm-plan-progress-text { margin:5px 14px 0 14px; text-align:right; color:#8f96a3; font-size:10px; }
+        .tm-plan-count {
+            color:#aeb5c0; font-size:11px; white-space:nowrap;
+            padding:4px 8px; border-radius:999px;
+            background:rgba(255,255,255,.035);
+            border:1px solid rgba(255,255,255,.06);
+        }
+        .tm-plan-progress-wrap { margin:0 14px 12px 14px; }
+        .tm-plan-progress {
+            height:6px; width:100%;
+            background:rgba(255,255,255,.07);
+            border-radius:99px; overflow:hidden;
+            box-shadow:inset 0 1px 2px rgba(0,0,0,.35);
+        }
+        .tm-plan-progress-fill {
+            height:100%;
+            background:linear-gradient(90deg,#9b7cff,#b79cff);
+            border-radius:99px;
+        }
+        .tm-plan-progress-meta {
+            display:flex; justify-content:flex-end;
+            margin-top:5px; color:#8f96a3; font-size:10px;
+        }
+        .tm-plan-list {
+            margin:0 10px 10px 10px;
+            padding-top:2px;
+        }
+        @media (max-width:640px) {
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.tm-plan-wrap-marker) { padding:0 !important; }
+            .tm-plan-title { font-size:14px; }
+            .tm-plan-header { margin:12px 12px 9px 12px; }
+            .tm-plan-progress-wrap { margin:0 12px 10px 12px; }
+            .tm-plan-list { margin:0 8px 8px 8px; }
+        }
         @media (max-width:640px) {
             div[data-testid="stVerticalBlockBorderWrapper"]:has(.tm-plan-wrap-marker) { padding:0 !important; }
             .tm-plan-title { font-size:14px; }
@@ -2487,8 +2521,10 @@ else:
             </div>
             <div class="tm-plan-count">{plan_done}/{plan_total} изпълнени</div>
         </div>
-        <div class="tm-plan-progress"><div class="tm-plan-progress-fill" style="width:{plan_pct:.2f}%;"></div></div>
-        <div class="tm-plan-progress-text">{plan_pct:.1f}%</div>
+        <div class="tm-plan-progress-wrap">
+            <div class="tm-plan-progress"><div class="tm-plan-progress-fill" style="width:{plan_pct:.2f}%;"></div></div>
+            <div class="tm-plan-progress-meta">{plan_pct:.1f}% завършено</div>
+        </div>
         """, unsafe_allow_html=True)
 
         plan_col1, plan_col2 = st.columns([1, 1])
