@@ -1236,34 +1236,35 @@ else:
                 stage_text = "Няма достатъчно данни за етапен разход"
                 compare_text = ""
                 compare_detail = ""
-                if "ПЪЛЕН" in last_desc.upper() or "ПЪЛНО" in last_desc.upper():
-                    prev_full = [i for i in last_full_indices if i != fuel_rows.index[-1]]
-                    if prev_full:
-                        prev_idx = prev_full[-1]
-                        prev_km = float(fuel_rows.loc[prev_idx, "current_km"] or 0)
-                        segment_rows = fuel_rows[fuel_rows["current_km"] > prev_km]
-                        segment_liters = float(segment_rows["liters"].sum())
-                        segment_dist = last_km_value - prev_km
-                        if segment_dist > 0 and segment_liters > 0:
-                            current_consumption = segment_liters / segment_dist * 100
-                            stage_text = f"Етапен разход: <b>{current_consumption:.1f} л/100 км</b>"
-                            # Сравнение с предишния етап.
-                            # Ако няма по-старо пълно зареждане, използваме началния километраж
-                            # на пътуването като база за предишния етап.
-                            older_full = [i for i in prev_full[:-1]]
-                            if older_full:
-                                older_idx = older_full[-1]
-                                older_km = float(fuel_rows.loc[older_idx, "current_km"] or 0)
-                                older_rows = fuel_rows[(fuel_rows["current_km"] > older_km) & (fuel_rows["current_km"] <= prev_km)]
-                                older_liters = float(older_rows["liters"].sum())
-                            else:
-                                older_km = float(s_km)
-                                older_rows = fuel_rows[(fuel_rows["current_km"] > older_km) & (fuel_rows["current_km"] <= prev_km)]
-                                older_liters = float(older_rows["liters"].sum()) + float(m_fuel or 0.0)
+                # Сравняваме само два реално изчислени пълни етапа.
+                # Така сравнението е недвусмислено и не смесва стартовите километри
+                # или ръчните литри с отделен етап.
+                full_points = [i for i in last_full_indices if float(fuel_rows.loc[i, "current_km"] or 0) > 0]
+                if len(full_points) >= 2 and ("ПЪЛЕН" in last_desc.upper() or "ПЪЛНО" in last_desc.upper()):
+                    prev_full_idx = full_points[-2]
+                    current_full_idx = full_points[-1]
+                    prev_km = float(fuel_rows.loc[prev_full_idx, "current_km"] or 0)
+                    current_km = float(fuel_rows.loc[current_full_idx, "current_km"] or 0)
+                    current_rows = fuel_rows[(fuel_rows["current_km"] > prev_km) & (fuel_rows["current_km"] <= current_km)]
+                    current_liters = float(current_rows["liters"].sum())
+                    current_dist = current_km - prev_km
+                    if current_dist > 0 and current_liters > 0:
+                        current_consumption = current_liters / current_dist * 100
+                        stage_text = f"Последен пълен етап: <b>{current_consumption:.1f} л/100 км</b>"
 
+                        if len(full_points) >= 3:
+                            older_full_idx = full_points[-3]
+                            older_km = float(fuel_rows.loc[older_full_idx, "current_km"] or 0)
+                            older_rows = fuel_rows[(fuel_rows["current_km"] > older_km) & (fuel_rows["current_km"] <= prev_km)]
+                            older_liters = float(older_rows["liters"].sum())
                             older_dist = prev_km - older_km
-                            if older_dist > 0 and older_liters > 0:
-                                older_consumption = older_liters / older_dist * 100
+                        else:
+                            older_liters = current_liters
+                            older_dist = current_dist
+
+                        if older_dist > 0 and older_liters > 0:
+                            older_consumption = older_liters / older_dist * 100
+                            if len(full_points) >= 3:
                                 delta = current_consumption - older_consumption
                                 if delta < 0:
                                     compare_text = f"🟢 {abs(delta):.1f} л/100 км по-добър спрямо предишния етап"
@@ -1273,7 +1274,10 @@ else:
                                     compare_text = "⚪ Същият разход като предишния етап"
                                 compare_detail = f"Предишен: {older_consumption:.1f} · Текущ: {current_consumption:.1f} л/100 км"
                             else:
-                                compare_detail = ""
+                                compare_text = "ℹ️ Това е първият сравним пълен етап"
+                                compare_detail = f"Текущ: {current_consumption:.1f} л/100 км · След още едно пълно зареждане ще има сравнение."
+                elif len(full_points) >= 1 and ("ПЪЛЕН" in last_desc.upper() or "ПЪЛНО" in last_desc.upper()):
+                    compare_text = "ℹ️ След следващото пълно зареждане ще се появи директно сравнение."
                 fuel_card = f"""
                 <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);padding:15px 16px;border-radius:16px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
                     <div style='display:flex;justify-content:space-between;align-items:center;'>
@@ -2267,7 +2271,8 @@ else:
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
-    st.subheader("🗺️ Карта на спирките и дестинациите:")
+    st.markdown("<div style='height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(0,242,254,0.22),rgba(255,255,255,0.02));margin:20px 0 18px 0;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:15px;font-weight:800;color:#8b929e;letter-spacing:.3px;margin-bottom:10px;'>🗺️ КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</div>", unsafe_allow_html=True)
     df_points = get_map_points(trip_id)
     
     if "map_current_trip_id" not in st.session_state or st.session_state["map_current_trip_id"] != trip_id:
