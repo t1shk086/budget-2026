@@ -971,9 +971,9 @@ if st.session_state.page == "home":
     st.write("")
     st.divider()
 
-    # -----------------------------------------------------
-    # MY TRIPS
-    # -----------------------------------------------------
+# =========================================================
+# MY TRIPS
+# =========================================================
 
     st.markdown(
         '<div class="tm-section-title">Моите пътувания</div>',
@@ -1003,6 +1003,8 @@ if st.session_state.page == "home":
             else:
                 progress = 0.0
 
+            categories = category_breakdown(trip)
+
             st.markdown(
                 '<div class="tm-trip-card">',
                 unsafe_allow_html=True,
@@ -1014,9 +1016,16 @@ if st.session_state.page == "home":
 
                 st.markdown(
                     f"""
-<div class="tm-trip-title">✈️ {trip['destination']}</div>
-<div class="tm-trip-date">{trip['start_date'].strftime('%d.%m.%Y')} – {trip['end_date'].strftime('%d.%m.%Y')}</div>
-""",
+                    <div class="tm-trip-title">
+                        ✈️ {trip['destination']}
+                    </div>
+
+                    <div class="tm-trip-date">
+                        {trip['start_date'].strftime('%d.%m.%Y')}
+                        –
+                        {trip['end_date'].strftime('%d.%m.%Y')}
+                    </div>
+                    """,
                     unsafe_allow_html=True,
                 )
 
@@ -1024,8 +1033,12 @@ if st.session_state.page == "home":
 
                 st.markdown(
                     f"""
-<div class="tm-trip-money">€{spent:.2f} от €{trip_budget:.2f}</div>
-""",
+                    <div class="tm-trip-money">
+                        €{spent:.2f}
+                        от
+                        €{trip_budget:.2f}
+                    </div>
+                    """,
                     unsafe_allow_html=True,
                 )
 
@@ -1040,11 +1053,100 @@ if st.session_state.page == "home":
                 ):
                     open_trip(trip_id)
 
+            # =================================================
+            # АНАЛИЗ ПО КАТЕГОРИИ
+            # =================================================
+
+            if categories:
+
+                st.markdown(
+                    """
+                    <div class="tm-trip-analysis">
+                        <div class="tm-trip-analysis-title">
+                            📊 Разходи по категории
+                        </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                for item in categories:
+
+                    category = item["category"]
+                    amount = item["amount"]
+                    percentage = item["percentage"]
+
+                    bar_width = min(
+                        percentage,
+                        100
+                    )
+
+                    st.markdown(
+                        f"""
+                        <div class="tm-category-row">
+
+                            <div class="tm-category-row-top">
+
+                                <div class="tm-category-name">
+                                    {category}
+                                </div>
+
+                                <div class="tm-category-value">
+                                    €{amount:.2f}
+                                </div>
+
+                            </div>
+
+                            <div class="tm-roundbar">
+
+                                <div
+                                    class="tm-roundbar-fill"
+                                    style="width:{bar_width:.1f}%"
+                                ></div>
+
+                            </div>
+
+                            <div class="tm-category-percent">
+                                {percentage:.1f}%
+                            </div>
+
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+                st.markdown(
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+
+            else:
+
+                st.markdown(
+                    """
+                    <div class="tm-trip-analysis">
+
+                        <div class="tm-trip-analysis-title">
+                            📊 Разходи по категории
+                        </div>
+
+                        <div
+                            style="
+                                color:#71889a;
+                                font-size:.78rem;
+                            "
+                        >
+                            Все още няма разходи.
+                        </div>
+
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
             st.markdown(
                 "</div>",
                 unsafe_allow_html=True,
             )
-
 
 # =========================================================
 # NEW TRIP
