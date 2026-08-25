@@ -1320,7 +1320,8 @@ else:
                 """, unsafe_allow_html=True)
 
                 if fuel_count > 1:
-                    nav_prev, nav_mid, nav_next = st.columns([0.18, 0.64, 0.18])
+                    st.markdown("<div class='compact-fuel-nav-marker'></div>", unsafe_allow_html=True)
+                    nav_prev, nav_mid, nav_next = st.columns([0.18, 0.64, 0.18], gap="small")
                     with nav_prev:
                         st.button("‹", use_container_width=True, key=f"fuel_prev_{trip_id}", on_click=_navigate_fuel, args=("prev", trip_id))
                     with nav_mid:
@@ -2253,6 +2254,40 @@ else:
 
 
 
+
+    st.markdown("""
+    <style>
+    @media (max-width: 640px) {
+        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"],
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] {
+            flex-wrap: nowrap !important;
+            gap: 0.35rem !important;
+            align-items: center !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div,
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div {
+            min-width: 0 !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button {
+            min-height: 38px !important;
+            padding: 0.25rem 0.4rem !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div:nth-child(2) button {
+            width: 42px !important;
+            min-width: 42px !important;
+            padding: 0.2rem !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] button {
+            min-height: 34px !important;
+            padding: 0.15rem 0.35rem !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div:nth-child(2) {
+            flex: 1 1 auto !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # =========================================================
     # 🧳 ПЛАН НА ПЪТУВАНЕТО
     # =========================================================
@@ -2282,13 +2317,12 @@ else:
                 st.warning("Въведете задача за пътуването.")
 
     if not plan_df.empty:
+        st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
         for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
             icon = "✅" if item_done else "⬜"
-            import html as _html
-            safe_title = _html.escape(title)
             task_col, del_col = st.columns([0.88, 0.12], gap="small")
             with task_col:
                 task_label = f"{icon} {title}"
