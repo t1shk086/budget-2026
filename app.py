@@ -624,7 +624,111 @@ div[data-testid="stAlert"] {
     border-radius: 14px;
 }
 
+/* =====================================================
+   TRIP CATEGORY ANALYSIS
+   ===================================================== */
 
+.tm-trip-analysis {
+    margin-top: 16px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.tm-trip-analysis-title {
+    color: #dce7ef;
+    font-size: .88rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.tm-category-row {
+    margin-bottom: 12px;
+}
+
+.tm-category-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.tm-category-name {
+    color: #cbd8e2;
+    font-size: .78rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tm-category-value {
+    color: #91a5b5;
+    font-size: .75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.tm-roundbar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,.07);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.tm-roundbar-fill {
+    height: 100%;
+    min-width: 2px;
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            90deg,
+            #1687d9,
+            #35c7ff
+        );
+    transition: width .3s ease;
+}
+
+.tm-category-percent {
+    margin-top: 4px;
+    color: #71889a;
+    font-size: .68rem;
+    text-align: right;
+}
+
+
+/* =====================================================
+   TRIP ANALYSIS MOBILE
+   ===================================================== */
+
+@media (max-width: 700px) {
+
+    .tm-trip-analysis {
+        margin-top: 14px;
+        padding-top: 13px;
+    }
+
+    .tm-trip-analysis-title {
+        font-size: .84rem;
+    }
+
+    .tm-category-row {
+        margin-bottom: 10px;
+    }
+
+    .tm-category-name {
+        font-size: .74rem;
+    }
+
+    .tm-category-value {
+        font-size: .72rem;
+    }
+
+    .tm-roundbar {
+        height: 7px;
+    }
+}
 /* =====================================================
    MOBILE
    ===================================================== */
