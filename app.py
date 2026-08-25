@@ -1223,7 +1223,7 @@ else:
                 mode = st.radio("Как искаш да следиш бюджета?", mode_options, index=current_mode, horizontal=True, key=f"budget_mode_{trip_id}")
                 if mode == "Общ бюджет":
                     total_budget_input = st.number_input(
-                        "Общ бюджет на пътуването (EUR)", min_value=None, placeholder="Въведи сума..", value=float(global_budget), step=50.0, format="%.2f", key=f"global_budget_input_{trip_id}"
+                        "Общ бюджет на пътуването (EUR)", min_value=None, value=None, placeholder="Въведи сума..", value=float(global_budget), step=50.0, format="%.2f", key=f"global_budget_input_{trip_id}"
                     )
                     st.caption("В този режим не е нужно да задаваш лимит за всяка категория.")
                     if st.button("💾 Запази общия бюджет", type="primary", use_container_width=True, key=f"save_global_budget_{trip_id}"):
