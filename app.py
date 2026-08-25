@@ -125,6 +125,21 @@ for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description",
     if not os.path.exists(f): 
         pd.DataFrame(columns=cols).to_csv(f, index=False, encoding="utf-8")
 
+def format_fuel_description(description):
+    """Convert technical fuel labels into a cleaner UI label."""
+    text = str(description or "").strip()
+    upper = text.upper()
+    fuel_type = ""
+    if "ЧАСТИЧНО" in upper:
+        fuel_type = "Частично"
+    elif "ПЪЛНО" in upper or "ПЪЛЕН" in upper:
+        fuel_type = "До горе"
+    if fuel_type:
+        cleaned = re.sub(r"^\s*\[[^\]]*(?:ЧАСТИЧНО|ПЪЛНО|ПЪЛЕН)[^\]]*\]\s*", "", text, flags=re.IGNORECASE)
+        cleaned = re.sub(r"^\s*(ЧАСТИЧНО|ПЪЛНО|ПЪЛЕН)\s+ЗАРЕЖДАНЕ\s*[-:–—]?\s*", "", cleaned, flags=re.IGNORECASE)
+        return f"{fuel_type} — {cleaned}" if cleaned else fuel_type
+    return text
+
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
@@ -1281,7 +1296,7 @@ else:
                 km_h = float(fr.get("current_km", 0) or 0)
                 ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
                 date_h = str(fr.get("date", ""))
-                desc_h = str(fr.get("description", ""))
+                desc_h = format_fuel_description(fr.get("description", ""))
 
                 compare_html = "⚪ Няма предишно зареждане за сравнение."
                 compare_color = "#7e8494"
@@ -1303,12 +1318,12 @@ else:
                             compare_color = "#aeb5c0"
 
                 st.markdown(f"""
-                <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);border-radius:16px;padding:15px 16px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                <div style='background:linear-gradient(145deg,rgba(0,242,254,.085),rgba(255,255,255,.035) 48%,rgba(0,0,0,.18));border:1px solid rgba(0,242,254,.16);border-radius:18px;padding:16px 17px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 10px 24px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.08),inset 0 -1px 0 rgba(0,0,0,.20);'>
                     <div style='display:flex;justify-content:space-between;align-items:center;gap:10px;'>
                         <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
                         <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
                     </div>
-                    <div style='font-size:15px;font-weight:800;color:#ffffff;margin-top:10px;'>Зареждане {fuel_count - fuel_idx} от {fuel_count}</div>
+                    
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
                     <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin-top:14px;'>
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Литри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{liters_h:.1f} л</div></div>
@@ -2290,17 +2305,6 @@ else:
             padding: 0.1rem 0.2rem !important;
         }
 
-
-        /* Визуално подравняване: името на задачата винаги започва отляво. */
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button:first-child {
-            justify-content: flex-start !important;
-            text-align: left !important;
-        }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button:first-child p {
-            text-align: left !important;
-            width: 100% !important;
-        }
-
         /* Компактен ред за задачите: текстът + кошчето остават на един ред. */
         div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] {
             display: flex !important;
@@ -2328,6 +2332,14 @@ else:
             min-width: 0 !important;
             min-height: 38px !important;
             padding: 0.15rem 0.25rem !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button {
+            justify-content: flex-start !important;
+            text-align: left !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button p {
+            width: 100% !important;
+            text-align: left !important;
         }
     }
     </style>
@@ -2363,12 +2375,32 @@ else:
 
     if not plan_df.empty:
         st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
+        st.markdown("""
+        <style>
+            /* Само за редовете на задачите: името да е винаги вляво. */
+            div[class*="st-key-task_row_"] button p,
+            div[class*="st-key-task_row_"] button span {
+                width: 100% !important;
+                text-align: left !important;
+                justify-content: flex-start !important;
+                margin: 0 !important;
+            }
+            div[class*="st-key-task_row_"] button {
+                justify-content: flex-start !important;
+                text-align: left !important;
+            }
+            div[class*="st-key-task_row_"] button[aria-label="🗑️"] {
+                justify-content: center !important;
+                text-align: center !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
         for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
             icon = "✅" if item_done else "⬜"
-            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
+            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small", key=f"task_row_{trip_id}_{item_id}")
             with task_row:
                 task_label = f"{icon} {title}"
                 st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
