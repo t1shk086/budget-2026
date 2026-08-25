@@ -1393,6 +1393,67 @@ else:
             unsafe_allow_html=True,
         )
 
+    # =========================================================
+    # ДНЕВЕН БЮДЖЕТ + ТЕМП НА ХАРЧЕНЕ
+    # =========================================================
+    if active_budget_mode != "none" and active_budget_total > 0:
+        try:
+            start_date_obj = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else None
+            end_date_obj = datetime.datetime.strptime(en_date, "%d.%m.%Y").date() if en_date and en_date != "nan" else None
+            today_obj = datetime.date.today()
+
+            if start_date_obj and end_date_obj:
+                total_days = max(1, (end_date_obj - start_date_obj).days + 1)
+                elapsed_days = max(1, min(total_days, (today_obj - start_date_obj).days + 1))
+                days_remaining = max(0, total_days - elapsed_days)
+
+                daily_target = active_budget_total / total_days
+                avg_daily_spend = active_budget_spent / elapsed_days
+                projected_total = avg_daily_spend * total_days
+                forecast_delta = active_budget_total - projected_total
+
+                daily_remaining_budget = active_budget_remaining / days_remaining if days_remaining > 0 else active_budget_remaining
+                daily_status = (
+                    f"€{daily_remaining_budget:.2f} / ден" if days_remaining > 0 and active_budget_remaining >= 0
+                    else "Бюджетът е изчерпан" if active_budget_remaining < 0
+                    else "Пътуването приключва днес"
+                )
+
+                forecast_color = "#8bd5ff" if forecast_delta >= 0 else "#ff4b4b"
+                forecast_text = (
+                    f"Очакван остатък: €{forecast_delta:.2f}" if forecast_delta >= 0
+                    else f"Очаквано надхвърляне: €{abs(forecast_delta):.2f}"
+                )
+
+                daily_card = f"""
+                <div style='background:linear-gradient(135deg,rgba(0,242,254,.07),rgba(255,255,255,.02));border:1px solid rgba(0,242,254,.14);padding:15px 16px;border-radius:16px;height:100%;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                    <div style='font-size:12px;color:#8b929e;font-weight:700;letter-spacing:.3px;'>📅 ДНЕВЕН БЮДЖЕТ</div>
+                    <div style='font-size:26px;color:#ffffff;font-weight:900;margin-top:6px;'>€{daily_target:.2f}</div>
+                    <div style='font-size:11px;color:#7e8494;margin-top:2px;'>планиран среден бюджет на ден</div>
+                    <div style='margin-top:12px;font-size:12px;color:#aeb5c0;'>Остават <b style='color:#ffffff;'>{days_remaining}</b> дни</div>
+                    <div style='margin-top:4px;font-size:12px;color:#aeb5c0;'>Препоръчително оттук: <b style='color:#8bd5ff;'>{daily_status}</b></div>
+                </div>
+                """
+
+                pace_card = f"""
+                <div style='background:linear-gradient(135deg,rgba(255,212,59,.07),rgba(255,255,255,.02));border:1px solid rgba(255,212,59,.14);padding:15px 16px;border-radius:16px;height:100%;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                    <div style='font-size:12px;color:#8b929e;font-weight:700;letter-spacing:.3px;'>📈 ТЕМП НА ХАРЧЕНЕ</div>
+                    <div style='font-size:26px;color:#ffffff;font-weight:900;margin-top:6px;'>€{avg_daily_spend:.2f}</div>
+                    <div style='font-size:11px;color:#7e8494;margin-top:2px;'>средно изхарчено на ден</div>
+                    <div style='margin-top:12px;font-size:12px;color:#aeb5c0;'>Прогноза до края: <b style='color:#ffffff;'>€{projected_total:.2f}</b></div>
+                    <div style='margin-top:4px;font-size:12px;color:{forecast_color};font-weight:800;'>{forecast_text}</div>
+                </div>
+                """
+
+                pace_col1, pace_col2 = st.columns(2)
+                with pace_col1:
+                    st.markdown(daily_card, unsafe_allow_html=True)
+                with pace_col2:
+                    st.markdown(pace_card, unsafe_allow_html=True)
+                st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+        except Exception:
+            pass
+
     if active_budget_mode != "none" and global_budget <= 0:
         total_pct_budget = max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
         remaining_text = f"Остават {active_budget_remaining:.2f} EUR" if active_budget_remaining >= 0 else f"Над бюджета с {abs(active_budget_remaining):.2f} EUR"
