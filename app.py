@@ -1924,11 +1924,10 @@ else:
                     r = df_all.loc[idx]
                     display_category = get_display_category(r["category"])
                     l_txt = f" | ⛽ {r['liters']:.1f} л" if float(r.get("liters", 0)) > 0 else ""
-                    col_rec, col_del = st.columns([0.88, 0.12])
-                    
-                    with col_rec:
+                    expense_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
+                    with expense_row:
                         st.markdown(f'''
-                            <div class="premium-expense-card">
+                            <div class="premium-expense-card" style="width:100%;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                     <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
                                         <span>{get_emoji(r["category"])}</span> {display_category}
@@ -1942,10 +1941,7 @@ else:
                                 </div>
                             </div>
                         ''', unsafe_allow_html=True)
-                        
-                    with col_del:
-                        st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
-                        if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True):
+                        if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=False, width="content"):
                             df_fresh = pd.read_csv(DATA_FILE, encoding="utf-8")
                             target_row = df_fresh.loc[idx]
                             desc_str = str(target_row["description"])
@@ -1965,7 +1961,6 @@ else:
                             df_fresh.to_csv(DATA_FILE, index=False, encoding="utf-8")
                             st.session_state["form_version"] += 1
                             st.rerun()
-                        st.markdown('</div>', unsafe_allow_html=True)
         except Exception as e:
             st.error(f"Грешка при зареждане на хронологията: {str(e)}")
         
@@ -2502,14 +2497,17 @@ else:
             color_emojis = {"blue": "🔵", "green": "🟢", "red": "🔴", "purple": "🟣", "orange": "🟠"}
             for idx in df_all_map[df_all_map["trip_id"] == trip_id].index.tolist():
                 pt_row = df_all_map.loc[idx]
-                col_p_txt, col_p_del = st.columns([0.85, 0.15])
-                with col_p_txt:
-                    st.markdown(f"{color_emojis.get(pt_row['color'], '🔵')} **{pt_row['title']}** <small>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small>", unsafe_allow_html=True)
-                with col_p_del:
+                place_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
+                with place_row:
+                    st.markdown(
+                        f"<div style='flex:1;min-width:0;'>{color_emojis.get(pt_row['color'], '🔵')} <b>{pt_row['title']}</b> <small>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small></div>",
+                        unsafe_allow_html=True,
+                    )
                     st.button(
-                        "❌",
+                        "🗑️",
                         key=f"del_pin_{idx}",
-                        use_container_width=True,
+                        use_container_width=False,
+                        width="content",
                         disabled=is_trip_finished,
                         on_click=_delete_map_point,
                         args=(idx,)
