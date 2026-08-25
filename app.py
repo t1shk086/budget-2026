@@ -311,7 +311,7 @@ if st.session_state["current_trip"] is None:
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
-        if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
+        if st.button("✔️ Създай и Отвори", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)):
                 s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
@@ -451,7 +451,7 @@ if st.session_state["current_trip"] is None:
                         )
 
         if st.button(
-            "✅ ЗАПИШИ РАЗХОДА", use_container_width=True,
+            "✔️ Запиши", use_container_width=True,
             type="primary", key="quick_expense_save"
         ):
             # Не допускаме float(None) при празно поле за сумата.
