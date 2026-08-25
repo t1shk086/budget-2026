@@ -1073,13 +1073,9 @@ else:
     
     ekran_za_kategorii = st.empty()
 
-    # Повдигаме само бутона към markdown-а над него и оставяме повече въздух
-    # преди полетата за сума и описание.
-    st.markdown("<div style='height:0;margin-top:-8px;'></div>", unsafe_allow_html=True)
     if st.button("🔙 НАЗАД КЪМ НАЧАЛЕН ЕКРАН", use_container_width=True): 
         st.session_state["current_trip"] = None
         st.rerun()
-    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
     v_id = st.session_state["form_version"]
     st.markdown('<div id="target_sum_box" style="position: relative; scroll-margin-top: 30px;"></div>', unsafe_allow_html=True)
@@ -2659,30 +2655,31 @@ else:
                 align-items: center !important;
                 justify-content: center !important;
                 width: 100% !important;
-                height: 38px !important;
+                min-height: 38.4px !important;
                 box-sizing: border-box !important;
                 background: linear-gradient(135deg, #252932, #16191f) !important;
                 color: #ffffff !important;
-                border: 1px solid rgba(255,255,255,0.08) !important;
+                border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                border-radius: 12px !important;
                 padding: 0.25rem 0.75rem !important;
                 font-weight: 600 !important;
                 font-size: 14px !important;
-                font-family: "Segoe UI", Roboto, sans-serif !important;
-                border-radius: 0.5rem !important;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+                letter-spacing: 0.5px !important;
                 cursor: pointer !important;
                 user-select: none !important;
-                text-decoration: none !important;
-                box-shadow: 0 3px 0 #0e1117, 0 5px 10px rgba(0,0,0,0.30) !important;
-                transition: all 0.15s ease-in-out !important;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+                transition: all 0.25s ease !important;
             }
             .twin-premium-3d-btn:hover {
-                background: linear-gradient(135deg, #2d323c, #1b1f26) !important;
-                border-color: rgba(255,255,255,0.18) !important;
-                box-shadow: 0 3px 0 #0e1117, 0 6px 12px rgba(0,0,0,0.35) !important;
+                background: linear-gradient(135deg, #2e343f, #1c2028) !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15) !important;
+                border-color: rgba(0, 242, 254, 0.2) !important;
             }
             .twin-premium-3d-btn:active {
-                transform: translateY(2px) !important;
-                box-shadow: 0 1px 0 #0e1117, 0 2px 4px rgba(0,0,0,0.20) !important;
+                transform: translateY(0) !important;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important;
             }
             .twin-grid-wrapper a {
                 text-decoration: none !important;
@@ -2704,7 +2701,7 @@ else:
         st.markdown("""
             <div class="twin-grid-wrapper">
                 <a href="#trip_top_anchor" target="_self">
-                    <button class="twin-premium-3d-btn">🔝 КЪМ РАЗХОДИТЕ</button>
+                    <button class="twin-premium-3d-btn">🔝КЪМ РАЗХОДИТЕ</button>
                 </a>
             </div>
         """, unsafe_allow_html=True)
