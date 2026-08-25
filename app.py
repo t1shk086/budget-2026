@@ -338,46 +338,6 @@ if st.session_state["current_trip"] is None:
 
     @st.dialog("⚡ Бърз разход", width="large")
     def quick_expense_modal():
-        st.markdown("""
-        <style>
-            .quick-expense-header {
-                background: linear-gradient(135deg, rgba(0,242,254,.10), rgba(79,172,254,.06));
-                border: 1px solid rgba(0,242,254,.16);
-                border-radius: 16px;
-                padding: 14px 16px;
-                margin: -4px 0 16px 0;
-                font-family: inherit;
-            }
-            .quick-expense-header-title {
-                font-size: 17px; font-weight: 800; color: #ffffff;
-                margin-bottom: 3px; font-family: inherit;
-            }
-            .quick-expense-header-sub {
-                font-size: 11px; color: #8a919e; font-family: inherit;
-            }
-            .quick-expense-section {
-                color: #00f2fe; font-size: 11px; font-weight: 800;
-                letter-spacing: .7px; margin: 8px 0 8px 2px;
-                text-transform: uppercase; font-family: inherit;
-            }
-            .quick-expense-gas {
-                background: rgba(255,165,0,.07);
-                border: 1px solid rgba(255,165,0,.18);
-                border-radius: 14px; padding: 12px 14px; margin: 8px 0 12px 0;
-                font-family: inherit;
-            }
-            .quick-expense-tip {
-                color: #7e8494; font-size: 11px; margin-top: 4px; font-family: inherit;
-            }
-        </style>
-        <div class='quick-expense-header'>
-            <div class='quick-expense-header-title'>Добави разход за секунди</div>
-            <div class='quick-expense-header-sub'>Избери пътуване, въведи сумата и категорията. При гориво ще се появят и данните за зареждането.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("<div class='quick-expense-section'>① Пътуване</div>", unsafe_allow_html=True)
-
         # Използваме абсолютно същия списък като полето „Изберете пътуване до:“ на началния екран.
         existing_quick = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
         existing_quick = [t for t in existing_quick if pd.notna(t) and str(t).strip() != ""]
@@ -400,8 +360,7 @@ if st.session_state["current_trip"] is None:
         quick_manual_fuel = float(quick_settings.get("manual_fuel", 0.0) or 0.0)
         quick_trip_finished = quick_end_km > 0.0
 
-        st.markdown("<div class='quick-expense-section'>② Разход</div>", unsafe_allow_html=True)
-        c1, c2 = st.columns([0.9, 1.5])
+        c1, c2 = st.columns(2)
         with c1:
             amount = st.number_input(
                 "Сума (EUR)", min_value=0.01, value=10.00, step=1.00,
@@ -409,12 +368,11 @@ if st.session_state["current_trip"] is None:
             )
         with c2:
             description = st.text_input(
-                "Описание", placeholder="Например: обяд, паркинг, гориво...",
+                "Описание", placeholder="Например: обяд, паркинг...",
                 key="quick_expense_description"
             )
 
         category_options = [cat for cat in KATEGORII if cat != "Депозит/Резервация"]
-        st.markdown("<div class='quick-expense-section'>③ Категория</div>", unsafe_allow_html=True)
         selected_category = st.selectbox(
             "Категория",
             category_options,
@@ -435,9 +393,9 @@ if st.session_state["current_trip"] is None:
         last_km = quick_start_km
 
         if is_quick_fuel:
-            st.markdown("<div class='quick-expense-section'>④ Зареждане на гориво</div>", unsafe_allow_html=True)
+            st.markdown("---")
             st.markdown(
-                "<div class='quick-expense-gas'><div style='color:#ffa500;font-weight:800;font-size:13px;font-family:inherit;'>⛽ Гориво</div><div class='quick-expense-tip'>Въведи литрите и километража — останалото се изчислява автоматично.</div></div>",
+                "<div style='color:#00f2fe;font-weight:700;font-size:14px;margin-bottom:10px;font-family:inherit;'>⛽ Данни за зареждането</div>",
                 unsafe_allow_html=True
             )
 
@@ -492,7 +450,6 @@ if st.session_state["current_trip"] is None:
                             f"📊 Реален разход за етапа: **{(total_segment_liters / segment_dist * 100):.1f} л / 100 км**"
                         )
 
-        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
         if st.button(
             "✅ ЗАПИШИ РАЗХОДА", use_container_width=True,
             type="primary", key="quick_expense_save"
@@ -559,27 +516,94 @@ if st.session_state["current_trip"] is None:
         if st.button("📌 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
             @st.dialog("📌 Последни разходи", width="large")
             def recent_expenses_modal():
+                st.markdown("""
+                <style>
+                    .recent-expenses-subtitle {
+                        color: #8b929e;
+                        font-size: 13px;
+                        margin: -8px 0 18px 0;
+                        font-family: inherit;
+                    }
+                    .recent-expense-card {
+                        background: linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
+                        border: 1px solid rgba(255,255,255,.09);
+                        border-radius: 16px;
+                        padding: 14px 16px;
+                        margin-bottom: 10px;
+                        box-shadow: 0 6px 18px rgba(0,0,0,.18);
+                        font-family: inherit;
+                    }
+                    .recent-expense-top {
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        gap:12px;
+                    }
+                    .recent-expense-category {
+                        font-size: 14px;
+                        font-weight: 700;
+                        color: #ffffff;
+                        font-family: inherit;
+                    }
+                    .recent-expense-amount {
+                        font-size: 18px;
+                        font-weight: 800;
+                        color: #ff6b6b;
+                        white-space: nowrap;
+                        font-family: inherit;
+                    }
+                    .recent-expense-trip {
+                        margin-top: 8px;
+                        color: #00d9ff;
+                        font-size: 12px;
+                        font-weight: 700;
+                        font-family: inherit;
+                    }
+                    .recent-expense-meta {
+                        margin-top: 4px;
+                        color: #7e8494;
+                        font-size: 11px;
+                        line-height: 1.45;
+                        font-family: inherit;
+                    }
+                    .recent-expense-desc {
+                        margin-top: 8px;
+                        color: #dce1e8;
+                        font-size: 13px;
+                        line-height: 1.4;
+                        font-family: inherit;
+                    }
+                </style>
+                """, unsafe_allow_html=True)
                 try:
                     df_recent = pd.read_csv(DATA_FILE, encoding="utf-8")
                     if df_recent.empty:
                         st.info("Все още няма записани разходи.")
                         return
-                    # Чете директно от актуалния CSV при всяко отваряне,
-                    # така изтрит разход никога не остава като старо състояние.
-                    df_recent = pd.read_csv(DATA_FILE, encoding="utf-8")
-                    if df_recent.empty:
-                        st.info("Все още няма записани разходи.")
-                        return
                     recent = df_recent.tail(5).iloc[::-1]
+                    st.markdown("<div class='recent-expenses-subtitle'>Последните 5 записани разхода от всички пътувания.</div>", unsafe_allow_html=True)
                     for _, row in recent.iterrows():
                         cat = str(row.get("category", "Други"))
                         trip_name = str(row.get("trip_id", "")).replace("_", " ")
-                        st.markdown(f"**{get_emoji(cat)} {get_display_category(cat)}** · {trip_name}<br><small>{row.get('date','')} · {row.get('description','')}</small><br><b>{float(row.get('amount',0)):.2f} EUR</b>", unsafe_allow_html=True)
-                        st.markdown("---")
+                        desc = str(row.get("description", "Без описание"))
+                        dt = str(row.get("date", ""))
+                        amount = float(row.get("amount", 0) or 0)
+                        emoji = get_emoji(cat)
+                        display_cat = get_display_category(cat)
+                        st.markdown(f"""
+                        <div class='recent-expense-card'>
+                            <div class='recent-expense-top'>
+                                <div class='recent-expense-category'>{emoji} {display_cat}</div>
+                                <div class='recent-expense-amount'>{amount:.2f} EUR</div>
+                            </div>
+                            <div class='recent-expense-trip'>✈️ {trip_name}</div>
+                            <div class='recent-expense-meta'>🕒 {dt}</div>
+                            <div class='recent-expense-desc'>{desc}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
                 except Exception:
                     st.error("Неуспешно зареждане на последните разходи.")
             recent_expenses_modal()
-
 
     # 1. ЕЛЕГАНТЕН CSS: ПРЕМЕСТВА ФАБРИЧНИЯ НАДПИС ОТДЯСНО НА ТОГЪЛА С 1 ИНТЕРВАЛ РАЗСТОЯНИЕ
     st.html("""
