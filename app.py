@@ -2658,30 +2658,31 @@ else:
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                width: 100% !important; 
-                height: 38.4px !important;
-                background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important;
-                color: #ffffff !important; 
-                border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                width: 100% !important;
+                height: 38px !important;
+                box-sizing: border-box !important;
+                background: linear-gradient(135deg, #252932, #16191f) !important;
+                color: #ffffff !important;
+                border: 1px solid rgba(255,255,255,0.08) !important;
                 padding: 0.25rem 0.75rem !important;
                 font-weight: 600 !important;
                 font-size: 14px !important;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+                font-family: "Segoe UI", Roboto, sans-serif !important;
                 border-radius: 0.5rem !important;
                 cursor: pointer !important;
                 user-select: none !important;
-                box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important;
+                text-decoration: none !important;
+                box-shadow: 0 3px 0 #0e1117, 0 5px 10px rgba(0,0,0,0.30) !important;
                 transition: all 0.15s ease-in-out !important;
             }
             .twin-premium-3d-btn:hover {
-                background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
-                border-color: rgba(255, 255, 255, 0.3) !important;
-                box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.45) !important;
+                background: linear-gradient(135deg, #2d323c, #1b1f26) !important;
+                border-color: rgba(255,255,255,0.18) !important;
+                box-shadow: 0 3px 0 #0e1117, 0 6px 12px rgba(0,0,0,0.35) !important;
             }
             .twin-premium-3d-btn:active {
                 transform: translateY(2px) !important;
-                box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important;
-                transition: all 0.05s ease !important;
+                box-shadow: 0 1px 0 #0e1117, 0 2px 4px rgba(0,0,0,0.20) !important;
             }
             .twin-grid-wrapper a {
                 text-decoration: none !important;
@@ -2703,7 +2704,7 @@ else:
         st.markdown("""
             <div class="twin-grid-wrapper">
                 <a href="#trip_top_anchor" target="_self">
-                    <button class="twin-premium-3d-btn">🔝КЪМ РАЗХОДИТЕ</button>
+                    <button class="twin-premium-3d-btn">🔝 КЪМ РАЗХОДИТЕ</button>
                 </a>
             </div>
         """, unsafe_allow_html=True)
