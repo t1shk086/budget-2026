@@ -445,6 +445,18 @@ def _delete_plan_item(item_id):
     except Exception:
         pass
 
+def _add_plan_item_callback(input_key, trip_id):
+    """Добавя задачата и изчиства полето за следващия запис."""
+    try:
+        value = str(st.session_state.get(input_key, "") or "").strip()
+        if value:
+            if add_trip_plan_item(trip_id, value):
+                # Важно: изчистваме самото state поле на text_input,
+                # за да не остава името на предишната задача.
+                st.session_state[input_key] = ""
+    except Exception:
+        pass
+
 
 if st.session_state["current_trip"] is None:
     st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
@@ -2326,6 +2338,18 @@ else:
             min-width: 0 !important;
             min-height: 38px !important;
             padding: 0.15rem 0.25rem !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button > div {
+            width: 100% !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button p {
+            width: 100% !important;
+            text-align: left !important;
+            margin: 0 !important;
         }
     }
     </style>
@@ -2348,16 +2372,18 @@ else:
     st.progress(plan_pct / 100.0, text=f"{plan_pct:.1f}%")
 
     plan_col1, plan_col2 = st.columns([1, 1])
+    plan_input_key = f"trip_plan_new_{trip_id}"
     with plan_col1:
-        new_plan_item = st.text_input("Добави задача", placeholder="напр. Резервация за ресторант...", key=f"trip_plan_new_{trip_id}")
+        st.text_input("Добави задача", placeholder="напр. Резервация за ресторант...", key=plan_input_key)
     with plan_col2:
         st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-        if st.button("➕ Добави в плана", use_container_width=True, key=f"trip_plan_add_{trip_id}"):
-            if new_plan_item.strip():
-                if add_trip_plan_item(trip_id, new_plan_item):
-                    st.rerun()
-            else:
-                st.warning("Въведете задача за пътуването.")
+        st.button(
+            "➕ Добави в плана",
+            use_container_width=True,
+            key=f"trip_plan_add_{trip_id}",
+            on_click=_add_plan_item_callback,
+            args=(plan_input_key, trip_id),
+        )
 
     if not plan_df.empty:
         st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
