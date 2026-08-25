@@ -20,6 +20,7 @@ st.set_page_config(
 # =========================================================
 
 DATA_FILE = Path("trips.json")
+SETTINGS_FILE = Path("travel_manager_settings.json")
 
 
 def load_trips():
@@ -109,12 +110,58 @@ if "expense_trip" not in st.session_state:
 
 DEFAULT_TRIP_LAYOUT = ["expenses", "categories", "fuel"]
 if "trip_layout" not in st.session_state:
-    st.session_state.trip_layout = DEFAULT_TRIP_LAYOUT.copy()
+    st.session_state.trip_layout = load_settings().get(
+        "trip_layout",
+        DEFAULT_TRIP_LAYOUT.copy(),
+    )
 
 
 # =========================================================
 # DATA
 # =========================================================
+
+def load_settings():
+    defaults = {"trip_layout": ["expenses", "categories", "fuel"]}
+
+    if not SETTINGS_FILE.exists():
+        return defaults.copy()
+
+    try:
+        raw = json.loads(
+            SETTINGS_FILE.read_text(encoding="utf-8")
+        )
+        allowed = ["expenses", "categories", "fuel"]
+        layout = raw.get("trip_layout", allowed.copy())
+
+        clean = [item for item in layout if item in allowed]
+        for item in allowed:
+            if item not in clean:
+                clean.append(item)
+
+        return {"trip_layout": clean}
+
+    except (json.JSONDecodeError, OSError, TypeError):
+        return defaults.copy()
+
+
+def save_settings():
+    payload = {
+        "trip_layout": list(
+            st.session_state.get(
+                "trip_layout",
+                ["expenses", "categories", "fuel"]
+            )
+        )
+    }
+
+    try:
+        SETTINGS_FILE.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except OSError as error:
+        st.error(f"Неуспешно записване на настройките: {error}")
+
 
 def total_expenses():
     return sum(
@@ -1218,6 +1265,7 @@ elif st.session_state.page == "settings":
                 ):
                     ordered[i - 1], ordered[i] = ordered[i], ordered[i - 1]
                     st.session_state.trip_layout = ordered.copy()
+                    save_settings()
                     st.rerun()
             with down:
                 if st.button(
@@ -1228,6 +1276,7 @@ elif st.session_state.page == "settings":
                 ):
                     ordered[i + 1], ordered[i] = ordered[i], ordered[i + 1]
                     st.session_state.trip_layout = ordered.copy()
+                    save_settings()
                     st.rerun()
 
     st.write("")
@@ -1240,7 +1289,10 @@ elif st.session_state.page == "settings":
         if not ordered:
             st.error("Избери поне една секция.")
         else:
-            st.session_state.trip_layout = ordered
-            st.success("Подредбата на пътуването е запазена.")
+            st.session_state.trip_layout = ordered.copy()
+            save_settings()
+            st.success(
+                "Подредбата на пътуването е запазена и остава след рестарт."
+            )
 
-    st.caption("Настройката важи за всички пътувания.")
+    st.caption("Настройката важи за всички пътувания и се запазва след рестарт.")
