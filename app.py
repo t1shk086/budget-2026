@@ -1303,12 +1303,12 @@ else:
                             compare_color = "#aeb5c0"
 
                 st.markdown(f"""
-                <div style='background:linear-gradient(145deg,rgba(0,242,254,.085),rgba(255,255,255,.035) 48%,rgba(0,0,0,.18));border:1px solid rgba(0,242,254,.16);border-radius:18px;padding:16px 17px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 10px 24px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.08),inset 0 -1px 0 rgba(0,0,0,.20);'>
+                <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);border-radius:16px;padding:15px 16px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
                     <div style='display:flex;justify-content:space-between;align-items:center;gap:10px;'>
                         <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
                         <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
                     </div>
-                    
+                    <div style='font-size:15px;font-weight:800;color:#ffffff;margin-top:10px;'>Зареждане {fuel_count - fuel_idx} от {fuel_count}</div>
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
                     <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin-top:14px;'>
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Литри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{liters_h:.1f} л</div></div>
@@ -2290,6 +2290,17 @@ else:
             padding: 0.1rem 0.2rem !important;
         }
 
+
+        /* Визуално подравняване: името на задачата винаги започва отляво. */
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button:first-child {
+            justify-content: flex-start !important;
+            text-align: left !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button:first-child p {
+            text-align: left !important;
+            width: 100% !important;
+        }
+
         /* Компактен ред за задачите: текстът + кошчето остават на един ред. */
         div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] {
             display: flex !important;
@@ -2317,14 +2328,6 @@ else:
             min-width: 0 !important;
             min-height: 38px !important;
             padding: 0.15rem 0.25rem !important;
-        }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button {
-            justify-content: flex-start !important;
-            text-align: left !important;
-        }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button p {
-            width: 100% !important;
-            text-align: left !important;
         }
     }
     </style>
