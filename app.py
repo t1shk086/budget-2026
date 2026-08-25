@@ -363,12 +363,12 @@ if st.session_state["current_trip"] is None:
         c1, c2 = st.columns(2)
         with c1:
             amount = st.number_input(
-                "Сума (EUR)", min_value=0.01, value=10.00, step=1.00,
+                "Сума (EUR)", min_value=None, value=10.00, step=1.00,
                 format="%.2f", key="quick_expense_amount"
             )
         with c2:
             description = st.text_input(
-                "Описание", placeholder="Например: обяд, паркинг...",
+                "Описание", placeholder="Например: обяд, зареждане...",
                 key="quick_expense_description"
             )
 
@@ -513,7 +513,7 @@ if st.session_state["current_trip"] is None:
         if st.button("➕ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
             quick_expense_modal()
     with quick_col2:
-        if st.button("📌 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
+        if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
             @st.dialog("📌 Последни разходи", width="large")
             def recent_expenses_modal():
                 st.markdown("""
