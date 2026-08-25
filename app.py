@@ -2650,15 +2650,75 @@ else:
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
-    st.markdown("---")
+    st.markdown("""
+    <style>
+        .tm-route-wrap {
+            margin: 0 0 16px 0;
+            padding: 16px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+            border: 1px solid rgba(255,255,255,.08);
+            box-shadow: 4px 4px 14px rgba(0,0,0,.24);
+        }
+        .tm-route-subtitle {
+            color:#7e8494; font-size:11px; line-height:1.45; margin-top:-4px; margin-bottom:12px;
+        }
+        .tm-route-input-title {
+            color:#aeb5c0; font-size:11px; font-weight:800; letter-spacing:.4px; margin-bottom:6px;
+        }
+        .tm-route-path {
+            margin-top:14px; padding:12px 14px; border-radius:14px;
+            background:rgba(0,242,254,.045); border:1px solid rgba(0,242,254,.14);
+        }
+        .tm-route-path-label { color:#00f2fe; font-size:10px; font-weight:800; letter-spacing:.65px; }
+        .tm-route-path-value { color:#fff; font-size:14px; font-weight:800; margin-top:5px; line-height:1.45; }
+        .tm-route-stop { position:relative; display:flex; gap:11px; align-items:flex-start; padding:4px 0; }
+        .tm-route-stop:not(:last-child):after {
+            content:""; position:absolute; left:11px; top:28px; width:2px; height:24px;
+            background:linear-gradient(180deg, rgba(0,242,254,.7), rgba(155,124,255,.25)); border-radius:2px;
+        }
+        .tm-route-dot {
+            width:22px; height:22px; min-width:22px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            background:#11151c; border:2px solid #00f2fe; color:#fff; font-size:10px; font-weight:900;
+            box-shadow:0 0 0 3px rgba(0,242,254,.06);
+        }
+        .tm-route-stop-name { color:#fff; font-size:13px; font-weight:800; line-height:1.2; padding-top:2px; }
+        .tm-route-stop-sub { color:#7e8494; font-size:10px; margin-top:3px; }
+        .tm-route-summary {
+            display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px;
+        }
+        .tm-route-stat {
+            padding:11px 12px; border-radius:14px;
+            background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07);
+        }
+        .tm-route-stat-label { color:#7e8494; font-size:10px; font-weight:800; letter-spacing:.35px; }
+        .tm-route-stat-value { color:#fff; font-size:19px; font-weight:900; margin-top:4px; }
+        @media (max-width:640px) {
+            .tm-route-wrap { padding:13px; border-radius:16px; }
+            .tm-route-path-value { font-size:13px; }
+            .tm-route-stat-value { font-size:17px; }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>ПЪТЕН ПЛАН</span></div>", unsafe_allow_html=True)
-    st.caption("Въведи само градовете. Например: София → Ливиньо. Можеш да добавяш спирки една по една.")
 
     route_points = _load_route_points(trip_id)
-    route_input = st.text_input("Следваща спирка", placeholder="Например: Ливиньо", key=f"route_place_{trip_id}")
+    route_input = st.text_input(
+        "Следваща спирка",
+        placeholder="Например: Ливиньо",
+        key=f"route_place_{trip_id}",
+        label_visibility="collapsed"
+    )
+
+    st.markdown("<div class='tm-route-wrap'>", unsafe_allow_html=True)
+    st.markdown("<div class='tm-route-input-title'>📍 ДОБАВИ СЛЕДВАЩА СПИРКА</div>", unsafe_allow_html=True)
+    st.markdown("<div class='tm-route-subtitle'>Въвеждаш само името на града или мястото. Добавяй спирките в реда, в който ще ги посещаваш.</div>", unsafe_allow_html=True)
+
     rc1, rc2 = st.columns(2)
     with rc1:
-        if st.button("➕ ДОБАВИ СПИРКА", use_container_width=True, key=f"route_add_{trip_id}"):
+        if st.button("➕ Добави спирка", use_container_width=True, key=f"route_add_{trip_id}", type="primary"):
             if not route_input.strip():
                 st.warning("Въведи име на град или място.")
             else:
@@ -2669,26 +2729,41 @@ else:
                         st.session_state.pop(f"route_place_{trip_id}", None)
                         st.rerun()
                 else:
-                    st.error(f"❌ Не намерих „{route_input.strip()}“. Пробвай с град + държава, ако мястото е малко населено.")
+                    st.error(f"❌ Не намерих „{route_input.strip()}“. Провери изписването на мястото.")
     with rc2:
-        if st.button("🗑️ ИЗЧИСТИ ПЪТНИЯ ПЛАН", use_container_width=True, key=f"route_clear_{trip_id}"):
+        if st.button("🗑️ Изчисти", use_container_width=True, key=f"route_clear_{trip_id}"):
             if _save_route_points(trip_id, []):
                 st.rerun()
 
     route_result = None
     if route_points:
         labels = " → ".join(str(p["name"]) for p in route_points)
-        st.markdown(f"<div style='padding:12px 14px;border:1px solid rgba(0,242,254,.14);border-radius:12px;background:rgba(255,255,255,.025);margin:8px 0 12px;'>🛣️ <b>{html.escape(labels)}</b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='tm-route-path'><div class='tm-route-path-label'>МАРШРУТ</div><div class='tm-route-path-value'>{html.escape(labels)}</div></div>", unsafe_allow_html=True)
+
+        route_html = "<div style='margin-top:13px;'>"
+        for i, p in enumerate(route_points, 1):
+            route_html += f"<div class='tm-route-stop'><div class='tm-route-dot'>{i}</div><div><div class='tm-route-stop-name'>{html.escape(str(p['name']))}</div><div class='tm-route-stop-sub'>Точка {i} от {len(route_points)}</div></div></div>"
+        route_html += "</div>"
+        st.markdown(route_html, unsafe_allow_html=True)
+
         if len(route_points) >= 2:
             route_result = _get_osrm_route(route_points)
             if route_result:
-                rr1, rr2 = st.columns(2)
-                rr1.metric("Разстояние", f"{route_result['distance_km']:.0f} км")
-                rr2.metric("Ориентировъчно време", f"{route_result['duration_min']/60:.1f} ч.")
+                hours = int(route_result['duration_min'] // 60)
+                mins = int(round(route_result['duration_min'] % 60))
+                time_text = f"{hours}ч {mins}мин" if hours else f"{mins}мин"
+                st.markdown(f"""
+                <div class='tm-route-summary'>
+                    <div class='tm-route-stat'><div class='tm-route-stat-label'>🛣️ РАЗСТОЯНИЕ</div><div class='tm-route-stat-value'>{route_result['distance_km']:.0f} км</div></div>
+                    <div class='tm-route-stat'><div class='tm-route-stat-label'>⏱️ ВРЕМЕ</div><div class='tm-route-stat-value'>{time_text}</div></div>
+                </div>
+                """, unsafe_allow_html=True)
                 if route_result["source"] == "fallback":
-                    st.caption("ℹ️ Маршрутният сървър не отговори, затова временно показвам приблизително разстояние между точките.")
-        for i, p in enumerate(route_points, 1):
-            st.markdown(f"**{i}. {html.escape(str(p['name']))}**  ·  {float(p['lat']):.4f}, {float(p['lon']):.4f}")
+                    st.caption("ℹ️ Времето и разстоянието са приблизителни, защото маршрутният сървър не отговори.")
+    else:
+        st.markdown("<div style='text-align:center;color:#7e8494;font-size:12px;padding:12px 4px 2px;'>Добави първата спирка, за да започнеш маршрута.</div>", unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n5'>5</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
