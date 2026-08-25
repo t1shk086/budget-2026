@@ -336,6 +336,30 @@ if st.session_state["current_trip"] is None:
     if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
+    quick_col1, quick_col2 = st.columns(2)
+    with quick_col1:
+        if st.button("⚡ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
+            quick_expense_modal()
+    with quick_col2:
+        if st.button("📌 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
+            @st.dialog("📌 Последни разходи", width="large")
+            def recent_expenses_modal():
+                try:
+                    df_recent = pd.read_csv(DATA_FILE, encoding="utf-8")
+                    if df_recent.empty:
+                        st.info("Все още няма записани разходи.")
+                        return
+                    recent = df_recent.tail(5).iloc[::-1]
+                    for _, row in recent.iterrows():
+                        cat = str(row.get("category", "Други"))
+                        trip_name = str(row.get("trip_id", "")).replace("_", " ")
+                        st.markdown(f"**{get_emoji(cat)} {get_display_category(cat)}** · {trip_name}<br><small>{row.get('date','')} · {row.get('description','')}</small><br><b>{float(row.get('amount',0)):.2f} EUR</b>", unsafe_allow_html=True)
+                        st.markdown("---")
+                except Exception:
+                    st.error("Неуспешно зареждане на последните разходи.")
+            recent_expenses_modal()
+
+
     # 1. ЕЛЕГАНТЕН CSS: ПРЕМЕСТВА ФАБРИЧНИЯ НАДПИС ОТДЯСНО НА ТОГЪЛА С 1 ИНТЕРВАЛ РАЗСТОЯНИЕ
     st.html("""
     <style>
@@ -679,29 +703,6 @@ if st.session_state["current_trip"] is None:
                 st.rerun()
             else:
                 st.error("❌ Разходът не можа да бъде записан.")
-
-    quick_col1, quick_col2 = st.columns(2)
-    with quick_col1:
-        if st.button("⚡ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
-            quick_expense_modal()
-    with quick_col2:
-        if st.button("📌 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
-            @st.dialog("📌 Последни разходи", width="large")
-            def recent_expenses_modal():
-                try:
-                    df_recent = pd.read_csv(DATA_FILE, encoding="utf-8")
-                    if df_recent.empty:
-                        st.info("Все още няма записани разходи.")
-                        return
-                    recent = df_recent.tail(5).iloc[::-1]
-                    for _, row in recent.iterrows():
-                        cat = str(row.get("category", "Други"))
-                        trip_name = str(row.get("trip_id", "")).replace("_", " ")
-                        st.markdown(f"**{get_emoji(cat)} {get_display_category(cat)}** · {trip_name}<br><small>{row.get('date','')} · {row.get('description','')}</small><br><b>{float(row.get('amount',0)):.2f} EUR</b>", unsafe_allow_html=True)
-                        st.markdown("---")
-                except Exception:
-                    st.error("Неуспешно зареждане на последните разходи.")
-            recent_expenses_modal()
 
 
 else:
