@@ -2386,12 +2386,14 @@ else:
         )
 
     if not plan_df.empty:
-        st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
         for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
             icon = "✅" if item_done else "⬜"
+            # Маркерът е пред всеки ред, за да може CSS селекторът
+            # да хване всеки бутон поотделно, а не само първата задача.
+            st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
             task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
             with task_row:
                 task_label = f"{icon} {title}"
