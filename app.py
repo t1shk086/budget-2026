@@ -1235,6 +1235,7 @@ else:
                 last_full_indices = [i for i in fuel_rows.index if "ПЪЛЕН" in str(fuel_rows.loc[i, "description"]).upper() or "ПЪЛНО" in str(fuel_rows.loc[i, "description"]).upper()]
                 stage_text = "Няма достатъчно данни за етапен разход"
                 compare_text = ""
+                compare_detail = ""
                 if "ПЪЛЕН" in last_desc.upper() or "ПЪЛНО" in last_desc.upper():
                     prev_full = [i for i in last_full_indices if i != fuel_rows.index[-1]]
                     if prev_full:
@@ -1246,18 +1247,33 @@ else:
                         if segment_dist > 0 and segment_liters > 0:
                             current_consumption = segment_liters / segment_dist * 100
                             stage_text = f"Етапен разход: <b>{current_consumption:.1f} л/100 км</b>"
-                            # Предишен етап, ако има още една пълна точка
+                            # Сравнение с предишния етап.
+                            # Ако няма по-старо пълно зареждане, използваме началния километраж
+                            # на пътуването като база за предишния етап.
                             older_full = [i for i in prev_full[:-1]]
                             if older_full:
                                 older_idx = older_full[-1]
                                 older_km = float(fuel_rows.loc[older_idx, "current_km"] or 0)
                                 older_rows = fuel_rows[(fuel_rows["current_km"] > older_km) & (fuel_rows["current_km"] <= prev_km)]
                                 older_liters = float(older_rows["liters"].sum())
-                                older_dist = prev_km - older_km
-                                if older_dist > 0 and older_liters > 0:
-                                    older_consumption = older_liters / older_dist * 100
-                                    delta = current_consumption - older_consumption
-                                    compare_text = (f"🟢 {abs(delta):.1f} л/100 км по-добър спрямо предишния етап" if delta < 0 else f"🟠 {delta:.1f} л/100 км по-висок спрямо предишния етап" if delta > 0 else "⚪ Същият разход като предишния етап")
+                            else:
+                                older_km = float(s_km)
+                                older_rows = fuel_rows[(fuel_rows["current_km"] > older_km) & (fuel_rows["current_km"] <= prev_km)]
+                                older_liters = float(older_rows["liters"].sum()) + float(m_fuel or 0.0)
+
+                            older_dist = prev_km - older_km
+                            if older_dist > 0 and older_liters > 0:
+                                older_consumption = older_liters / older_dist * 100
+                                delta = current_consumption - older_consumption
+                                if delta < 0:
+                                    compare_text = f"🟢 {abs(delta):.1f} л/100 км по-добър спрямо предишния етап"
+                                elif delta > 0:
+                                    compare_text = f"🟠 {delta:.1f} л/100 км по-висок спрямо предишния етап"
+                                else:
+                                    compare_text = "⚪ Същият разход като предишния етап"
+                                compare_detail = f"Предишен: {older_consumption:.1f} · Текущ: {current_consumption:.1f} л/100 км"
+                            else:
+                                compare_detail = ""
                 fuel_card = f"""
                 <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);padding:15px 16px;border-radius:16px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
                     <div style='display:flex;justify-content:space-between;align-items:center;'>
@@ -1271,6 +1287,7 @@ else:
                     </div>
                     <div style='margin-top:8px;font-size:12px;color:#aeb5c0;'>{stage_text}</div>
                     {f"<div style='margin-top:4px;font-size:11px;color:#8bd5ff;font-weight:700;'>{compare_text}</div>" if compare_text else ""}
+                    {f"<div style='margin-top:3px;font-size:10px;color:#7e8494;'>{compare_detail}</div>" if compare_detail else ""}
                 </div>
                 """
                 st.markdown(fuel_card, unsafe_allow_html=True)
