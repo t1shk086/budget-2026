@@ -55,6 +55,11 @@ st.markdown("""
         border-color: rgba(0, 242, 254, 0.2) !important;
     }
     small { color: #7e8494 !important; }
+
+/* Единен шрифт за целия интерфейс */
+html, body, [data-testid="stAppViewContainer"] {
+    font-family: "Segoe UI", Roboto, sans-serif !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1757,7 +1762,7 @@ else:
                 )
 
                 daily_card = f"""
-                <div style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:16px;height:100%;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,.3);'>
+                <div class='tm-budget-card-inner' style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:16px;height:100%;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,.3);'>
                     <div style='font-size:12px;color:#8b929e;font-weight:700;letter-spacing:.3px;'>📅 ДНЕВЕН БЮДЖЕТ</div>
                     <div style='font-size:26px;color:#ffffff;font-weight:900;margin-top:6px;'>€{daily_target:.2f}</div>
                     <div style='font-size:11px;color:#7e8494;margin-top:2px;'>планиран среден бюджет на ден</div>
@@ -1767,7 +1772,7 @@ else:
                 """
 
                 pace_card = f"""
-                <div style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:16px;height:100%;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,.3);'>
+                <div class='tm-budget-card-inner' style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:16px;height:100%;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,.3);'>
                     <div style='font-size:12px;color:#8b929e;font-weight:700;letter-spacing:.3px;'>📈 ТЕМП НА ХАРЧЕНЕ</div>
                     <div style='font-size:26px;color:#ffffff;font-weight:900;margin-top:6px;'>€{avg_daily_spend:.2f}</div>
                     <div style='font-size:11px;color:#7e8494;margin-top:2px;'>средно изхарчено на ден</div>
@@ -1828,12 +1833,14 @@ else:
                 .tm-budget-mini-value { font-size:24px; font-weight:900; color:#fff; margin-top:5px; line-height:1.05; }
                 .tm-budget-mini-sub { font-size:10px; color:#7e8494; margin-top:4px; }
                 .tm-budget-mini-line { font-size:11px; color:#b7bec9; margin-top:10px; }
+                /* Само този ред от трите бюджетни карти да има 1px разстояние */
+                div[data-testid="stHorizontalBlock"]:has(.tm-budget-card-inner) { gap:1px !important; }
                 </style>
                 """
                 st.markdown(cards_css, unsafe_allow_html=True)
 
                 health_card_compact = f"""
-                <div class='tm-budget-mini-card'>
+                <div class='tm-budget-mini-card tm-budget-card-inner'>
                     <div class='tm-budget-mini-label' style='color:{health_color};'>{health_icon} БЮДЖЕТ</div>
                     <div class='tm-budget-mini-value' style='font-size:15px;line-height:1.2;color:{health_color};margin-top:9px;'>{health_title}</div>
                     <div class='tm-budget-mini-line'>Реално: <b style='color:#fff;'>€{daily_spent_total:.2f}</b></div>
