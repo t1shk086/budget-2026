@@ -593,32 +593,11 @@ if st.session_state.page == "home":
                         f"{trip['end_date'].strftime('%d.%m.%Y')}"
                     )
                     st.progress(progress)
-                    st.caption(f"€{spent:.2f} от €{trip_budget:.2f}")
                 with c2:
                     st.write("")
                     if st.button("Отвори →", key=f"home_open_{trip_id}", use_container_width=True):
                         open_trip(trip_id)
 
-                st.markdown(
-                    '<div class="tm-trip-analysis"><div class="tm-trip-analysis-title">📊 Разходи по категории</div>',
-                    unsafe_allow_html=True
-                )
-                if categories:
-                    for item in categories:
-                        category = item["category"]
-                        amount = item["amount"]
-                        percentage = item["percentage"]
-                        bar_width = min(percentage, 100.0)
-                        st.markdown(
-                            f'<div class="tm-category-row"><div class="tm-category-row-top"><div class="tm-category-name">{category}</div><div class="tm-category-value">€{amount:.2f}</div></div><div class="tm-roundbar"><div class="tm-roundbar-fill" style="width:{bar_width:.1f}%"></div></div><div class="tm-category-percent">{percentage:.1f}%</div></div>',
-                            unsafe_allow_html=True
-                        )
-                else:
-                    st.markdown(
-                        '<div style="color:#71889a;font-size:.78rem;padding-bottom:4px;">Все още няма разходи.</div>',
-                        unsafe_allow_html=True
-                    )
-                st.markdown("</div>", unsafe_allow_html=True)
 
 
 # =========================================================
