@@ -409,50 +409,42 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
-# Мобилна навигация за историята на горивото чрез компактни HTML контроли.
-try:
-    _fuel_nav_q = st.query_params.get("fuel_nav")
-    if _fuel_nav_q and st.session_state.get("current_trip"):
-        _fk = f"fuel_history_index_{st.session_state['current_trip']}"
-        _fc = 0
-        try:
-            _df_nav = pd.read_csv(DATA_FILE, encoding="utf-8")
-            _fuel_nav_rows = _df_nav[(_df_nav["trip_id"] == st.session_state["current_trip"]) & (_df_nav["category"] == "Транспорт") & (_df_nav["liters"] > 0)]
-            _fc = len(_fuel_nav_rows)
-        except Exception:
-            _fc = 0
-        if _fc > 1:
-            _cur_nav = int(st.session_state.get(_fk, 0) or 0)
-            if _fuel_nav_q == "prev":
-                st.session_state[_fk] = (_cur_nav + 1) % _fc
-            elif _fuel_nav_q == "next":
-                st.session_state[_fk] = (_cur_nav - 1) % _fc
-        st.query_params.clear()
-        st.rerun()
-except Exception:
-    pass
+# Мобилните операции използват Streamlit callbacks/session_state,
+# за да не променят URL адреса и да не отварят нова навигация.
 
-# =========================================================
-# МОБИЛНО ИЗТРИВАНЕ НА ЗАДАЧА ЧРЕЗ SWIPE
-# =========================================================
-try:
-    _delete_task_q = st.query_params.get("delete_task")
-    _toggle_task_q = st.query_params.get("toggle_task")
-    if _delete_task_q:
-        delete_trip_plan_item(str(_delete_task_q))
-        st.query_params.clear()
-        st.rerun()
-    elif _toggle_task_q:
-        _df_plan_q = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
-        _mask_q = _df_plan_q["item_id"].astype(str) == str(_toggle_task_q)
-        if _mask_q.any():
-            _current_q = bool(_df_plan_q.loc[_mask_q, "done"].iloc[0])
-            _df_plan_q.loc[_mask_q, "done"] = not _current_q
-            update_trip_plan(_df_plan_q)
-        st.query_params.clear()
-        st.rerun()
-except Exception:
-    pass
+def _navigate_fuel(direction, trip_id):
+    try:
+        df_nav = pd.read_csv(DATA_FILE, encoding="utf-8")
+        rows = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт") & (df_nav["liters"] > 0)]
+        count = len(rows)
+        if count <= 1:
+            return
+        key = f"fuel_history_index_{trip_id}"
+        current = int(st.session_state.get(key, 0) or 0)
+        if direction == "next":
+            st.session_state[key] = (current + 1) % count
+        else:
+            st.session_state[key] = (current - 1) % count
+    except Exception:
+        pass
+
+def _toggle_plan_item(item_id):
+    try:
+        df_plan = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        mask = df_plan["item_id"].astype(str) == str(item_id)
+        if mask.any():
+            current = bool(df_plan.loc[mask, "done"].iloc[0])
+            df_plan.loc[mask, "done"] = not current
+            update_trip_plan(df_plan)
+    except Exception:
+        pass
+
+def _delete_plan_item(item_id):
+    try:
+        delete_trip_plan_item(str(item_id))
+    except Exception:
+        pass
+
 
 if st.session_state["current_trip"] is None:
     st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
@@ -1328,13 +1320,13 @@ else:
                 """, unsafe_allow_html=True)
 
                 if fuel_count > 1:
-                    st.markdown(f"""
-                    <div style='display:flex;align-items:center;justify-content:center;gap:10px;margin:10px auto 0 auto;width:fit-content;max-width:100%;'>
-                        <a href='?fuel_nav=prev' style='display:flex;align-items:center;justify-content:center;width:36px;height:32px;border-radius:10px;background:linear-gradient(135deg,#252932,#16191f);border:1px solid rgba(255,255,255,.10);box-shadow:0 3px 10px rgba(0,0,0,.30);color:#fff;text-decoration:none;font-size:22px;font-weight:700;line-height:1;'>‹</a>
-                        <div style='min-width:118px;text-align:center;color:#8b929e;font-size:11px;line-height:1.25;'>Зареждане<br><b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>
-                        <a href='?fuel_nav=next' style='display:flex;align-items:center;justify-content:center;width:36px;height:32px;border-radius:10px;background:linear-gradient(135deg,#252932,#16191f);border:1px solid rgba(255,255,255,.10);box-shadow:0 3px 10px rgba(0,0,0,.30);color:#fff;text-decoration:none;font-size:22px;font-weight:700;line-height:1;'>›</a>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    nav_prev, nav_mid, nav_next = st.columns([0.18, 0.64, 0.18])
+                    with nav_prev:
+                        st.button("‹", use_container_width=True, key=f"fuel_prev_{trip_id}", on_click=_navigate_fuel, args=("prev", trip_id))
+                    with nav_mid:
+                        st.markdown(f"<div style='text-align:center;padding-top:7px;color:#8b929e;font-size:11px;line-height:1.25;'>Зареждане<br><b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>", unsafe_allow_html=True)
+                    with nav_next:
+                        st.button("›", use_container_width=True, key=f"fuel_next_{trip_id}", on_click=_navigate_fuel, args=("next", trip_id))
         except Exception:
             pass
 
@@ -2297,14 +2289,12 @@ else:
             icon = "✅" if item_done else "⬜"
             import html as _html
             safe_title = _html.escape(title)
-            st.markdown(f"""
-            <div style='display:flex;align-items:center;gap:7px;width:100%;margin:0 0 7px 0;'>
-                <a href='?toggle_task={item_id}' style='flex:1;min-width:0;display:block;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);color:#fff;text-decoration:none;font-family:inherit;font-size:13px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>
-                    <span style='margin-right:6px;'>{icon}</span>{safe_title}
-                </a>
-                <a href='?delete_task={item_id}' style='flex:0 0 36px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(255,75,75,.10);border:1px solid rgba(255,75,75,.20);color:#ff6b6b;text-decoration:none;font-size:15px;'>🗑️</a>
-            </div>
-            """, unsafe_allow_html=True)
+            task_col, del_col = st.columns([0.88, 0.12], gap="small")
+            with task_col:
+                task_label = f"{icon} {title}"
+                st.button(task_label, use_container_width=True, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,))
+            with del_col:
+                st.button("🗑️", use_container_width=True, key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,))
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
