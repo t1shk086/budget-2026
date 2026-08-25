@@ -7,6 +7,8 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import io
+import html
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -1222,79 +1224,124 @@ else:
             """, unsafe_allow_html=True)
             
         # =========================================================
-        # ⛽ УМЕН АНАЛИЗ НА ЗАРЕЖДАНИЯТА
+        # ⛽ УМЕН АНАЛИЗ НА ЗАРЕЖДАНИЯТА — МОБИЛЕН SWIPE CAROUSEL
         # =========================================================
         try:
             fuel_rows = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["liters"] > 0)].copy().sort_index()
             if not fuel_rows.empty:
-                fuel_count = len(fuel_rows)
-                last_fuel = fuel_rows.iloc[-1]
-                last_liters = float(last_fuel.get("liters", 0) or 0)
-                last_amount = float(last_fuel.get("amount", 0) or 0)
-                last_km_value = float(last_fuel.get("current_km", 0) or 0)
-                last_desc = str(last_fuel.get("description", ""))
-                last_price_per_liter = (last_amount / last_liters) if last_liters > 0 else 0.0
+                fuel_rows = fuel_rows.iloc[::-1].copy()  # последното първо
+                cards = []
+                chronological = fuel_rows.iloc[::-1]
 
-                compare_text = ""
-                compare_detail = ""
-                if fuel_count >= 2:
-                    prev_fuel = fuel_rows.iloc[-2]
-                    prev_liters = float(prev_fuel.get("liters", 0) or 0)
-                    prev_amount = float(prev_fuel.get("amount", 0) or 0)
-                    prev_price_per_liter = (prev_amount / prev_liters) if prev_liters > 0 else 0.0
-                    if prev_price_per_liter > 0 and last_price_per_liter > 0:
-                        price_delta = last_price_per_liter - prev_price_per_liter
-                        if price_delta < 0:
-                            compare_text = f"🟢 €{abs(price_delta):.2f}/л по-евтино спрямо предишното зареждане"
-                        elif price_delta > 0:
-                            compare_text = f"🟠 €{price_delta:.2f}/л по-скъпо спрямо предишното зареждане"
-                        else:
-                            compare_text = "⚪ Същата цена на литър като предишното зареждане"
-                        compare_detail = f"Предишно: €{prev_price_per_liter:.2f}/л · Текущо: €{last_price_per_liter:.2f}/л"
-                    elif prev_liters > 0:
-                        compare_detail = f"Предишно: {prev_liters:.1f} л · Текущо: {last_liters:.1f} л"
+                for pos, (idx, fr) in enumerate(fuel_rows.iterrows()):
+                    liters_h = float(fr.get("liters", 0) or 0)
+                    amount_h = float(fr.get("amount", 0) or 0)
+                    km_h = float(fr.get("current_km", 0) or 0)
+                    ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
+                    date_h = str(fr.get("date", ""))
+                    desc_h = str(fr.get("description", ""))
 
-                fuel_card = f"""
-                <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);padding:15px 16px;border-radius:16px;margin-top:2px;margin-bottom:10px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
-                    <div style='display:flex;justify-content:space-between;align-items:center;gap:12px;'>
-                        <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
-                        <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
+                    # Сравнение с непосредственото предходно зареждане
+                    chronological_pos = len(chronological) - 1 - pos
+                    compare_html = "<div class='fuel-muted'>Няма предишно зареждане за сравнение.</div>"
+                    if chronological_pos > 0:
+                        prev_fr = chronological.iloc[chronological_pos - 1]
+                        prev_l = float(prev_fr.get("liters", 0) or 0)
+                        prev_a = float(prev_fr.get("amount", 0) or 0)
+                        prev_ppl = (prev_a / prev_l) if prev_l > 0 else 0.0
+                        if prev_ppl > 0 and ppl_h > 0:
+                            delta = ppl_h - prev_ppl
+                            if delta < 0:
+                                compare_html = f"<div class='fuel-good'>🟢 €{abs(delta):.2f}/л по-евтино</div><div class='fuel-compare-sub'>Предишно €{prev_ppl:.2f}/л · Сега €{ppl_h:.2f}/л</div>"
+                            elif delta > 0:
+                                compare_html = f"<div class='fuel-warn'>🟠 €{delta:.2f}/л по-скъпо</div><div class='fuel-compare-sub'>Предишно €{prev_ppl:.2f}/л · Сега €{ppl_h:.2f}/л</div>"
+                            else:
+                                compare_html = f"<div class='fuel-same'>⚪ Същата цена: €{ppl_h:.2f}/л</div>"
+
+                    title = "Последно зареждане" if pos == 0 else f"Зареждане {len(fuel_rows)-pos} от {len(fuel_rows)}"
+                    cards.append(f"""
+                    <div class='fuel-slide'>
+                        <div class='fuel-top'>
+                            <div class='fuel-title'>⛽ {html.escape(title)}</div>
+                            <div class='fuel-date'>{html.escape(date_h)}</div>
+                        </div>
+                        <div class='fuel-grid'>
+                            <div><div class='fuel-label'>Литри</div><div class='fuel-value'>{liters_h:.1f} л</div></div>
+                            <div><div class='fuel-label'>Стойност</div><div class='fuel-value'>€{amount_h:.2f}</div></div>
+                            <div><div class='fuel-label'>Цена / л</div><div class='fuel-value'>€{ppl_h:.2f}</div></div>
+                            <div><div class='fuel-label'>Километри</div><div class='fuel-value'>{km_h:.0f} км</div></div>
+                        </div>
+                        <div class='fuel-desc'>{html.escape(desc_h)}</div>
+                        <div class='fuel-compare'>{compare_html}</div>
+                    </div>""")
+
+                slides = "".join(cards)
+                dots = "".join(f"<span class='fuel-dot{' active' if i == 0 else ''}'></span>" for i in range(len(cards)))
+                carousel_html = f"""
+                <style>
+                    .fuel-carousel-wrap{{background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);border-radius:16px;padding:14px 14px 12px;box-shadow:0 6px 18px rgba(0,0,0,.16);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}}
+                    .fuel-head{{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}}
+                    .fuel-head-title{{font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;}}
+                    .fuel-head-count{{font-size:11px;color:#7e8494;}}
+                    .fuel-viewport{{overflow:hidden;border-radius:14px;touch-action:pan-y;}}
+                    .fuel-track{{display:flex;transition:transform .28s ease;will-change:transform;}}
+                    .fuel-slide{{min-width:100%;box-sizing:border-box;padding:2px 2px 0;}}
+                    .fuel-top{{display:flex;justify-content:space-between;align-items:center;gap:10px;}}
+                    .fuel-title{{font-size:15px;font-weight:800;color:#fff;}}
+                    .fuel-date{{font-size:10px;color:#7e8494;white-space:nowrap;}}
+                    .fuel-grid{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px;}}
+                    .fuel-label{{font-size:9px;color:#7e8494;text-transform:uppercase;letter-spacing:.2px;}}
+                    .fuel-value{{font-size:17px;color:#fff;font-weight:900;margin-top:3px;white-space:nowrap;}}
+                    .fuel-desc{{font-size:11px;color:#aeb5c0;margin-top:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}}
+                    .fuel-compare{{margin-top:9px;padding:9px 10px;border-radius:11px;background:rgba(255,255,255,.035);}}
+                    .fuel-good{{font-size:11px;color:#63d391;font-weight:800;}}
+                    .fuel-warn{{font-size:11px;color:#ffb348;font-weight:800;}}
+                    .fuel-same{{font-size:11px;color:#aeb5c0;font-weight:800;}}
+                    .fuel-muted{{font-size:11px;color:#7e8494;}}
+                    .fuel-compare-sub{{font-size:10px;color:#7e8494;margin-top:3px;}}
+                    .fuel-nav{{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;}}
+                    .fuel-arrow{{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:#fff;width:30px;height:30px;border-radius:10px;font-size:15px;cursor:pointer;}}
+                    .fuel-dots{{display:flex;gap:5px;align-items:center;justify-content:center;max-width:180px;overflow:hidden;}}
+                    .fuel-dot{{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.18);display:block;}}
+                    .fuel-dot.active{{width:16px;border-radius:8px;background:#00d9ff;}}
+                    @media(max-width:700px){{
+                        .fuel-grid{{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;}}
+                        .fuel-value{{font-size:16px;}}
+                        .fuel-date{{font-size:9px;}}
+                    }}
+                </style>
+                <div class='fuel-carousel-wrap'>
+                    <div class='fuel-head'>
+                        <div class='fuel-head-title'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
+                        <div class='fuel-head-count'>{len(cards)} {'зареждане' if len(cards)==1 else 'зареждания'}</div>
                     </div>
-                    <div style='display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;'>
-                        <div><div style='font-size:10px;color:#7e8494;'>Последно</div><div style='font-size:22px;color:#fff;font-weight:900;'>{last_liters:.1f} л</div></div>
-                        <div><div style='font-size:10px;color:#7e8494;'>Стойност</div><div style='font-size:22px;color:#fff;font-weight:900;'>€{last_amount:.2f}</div></div>
-                        <div><div style='font-size:10px;color:#7e8494;'>Цена/литър</div><div style='font-size:22px;color:#fff;font-weight:900;'>€{last_price_per_liter:.2f}</div></div>
+                    <div class='fuel-viewport' id='fuelViewport'>
+                        <div class='fuel-track' id='fuelTrack'>{slides}</div>
                     </div>
-                    {f"<div style='margin-top:8px;font-size:12px;color:#aeb5c0;'>{compare_text}</div>" if compare_text else ""}
-                    {f"<div style='margin-top:3px;font-size:10px;color:#7e8494;'>{compare_detail}</div>" if compare_detail else ""}
+                    <div class='fuel-nav'>
+                        <button class='fuel-arrow' onclick='moveFuel(-1)'>‹</button>
+                        <div class='fuel-dots' id='fuelDots'>{dots}</div>
+                        <button class='fuel-arrow' onclick='moveFuel(1)'>›</button>
+                    </div>
                 </div>
+                <script>
+                    let fuelIndex = 0;
+                    const fuelCount = {len(cards)};
+                    const track = document.getElementById('fuelTrack');
+                    const viewport = document.getElementById('fuelViewport');
+                    const dots = Array.from(document.querySelectorAll('.fuel-dot'));
+                    function renderFuel(){{
+                        track.style.transform = `translateX(-${{fuelIndex*100}}%)`;
+                        dots.forEach((d,i)=>d.classList.toggle('active',i===fuelIndex));
+                    }}
+                    function moveFuel(dir){{fuelIndex=(fuelIndex+dir+fuelCount)%fuelCount;renderFuel();}}
+                    let startX=0,startY=0,moved=false;
+                    viewport.addEventListener('touchstart',e=>{{const t=e.touches[0];startX=t.clientX;startY=t.clientY;moved=false;}},{{passive:true}});
+                    viewport.addEventListener('touchmove',e=>{{const t=e.touches[0];const dx=t.clientX-startX;const dy=t.clientY-startY;if(Math.abs(dx)>12 && Math.abs(dx)>Math.abs(dy)){{moved=true;e.preventDefault();}}}},{{passive:false}});
+                    viewport.addEventListener('touchend',e=>{{const t=e.changedTouches[0];const dx=t.clientX-startX;const dy=t.clientY-startY;if(moved && Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)){{moveFuel(dx<0?1:-1);}}}});
+                </script>
                 """
-                st.markdown(fuel_card, unsafe_allow_html=True)
-
-                if st.button("📋 Преглед на всички зареждания", use_container_width=True, key=f"fuel_history_btn_{trip_id}"):
-                    @st.dialog("⛽ История на зарежданията", width="large")
-                    def fuel_history_dialog():
-                        hist = fuel_rows.iloc[::-1].copy()
-                        st.caption(f"Общо зареждания: {fuel_count}")
-                        for _, fr in hist.iterrows():
-                            liters_h = float(fr.get("liters", 0) or 0)
-                            amount_h = float(fr.get("amount", 0) or 0)
-                            km_h = float(fr.get("current_km", 0) or 0)
-                            ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
-                            desc_h = str(fr.get("description", ""))
-                            st.markdown(f"""
-                            <div style='background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 14px;border-radius:12px;margin-bottom:8px;font-family:inherit;'>
-                                <div style='display:flex;justify-content:space-between;gap:10px;'>
-                                    <b style='color:#fff;'>⛽ {liters_h:.1f} л</b>
-                                    <b style='color:#ff6b6b;'>€{amount_h:.2f}</b>
-                                </div>
-                                <div style='margin-top:4px;color:#8bd5ff;font-size:11px;'>€{ppl_h:.2f}/л · {km_h:.0f} км · {fr.get('date','')}</div>
-                                <div style='margin-top:4px;color:#aeb5c0;font-size:11px;'>{desc_h}</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        if st.button("❌ Затвори", use_container_width=True, key=f"close_fuel_history_{trip_id}"):
-                            st.rerun()
-                    fuel_history_dialog()
+                components.html(carousel_html, height=min(370, 250 + max(0, len(cards)-4)*4), scrolling=False)
         except Exception:
             pass
 
@@ -2230,14 +2277,13 @@ else:
     plan_pct = (plan_done / plan_total * 100.0) if plan_total else 0.0
 
     st.markdown(f"""
-    <div style='background:linear-gradient(135deg,rgba(175,120,255,.07),rgba(255,255,255,.018));border:1px solid rgba(175,120,255,.16);padding:15px 16px;border-radius:16px;margin-top:12px;margin-bottom:12px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
-        <div style='display:flex;justify-content:space-between;align-items:center;'>
-            <div style='font-size:13px;color:#c7a8ff;font-weight:800;letter-spacing:.3px;'>🧳 ПЛАН НА ПЪТУВАНЕТО</div>
-            <div style='font-size:11px;color:#7e8494;'>{plan_done}/{plan_total} изпълнени</div>
-        </div>
-        <div style='height:8px;background:rgba(0,0,0,.35);border-radius:20px;margin-top:10px;overflow:hidden;'>
-            <div style='width:{plan_pct:.1f}%;height:100%;background:linear-gradient(90deg,#a66cff,#4facfe);border-radius:20px;'></div>
-        </div>
+    <div style='display:flex;justify-content:space-between;align-items:center;margin-top:12px;margin-bottom:8px;font-family:inherit;'>
+        <div style='font-size:15px;font-weight:800;color:#8b929e;letter-spacing:.3px;'>🧳 ПЛАН НА ПЪТУВАНЕТО</div>
+        <div style='font-size:11px;color:#7e8494;'>{plan_done}/{plan_total} изпълнени</div>
+    </div>
+    <div style="background:rgba(0,0,0,.42);height:14px;border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.5),inset -1px -1px 2px rgba(255,255,255,.05);position:relative;display:flex;align-items:center;overflow:hidden;font-family:inherit;">
+        <div style="width:{plan_pct:.2f}%;height:100%;background:linear-gradient(90deg,#a66cff,#4facfe);border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.25),inset 0 2px 2px rgba(255,255,255,.25);"></div>
+        <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,.85);text-shadow:1px 1px 2px rgba(0,0,0,.8);">{plan_pct:.1f}%</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2254,28 +2300,33 @@ else:
                 st.warning("Въведете задача за пътуването.")
 
     if not plan_df.empty:
+        # Чист списък — без per-task менюта, които се разтягат на мобилен.
         for _, plan_row in plan_df.iterrows():
             item_done = bool(plan_row.get("done", False))
-            c_plan, c_menu = st.columns([0.88, 0.12])
-            with c_plan:
-                if st.checkbox(str(plan_row["title"]), value=item_done, key=f"plan_check_{plan_row['item_id']}") != item_done:
-                    plan_all = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
-                    mask = plan_all["item_id"].astype(str) == str(plan_row["item_id"])
-                    plan_all.loc[mask, "done"] = not item_done
-                    update_trip_plan(plan_all)
+            label = f"✅ {plan_row['title']}" if item_done else f"⬜ {plan_row['title']}"
+            if st.button(label, use_container_width=True, key=f"plan_row_{plan_row['item_id']}"):
+                plan_all = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+                mask = plan_all["item_id"].astype(str) == str(plan_row["item_id"])
+                plan_all.loc[mask, "done"] = not item_done
+                update_trip_plan(plan_all)
+                st.rerun()
+
+        action_options = [f"{i+1}. {r['title']}" for i, (_, r) in enumerate(plan_df.iterrows())]
+        selected_action = st.selectbox("Управление на задача", action_options, key=f"plan_action_select_{trip_id}")
+        selected_item_id = str(plan_df.iloc[action_options.index(selected_action)]["item_id"])
+        selected_done = bool(plan_df.iloc[action_options.index(selected_action)].get("done", False))
+        action_col1, action_col2 = st.columns(2)
+        with action_col1:
+            if st.button("↔️ Промени статус", use_container_width=True, key=f"plan_action_toggle_{trip_id}"):
+                plan_all = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+                mask = plan_all["item_id"].astype(str) == selected_item_id
+                plan_all.loc[mask, "done"] = not selected_done
+                update_trip_plan(plan_all)
+                st.rerun()
+        with action_col2:
+            if st.button("🗑️ Изтрий задача", use_container_width=True, key=f"plan_action_delete_{trip_id}"):
+                if delete_trip_plan_item(selected_item_id):
                     st.rerun()
-            with c_menu:
-                with st.popover("⋮", use_container_width=True):
-                    toggle_label = "↩️ Маркирай като неизпълнена" if item_done else "✅ Маркирай като изпълнена"
-                    if st.button(toggle_label, use_container_width=True, key=f"plan_toggle_{plan_row['item_id']}"):
-                        plan_all = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
-                        mask = plan_all["item_id"].astype(str) == str(plan_row["item_id"])
-                        plan_all.loc[mask, "done"] = not item_done
-                        update_trip_plan(plan_all)
-                        st.rerun()
-                    if st.button("🗑️ Изтрий задачата", use_container_width=True, key=f"plan_delete_{plan_row['item_id']}"):
-                        if delete_trip_plan_item(plan_row["item_id"]):
-                            st.rerun()
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
