@@ -1485,13 +1485,13 @@ else:
             color:#fff;
             font-size:13px;
             font-weight:900;
-            box-shadow:0 3px 9px rgba(0,0,0,.28), inset 0 1px 1px rgba(255,255,255,.22);
-            border:1px solid rgba(255,255,255,.14);
+            background:rgba(255,255,255,.025);
+            box-shadow:0 2px 7px rgba(0,0,0,.22), inset 0 1px 1px rgba(255,255,255,.05);
         }
-        .tm-n1 { background:linear-gradient(145deg,#00f2fe,#2f9bff); }
-        .tm-n2 { background:linear-gradient(145deg,#ffd43b,#ff9f1a); }
-        .tm-n3 { background:linear-gradient(145deg,#9b7cff,#5d48d8); }
-        .tm-n4 { background:linear-gradient(145deg,#63d391,#2e9b61); }
+        .tm-n1 { border:2px solid #00f2fe; }
+        .tm-n2 { border:2px solid #ffd43b; }
+        .tm-n3 { border:2px solid #9b7cff; }
+        .tm-n4 { border:2px solid #63d391; }
     </style>
     """, unsafe_allow_html=True)
 
