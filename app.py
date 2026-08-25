@@ -2258,31 +2258,57 @@ else:
     st.markdown("""
     <style>
     @media (max-width: 640px) {
-        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"],
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] {
+        /* Компактна навигация за горивото: 18% / 64% / 18% на един ред. */
+        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
             flex-wrap: nowrap !important;
-            gap: 0.35rem !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            gap: 0.25rem !important;
             align-items: center !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div,
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div {
+        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
             min-width: 0 !important;
+            width: auto !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button {
-            min-height: 38px !important;
-            padding: 0.25rem 0.4rem !important;
+        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(1),
+        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(3) {
+            flex: 0 0 18% !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div:nth-child(2) button {
-            width: 42px !important;
-            min-width: 42px !important;
-            padding: 0.2rem !important;
+        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(2) {
+            flex: 1 1 64% !important;
         }
         div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] button {
+            width: 100% !important;
+            min-width: 0 !important;
             min-height: 34px !important;
-            padding: 0.15rem 0.35rem !important;
+            padding: 0.1rem 0.2rem !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div:nth-child(2) {
+
+        /* Компактен ред за задачите: текстът + кошчето остават на един ред. */
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            gap: 0.25rem !important;
+            align-items: center !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+            min-width: 0 !important;
+            width: auto !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(1) {
             flex: 1 1 auto !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(2) {
+            flex: 0 0 42px !important;
+        }
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button {
+            width: 100% !important;
+            min-width: 0 !important;
+            min-height: 38px !important;
+            padding: 0.15rem 0.25rem !important;
         }
     }
     </style>
