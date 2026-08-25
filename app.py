@@ -448,13 +448,16 @@ def _delete_plan_item(item_id):
     except Exception:
         pass
 
-def _add_plan_item_and_clear(t_id, title, widget_key):
-    """Добавя задачата и веднага изчиства полето за следващ запис."""
-    cleaned = str(title or "").strip()
-    if not cleaned:
-        return
-    if add_trip_plan_item(t_id, cleaned):
-        st.session_state[widget_key] = ""
+def _add_plan_item_and_clear(t_id, widget_key):
+    """Добавя текущата задача от session_state и изчиства полето след успех."""
+    try:
+        cleaned = str(st.session_state.get(widget_key, "") or "").strip()
+        if not cleaned:
+            return
+        if add_trip_plan_item(t_id, cleaned):
+            st.session_state[widget_key] = ""
+    except Exception:
+        pass
 
 
 
@@ -2390,13 +2393,13 @@ else:
             use_container_width=True,
             key=f"trip_plan_add_{trip_id}",
             on_click=_add_plan_item_and_clear,
-            args=(trip_id, new_plan_item, plan_input_key),
+            args=(trip_id, plan_input_key),
         ):
             pass
 
     if not plan_df.empty:
-        st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
         for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
+            st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
