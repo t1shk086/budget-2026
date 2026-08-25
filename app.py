@@ -421,10 +421,13 @@ def _navigate_fuel(direction, trip_id):
             return
         key = f"fuel_history_index_{trip_id}"
         current = int(st.session_state.get(key, 0) or 0)
-        if direction == "next":
-            st.session_state[key] = (current + 1) % count
+        # Индексът е обърнат, защото визуализираме последното зареждане като N/N.
+        # Ляво: 6/6 -> 5/6 -> 4/6 ...
+        # Дясно: 1/6 -> 2/6 -> 3/6 ...
+        if direction == "prev":
+            st.session_state[key] = min(count - 1, current + 1)
         else:
-            st.session_state[key] = (current - 1) % count
+            st.session_state[key] = max(0, current - 1)
     except Exception:
         pass
 
@@ -2309,17 +2312,22 @@ else:
         }
 
 
-        /* Само бутоните на задачите: ляво подравняване на текста, без промяна на mobile layout-а. */
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button {
-            justify-content: flex-start !important;
+        /* Само текстът на задачата: ляво подравняване, без промяна на mobile layout-а. */
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button {
             text-align: left !important;
+            justify-content: flex-start !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button > div,
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button p {
-            justify-content: flex-start !important;
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button > div,
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button > div > div,
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button [data-testid="stMarkdownContainer"],
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button p,
+        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button span {
             text-align: left !important;
+            justify-content: flex-start !important;
+            align-items: flex-start !important;
             width: 100% !important;
             margin-left: 0 !important;
+            margin-right: 0 !important;
         }
 
         /* Компактен ред за задачите: текстът + кошчето остават на един ред. */
@@ -2401,7 +2409,7 @@ else:
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(0,242,254,0.22),rgba(255,255,255,0.02));margin:20px 0 18px 0;'></div>", unsafe_allow_html=True)
+    st.markdown("---")
     st.markdown("<div style='font-size:15px;font-weight:800;color:#8b929e;letter-spacing:.3px;margin-bottom:10px;'>🗺️ КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</div>", unsafe_allow_html=True)
     df_points = get_map_points(trip_id)
     
