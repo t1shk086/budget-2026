@@ -1783,13 +1783,11 @@ else:
                     background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));
                     border:1px solid rgba(255,255,255,.08);
                     box-shadow:4px 4px 12px rgba(0,0,0,.3);
-                    transform: translateY(0); transition: transform .18s ease, box-shadow .18s ease;
                 }
                 .tm-budget-mini-card:after {
                     content:""; position:absolute; left:-30px; top:-45px; width:110px; height:110px;
                     border-radius:50%; background:rgba(255,255,255,.035); filter:blur(2px); pointer-events:none;
                 }
-                .tm-budget-mini-card:hover { transform:translateY(-2px); box-shadow:0 10px 0 rgba(0,0,0,.22),0 18px 28px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.10); }
                 .tm-budget-mini-label { font-size:11px; font-weight:800; letter-spacing:.35px; color:#9aa1ad; }
                 .tm-budget-mini-value { font-size:24px; font-weight:900; color:#fff; margin-top:5px; line-height:1.05; }
                 .tm-budget-mini-sub { font-size:10px; color:#7e8494; margin-top:4px; }
