@@ -1073,9 +1073,13 @@ else:
     
     ekran_za_kategorii = st.empty()
 
+    # Повдигаме само бутона към markdown-а над него и оставяме повече въздух
+    # преди полетата за сума и описание.
+    st.markdown("<div style='height:0;margin-top:-8px;'></div>", unsafe_allow_html=True)
     if st.button("🔙 НАЗАД КЪМ НАЧАЛЕН ЕКРАН", use_container_width=True): 
         st.session_state["current_trip"] = None
         st.rerun()
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
     v_id = st.session_state["form_version"]
     st.markdown('<div id="target_sum_box" style="position: relative; scroll-margin-top: 30px;"></div>', unsafe_allow_html=True)
