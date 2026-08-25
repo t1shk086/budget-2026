@@ -9,10 +9,6 @@ from geopy.geocoders import Nominatim
 import io
 import html
 import streamlit.components.v1 as components
-import urllib.parse
-import urllib.request
-import json
-import math
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -72,35 +68,6 @@ DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
 TRIP_PLAN_FILE = "trip_plan_2026.csv"
-
-# Пътен план – запазва се отделно от разходите и старите точки на картата.
-ROUTE_PLAN_FILE = "trip_route_plan_2026.csv"
-
-# Малък локален fallback за най-често използваните дестинации.
-# Така базовият маршрут работи и когато външният геокодер временно не отговаря.
-KNOWN_PLACES = {
-    "софия": (42.6977, 23.3219, "Sofia, Bulgaria"),
-    "sofia": (42.6977, 23.3219, "Sofia, Bulgaria"),
-    "ливиньо": (46.5389, 10.1365, "Livigno, Italy"),
-    "livigno": (46.5389, 10.1365, "Livigno, Italy"),
-    "белград": (44.7866, 20.4489, "Belgrade, Serbia"),
-    "belgrade": (44.7866, 20.4489, "Belgrade, Serbia"),
-    "загреб": (45.8150, 15.9819, "Zagreb, Croatia"),
-    "zagreb": (45.8150, 15.9819, "Zagreb, Croatia"),
-    "венеция": (45.4408, 12.3155, "Venice, Italy"),
-    "venice": (45.4408, 12.3155, "Venice, Italy"),
-    "милано": (45.4642, 9.1900, "Milan, Italy"),
-    "milano": (45.4642, 9.1900, "Milan, Italy"),
-    "виена": (48.2082, 16.3738, "Vienna, Austria"),
-    "vienna": (48.2082, 16.3738, "Vienna, Austria"),
-    "инсбрук": (47.2692, 11.4041, "Innsbruck, Austria"),
-    "innsbruck": (47.2692, 11.4041, "Innsbruck, Austria"),
-    "любляна": (46.0569, 14.5058, "Ljubljana, Slovenia"),
-    "ljubljana": (46.0569, 14.5058, "Ljubljana, Slovenia"),
-}
-
-if not os.path.exists(ROUTE_PLAN_FILE):
-    pd.DataFrame(columns=["trip_id", "seq", "name", "lat", "lon", "address"]).to_csv(ROUTE_PLAN_FILE, index=False, encoding="utf-8")
 
 # Настройки само за имената на бутоните. Каноничните категории в данните НЕ се променят.
 DEFAULT_UI_LABELS = {
@@ -424,81 +391,6 @@ def delete_trip_plan_item(item_id):
         df = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
         df = df[df["item_id"].astype(str) != str(item_id)]
         df.to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
-        return True
-    except Exception:
-        return False
-
-def _route_haversine_km(a, b):
-    r = 6371.0
-    lat1, lon1 = map(math.radians, a)
-    lat2, lon2 = map(math.radians, b)
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    h = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
-    return 2 * r * math.asin(math.sqrt(h))
-
-def _geocode_route_place(text):
-    q = str(text or '').strip()
-    if not q:
-        return None
-    key = q.casefold()
-    if key in KNOWN_PLACES:
-        lat, lon, address = KNOWN_PLACES[key]
-        return {"lat": lat, "lon": lon, "address": address}
-    # Онлайн fallback – търсим точно въведения текст, без изкуствено добавяне на 'Europe'.
-    try:
-        geolocator = Nominatim(user_agent="pixelapp_travel_manager_2026_route")
-        for query in [q, f"{q}, Europe"]:
-            location = geolocator.geocode(query, language="bg", addressdetails=True, exactly_one=True, timeout=8)
-            if location:
-                return {"lat": float(location.latitude), "lon": float(location.longitude), "address": str(location.address)}
-    except Exception:
-        pass
-    return None
-
-def _get_osrm_route(points):
-    if len(points) < 2:
-        return None
-    coords = ";".join(f"{p['lon']},{p['lat']}" for p in points)
-    url = "https://router.project-osrm.org/route/v1/driving/" + coords + "?overview=full&geometries=geojson&steps=false"
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "PixelApp Travel Manager"})
-        with urllib.request.urlopen(req, timeout=12) as response:
-            data = json.loads(response.read().decode("utf-8"))
-        route = data.get("routes", [None])[0]
-        if route:
-            geometry = route.get("geometry", {}).get("coordinates", [])
-            line = [(lat, lon) for lon, lat in geometry]
-            return {
-                "line": line,
-                "distance_km": float(route.get("distance", 0)) / 1000.0,
-                "duration_min": float(route.get("duration", 0)) / 60.0,
-                "source": "OSRM"
-            }
-    except Exception:
-        pass
-    # Резервен вариант: въздушна дистанция между отделните точки.
-    distance = sum(_route_haversine_km((points[i-1]['lat'], points[i-1]['lon']), (points[i]['lat'], points[i]['lon'])) for i in range(1, len(points)))
-    line = [(p['lat'], p['lon']) for p in points]
-    return {"line": line, "distance_km": distance, "duration_min": distance / 70 * 60, "source": "fallback"}
-
-def _load_route_points(t_id):
-    try:
-        df = pd.read_csv(ROUTE_PLAN_FILE, encoding="utf-8")
-        rows = df[df["trip_id"].astype(str) == str(t_id)].sort_values("seq")
-        return rows.to_dict("records")
-    except Exception:
-        return []
-
-def _save_route_points(t_id, points):
-    try:
-        df = pd.read_csv(ROUTE_PLAN_FILE, encoding="utf-8") if os.path.exists(ROUTE_PLAN_FILE) else pd.DataFrame()
-        if not df.empty:
-            df = df[df["trip_id"].astype(str) != str(t_id)]
-        rows = []
-        for i, p in enumerate(points, 1):
-            rows.append({"trip_id": str(t_id), "seq": i, "name": p["name"], "lat": p["lat"], "lon": p["lon"], "address": p.get("address", "")})
-        pd.concat([df, pd.DataFrame(rows)], ignore_index=True).to_csv(ROUTE_PLAN_FILE, index=False, encoding="utf-8")
         return True
     except Exception:
         return False
@@ -2650,123 +2542,8 @@ else:
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
-    st.markdown("""
-    <style>
-        .tm-route-wrap {
-            margin: 0 0 16px 0;
-            padding: 16px;
-            border-radius: 18px;
-            background: linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
-            border: 1px solid rgba(255,255,255,.08);
-            box-shadow: 4px 4px 14px rgba(0,0,0,.24);
-        }
-        .tm-route-subtitle {
-            color:#7e8494; font-size:11px; line-height:1.45; margin-top:-4px; margin-bottom:12px;
-        }
-        .tm-route-input-title {
-            color:#aeb5c0; font-size:11px; font-weight:800; letter-spacing:.4px; margin-bottom:6px;
-        }
-        .tm-route-path {
-            margin-top:14px; padding:12px 14px; border-radius:14px;
-            background:rgba(0,242,254,.045); border:1px solid rgba(0,242,254,.14);
-        }
-        .tm-route-path-label { color:#00f2fe; font-size:10px; font-weight:800; letter-spacing:.65px; }
-        .tm-route-path-value { color:#fff; font-size:14px; font-weight:800; margin-top:5px; line-height:1.45; }
-        .tm-route-stop { position:relative; display:flex; gap:11px; align-items:flex-start; padding:4px 0; }
-        .tm-route-stop:not(:last-child):after {
-            content:""; position:absolute; left:11px; top:28px; width:2px; height:24px;
-            background:linear-gradient(180deg, rgba(0,242,254,.7), rgba(155,124,255,.25)); border-radius:2px;
-        }
-        .tm-route-dot {
-            width:22px; height:22px; min-width:22px; border-radius:50%;
-            display:flex; align-items:center; justify-content:center;
-            background:#11151c; border:2px solid #00f2fe; color:#fff; font-size:10px; font-weight:900;
-            box-shadow:0 0 0 3px rgba(0,242,254,.06);
-        }
-        .tm-route-stop-name { color:#fff; font-size:13px; font-weight:800; line-height:1.2; padding-top:2px; }
-        .tm-route-stop-sub { color:#7e8494; font-size:10px; margin-top:3px; }
-        .tm-route-summary {
-            display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px;
-        }
-        .tm-route-stat {
-            padding:11px 12px; border-radius:14px;
-            background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07);
-        }
-        .tm-route-stat-label { color:#7e8494; font-size:10px; font-weight:800; letter-spacing:.35px; }
-        .tm-route-stat-value { color:#fff; font-size:19px; font-weight:900; margin-top:4px; }
-        @media (max-width:640px) {
-            .tm-route-wrap { padding:13px; border-radius:16px; }
-            .tm-route-path-value { font-size:13px; }
-            .tm-route-stat-value { font-size:17px; }
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>ПЪТЕН ПЛАН</span></div>", unsafe_allow_html=True)
-
-    route_points = _load_route_points(trip_id)
-    route_input = st.text_input(
-        "Следваща спирка",
-        placeholder="Например: Ливиньо",
-        key=f"route_place_{trip_id}",
-        label_visibility="collapsed"
-    )
-
-    st.markdown("<div class='tm-route-wrap'>", unsafe_allow_html=True)
-    st.markdown("<div class='tm-route-input-title'>📍 ДОБАВИ СЛЕДВАЩА СПИРКА</div>", unsafe_allow_html=True)
-    st.markdown("<div class='tm-route-subtitle'>Въвеждаш само името на града или мястото. Добавяй спирките в реда, в който ще ги посещаваш.</div>", unsafe_allow_html=True)
-
-    rc1, rc2 = st.columns(2)
-    with rc1:
-        if st.button("➕ Добави спирка", use_container_width=True, key=f"route_add_{trip_id}", type="primary"):
-            if not route_input.strip():
-                st.warning("Въведи име на град или място.")
-            else:
-                place = _geocode_route_place(route_input)
-                if place:
-                    route_points.append({"name": route_input.strip(), **place})
-                    if _save_route_points(trip_id, route_points):
-                        st.session_state.pop(f"route_place_{trip_id}", None)
-                        st.rerun()
-                else:
-                    st.error(f"❌ Не намерих „{route_input.strip()}“. Провери изписването на мястото.")
-    with rc2:
-        if st.button("🗑️ Изчисти", use_container_width=True, key=f"route_clear_{trip_id}"):
-            if _save_route_points(trip_id, []):
-                st.rerun()
-
-    route_result = None
-    if route_points:
-        labels = " → ".join(str(p["name"]) for p in route_points)
-        st.markdown(f"<div class='tm-route-path'><div class='tm-route-path-label'>МАРШРУТ</div><div class='tm-route-path-value'>{html.escape(labels)}</div></div>", unsafe_allow_html=True)
-
-        route_html = "<div style='margin-top:13px;'>"
-        for i, p in enumerate(route_points, 1):
-            route_html += f"<div class='tm-route-stop'><div class='tm-route-dot'>{i}</div><div><div class='tm-route-stop-name'>{html.escape(str(p['name']))}</div><div class='tm-route-stop-sub'>Точка {i} от {len(route_points)}</div></div></div>"
-        route_html += "</div>"
-        st.markdown(route_html, unsafe_allow_html=True)
-
-        if len(route_points) >= 2:
-            route_result = _get_osrm_route(route_points)
-            if route_result:
-                hours = int(route_result['duration_min'] // 60)
-                mins = int(round(route_result['duration_min'] % 60))
-                time_text = f"{hours}ч {mins}мин" if hours else f"{mins}мин"
-                st.markdown(f"""
-                <div class='tm-route-summary'>
-                    <div class='tm-route-stat'><div class='tm-route-stat-label'>🛣️ РАЗСТОЯНИЕ</div><div class='tm-route-stat-value'>{route_result['distance_km']:.0f} км</div></div>
-                    <div class='tm-route-stat'><div class='tm-route-stat-label'>⏱️ ВРЕМЕ</div><div class='tm-route-stat-value'>{time_text}</div></div>
-                </div>
-                """, unsafe_allow_html=True)
-                if route_result["source"] == "fallback":
-                    st.caption("ℹ️ Времето и разстоянието са приблизителни, защото маршрутният сървър не отговори.")
-    else:
-        st.markdown("<div style='text-align:center;color:#7e8494;font-size:12px;padding:12px 4px 2px;'>Добави първата спирка, за да започнеш маршрута.</div>", unsafe_allow_html=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
     st.markdown("---")
-    st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n5'>5</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
     df_points = get_map_points(trip_id)
     
     if "map_current_trip_id" not in st.session_state or st.session_state["map_current_trip_id"] != trip_id:
@@ -2787,17 +2564,6 @@ else:
     m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
     folium.LatLngPopup().add_to(m)
     
-    # Пътният план се рисува върху съществуващата карта, без да променя старите точки.
-    if route_points:
-        for idx, rp in enumerate(route_points, 1):
-            folium.Marker(
-                location=[rp["lat"], rp["lon"]],
-                popup=f"{idx}. {rp['name']}",
-                icon=folium.DivIcon(html=f"<div style='background:#11151c;color:#fff;border:2px solid #00f2fe;border-radius:50%;width:28px;height:28px;text-align:center;line-height:24px;font-weight:700;'>{idx}</div>")
-            ).add_to(m)
-        if route_result and route_result.get("line"):
-            folium.PolyLine(route_result["line"], weight=5, opacity=0.85, tooltip="Пътен план").add_to(m)
-
     for _, pt in df_points.iterrows(): 
         folium.Marker(
             location=[pt["lat"], pt["lon"]], 
@@ -2888,30 +2654,32 @@ else:
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                width: 100% !important; 
-                height: 38.4px !important;
-                background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important;
-                color: #ffffff !important; 
-                border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                width: 100% !important;
+                min-height: 38.4px !important;
+                box-sizing: border-box !important;
+                background: linear-gradient(135deg, #252932, #16191f) !important;
+                color: #ffffff !important;
+                border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                border-radius: 12px !important;
                 padding: 0.25rem 0.75rem !important;
                 font-weight: 600 !important;
                 font-size: 14px !important;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-                border-radius: 0.5rem !important;
+                letter-spacing: 0.5px !important;
                 cursor: pointer !important;
                 user-select: none !important;
-                box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important;
-                transition: all 0.15s ease-in-out !important;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+                transition: all 0.25s ease !important;
             }
             .twin-premium-3d-btn:hover {
-                background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
-                border-color: rgba(255, 255, 255, 0.3) !important;
-                box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.45) !important;
+                background: linear-gradient(135deg, #2e343f, #1c2028) !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15) !important;
+                border-color: rgba(0, 242, 254, 0.2) !important;
             }
             .twin-premium-3d-btn:active {
-                transform: translateY(2px) !important;
-                box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important;
-                transition: all 0.05s ease !important;
+                transform: translateY(0) !important;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important;
             }
             .twin-grid-wrapper a {
                 text-decoration: none !important;
