@@ -785,6 +785,8 @@ if st.session_state["current_trip"] is None:
             align-items: center !important;
             gap: 10px !important; /* Разстояние точно колкото 1 интервал */
             width: auto !important;
+            max-width: none !important;
+            flex-shrink: 0 !important;
         }
         /* Подсигурява, че текстът няма да се пречупи на два реда на телефон */
         div[data-testid="stCheckbox"] p {
@@ -2261,6 +2263,7 @@ else:
         /* Компактна навигация за горивото: 18% / 64% / 18% на един ред. */
         div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] {
             display: flex !important;
+            flex-direction: row !important;
             flex-wrap: nowrap !important;
             width: 100% !important;
             min-width: 0 !important;
@@ -2270,13 +2273,17 @@ else:
         div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
             min-width: 0 !important;
             width: auto !important;
+            max-width: none !important;
+            flex-shrink: 0 !important;
         }
         div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(1),
         div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(3) {
             flex: 0 0 18% !important;
+            max-width: 18% !important;
         }
         div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(2) {
             flex: 1 1 64% !important;
+            max-width: 64% !important;
         }
         div[data-testid="stElementContainer"]:has(.compact-fuel-nav-marker) + div[data-testid="stHorizontalBlock"] button {
             width: 100% !important;
@@ -2288,6 +2295,7 @@ else:
         /* Компактен ред за задачите: текстът + кошчето остават на един ред. */
         div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] {
             display: flex !important;
+            flex-direction: row !important;
             flex-wrap: nowrap !important;
             width: 100% !important;
             min-width: 0 !important;
@@ -2300,9 +2308,11 @@ else:
         }
         div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(1) {
             flex: 1 1 auto !important;
+            max-width: calc(100% - 48px) !important;
         }
         div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(2) {
             flex: 0 0 42px !important;
+            max-width: 42px !important;
         }
         div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] button {
             width: 100% !important;
