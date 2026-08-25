@@ -338,6 +338,46 @@ if st.session_state["current_trip"] is None:
 
     @st.dialog("⚡ Бърз разход", width="large")
     def quick_expense_modal():
+        st.markdown("""
+        <style>
+            .quick-expense-header {
+                background: linear-gradient(135deg, rgba(0,242,254,.10), rgba(79,172,254,.06));
+                border: 1px solid rgba(0,242,254,.16);
+                border-radius: 16px;
+                padding: 14px 16px;
+                margin: -4px 0 16px 0;
+                font-family: inherit;
+            }
+            .quick-expense-header-title {
+                font-size: 17px; font-weight: 800; color: #ffffff;
+                margin-bottom: 3px; font-family: inherit;
+            }
+            .quick-expense-header-sub {
+                font-size: 11px; color: #8a919e; font-family: inherit;
+            }
+            .quick-expense-section {
+                color: #00f2fe; font-size: 11px; font-weight: 800;
+                letter-spacing: .7px; margin: 8px 0 8px 2px;
+                text-transform: uppercase; font-family: inherit;
+            }
+            .quick-expense-gas {
+                background: rgba(255,165,0,.07);
+                border: 1px solid rgba(255,165,0,.18);
+                border-radius: 14px; padding: 12px 14px; margin: 8px 0 12px 0;
+                font-family: inherit;
+            }
+            .quick-expense-tip {
+                color: #7e8494; font-size: 11px; margin-top: 4px; font-family: inherit;
+            }
+        </style>
+        <div class='quick-expense-header'>
+            <div class='quick-expense-header-title'>Добави разход за секунди</div>
+            <div class='quick-expense-header-sub'>Избери пътуване, въведи сумата и категорията. При гориво ще се появят и данните за зареждането.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<div class='quick-expense-section'>① Пътуване</div>", unsafe_allow_html=True)
+
         # Използваме абсолютно същия списък като полето „Изберете пътуване до:“ на началния екран.
         existing_quick = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
         existing_quick = [t for t in existing_quick if pd.notna(t) and str(t).strip() != ""]
@@ -360,7 +400,8 @@ if st.session_state["current_trip"] is None:
         quick_manual_fuel = float(quick_settings.get("manual_fuel", 0.0) or 0.0)
         quick_trip_finished = quick_end_km > 0.0
 
-        c1, c2 = st.columns(2)
+        st.markdown("<div class='quick-expense-section'>② Разход</div>", unsafe_allow_html=True)
+        c1, c2 = st.columns([0.9, 1.5])
         with c1:
             amount = st.number_input(
                 "Сума (EUR)", min_value=0.01, value=10.00, step=1.00,
@@ -368,11 +409,12 @@ if st.session_state["current_trip"] is None:
             )
         with c2:
             description = st.text_input(
-                "Описание", placeholder="Например: обяд, паркинг...",
+                "Описание", placeholder="Например: обяд, паркинг, гориво...",
                 key="quick_expense_description"
             )
 
         category_options = [cat for cat in KATEGORII if cat != "Депозит/Резервация"]
+        st.markdown("<div class='quick-expense-section'>③ Категория</div>", unsafe_allow_html=True)
         selected_category = st.selectbox(
             "Категория",
             category_options,
@@ -393,9 +435,9 @@ if st.session_state["current_trip"] is None:
         last_km = quick_start_km
 
         if is_quick_fuel:
-            st.markdown("---")
+            st.markdown("<div class='quick-expense-section'>④ Зареждане на гориво</div>", unsafe_allow_html=True)
             st.markdown(
-                "<div style='color:#00f2fe;font-weight:700;font-size:14px;margin-bottom:10px;font-family:inherit;'>⛽ Данни за зареждането</div>",
+                "<div class='quick-expense-gas'><div style='color:#ffa500;font-weight:800;font-size:13px;font-family:inherit;'>⛽ Гориво</div><div class='quick-expense-tip'>Въведи литрите и километража — останалото се изчислява автоматично.</div></div>",
                 unsafe_allow_html=True
             )
 
@@ -450,6 +492,7 @@ if st.session_state["current_trip"] is None:
                             f"📊 Реален разход за етапа: **{(total_segment_liters / segment_dist * 100):.1f} л / 100 км**"
                         )
 
+        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
         if st.button(
             "✅ ЗАПИШИ РАЗХОДА", use_container_width=True,
             type="primary", key="quick_expense_save"
