@@ -200,6 +200,40 @@ def get_category_budgets(t_id):
         pass
     return result
 
+def get_global_budget(t_id):
+    try:
+        if not os.path.exists(CATEGORY_BUDGETS_FILE):
+            return 0.0
+        df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+        if df.empty or not {"trip_id", "category", "budget"}.issubset(df.columns):
+            return 0.0
+        rows = df[(df["trip_id"].astype(str) == str(t_id)) & (df["category"].astype(str) == "__GLOBAL__")]
+        if rows.empty:
+            return 0.0
+        return max(0.0, float(rows.iloc[0]["budget"]))
+    except Exception:
+        return 0.0
+
+def save_global_budget(t_id, amount):
+    try:
+        columns = ["trip_id", "category", "budget"]
+        if os.path.exists(CATEGORY_BUDGETS_FILE):
+            df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+            if not set(columns).issubset(df.columns):
+                df = pd.DataFrame(columns=columns)
+        else:
+            df = pd.DataFrame(columns=columns)
+        df = df[~((df["trip_id"].astype(str) == str(t_id)) & (df["category"].astype(str) == "__GLOBAL__"))]
+        amount = max(0.0, float(amount or 0.0))
+        if amount > 0:
+            df = pd.concat([df, pd.DataFrame([{
+                "trip_id": str(t_id), "category": "__GLOBAL__", "budget": amount
+            }])], ignore_index=True)
+        df.to_csv(CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
 def save_category_budgets(t_id, budgets):
     try:
         columns = ["trip_id", "category", "budget"]
@@ -875,71 +909,94 @@ else:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### 📊 Анализ на разходите:")
 
-    # Бюджетите са отделни от съществуващите разходи и не променят старите данни.
+    # Бюджет: може общ бюджет ИЛИ отделни бюджети по категории.
     category_budgets = get_category_budgets(trip_id)
-    budget_total = sum(v for v in category_budgets.values() if v > 0)
-    budget_spent = sum(float(categories_totals.get(cat, 0.0)) for cat in category_budgets if category_budgets.get(cat, 0) > 0)
-    budget_remaining = budget_total - budget_spent
+    global_budget = get_global_budget(trip_id)
+    category_budget_total = sum(v for v in category_budgets.values() if v > 0)
+    has_category_budgets = category_budget_total > 0
+    active_budget_mode = "category" if has_category_budgets else ("global" if global_budget > 0 else "none")
+
+    if active_budget_mode == "category":
+        active_budget_total = category_budget_total
+        active_budget_spent = sum(float(categories_totals.get(cat, 0.0)) for cat in category_budgets if category_budgets.get(cat, 0) > 0)
+    else:
+        active_budget_total = global_budget
+        active_budget_spent = total_on_site
+    active_budget_remaining = active_budget_total - active_budget_spent
 
     budget_col1, budget_col2 = st.columns([2, 1])
     with budget_col1:
-        st.markdown("""
-        <div style="background:linear-gradient(135deg,rgba(255,212,59,.10),rgba(255,255,255,.025));border:1px solid rgba(255,212,59,.28);padding:14px 16px;border-radius:16px;margin-bottom:14px;">
-            <div style="font-size:13px;font-weight:800;color:#ffd43b;letter-spacing:.3px;">🎯 БЮДЖЕТИ ПО КАТЕГОРИИ</div>
-            <div style="font-size:11px;color:#9aa1ad;margin-top:4px;">Задай отделен лимит за всяка категория и го следи директно върху лентата.</div>
+        if active_budget_mode == "category":
+            budget_caption = "Отделни лимити за категориите"
+        elif active_budget_mode == "global":
+            budget_caption = "Един общ лимит за цялото пътуване"
+        else:
+            budget_caption = "Избери общ бюджет или отделни лимити по категории"
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg,rgba(255,212,59,.10),rgba(255,255,255,.025));border:1px solid rgba(255,212,59,.28);padding:14px 16px;border-radius:16px;margin-bottom:14px;font-family:inherit;">
+            <div style="font-size:13px;font-weight:800;color:#ffd43b;letter-spacing:.3px;font-family:inherit;">🎯 БЮДЖЕТ</div>
+            <div style="font-size:11px;color:#9aa1ad;margin-top:4px;font-family:inherit;">{budget_caption}</div>
         </div>
         """, unsafe_allow_html=True)
     with budget_col2:
-        if st.button("🎯 Настрой бюджети", use_container_width=True, key=f"open_category_budgets_{trip_id}"):
-            @st.dialog("🎯 Бюджети по категории", width="large")
-            def _category_budget_dialog():
-                st.markdown("Задай максимална сума за всяка категория. **0 EUR = без бюджет.**")
-                inputs = {}
-                budget_cats = [cat for cat in KATEGORII if cat != "Депозит/Резервация"]
-                c1, c2 = st.columns(2)
-                for i, cat in enumerate(budget_cats):
-                    with (c1 if i % 2 == 0 else c2):
-                        inputs[cat] = st.number_input(
-                            f"{get_emoji(cat)} {get_display_category(cat)}",
-                            min_value=0.0,
-                            value=float(category_budgets.get(cat, 0.0)),
-                            step=50.0,
-                            format="%.2f",
-                            key=f"cat_budget_{trip_id}_{i}"
-                        )
-                if st.button("💾 Запази бюджетите", type="primary", use_container_width=True, key=f"save_category_budgets_{trip_id}"):
-                    if save_category_budgets(trip_id, inputs):
-                        st.success("Бюджетите са запазени.")
-                        st.rerun()
-                    else:
-                        st.error("Неуспешно записване на бюджетите.")
-            _category_budget_dialog()
+        if st.button("🎯 Настрой бюджет", use_container_width=True, key=f"open_budget_settings_{trip_id}"):
+            @st.dialog("🎯 Настройка на бюджет", width="large")
+            def _budget_settings_dialog():
+                mode_options = ["Общ бюджет", "Бюджет по категории"]
+                current_mode = 0 if active_budget_mode in ("none", "global") else 1
+                mode = st.radio("Как искаш да следиш бюджета?", mode_options, index=current_mode, horizontal=True, key=f"budget_mode_{trip_id}")
+                if mode == "Общ бюджет":
+                    total_budget_input = st.number_input(
+                        "Общ бюджет на пътуването (EUR)", min_value=0.0, value=float(global_budget), step=50.0, format="%.2f", key=f"global_budget_input_{trip_id}"
+                    )
+                    st.caption("В този режим не е нужно да задаваш лимит за всяка категория.")
+                    if st.button("💾 Запази общия бюджет", type="primary", use_container_width=True, key=f"save_global_budget_{trip_id}"):
+                        if save_global_budget(trip_id, total_budget_input):
+                            save_category_budgets(trip_id, {cat: 0.0 for cat in KATEGORII})
+                            st.rerun()
+                else:
+                    st.caption("Задай 0 EUR на категория, която не искаш да лимитираш.")
+                    inputs = {}
+                    budget_cats = [cat for cat in KATEGORII if cat != "Депозит/Резервация"]
+                    c1, c2 = st.columns(2)
+                    for i, cat in enumerate(budget_cats):
+                        with (c1 if i % 2 == 0 else c2):
+                            inputs[cat] = st.number_input(
+                                f"{get_emoji(cat)} {get_display_category(cat)}",
+                                min_value=0.0, value=float(category_budgets.get(cat, 0.0)), step=50.0, format="%.2f", key=f"cat_budget_{trip_id}_{i}"
+                            )
+                    if st.button("💾 Запази бюджетите по категории", type="primary", use_container_width=True, key=f"save_category_budgets_{trip_id}"):
+                        if save_category_budgets(trip_id, inputs):
+                            save_global_budget(trip_id, 0.0)
+                            st.rerun()
+            _budget_settings_dialog()
 
-    if budget_total > 0:
-        total_pct = max(0.0, min(100.0, budget_spent / budget_total * 100.0))
-        remaining_text = f"Остават {budget_remaining:.2f} EUR" if budget_remaining >= 0 else f"Над бюджета с {abs(budget_remaining):.2f} EUR"
-        remaining_color = "#8bd5ff" if budget_remaining >= 0 else "#ff4b4b"
+    if active_budget_mode != "none":
+        total_pct_budget = max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
+        remaining_text = f"Остават {active_budget_remaining:.2f} EUR" if active_budget_remaining >= 0 else f"Над бюджета с {abs(active_budget_remaining):.2f} EUR"
+        remaining_color = "#8bd5ff" if active_budget_remaining >= 0 else "#ff4b4b"
+        budget_label = "Общ бюджет" if active_budget_mode == "global" else "Общо по зададени категории"
         st.markdown(f"""
-        <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 15px;border-radius:14px;margin-bottom:15px;">
-            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px;">
-                <span style="color:#aeb5c0;font-weight:700;">Общо по зададени категории</span>
-                <span style="font-weight:800;">{budget_spent:.2f} / {budget_total:.2f} EUR</span>
+        <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 15px;border-radius:14px;margin-bottom:15px;font-family:inherit;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px;font-family:inherit;">
+                <span style="color:#aeb5c0;font-weight:700;font-family:inherit;">{budget_label}</span>
+                <span style="font-weight:800;font-family:inherit;">{active_budget_spent:.2f} / {active_budget_total:.2f} EUR</span>
             </div>
             <div style="height:10px;background:rgba(0,0,0,.45);border-radius:20px;overflow:hidden;">
-                <div style="width:{total_pct:.2f}%;height:100%;background:{'#ff4b4b' if budget_remaining < 0 else 'linear-gradient(90deg,#4facfe,#00f2fe)'};border-radius:20px;"></div>
+                <div style="width:{total_pct_budget:.2f}%;height:100%;background:{'#ff4b4b' if active_budget_remaining < 0 else 'linear-gradient(90deg,#4facfe,#00f2fe)'};border-radius:20px;"></div>
             </div>
-            <div style="text-align:right;font-size:11px;color:{remaining_color};font-weight:800;margin-top:5px;">{remaining_text}</div>
+            <div style="text-align:right;font-size:11px;color:{remaining_color};font-weight:800;margin-top:5px;font-family:inherit;">{remaining_text}</div>
         </div>
         """, unsafe_allow_html=True)
 
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
+            # Оригиналният процентен бар остава винаги: дял от общо изхарченото.
             pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             display_kat = get_display_category(kat)
-            budget = float(category_budgets.get(kat, 0.0) or 0.0)
+            budget = float(category_budgets.get(kat, 0.0) or 0.0) if active_budget_mode == "category" else 0.0
 
-            # Без бюджет: запазваме 1:1 старата работеща прогрес лента.
             if budget <= 0:
                 st.markdown(f"""
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
@@ -947,14 +1004,16 @@ else:
                         <span style="font-weight: 500; font-size: 15px; font-family: inherit;">{get_emoji(kat)} {display_kat}</span>
                         <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
                     </div>
+                    <div style="font-size:10px;color:#7e8494;font-weight:700;margin-bottom:4px;font-family:inherit;">ДЯЛ ОТ ОБЩО ИЗХАРЧЕНОТО</div>
                     <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
                         <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
                         <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{pct:.1f}%</span>
                     </div>
+                    {"<div style='font-size:10px;color:#7e8494;margin-top:5px;font-family:inherit;'>Бюджет: няма зададен</div>" if active_budget_mode == "category" else ""}
                 </div>
                 """, unsafe_allow_html=True)
             else:
-                ratio = s_value / budget if budget > 0 else 0.0
+                ratio = s_value / budget
                 fill_pct = min(100.0, max(0.0, ratio * 100.0))
                 over = s_value > budget
                 remaining = budget - s_value
@@ -964,22 +1023,25 @@ else:
                     if over else
                     f"<span style='color:#8bd5ff;font-weight:800;font-family:inherit;'>Остават {remaining:.2f} EUR</span>"
                 )
-
                 st.markdown(f"""
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <span style="font-weight: 500; font-size: 15px; font-family: inherit;">{get_emoji(kat)} {display_kat}</span>
                         <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
                     </div>
-                    <div style="font-size: 11px; color: #8f96a3; margin: 0 0 6px 1px; font-family: inherit;">Бюджет {budget:.2f} EUR · {ratio*100:.1f}% използван</div>
-                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: visible; margin-top: 4px;">
-                        <div style="position: relative; height: 100%; width: 100%; border-radius: 20px; overflow: hidden;">
-                            <div style="width: {fill_pct}%; height: 100%; background: {fill_gradient}; border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.35), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
-                        </div>
-                        <div style="position: absolute; right: -1px; top: -3px; width: 3px; height: 19px; background: #ffd43b; border-radius: 3px; box-shadow: 0 0 8px rgba(255,212,59,0.75);"></div>
+                    <div style="font-size:10px;color:#7e8494;font-weight:700;margin-bottom:4px;font-family:inherit;">ДЯЛ ОТ ОБЩО ИЗХАРЧЕНОТО</div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{pct:.1f}%</span>
+                    </div>
+                    <div style="font-size:10px;color:#7e8494;font-weight:700;margin:9px 0 4px;font-family:inherit;">БЮДЖЕТ НА КАТЕГОРИЯТА</div>
+                    <div style="font-size:11px;color:#8f96a3;margin-bottom:6px;font-family:inherit;">Бюджет {budget:.2f} EUR · {min(100.0, ratio*100.0):.1f}% използван</div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                        <div style="width: {fill_pct}%; height: 100%; background: {fill_gradient}; border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.35), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                        <div style="position: absolute; right: 0; top: -3px; width: 3px; height: 19px; background: #ffd43b; border-radius: 3px; box-shadow: 0 0 8px rgba(255,212,59,0.75);"></div>
                         <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{min(100.0, ratio*100.0):.1f}%</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-top:6px; font-family:inherit;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;font-family:inherit;">
                         <span style="color:#ffd43b;font-family:inherit;">🟡 Бюджет</span>
                         {status_html}
                     </div>
