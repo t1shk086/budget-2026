@@ -2454,23 +2454,24 @@ else:
     st.markdown("""
     <style>
         div[data-testid="stVerticalBlockBorderWrapper"]:has(.tm-plan-wrap-marker) {
-            border: 1px solid rgba(155,124,255,.38) !important;
-            border-radius: 18px !important;
-            padding: 16px !important;
-            background: linear-gradient(135deg, rgba(155,124,255,.075), rgba(255,255,255,.015)) !important;
-            box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 1px 1px rgba(255,255,255,.04) !important;
+            border: 1px solid rgba(255,255,255,.08) !important;
+            border-radius: 16px !important;
+            padding: 0 !important;
+            background: linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01)) !important;
+            box-shadow: 4px 4px 12px rgba(0,0,0,.30) !important;
             margin-top: 10px !important;
             margin-bottom: 16px !important;
+            overflow: hidden !important;
         }
-        .tm-plan-header { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+        .tm-plan-header { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:14px 14px 10px 14px; }
         .tm-plan-title-wrap { display:flex; align-items:center; gap:10px; min-width:0; }
         .tm-plan-title { color:#fff; font-size:15px; font-weight:800; letter-spacing:.25px; }
         .tm-plan-count { color:#b6bcc8; font-size:11px; white-space:nowrap; }
-        .tm-plan-progress { height:6px; width:100%; background:rgba(255,255,255,.07); border-radius:99px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.35); }
+        .tm-plan-progress { height:6px; width:calc(100% - 28px); margin:0 14px; background:rgba(255,255,255,.07); border-radius:99px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.35); }
         .tm-plan-progress-fill { height:100%; background:linear-gradient(90deg,#9b7cff,#b79cff); border-radius:99px; }
-        .tm-plan-progress-text { margin-top:5px; text-align:right; color:#8f96a3; font-size:10px; }
+        .tm-plan-progress-text { margin:5px 14px 0 14px; text-align:right; color:#8f96a3; font-size:10px; }
         @media (max-width:640px) {
-            div[data-testid="stVerticalBlockBorderWrapper"]:has(.tm-plan-wrap-marker) { padding:13px !important; }
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.tm-plan-wrap-marker) { padding:0 !important; }
             .tm-plan-title { font-size:14px; }
         }
     </style>
