@@ -2406,7 +2406,11 @@ else:
             icon = "✅" if item_done else "⬜"
             task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
             with task_row:
-                task_label = f"{icon} {title}"
+                # Streamlit центрира текста в native button.
+                # Добавяме невидимо визуално пространство вдясно, за да изместим
+                # видимото име към лявата страна, без да пипаме responsive layout-а.
+                left_shift = max(18, min(55, 72 - len(title)))
+                task_label = f"{icon} {title}" + "\u00a0" * left_shift
                 st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
                 st.button("🗑️", key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,), width="content")
     else:
