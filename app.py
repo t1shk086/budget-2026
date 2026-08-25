@@ -8,6 +8,10 @@ from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import io
 import html
+import json
+import math
+from urllib.parse import quote
+from urllib.request import Request, urlopen
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
@@ -68,6 +72,7 @@ DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
 TRIP_PLAN_FILE = "trip_plan_2026.csv"
+ROUTE_PLAN_FILE = "trip_route_plan_2026.csv"
 
 # Настройки само за имената на бутоните. Каноничните категории в данните НЕ се променят.
 DEFAULT_UI_LABELS = {
@@ -124,6 +129,9 @@ if not os.path.exists(MAP_FILE):
 
 if not os.path.exists(TRIP_PLAN_FILE):
     pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"]).to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
+
+if not os.path.exists(ROUTE_PLAN_FILE):
+    pd.DataFrame(columns=["trip_id", "stage_id", "start_name", "end_name", "start_lat", "start_lon", "end_lat", "end_lon", "distance_km", "duration_min", "fuel_liters", "fuel_cost", "tolls", "geometry", "created"]).to_csv(ROUTE_PLAN_FILE, index=False, encoding="utf-8")
 
 for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters","current_km"]), 
                 (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date"])]:
@@ -394,6 +402,155 @@ def delete_trip_plan_item(item_id):
         return True
     except Exception:
         return False
+
+def _route_plan_columns():
+    return ["trip_id", "stage_id", "start_name", "end_name", "start_lat", "start_lon", "end_lat", "end_lon", "distance_km", "duration_min", "fuel_liters", "fuel_cost", "tolls", "geometry", "created"]
+
+
+def get_route_plan(t_id):
+    cols = _route_plan_columns()
+    try:
+        if not os.path.exists(ROUTE_PLAN_FILE):
+            return pd.DataFrame(columns=cols)
+        df = pd.read_csv(ROUTE_PLAN_FILE, encoding="utf-8")
+        if df.empty:
+            return pd.DataFrame(columns=cols)
+        for col in cols:
+            if col not in df.columns:
+                df[col] = "" if col in ["trip_id", "stage_id", "start_name", "end_name", "geometry", "created"] else 0.0
+        return df[df["trip_id"].astype(str) == str(t_id)].copy().reset_index(drop=True)
+    except Exception:
+        return pd.DataFrame(columns=cols)
+
+
+def _geocode_route_place(place):
+    """Връща (lat, lon, display_name) чрез Nominatim."""
+    text = str(place or "").strip()
+    if not text:
+        return None
+    try:
+        geolocator = Nominatim(user_agent="pixelapp_travel_manager_2026_route_planner")
+        location = geolocator.geocode(text, language="bg,en", addressdetails=False, timeout=8)
+        if location:
+            return float(location.latitude), float(location.longitude), str(location.address or text)
+    except Exception:
+        pass
+    return None
+
+
+def _haversine_km(lat1, lon1, lat2, lon2):
+    r = 6371.0088
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(max(0.0, 1.0 - a)))
+
+
+def _get_road_route(start_lat, start_lon, end_lat, end_lon):
+    """OSRM пътен маршрут. При недостъпен routing service използва ясно маркирана приблизителна оценка."""
+    url = (
+        "https://router.project-osrm.org/route/v1/driving/"
+        f"{start_lon},{start_lat};{end_lon},{end_lat}"
+        "?overview=full&geometries=geojson&steps=false"
+    )
+    try:
+        req = Request(url, headers={"User-Agent": "PixelApp Travel Manager 2026"})
+        with urlopen(req, timeout=12) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        routes = payload.get("routes") or []
+        if routes:
+            route = routes[0]
+            geometry = (route.get("geometry") or {}).get("coordinates") or []
+            geometry_latlon = [[float(latlon[1]), float(latlon[0])] for latlon in geometry if len(latlon) >= 2]
+            return {
+                "distance_km": float(route.get("distance", 0.0)) / 1000.0,
+                "duration_min": float(route.get("duration", 0.0)) / 60.0,
+                "geometry": geometry_latlon,
+                "approx": False,
+            }
+    except Exception:
+        pass
+
+    straight_km = _haversine_km(start_lat, start_lon, end_lat, end_lon)
+    estimated_km = straight_km * 1.18
+    estimated_min = estimated_km / 70.0 * 60.0 if estimated_km > 0 else 0.0
+    return {
+        "distance_km": estimated_km,
+        "duration_min": estimated_min,
+        "geometry": [[start_lat, start_lon], [end_lat, end_lon]],
+        "approx": True,
+    }
+
+
+def add_route_stage(t_id, start_name, end_name, fuel_l_per_100, fuel_price, tolls=0.0):
+    """Геокодира две точки, изчислява пътния маршрут и го записва."""
+    start = _geocode_route_place(start_name)
+    end = _geocode_route_place(end_name)
+    if not start or not end:
+        return False, "Не успях да намеря едната от двете точки. Опитай с град + държава."
+
+    route = _get_road_route(start[0], start[1], end[0], end[1])
+    distance_km = max(0.0, float(route["distance_km"]))
+    fuel_liters = distance_km * max(0.0, float(fuel_l_per_100 or 0.0)) / 100.0
+    fuel_cost = fuel_liters * max(0.0, float(fuel_price or 0.0))
+    tolls = max(0.0, float(tolls or 0.0))
+
+    try:
+        df = pd.read_csv(ROUTE_PLAN_FILE, encoding="utf-8")
+        if df.empty:
+            df = pd.DataFrame(columns=_route_plan_columns())
+        stage_id = f"{t_id}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        row = {
+            "trip_id": str(t_id),
+            "stage_id": stage_id,
+            "start_name": str(start_name).strip(),
+            "end_name": str(end_name).strip(),
+            "start_lat": start[0],
+            "start_lon": start[1],
+            "end_lat": end[0],
+            "end_lon": end[1],
+            "distance_km": distance_km,
+            "duration_min": float(route["duration_min"]),
+            "fuel_liters": fuel_liters,
+            "fuel_cost": fuel_cost,
+            "tolls": tolls,
+            "geometry": json.dumps(route["geometry"], ensure_ascii=False),
+            "created": datetime.datetime.now().strftime("%d.%m.%Y %H:%M"),
+        }
+        df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+        df.to_csv(ROUTE_PLAN_FILE, index=False, encoding="utf-8")
+        suffix = " (приблизително)" if route.get("approx") else ""
+        return True, f"Маршрутът е добавен{suffix}."
+    except Exception as exc:
+        return False, f"Неуспешно записване на етапа: {exc}"
+
+
+def delete_route_stage(stage_id):
+    try:
+        df = pd.read_csv(ROUTE_PLAN_FILE, encoding="utf-8")
+        df = df[df["stage_id"].astype(str) != str(stage_id)]
+        df.to_csv(ROUTE_PLAN_FILE, index=False, encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+
+def clear_route_plan(t_id):
+    try:
+        df = pd.read_csv(ROUTE_PLAN_FILE, encoding="utf-8")
+        df = df[df["trip_id"].astype(str) != str(t_id)]
+        df.to_csv(ROUTE_PLAN_FILE, index=False, encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+
+def _format_duration(minutes):
+    total = max(0, int(round(float(minutes or 0))))
+    hours, mins = divmod(total, 60)
+    return f"{hours}ч {mins}мин" if hours else f"{mins}мин"
+
 
 def get_map_points(t_id):
     try:
@@ -1015,6 +1172,8 @@ else:
                     pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
                     if os.path.exists(TRIP_PLAN_FILE):
                         pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
+                    if os.path.exists(ROUTE_PLAN_FILE):
+                        pd.read_csv(ROUTE_PLAN_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(ROUTE_PLAN_FILE, index=False, encoding="utf-8")
                     if os.path.exists(CATEGORY_BUDGETS_FILE):
                         df_budget_delete = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
                         df_budget_delete[df_budget_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
@@ -2444,7 +2603,208 @@ else:
     """, unsafe_allow_html=True)
 
     # =========================================================
-    # 🧳 ПЛАН НА ПЪТУВАНЕТО
+    # 🚗 ПЪТЕН ПЛАН — АВТОМАТИЧНО ИЗЧИСЛЯВАНЕ НА МАРШРУТА
+    # =========================================================
+    route_df = get_route_plan(trip_id)
+    route_fuel_consumption = float(st.session_state.get(f"route_fuel_consumption_{trip_id}", 7.0) or 7.0)
+    route_fuel_price = float(st.session_state.get(f"route_fuel_price_{trip_id}", 1.90) or 1.90)
+
+    st.markdown("""
+    <style>
+        .tm-route-card {
+            background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.012));
+            border:1px solid rgba(255,255,255,.09);
+            border-radius:16px;
+            padding:16px;
+            margin-bottom:12px;
+            box-shadow:4px 4px 12px rgba(0,0,0,.24);
+            font-family:inherit;
+        }
+        .tm-route-summary {
+            display:grid;
+            grid-template-columns:repeat(4,minmax(0,1fr));
+            gap:8px;
+            margin-bottom:12px;
+        }
+        .tm-route-metric {
+            background:rgba(0,0,0,.18);
+            border:1px solid rgba(255,255,255,.07);
+            border-radius:12px;
+            padding:11px 12px;
+            min-width:0;
+        }
+        .tm-route-metric-label { color:#7e8494; font-size:10px; font-weight:700; }
+        .tm-route-metric-value { color:#fff; font-size:18px; font-weight:900; margin-top:4px; }
+        .tm-route-stage {
+            display:grid;
+            grid-template-columns:30px minmax(0,1.6fr) 90px 90px 90px 34px;
+            align-items:center;
+            gap:8px;
+            padding:11px 8px;
+            border-top:1px solid rgba(255,255,255,.06);
+            font-size:11px;
+        }
+        .tm-route-stage-number {
+            width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+            background:rgba(155,124,255,.18);border:1px solid rgba(155,124,255,.55);color:#fff;font-weight:900;
+        }
+        .tm-route-stage-main { min-width:0; }
+        .tm-route-stage-route { color:#fff;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+        .tm-route-stage-sub { color:#7e8494;margin-top:3px; }
+        .tm-route-stage-value { color:#dce1e8;text-align:right;white-space:nowrap; }
+        .tm-route-note { color:#7e8494;font-size:10px;line-height:1.4;margin-top:8px; }
+        @media (max-width:640px) {
+            .tm-route-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+            .tm-route-stage { grid-template-columns:26px minmax(0,1fr) 62px 34px; }
+            .tm-route-stage .desktop-only { display:none; }
+            .tm-route-stage-value { font-size:10px; }
+            .tm-route-metric-value { font-size:16px; }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n1'>🚗</span><span>ПЪТЕН ПЛАН</span></div>", unsafe_allow_html=True)
+    st.markdown("<div style='color:#8f96a3;font-size:12px;margin:-4px 0 12px 38px;'>Въвеждаш само градовете. Разстоянието и времето се изчисляват автоматично.</div>", unsafe_allow_html=True)
+
+    route_settings_1, route_settings_2 = st.columns(2)
+    with route_settings_1:
+        route_fuel_consumption = st.number_input(
+            "⛽ Разход на автомобила (л/100 км)", min_value=0.0, value=route_fuel_consumption,
+            step=0.1, format="%.1f", key=f"route_fuel_consumption_input_{trip_id}"
+        )
+    with route_settings_2:
+        route_fuel_price = st.number_input(
+            "💶 Цена на горивото (EUR/л)", min_value=0.0, value=route_fuel_price,
+            step=0.01, format="%.2f", key=f"route_fuel_price_input_{trip_id}"
+        )
+    st.session_state[f"route_fuel_consumption_{trip_id}"] = float(route_fuel_consumption)
+    st.session_state[f"route_fuel_price_{trip_id}"] = float(route_fuel_price)
+
+    existing_last_destination = str(route_df.iloc[-1]["end_name"]) if not route_df.empty else ""
+    route_from_default = existing_last_destination
+    route_from = st.text_input(
+        "📍 От",
+        value=route_from_default,
+        placeholder="напр. София, България",
+        key=f"route_from_{trip_id}"
+    )
+    route_to = st.text_input(
+        "📍 До",
+        placeholder="напр. Белград, Сърбия",
+        key=f"route_to_{trip_id}"
+    )
+    route_toll = st.number_input(
+        "🧾 Пътни такси за този етап (EUR)", min_value=0.0, value=0.0,
+        step=1.0, format="%.2f", key=f"route_toll_{trip_id}"
+    )
+
+    route_add_col, route_clear_col = st.columns(2)
+    with route_add_col:
+        if st.button("✨ ИЗЧИСЛИ И ДОБАВИ ЕТАП", use_container_width=True, type="primary", key=f"route_add_stage_{trip_id}"):
+            if not route_from.strip() or not route_to.strip():
+                st.warning("⚠️ Въведи начална и крайна точка.")
+            elif route_from.strip().lower() == route_to.strip().lower():
+                st.warning("⚠️ Началната и крайната точка трябва да са различни.")
+            else:
+                ok, message = add_route_stage(
+                    trip_id, route_from, route_to,
+                    float(route_fuel_consumption), float(route_fuel_price), float(route_toll)
+                )
+                if ok:
+                    st.success("✅ " + message)
+                    st.rerun()
+                else:
+                    st.error("❌ " + message)
+    with route_clear_col:
+        if st.button("🗑️ ИЗЧИСТИ ПЛАНА", use_container_width=True, key=f"route_clear_{trip_id}", disabled=route_df.empty):
+            if clear_route_plan(trip_id):
+                st.rerun()
+
+    if not route_df.empty:
+        total_route_km = float(pd.to_numeric(route_df["distance_km"], errors="coerce").fillna(0).sum())
+        total_route_min = float(pd.to_numeric(route_df["duration_min"], errors="coerce").fillna(0).sum())
+        total_route_liters = total_route_km * float(route_fuel_consumption) / 100.0
+        total_route_fuel_cost = total_route_liters * float(route_fuel_price)
+        total_route_tolls = float(pd.to_numeric(route_df["tolls"], errors="coerce").fillna(0).sum())
+        total_route_cost = total_route_fuel_cost + total_route_tolls
+
+        st.markdown(f"""
+        <div class='tm-route-card'>
+            <div class='tm-route-summary'>
+                <div class='tm-route-metric'><div class='tm-route-metric-label'>ОБЩО РАЗСТОЯНИЕ</div><div class='tm-route-metric-value'>{total_route_km:,.0f} км</div></div>
+                <div class='tm-route-metric'><div class='tm-route-metric-label'>ОБЩО ВРЕМЕ</div><div class='tm-route-metric-value'>{_format_duration(total_route_min)}</div></div>
+                <div class='tm-route-metric'><div class='tm-route-metric-label'>ГОРИВО</div><div class='tm-route-metric-value'>{total_route_liters:.1f} л</div></div>
+                <div class='tm-route-metric'><div class='tm-route-metric-label'>ТРАНСПОРТ ОБЩО</div><div class='tm-route-metric-value' style='color:#63d391;'>€{total_route_cost:.2f}</div></div>
+            </div>
+            <div style='display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#8f96a3;font-size:11px;'>
+                <span>⛽ Гориво: <b style='color:#fff;'>€{total_route_fuel_cost:.2f}</b></span>
+                <span>🧾 Пътни такси: <b style='color:#fff;'>€{total_route_tolls:.2f}</b></span>
+                <span>⚙️ {route_fuel_consumption:.1f} л/100 км · €{route_fuel_price:.2f}/л</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Карта на целия маршрут.
+        map_points = []
+        all_geometry = []
+        for _, rr in route_df.iterrows():
+            try:
+                geom = json.loads(str(rr.get("geometry", "[]")))
+                if isinstance(geom, list) and geom:
+                    all_geometry.extend(geom)
+            except Exception:
+                pass
+            map_points.append((float(rr["start_lat"]), float(rr["start_lon"]), str(rr["start_name"])))
+        last_rr = route_df.iloc[-1]
+        map_points.append((float(last_rr["end_lat"]), float(last_rr["end_lon"]), str(last_rr["end_name"])))
+
+        if map_points:
+            center_lat = sum(p[0] for p in map_points) / len(map_points)
+            center_lon = sum(p[1] for p in map_points) / len(map_points)
+            route_map = folium.Map(location=[center_lat, center_lon], zoom_start=6, control_scale=True)
+            if all_geometry:
+                folium.PolyLine(all_geometry, color="#7b4dff", weight=5, opacity=0.9).add_to(route_map)
+            else:
+                folium.PolyLine([[p[0], p[1]] for p in map_points], color="#7b4dff", weight=5, opacity=0.9).add_to(route_map)
+            for i, (lat, lon, name) in enumerate(map_points, start=1):
+                folium.Marker(
+                    [lat, lon], popup=f"{i}. {name}",
+                    icon=folium.Icon(color="green" if i == 1 else ("red" if i == len(map_points) else "blue"), icon="info-sign")
+                ).add_to(route_map)
+            st_folium(route_map, width=700, height=340, key=f"route_plan_map_{trip_id}_{len(route_df)}")
+
+        st.markdown("<div class='tm-route-card' style='padding:8px 10px;'>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:12px;color:#8b929e;font-weight:800;padding:6px 8px 4px;'>ЕТАПИ НА МАРШРУТА</div>", unsafe_allow_html=True)
+        for stage_num, (_, rr) in enumerate(route_df.iterrows(), start=1):
+            distance = float(rr.get("distance_km", 0) or 0)
+            duration = float(rr.get("duration_min", 0) or 0)
+            fuel_l = distance * float(route_fuel_consumption) / 100.0
+            fuel_c = fuel_l * float(route_fuel_price)
+            toll_c = float(rr.get("tolls", 0) or 0)
+            total_c = fuel_c + toll_c
+            st.markdown(f"""
+            <div class='tm-route-stage'>
+                <div class='tm-route-stage-number'>{stage_num}</div>
+                <div class='tm-route-stage-main'><div class='tm-route-stage-route'>{html.escape(str(rr['start_name']))} → {html.escape(str(rr['end_name']))}</div><div class='tm-route-stage-sub'>{_format_duration(duration)} · ⛽ {fuel_l:.1f} л</div></div>
+                <div class='tm-route-stage-value'>{distance:.0f} км</div>
+                <div class='tm-route-stage-value desktop-only'>€{fuel_c:.2f}</div>
+                <div class='tm-route-stage-value'>€{total_c:.2f}</div>
+                <div></div>
+            </div>
+            """, unsafe_allow_html=True)
+            if not is_trip_finished:
+                if st.button("🗑️", key=f"delete_route_stage_{trip_id}_{rr['stage_id']}", width="content"):
+                    delete_route_stage(rr["stage_id"])
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<div class='tm-route-note'>💡 Пътните разстояния се търсят автоматично по пътна мрежа. Ако routing услугата временно не е достъпна, приложението използва приблизителна оценка и я отбелязва при добавянето.</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='tm-route-card' style='text-align:center;color:#7e8494;'>Добави първия етап — например <b style='color:#fff;'>София → Белград</b>. Не е нужно да въвеждаш километри.</div>", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # =========================================================
+    # 🧳 ЗАДАЧИ И РЕЗЕРВАЦИИ
     # =========================================================
     plan_df = get_trip_plan(trip_id)
     plan_done = int(plan_df["done"].sum()) if not plan_df.empty else 0
@@ -2499,7 +2859,7 @@ else:
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n3'>3</span><span>ПЛАН НА ПЪТУВАНЕТО</span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n3'>3</span><span>ЗАДАЧИ И РЕЗЕРВАЦИИ</span></div>", unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="tm-plan-progress-wrap">
@@ -2654,32 +3014,30 @@ else:
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                width: 100% !important;
-                min-height: 38.4px !important;
-                box-sizing: border-box !important;
-                background: linear-gradient(135deg, #252932, #16191f) !important;
-                color: #ffffff !important;
-                border: 1px solid rgba(255, 255, 255, 0.05) !important;
-                border-radius: 12px !important;
+                width: 100% !important; 
+                height: 38.4px !important;
+                background: linear-gradient(to bottom, #262730 0%, #1a1c23 100%) !important;
+                color: #ffffff !important; 
+                border: 1px solid rgba(255, 255, 255, 0.12) !important;
                 padding: 0.25rem 0.75rem !important;
                 font-weight: 600 !important;
                 font-size: 14px !important;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-                letter-spacing: 0.5px !important;
+                border-radius: 0.5rem !important;
                 cursor: pointer !important;
                 user-select: none !important;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
-                transition: all 0.25s ease !important;
+                box-shadow: 0px 3px 0px #0e1117, 0px 5px 10px rgba(0,0,0,0.35) !important;
+                transition: all 0.15s ease-in-out !important;
             }
             .twin-premium-3d-btn:hover {
-                background: linear-gradient(135deg, #2e343f, #1c2028) !important;
-                transform: translateY(-1px) !important;
-                box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15) !important;
-                border-color: rgba(0, 242, 254, 0.2) !important;
+                background: linear-gradient(to bottom, #31333e 0%, #22242d 100%) !important;
+                border-color: rgba(255, 255, 255, 0.3) !important;
+                box-shadow: 0px 3px 0px #0e1117, 0px 7px 14px rgba(0,0,0,0.45) !important;
             }
             .twin-premium-3d-btn:active {
-                transform: translateY(0) !important;
-                box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important;
+                transform: translateY(2px) !important;
+                box-shadow: 0px 1px 0px #0e1117, 0px 2px 4px rgba(0,0,0,0.2) !important;
+                transition: all 0.05s ease !important;
             }
             .twin-grid-wrapper a {
                 text-decoration: none !important;
@@ -2733,7 +3091,7 @@ else:
                 import io
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE]:
+                    for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE, ROUTE_PLAN_FILE]:
                         if os.path.exists(file_name):
                             zip_file.write(file_name, arcname=file_name)
                 st.download_button(
@@ -2763,7 +3121,7 @@ else:
                         with zipfile.ZipFile(uploaded_zip) as zip_file:
                             namelist = zip_file.namelist()
                             restored_count = 0
-                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE]:
+                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE, ROUTE_PLAN_FILE]:
                                 if f_name in namelist:
                                     with open(f_name, "wb") as f_out:
                                         f_out.write(zip_file.read(f_name))
