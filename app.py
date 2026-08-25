@@ -935,41 +935,56 @@ else:
     stat_grid = st.columns(2)
     for idx, (kat, s_value) in enumerate(categories_totals.items()):
         with stat_grid[idx % 2]:
+            pct = (s_value / total_on_site * 100) if total_on_site > 0 else 0.0
             display_kat = get_display_category(kat)
-            budget = float(category_budgets.get(kat, 0.0))
-            if budget > 0:
-                ratio = s_value / budget
+            budget = float(category_budgets.get(kat, 0.0) or 0.0)
+
+            # Без бюджет: запазваме 1:1 старата работеща прогрес лента.
+            if budget <= 0:
+                st.markdown(f"""
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 500; font-size: 15px; font-family: inherit;">{get_emoji(kat)} {display_kat}</span>
+                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{pct:.1f}%</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                ratio = s_value / budget if budget > 0 else 0.0
                 fill_pct = min(100.0, max(0.0, ratio * 100.0))
                 over = s_value > budget
-                bar_color = "#ff4b4b" if over else "#4facfe"
                 remaining = budget - s_value
-                status = (f"<span style='color:#ff4b4b;font-weight:800;'>Над бюджета с {abs(remaining):.2f} EUR</span>" if over else f"<span style='color:#8bd5ff;font-weight:800;'>Остават {remaining:.2f} EUR</span>")
-                # Жълтата линия е самият лимит. Лентата е мащабирана спрямо бюджета.
-                marker_html = "<div style='position:absolute;right:0;top:-3px;width:3px;height:19px;background:#ffd43b;border-radius:3px;box-shadow:0 0 8px rgba(255,212,59,.75);'></div>"
-                subline = f"Бюджет {budget:.2f} EUR · {ratio*100:.1f}%"
-            else:
-                fill_pct = (s_value / total_on_site * 100.0) if total_on_site > 0 else 0.0
-                bar_color = "linear-gradient(90deg,#4facfe,#00f2fe)"
-                status = "<span style='color:#777;'>Няма зададен бюджет</span>"
-                marker_html = ""
-                subline = f"{fill_pct:.1f}% от общите разходи"
+                fill_gradient = "#ff4b4b" if over else "linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)"
+                status_html = (
+                    f"<span style='color:#ff4b4b;font-weight:800;font-family:inherit;'>Над бюджета с {abs(remaining):.2f} EUR</span>"
+                    if over else
+                    f"<span style='color:#8bd5ff;font-weight:800;font-family:inherit;'>Остават {remaining:.2f} EUR</span>"
+                )
 
-            st.markdown(f"""
-            <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);padding:14px;border-radius:14px;margin-bottom:12px;box-shadow:4px 4px 10px rgba(0,0,0,0.3);">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;gap:8px;">
-                    <span style="font-weight:600;font-size:15px;">{get_emoji(kat)} {display_kat}</span>
-                    <span style="font-weight:800;color:{'#ff4b4b' if budget > 0 and s_value > budget else '#ff4b4b'};font-size:15px;">{s_value:.2f} EUR</span>
+                st.markdown(f"""
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 500; font-size: 15px; font-family: inherit;">{get_emoji(kat)} {display_kat}</span>
+                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
+                    </div>
+                    <div style="font-size: 11px; color: #8f96a3; margin: 0 0 6px 1px; font-family: inherit;">Бюджет {budget:.2f} EUR · {ratio*100:.1f}% използван</div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: visible; margin-top: 4px;">
+                        <div style="position: relative; height: 100%; width: 100%; border-radius: 20px; overflow: hidden;">
+                            <div style="width: {fill_pct}%; height: 100%; background: {fill_gradient}; border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.35), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                        </div>
+                        <div style="position: absolute; right: -1px; top: -3px; width: 3px; height: 19px; background: #ffd43b; border-radius: 3px; box-shadow: 0 0 8px rgba(255,212,59,0.75);"></div>
+                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{min(100.0, ratio*100.0):.1f}%</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-top:6px; font-family:inherit;">
+                        <span style="color:#ffd43b;font-family:inherit;">🟡 Бюджет</span>
+                        {status_html}
+                    </div>
                 </div>
-                <div style="font-size:11px;color:#8f96a3;margin-bottom:7px;">{subline}</div>
-                <div style="background:rgba(0,0,0,.42);height:16px;border-radius:20px;padding:2px;position:relative;overflow:visible;">
-                    <div style="width:{fill_pct:.2f}%;height:100%;background:{bar_color};border-radius:20px;box-shadow:0 0 8px rgba(0,242,254,.22);"></div>
-                    {marker_html}
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;">
-                    <span style="color:#ffd43b;">{'🟡 Бюджет' if budget > 0 else ''}</span>{status}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
     @st.dialog("📊 Разходи по Категории", width="large")
     def разходи_по_категории_dialog():
