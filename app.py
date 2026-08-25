@@ -1214,7 +1214,7 @@ else:
 
 
 
-        st.markdown("<div class='tm-section-title'><span class='tm-section-number tm-n1'>1</span><span>Данни за разход и пробег</span></div>", unsafe_allow_html=True)
+        st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n1'>1</span><span>Данни за разход и пробег</span></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 СЛЕДЕНЕ НА ПРОБЕГА</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
         # Разделяме екрана на две основни колони: за уредите и за статистика на разходите
         box_col1, box_col2 = st.columns(2)
@@ -1470,7 +1470,7 @@ else:
             gap:10px;
             font-size:15px;
             font-weight:800;
-            color:#8b929e;
+            color:#ffffff;
             letter-spacing:.3px;
             font-family:inherit;
         }
@@ -1492,10 +1492,11 @@ else:
         .tm-n2 { border:2px solid #ffd43b; }
         .tm-n3 { border:2px solid #9b7cff; }
         .tm-n4 { border:2px solid #63d391; }
+        .tm-n5 { border:2px solid #ff8a65; }
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div class='tm-section-title'><span class='tm-section-number tm-n2'>2</span><span>Анализ на разходите</span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n2'>2</span><span>Анализ на разходите</span></div>", unsafe_allow_html=True)
 
     # Бюджет: може общ бюджет ИЛИ отделни бюджети по категории.
     category_budgets = get_category_budgets(trip_id)
@@ -2542,7 +2543,7 @@ else:
             pass
 
     if not df_points.empty:
-        st.markdown("#### 📍 Любими места от пътуването:")
+        st.markdown("<div class='tm-section-title' style='margin-top:4px;margin-bottom:10px;'><span class='tm-section-number tm-n5'>5</span><span>Любими места от пътуването</span></div>", unsafe_allow_html=True)
         st.markdown("---")
         try:
             df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
