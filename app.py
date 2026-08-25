@@ -266,6 +266,79 @@ def save_category_budgets(t_id, budgets):
     except Exception:
         return False
 
+def save_budget_config(t_id, mode, total_amount=None, budgets=None):
+    """
+    Надеждно записва цялата бюджетна конфигурация за едно пътуване
+    като една операция. Режимите са взаимно изключващи се:
+    - "global" -> само общ бюджет
+    - "category" -> бюджети по категории
+    """
+    try:
+        columns = ["trip_id", "category", "budget"]
+        if os.path.exists(CATEGORY_BUDGETS_FILE):
+            df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+            if not set(columns).issubset(df.columns):
+                df = pd.DataFrame(columns=columns)
+        else:
+            df = pd.DataFrame(columns=columns)
+
+        # Премахваме цялата стара бюджетна конфигурация само за това пътуване.
+        df = df[df["trip_id"].astype(str) != str(t_id)]
+
+        new_rows = []
+
+        if mode == "global":
+            try:
+                amount = float(total_amount) if total_amount is not None else 0.0
+            except (TypeError, ValueError):
+                amount = 0.0
+
+            if amount <= 0:
+                return False
+
+            new_rows.append({
+                "trip_id": str(t_id),
+                "category": "__GLOBAL__",
+                "budget": amount
+            })
+
+        elif mode == "category":
+            budgets = budgets or {}
+            for cat in KATEGORII:
+                if cat == "Депозит/Резервация":
+                    continue
+                raw_value = budgets.get(cat)
+                try:
+                    amount = float(raw_value) if raw_value is not None else 0.0
+                except (TypeError, ValueError):
+                    amount = 0.0
+
+                if amount > 0:
+                    new_rows.append({
+                        "trip_id": str(t_id),
+                        "category": cat,
+                        "budget": amount
+                    })
+        else:
+            return False
+
+        if new_rows:
+            df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
+
+        tmp_file = CATEGORY_BUDGETS_FILE + ".tmp"
+        df.to_csv(tmp_file, index=False, encoding="utf-8")
+        os.replace(tmp_file, CATEGORY_BUDGETS_FILE)
+        return True
+
+    except Exception:
+        try:
+            if os.path.exists(CATEGORY_BUDGETS_FILE + ".tmp"):
+                os.remove(CATEGORY_BUDGETS_FILE + ".tmp")
+        except:
+            pass
+        return False
+
+
 def get_map_points(t_id):
     try:
         df = pd.read_csv(MAP_FILE, encoding="utf-8")
@@ -830,6 +903,11 @@ else:
                 try:
                     pd.read_csv(DATA_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
                     pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+                    if os.path.exists(CATEGORY_BUDGETS_FILE):
+                        df_budget_delete = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+                        df_budget_delete[df_budget_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
+                            CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8"
+                        )
                 except: 
                     pass
                 st.session_state["current_trip"] = None
@@ -1236,11 +1314,13 @@ else:
                     )
                     st.caption("В този режим не е нужно да задаваш лимит за всяка категория.")
                     if st.button("💾 Запази общия бюджет", type="primary", use_container_width=True, key=f"save_global_budget_{trip_id}"):
-                        # Общият бюджет и категориалните бюджети са взаимно изключващи се.
-                        # Първо изчистваме само категориалните редове, без да заличаваме глобалния бюджет.
-                        if save_category_budgets(trip_id, {cat: 0.0 for cat in KATEGORII}):
-                            if save_global_budget(trip_id, total_budget_input):
-                                st.rerun()
+                        if total_budget_input is None or float(total_budget_input) <= 0:
+                            st.warning("⚠️ Въведете сума за бюджета.")
+                        elif save_budget_config(trip_id, "global", total_amount=total_budget_input):
+                            st.success("✅ Общият бюджет е записан.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Бюджетът не можа да бъде записан.")
                 else:
                     st.caption("Задай 0 EUR на категория, която не искаш да лимитираш.")
                     inputs = {}
@@ -1259,9 +1339,17 @@ else:
                                 key=f"cat_budget_{trip_id}_{i}"
                             )
                     if st.button("💾 Запази бюджетите по категории", type="primary", use_container_width=True, key=f"save_category_budgets_{trip_id}"):
-                        if save_global_budget(trip_id, 0.0):
-                            if save_category_budgets(trip_id, inputs):
-                                st.rerun()
+                        has_any_category_budget = any(
+                            value is not None and float(value) > 0
+                            for value in inputs.values()
+                        )
+                        if not has_any_category_budget:
+                            st.warning("⚠️ Въведете поне една сума за бюджет.")
+                        elif save_budget_config(trip_id, "category", budgets=inputs):
+                            st.success("✅ Бюджетите по категории са записани.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Бюджетите не можаха да бъдат записани.")
             _budget_settings_dialog()
 
     # ОБЩ БЮДЖЕТ: винаги показваме отделна обща прогрес лента.
@@ -2043,7 +2131,7 @@ else:
                 import io
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE]:
+                    for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE]:
                         if os.path.exists(file_name):
                             zip_file.write(file_name, arcname=file_name)
                 st.download_button(
@@ -2073,7 +2161,7 @@ else:
                         with zipfile.ZipFile(uploaded_zip) as zip_file:
                             namelist = zip_file.namelist()
                             restored_count = 0
-                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE]:
+                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE]:
                                 if f_name in namelist:
                                     with open(f_name, "wb") as f_out:
                                         f_out.write(zip_file.read(f_name))
