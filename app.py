@@ -741,42 +741,17 @@ if st.session_state.page == "home":
     # HEADER
     # -----------------------------------------------------
 
-    st.markdown(
-        """
-        <div style="
-            padding: 12px 0 18px 0;
-            width: 100%;
-        ">
-            <div style="
-                color: #f4f8fb;
-                font-size: clamp(2rem, 5vw, 3rem);
-                font-weight: 800;
-                line-height: 1.05;
-                letter-spacing: -0.055em;
-                margin: 0;
-            ">
-                ✈️ Travel Manager
-            </div>
+    st.title("✈️ Travel Manager")
 
-            <div style="
-                color: #8fa1b2;
-                font-size: 1rem;
-                font-weight: 500;
-                line-height: 1.5;
-                margin-top: 10px;
-            ">
-                Всичко за твоите пътувания и разходи<br>
-                на едно място.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.caption(
+        "Всичко за твоите пътувания и разходи на едно място."
     )
+
+    st.write("")
 
     # -----------------------------------------------------
     # DASHBOARD
     # -----------------------------------------------------
-
     expenses = total_expenses()
     budget = total_budget()
     remaining = budget - expenses
@@ -807,20 +782,7 @@ if st.session_state.page == "home":
     # QUICK ACTIONS
     # -----------------------------------------------------
 
-    st.markdown(
-        """
-        <div style="
-            color: #f4f8fb;
-            font-size: 1.4rem;
-            font-weight: 750;
-            line-height: 1.3;
-            margin: 18px 0 15px 0;
-        ">
-            Бързи действия
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.subheader("Бързи действия")
 
     q1, q2 = st.columns(2)
 
