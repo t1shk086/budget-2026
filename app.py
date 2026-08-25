@@ -972,34 +972,39 @@ else:
                             st.rerun()
             _budget_settings_dialog()
 
-    # ОБЩ БЮДЖЕТ: винаги показваме отделна обща прогрес лента, когато е зададен.
-    # Тя не зависи от бюджетите по категории и следи всички разходи + депозити.
+    # ОБЩ БЮДЖЕТ: винаги показваме отделна обща прогрес лента.
+    # Използваме native Streamlit progress, за да е гарантирано видима.
     if global_budget > 0:
         global_spent = float(depozit_hotel + total_on_site)
         global_remaining = float(global_budget - global_spent)
         global_pct = max(0.0, min(100.0, (global_spent / global_budget) * 100.0))
-        global_fill = "#ff4b4b" if global_remaining < 0 else "linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)"
         global_status = (
             f"Над бюджета с {abs(global_remaining):.2f} EUR" if global_remaining < 0
             else f"Остават {global_remaining:.2f} EUR"
         )
-        global_status_color = "#ff4b4b" if global_remaining < 0 else "#8bd5ff"
-        st.markdown(f"""
-        <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 15px;border-radius:14px;margin-bottom:15px;font-family:inherit;">
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:7px;font-family:inherit;">
-                <span style="color:#aeb5c0;font-weight:700;font-family:inherit;">Общ бюджет</span>
-                <span style="font-weight:800;font-family:inherit;">{global_spent:.2f} / {global_budget:.2f} EUR</span>
-            </div>
-            <div style="height:16px;background:rgba(0,0,0,.45);border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.5),inset -1px -1px 2px rgba(255,255,255,.05);position:relative;display:flex;align-items:center;overflow:hidden;">
-                <div style="width:{global_pct:.2f}%;height:100%;background:{global_fill};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.35),inset 0 2px 2px rgba(255,255,255,.3);transition:width .5s ease-in-out;"></div>
-                <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,.85);text-shadow:1px 1px 2px rgba(0,0,0,.8);font-family:inherit;">{global_pct:.1f}%</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;font-family:inherit;">
-                <span style="color:#ffd43b;font-family:inherit;">🟡 Бюджет</span>
-                <span style="color:{global_status_color};font-weight:800;font-family:inherit;">{global_status}</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+
+        st.markdown(
+            f"<div style='display:flex;justify-content:space-between;align-items:center;"
+            f"margin:0 0 6px 0;font-family:inherit;'>"
+            f"<span style='font-size:14px;font-weight:700;color:#aeb5c0;font-family:inherit;'>"
+            f"🎯 Общ бюджет</span>"
+            f"<span style='font-size:14px;font-weight:800;color:#ffffff;font-family:inherit;'>"
+            f"{global_spent:.2f} / {global_budget:.2f} EUR</span></div>",
+            unsafe_allow_html=True,
+        )
+
+        # Native progress bar: гарантирано се визуализира и не зависи от HTML rendering.
+        st.progress(global_pct / 100.0, text=f"{global_pct:.1f}% използван")
+
+        status_color = "#ff4b4b" if global_remaining < 0 else "#8bd5ff"
+        st.markdown(
+            f"<div style='display:flex;justify-content:space-between;align-items:center;"
+            f"margin:-4px 0 15px 0;font-family:inherit;'>"
+            f"<span style='font-size:11px;color:#ffd43b;font-family:inherit;'>🟡 Бюджет</span>"
+            f"<span style='font-size:11px;font-weight:800;color:{status_color};font-family:inherit;'>"
+            f"{global_status}</span></div>",
+            unsafe_allow_html=True,
+        )
 
     if active_budget_mode != "none" and global_budget <= 0:
         total_pct_budget = max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
