@@ -1214,7 +1214,7 @@ else:
 
 
 
-        st.markdown(f"### ⏲ Данни за разход и пробег:")
+        st.markdown("<div class='tm-section-title'><span class='tm-section-number tm-n1'>1</span><span>Данни за разход и пробег</span></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 СЛЕДЕНЕ НА ПРОБЕГА</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
         # Разделяме екрана на две основни колони: за уредите и за статистика на разходите
         box_col1, box_col2 = st.columns(2)
@@ -1460,7 +1460,42 @@ else:
 
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### 📊 Анализ на разходите:")
+
+    # Номерирани секции на анализа – общ визуален маркер.
+    st.markdown("""
+    <style>
+        .tm-section-title {
+            display:flex;
+            align-items:center;
+            gap:10px;
+            font-size:15px;
+            font-weight:800;
+            color:#8b929e;
+            letter-spacing:.3px;
+            font-family:inherit;
+        }
+        .tm-section-number {
+            width:28px;
+            height:28px;
+            min-width:28px;
+            border-radius:50%;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            color:#fff;
+            font-size:13px;
+            font-weight:900;
+            box-shadow:0 3px 9px rgba(0,0,0,.28), inset 0 1px 1px rgba(255,255,255,.22);
+            border:1px solid rgba(255,255,255,.14);
+        }
+        .tm-n1 { background:linear-gradient(145deg,#00f2fe,#2f9bff); }
+        .tm-n2 { background:linear-gradient(145deg,#ffd43b,#ff9f1a); }
+        .tm-n3 { background:linear-gradient(145deg,#9b7cff,#5d48d8); }
+        .tm-n4 { background:linear-gradient(145deg,#63d391,#2e9b61); }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div class='tm-section-title'><span class='tm-section-number tm-n2'>2</span><span>Анализ на разходите</span></div>", unsafe_allow_html=True)
 
     # Бюджет: може общ бюджет ИЛИ отделни бюджети по категории.
     category_budgets = get_category_budgets(trip_id)
@@ -2387,7 +2422,7 @@ else:
 
     st.markdown(f"""
     <div style='display:flex;justify-content:space-between;align-items:center;margin-top:12px;margin-bottom:8px;font-family:inherit;'>
-        <div style='font-size:15px;font-weight:800;color:#8b929e;letter-spacing:.3px;'>🧳 ПЛАН НА ПЪТУВАНЕТО</div>
+        <div class='tm-section-title'><span class='tm-section-number tm-n3'>3</span><span>ПЛАН НА ПЪТУВАНЕТО</span></div>
         <div style='font-size:11px;color:#7e8494;'>{plan_done}/{plan_total} изпълнени</div>
     </div>
     """, unsafe_allow_html=True)
@@ -2429,7 +2464,7 @@ else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("<div style='font-size:15px;font-weight:800;color:#8b929e;letter-spacing:.3px;margin-bottom:10px;'>🗺️ КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</div>", unsafe_allow_html=True)
+    st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
     df_points = get_map_points(trip_id)
     
     if "map_current_trip_id" not in st.session_state or st.session_state["map_current_trip_id"] != trip_id:
