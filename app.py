@@ -1222,79 +1222,79 @@ else:
             """, unsafe_allow_html=True)
             
         # =========================================================
-        # УМЕН АНАЛИЗ НА ЗАРЕЖДАНИЯТА
+        # ⛽ УМЕН АНАЛИЗ НА ЗАРЕЖДАНИЯТА
         # =========================================================
         try:
             fuel_rows = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["liters"] > 0)].copy().sort_index()
             if not fuel_rows.empty:
+                fuel_count = len(fuel_rows)
                 last_fuel = fuel_rows.iloc[-1]
                 last_liters = float(last_fuel.get("liters", 0) or 0)
                 last_amount = float(last_fuel.get("amount", 0) or 0)
                 last_km_value = float(last_fuel.get("current_km", 0) or 0)
                 last_desc = str(last_fuel.get("description", ""))
-                last_full_indices = [i for i in fuel_rows.index if "ПЪЛЕН" in str(fuel_rows.loc[i, "description"]).upper() or "ПЪЛНО" in str(fuel_rows.loc[i, "description"]).upper()]
-                stage_text = "Няма достатъчно данни за етапен разход"
+                last_price_per_liter = (last_amount / last_liters) if last_liters > 0 else 0.0
+
                 compare_text = ""
                 compare_detail = ""
-                # Сравняваме само два реално изчислени пълни етапа.
-                # Така сравнението е недвусмислено и не смесва стартовите километри
-                # или ръчните литри с отделен етап.
-                full_points = [i for i in last_full_indices if float(fuel_rows.loc[i, "current_km"] or 0) > 0]
-                if len(full_points) >= 2 and ("ПЪЛЕН" in last_desc.upper() or "ПЪЛНО" in last_desc.upper()):
-                    prev_full_idx = full_points[-2]
-                    current_full_idx = full_points[-1]
-                    prev_km = float(fuel_rows.loc[prev_full_idx, "current_km"] or 0)
-                    current_km = float(fuel_rows.loc[current_full_idx, "current_km"] or 0)
-                    current_rows = fuel_rows[(fuel_rows["current_km"] > prev_km) & (fuel_rows["current_km"] <= current_km)]
-                    current_liters = float(current_rows["liters"].sum())
-                    current_dist = current_km - prev_km
-                    if current_dist > 0 and current_liters > 0:
-                        current_consumption = current_liters / current_dist * 100
-                        stage_text = f"Последен пълен етап: <b>{current_consumption:.1f} л/100 км</b>"
-
-                        if len(full_points) >= 3:
-                            older_full_idx = full_points[-3]
-                            older_km = float(fuel_rows.loc[older_full_idx, "current_km"] or 0)
-                            older_rows = fuel_rows[(fuel_rows["current_km"] > older_km) & (fuel_rows["current_km"] <= prev_km)]
-                            older_liters = float(older_rows["liters"].sum())
-                            older_dist = prev_km - older_km
+                if fuel_count >= 2:
+                    prev_fuel = fuel_rows.iloc[-2]
+                    prev_liters = float(prev_fuel.get("liters", 0) or 0)
+                    prev_amount = float(prev_fuel.get("amount", 0) or 0)
+                    prev_price_per_liter = (prev_amount / prev_liters) if prev_liters > 0 else 0.0
+                    if prev_price_per_liter > 0 and last_price_per_liter > 0:
+                        price_delta = last_price_per_liter - prev_price_per_liter
+                        if price_delta < 0:
+                            compare_text = f"🟢 €{abs(price_delta):.2f}/л по-евтино спрямо предишното зареждане"
+                        elif price_delta > 0:
+                            compare_text = f"🟠 €{price_delta:.2f}/л по-скъпо спрямо предишното зареждане"
                         else:
-                            older_liters = current_liters
-                            older_dist = current_dist
+                            compare_text = "⚪ Същата цена на литър като предишното зареждане"
+                        compare_detail = f"Предишно: €{prev_price_per_liter:.2f}/л · Текущо: €{last_price_per_liter:.2f}/л"
+                    elif prev_liters > 0:
+                        compare_detail = f"Предишно: {prev_liters:.1f} л · Текущо: {last_liters:.1f} л"
 
-                        if older_dist > 0 and older_liters > 0:
-                            older_consumption = older_liters / older_dist * 100
-                            if len(full_points) >= 3:
-                                delta = current_consumption - older_consumption
-                                if delta < 0:
-                                    compare_text = f"🟢 {abs(delta):.1f} л/100 км по-добър спрямо предишния етап"
-                                elif delta > 0:
-                                    compare_text = f"🟠 {delta:.1f} л/100 км по-висок спрямо предишния етап"
-                                else:
-                                    compare_text = "⚪ Същият разход като предишния етап"
-                                compare_detail = f"Предишен: {older_consumption:.1f} · Текущ: {current_consumption:.1f} л/100 км"
-                            else:
-                                compare_text = "ℹ️ Това е първият сравним пълен етап"
-                                compare_detail = f"Текущ: {current_consumption:.1f} л/100 км · След още едно пълно зареждане ще има сравнение."
-                elif len(full_points) >= 1 and ("ПЪЛЕН" in last_desc.upper() or "ПЪЛНО" in last_desc.upper()):
-                    compare_text = "ℹ️ След следващото пълно зареждане ще се появи директно сравнение."
                 fuel_card = f"""
-                <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);padding:15px 16px;border-radius:16px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
-                    <div style='display:flex;justify-content:space-between;align-items:center;'>
-                        <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНЕТО</div>
-                        <div style='font-size:11px;color:#7e8494;'>{last_fuel.get("date", "")}</div>
+                <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);padding:15px 16px;border-radius:16px;margin-top:2px;margin-bottom:10px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                    <div style='display:flex;justify-content:space-between;align-items:center;gap:12px;'>
+                        <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
+                        <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
                     </div>
                     <div style='display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;'>
                         <div><div style='font-size:10px;color:#7e8494;'>Последно</div><div style='font-size:22px;color:#fff;font-weight:900;'>{last_liters:.1f} л</div></div>
                         <div><div style='font-size:10px;color:#7e8494;'>Стойност</div><div style='font-size:22px;color:#fff;font-weight:900;'>€{last_amount:.2f}</div></div>
-                        <div><div style='font-size:10px;color:#7e8494;'>Километри</div><div style='font-size:22px;color:#fff;font-weight:900;'>{last_km_value:.0f}</div></div>
+                        <div><div style='font-size:10px;color:#7e8494;'>Цена/литър</div><div style='font-size:22px;color:#fff;font-weight:900;'>€{last_price_per_liter:.2f}</div></div>
                     </div>
-                    <div style='margin-top:8px;font-size:12px;color:#aeb5c0;'>{stage_text}</div>
-                    {f"<div style='margin-top:4px;font-size:11px;color:#8bd5ff;font-weight:700;'>{compare_text}</div>" if compare_text else ""}
+                    {f"<div style='margin-top:8px;font-size:12px;color:#aeb5c0;'>{compare_text}</div>" if compare_text else ""}
                     {f"<div style='margin-top:3px;font-size:10px;color:#7e8494;'>{compare_detail}</div>" if compare_detail else ""}
                 </div>
                 """
                 st.markdown(fuel_card, unsafe_allow_html=True)
+
+                if st.button("📋 Преглед на всички зареждания", use_container_width=True, key=f"fuel_history_btn_{trip_id}"):
+                    @st.dialog("⛽ История на зарежданията", width="large")
+                    def fuel_history_dialog():
+                        hist = fuel_rows.iloc[::-1].copy()
+                        st.caption(f"Общо зареждания: {fuel_count}")
+                        for _, fr in hist.iterrows():
+                            liters_h = float(fr.get("liters", 0) or 0)
+                            amount_h = float(fr.get("amount", 0) or 0)
+                            km_h = float(fr.get("current_km", 0) or 0)
+                            ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
+                            desc_h = str(fr.get("description", ""))
+                            st.markdown(f"""
+                            <div style='background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 14px;border-radius:12px;margin-bottom:8px;font-family:inherit;'>
+                                <div style='display:flex;justify-content:space-between;gap:10px;'>
+                                    <b style='color:#fff;'>⛽ {liters_h:.1f} л</b>
+                                    <b style='color:#ff6b6b;'>€{amount_h:.2f}</b>
+                                </div>
+                                <div style='margin-top:4px;color:#8bd5ff;font-size:11px;'>€{ppl_h:.2f}/л · {km_h:.0f} км · {fr.get('date','')}</div>
+                                <div style='margin-top:4px;color:#aeb5c0;font-size:11px;'>{desc_h}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        if st.button("❌ Затвори", use_container_width=True, key=f"close_fuel_history_{trip_id}"):
+                            st.rerun()
+                    fuel_history_dialog()
         except Exception:
             pass
 
@@ -2256,7 +2256,7 @@ else:
     if not plan_df.empty:
         for _, plan_row in plan_df.iterrows():
             item_done = bool(plan_row.get("done", False))
-            c_plan, c_del = st.columns([0.88, 0.12])
+            c_plan, c_menu = st.columns([0.88, 0.12])
             with c_plan:
                 if st.checkbox(str(plan_row["title"]), value=item_done, key=f"plan_check_{plan_row['item_id']}") != item_done:
                     plan_all = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
@@ -2264,10 +2264,18 @@ else:
                     plan_all.loc[mask, "done"] = not item_done
                     update_trip_plan(plan_all)
                     st.rerun()
-            with c_del:
-                if st.button("❌", key=f"plan_del_{plan_row['item_id']}", use_container_width=True):
-                    if delete_trip_plan_item(plan_row["item_id"]):
+            with c_menu:
+                with st.popover("⋮", use_container_width=True):
+                    toggle_label = "↩️ Маркирай като неизпълнена" if item_done else "✅ Маркирай като изпълнена"
+                    if st.button(toggle_label, use_container_width=True, key=f"plan_toggle_{plan_row['item_id']}"):
+                        plan_all = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+                        mask = plan_all["item_id"].astype(str) == str(plan_row["item_id"])
+                        plan_all.loc[mask, "done"] = not item_done
+                        update_trip_plan(plan_all)
                         st.rerun()
+                    if st.button("🗑️ Изтрий задачата", use_container_width=True, key=f"plan_delete_{plan_row['item_id']}"):
+                        if delete_trip_plan_item(plan_row["item_id"]):
+                            st.rerun()
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
