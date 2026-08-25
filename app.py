@@ -60,6 +60,7 @@ KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
+TRIP_PLAN_FILE = "trip_plan_2026.csv"
 
 # Настройки само за имената на бутоните. Каноничните категории в данните НЕ се променят.
 DEFAULT_UI_LABELS = {
@@ -113,6 +114,9 @@ def get_display_category(category):
 
 if not os.path.exists(MAP_FILE):
     pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
+
+if not os.path.exists(TRIP_PLAN_FILE):
+    pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"]).to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
 
 for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters","current_km"]), 
                 (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date"])]:
@@ -338,6 +342,51 @@ def save_budget_config(t_id, mode, total_amount=None, budgets=None):
             pass
         return False
 
+
+def get_trip_plan(t_id):
+    try:
+        if not os.path.exists(TRIP_PLAN_FILE):
+            return pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"])
+        df = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        if df.empty:
+            return df
+        df = df[df["trip_id"].astype(str) == str(t_id)].copy()
+        if "done" not in df.columns:
+            df["done"] = False
+        df["done"] = df["done"].astype(str).str.lower().isin(["true", "1", "yes", "да"])
+        return df
+    except Exception:
+        return pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"])
+
+def add_trip_plan_item(t_id, title):
+    try:
+        if not title.strip():
+            return False
+        df = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        if df.empty:
+            df = pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"])
+        new_id = f"{t_id}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        row = {"trip_id": str(t_id), "item_id": new_id, "title": title.strip(), "done": False, "created": datetime.datetime.now().strftime("%d.%m.%Y %H:%M")}
+        pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+def update_trip_plan(df_plan):
+    try:
+        df_plan.to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+def delete_trip_plan_item(item_id):
+    try:
+        df = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        df = df[df["item_id"].astype(str) != str(item_id)]
+        df.to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
+        return True
+    except Exception:
+        return False
 
 def get_map_points(t_id):
     try:
@@ -903,6 +952,8 @@ else:
                 try:
                     pd.read_csv(DATA_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
                     pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+                    if os.path.exists(TRIP_PLAN_FILE):
+                        pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
                     if os.path.exists(CATEGORY_BUDGETS_FILE):
                         df_budget_delete = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
                         df_budget_delete[df_budget_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
@@ -1170,6 +1221,62 @@ else:
             </div>
             """, unsafe_allow_html=True)
             
+        # =========================================================
+        # УМЕН АНАЛИЗ НА ЗАРЕЖДАНИЯТА
+        # =========================================================
+        try:
+            fuel_rows = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["liters"] > 0)].copy().sort_index()
+            if not fuel_rows.empty:
+                last_fuel = fuel_rows.iloc[-1]
+                last_liters = float(last_fuel.get("liters", 0) or 0)
+                last_amount = float(last_fuel.get("amount", 0) or 0)
+                last_km_value = float(last_fuel.get("current_km", 0) or 0)
+                last_desc = str(last_fuel.get("description", ""))
+                last_full_indices = [i for i in fuel_rows.index if "ПЪЛЕН" in str(fuel_rows.loc[i, "description"]).upper() or "ПЪЛНО" in str(fuel_rows.loc[i, "description"]).upper()]
+                stage_text = "Няма достатъчно данни за етапен разход"
+                compare_text = ""
+                if "ПЪЛЕН" in last_desc.upper() or "ПЪЛНО" in last_desc.upper():
+                    prev_full = [i for i in last_full_indices if i != fuel_rows.index[-1]]
+                    if prev_full:
+                        prev_idx = prev_full[-1]
+                        prev_km = float(fuel_rows.loc[prev_idx, "current_km"] or 0)
+                        segment_rows = fuel_rows[fuel_rows["current_km"] > prev_km]
+                        segment_liters = float(segment_rows["liters"].sum())
+                        segment_dist = last_km_value - prev_km
+                        if segment_dist > 0 and segment_liters > 0:
+                            current_consumption = segment_liters / segment_dist * 100
+                            stage_text = f"Етапен разход: <b>{current_consumption:.1f} л/100 км</b>"
+                            # Предишен етап, ако има още една пълна точка
+                            older_full = [i for i in prev_full[:-1]]
+                            if older_full:
+                                older_idx = older_full[-1]
+                                older_km = float(fuel_rows.loc[older_idx, "current_km"] or 0)
+                                older_rows = fuel_rows[(fuel_rows["current_km"] > older_km) & (fuel_rows["current_km"] <= prev_km)]
+                                older_liters = float(older_rows["liters"].sum())
+                                older_dist = prev_km - older_km
+                                if older_dist > 0 and older_liters > 0:
+                                    older_consumption = older_liters / older_dist * 100
+                                    delta = current_consumption - older_consumption
+                                    compare_text = (f"🟢 {abs(delta):.1f} л/100 км по-добър спрямо предишния етап" if delta < 0 else f"🟠 {delta:.1f} л/100 км по-висок спрямо предишния етап" if delta > 0 else "⚪ Същият разход като предишния етап")
+                fuel_card = f"""
+                <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);padding:15px 16px;border-radius:16px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                    <div style='display:flex;justify-content:space-between;align-items:center;'>
+                        <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНЕТО</div>
+                        <div style='font-size:11px;color:#7e8494;'>{last_fuel.get("date", "")}</div>
+                    </div>
+                    <div style='display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;'>
+                        <div><div style='font-size:10px;color:#7e8494;'>Последно</div><div style='font-size:22px;color:#fff;font-weight:900;'>{last_liters:.1f} л</div></div>
+                        <div><div style='font-size:10px;color:#7e8494;'>Стойност</div><div style='font-size:22px;color:#fff;font-weight:900;'>€{last_amount:.2f}</div></div>
+                        <div><div style='font-size:10px;color:#7e8494;'>Километри</div><div style='font-size:22px;color:#fff;font-weight:900;'>{last_km_value:.0f}</div></div>
+                    </div>
+                    <div style='margin-top:8px;font-size:12px;color:#aeb5c0;'>{stage_text}</div>
+                    {f"<div style='margin-top:4px;font-size:11px;color:#8bd5ff;font-weight:700;'>{compare_text}</div>" if compare_text else ""}
+                </div>
+                """
+                st.markdown(fuel_card, unsafe_allow_html=True)
+        except Exception:
+            pass
+
         st.markdown("<br>", unsafe_allow_html=True)
 
 
@@ -2092,6 +2199,56 @@ else:
     st.markdown("---")
 
 
+
+    # =========================================================
+    # 🧳 ПЛАН НА ПЪТУВАНЕТО
+    # =========================================================
+    plan_df = get_trip_plan(trip_id)
+    plan_done = int(plan_df["done"].sum()) if not plan_df.empty else 0
+    plan_total = len(plan_df)
+    plan_pct = (plan_done / plan_total * 100.0) if plan_total else 0.0
+
+    st.markdown(f"""
+    <div style='background:linear-gradient(135deg,rgba(175,120,255,.07),rgba(255,255,255,.018));border:1px solid rgba(175,120,255,.16);padding:15px 16px;border-radius:16px;margin-top:12px;margin-bottom:12px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+        <div style='display:flex;justify-content:space-between;align-items:center;'>
+            <div style='font-size:13px;color:#c7a8ff;font-weight:800;letter-spacing:.3px;'>🧳 ПЛАН НА ПЪТУВАНЕТО</div>
+            <div style='font-size:11px;color:#7e8494;'>{plan_done}/{plan_total} изпълнени</div>
+        </div>
+        <div style='height:8px;background:rgba(0,0,0,.35);border-radius:20px;margin-top:10px;overflow:hidden;'>
+            <div style='width:{plan_pct:.1f}%;height:100%;background:linear-gradient(90deg,#a66cff,#4facfe);border-radius:20px;'></div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    plan_col1, plan_col2 = st.columns([1, 1])
+    with plan_col1:
+        new_plan_item = st.text_input("Добави задача", placeholder="напр. Резервация за ресторант...", key=f"trip_plan_new_{trip_id}")
+    with plan_col2:
+        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+        if st.button("➕ Добави в плана", use_container_width=True, key=f"trip_plan_add_{trip_id}"):
+            if new_plan_item.strip():
+                if add_trip_plan_item(trip_id, new_plan_item):
+                    st.rerun()
+            else:
+                st.warning("Въведете задача за пътуването.")
+
+    if not plan_df.empty:
+        for _, plan_row in plan_df.iterrows():
+            item_done = bool(plan_row.get("done", False))
+            c_plan, c_del = st.columns([0.88, 0.12])
+            with c_plan:
+                if st.checkbox(str(plan_row["title"]), value=item_done, key=f"plan_check_{plan_row['item_id']}") != item_done:
+                    plan_all = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+                    mask = plan_all["item_id"].astype(str) == str(plan_row["item_id"])
+                    plan_all.loc[mask, "done"] = not item_done
+                    update_trip_plan(plan_all)
+                    st.rerun()
+            with c_del:
+                if st.button("❌", key=f"plan_del_{plan_row['item_id']}", use_container_width=True):
+                    if delete_trip_plan_item(plan_row["item_id"]):
+                        st.rerun()
+    else:
+        st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
     st.subheader("🗺️ Карта на спирките и дестинациите:")
     df_points = get_map_points(trip_id)
