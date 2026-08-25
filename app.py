@@ -301,7 +301,7 @@ if st.session_state["current_trip"] is None:
 
     st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
     
-    @st.dialog("Създаване на ново приключение")
+    @st.dialog("➕ Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:",placeholder="Въведете име...").strip()
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
@@ -311,7 +311,7 @@ if st.session_state["current_trip"] is None:
         new_skm = 0.0
         if viber_car == "Да, със собствен автомобил":
             new_skm = st.number_input("Начални километри (км):", value=None, placeholder="Въведете км на тръгване...", step=1.0)
-        if st.button("✔️ Създай и Отвори", use_container_width=True, type="primary") and txt:
+        if st.button("🚀 СЪЗДАЙ И ОТВОРИ", use_container_width=True, type="primary") and txt:
             if isinstance(d_range, (list, tuple)):
                 s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
@@ -333,10 +333,10 @@ if st.session_state["current_trip"] is None:
             st.session_state["current_trip"] = target_id
             st.rerun()
 
-    if st.button("Ново пътуване", use_container_width=True): 
+    if st.button("➕ Ново пътуване", use_container_width=True): 
         create_trip_modal()
 
-    @st.dialog("➕ Бърз разход", width="large")
+    @st.dialog("⚡ Бърз разход", width="large")
     def quick_expense_modal():
         # Използваме абсолютно същия списък като полето „Изберете пътуване до:“ на началния екран.
         existing_quick = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
@@ -368,7 +368,7 @@ if st.session_state["current_trip"] is None:
             )
         with c2:
             description = st.text_input(
-                "Описание", placeholder="Например: обяд, зареждане...",
+                "Описание", placeholder="Например: обяд, паркинг...",
                 key="quick_expense_description"
             )
 
@@ -451,7 +451,7 @@ if st.session_state["current_trip"] is None:
                         )
 
         if st.button(
-            "✔️ Запиши", use_container_width=True,
+            "✅ ЗАПИШИ РАЗХОДА", use_container_width=True,
             type="primary", key="quick_expense_save"
         ):
             # Не допускаме float(None) при празно поле за сумата.
@@ -515,11 +515,11 @@ if st.session_state["current_trip"] is None:
 
     quick_col1, quick_col2 = st.columns(2)
     with quick_col1:
-        if st.button("➕ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
+        if st.button("⚡ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
             quick_expense_modal()
     with quick_col2:
-        if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
-            @st.dialog("➖ Последни разходи", width="large")
+        if st.button("📌 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
+            @st.dialog("📌 Последни разходи", width="large")
             def recent_expenses_modal():
                 st.markdown("""
                 <style>
@@ -610,7 +610,7 @@ if st.session_state["current_trip"] is None:
                     st.error("Неуспешно зареждане на последните разходи.")
 
                 st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-                if st.button("❌ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
+                if st.button("✕ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
                     st.rerun()
             recent_expenses_modal()
 
@@ -889,7 +889,7 @@ else:
     
     col1, col2 = st.columns(2)
     with col1: 
-        s_input = st.number_input("Сума (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
+        s_input = st.number_input("СУМА (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
     with col2: 
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
@@ -1223,7 +1223,13 @@ else:
                 mode = st.radio("Как искаш да следиш бюджета?", mode_options, index=current_mode, horizontal=True, key=f"budget_mode_{trip_id}")
                 if mode == "Общ бюджет":
                     total_budget_input = st.number_input(
-                        "Общ бюджет на пътуването (EUR)", min_value=None, value=None, placeholder="Въведи сума..", value=float(global_budget), step=50.0, format="%.2f", key=f"global_budget_input_{trip_id}"
+                        "Общ бюджет на пътуването (EUR)",
+                        min_value=0.0,
+                        value=(float(global_budget) if float(global_budget) > 0 else None),
+                        placeholder="Въведете сума...",
+                        step=50.0,
+                        format="%.2f",
+                        key=f"global_budget_input_{trip_id}"
                     )
                     st.caption("В този режим не е нужно да задаваш лимит за всяка категория.")
                     if st.button("💾 Запази общия бюджет", type="primary", use_container_width=True, key=f"save_global_budget_{trip_id}"):
@@ -1239,9 +1245,15 @@ else:
                     c1, c2 = st.columns(2)
                     for i, cat in enumerate(budget_cats):
                         with (c1 if i % 2 == 0 else c2):
+                            existing_category_budget = float(category_budgets.get(cat, 0.0) or 0.0)
                             inputs[cat] = st.number_input(
                                 f"{get_emoji(cat)} {get_display_category(cat)}",
-                                min_value=0.0, value=float(category_budgets.get(cat, 0.0)), step=50.0, format="%.2f", key=f"cat_budget_{trip_id}_{i}"
+                                min_value=0.0,
+                                value=(existing_category_budget if existing_category_budget > 0 else None),
+                                placeholder="Въведете сума...",
+                                step=50.0,
+                                format="%.2f",
+                                key=f"cat_budget_{trip_id}_{i}"
                             )
                     if st.button("💾 Запази бюджетите по категории", type="primary", use_container_width=True, key=f"save_category_budgets_{trip_id}"):
                         if save_global_budget(trip_id, 0.0):
