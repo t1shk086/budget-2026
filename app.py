@@ -736,27 +736,42 @@ with st.sidebar:
 # =========================================================
 
 if st.session_state.page == "home":
+
     # -----------------------------------------------------
     # HEADER
     # -----------------------------------------------------
 
     st.markdown(
         """
-        <div class="tm-header">
-            <div class="tm-brand">
+        <div style="
+            padding: 12px 0 18px 0;
+            width: 100%;
+        ">
+            <div style="
+                color: #f4f8fb;
+                font-size: clamp(2rem, 5vw, 3rem);
+                font-weight: 800;
+                line-height: 1.05;
+                letter-spacing: -0.055em;
+                margin: 0;
+            ">
                 ✈️ Travel Manager
             </div>
 
-            <div class="tm-subtitle">
-                Всичко за твоите пътувания и разходи
+            <div style="
+                color: #8fa1b2;
+                font-size: 1rem;
+                font-weight: 500;
+                line-height: 1.5;
+                margin-top: 10px;
+            ">
+                Всичко за твоите пътувания и разходи<br>
                 на едно място.
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-    st.write("")
 
     # -----------------------------------------------------
     # DASHBOARD
@@ -793,21 +808,57 @@ if st.session_state.page == "home":
     # -----------------------------------------------------
 
     st.markdown(
-        '<div class="tm-section-title">Бързи действия</div>',
+        """
+        <div style="
+            color: #f4f8fb;
+            font-size: 1.4rem;
+            font-weight: 750;
+            line-height: 1.3;
+            margin: 18px 0 15px 0;
+        ">
+            Бързи действия
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
     q1, q2 = st.columns(2)
 
+    # -----------------------------------------------------
+    # ADD EXPENSE
+    # -----------------------------------------------------
+
     with q1:
+
         st.markdown(
             """
-            <div class="tm-card tm-card-primary">
-                <div class="tm-card-title">
+            <div style="
+                background: linear-gradient(
+                    145deg,
+                    #12314a,
+                    #0c1c29
+                );
+                border: 1px solid #235d83;
+                border-radius: 20px;
+                padding: 20px;
+                min-height: 118px;
+                box-shadow: 0 10px 28px rgba(0,0,0,.18);
+                margin-bottom: 8px;
+            ">
+                <div style="
+                    color: #f5f8fb;
+                    font-size: 1.12rem;
+                    font-weight: 750;
+                    margin-bottom: 7px;
+                ">
                     ➕ Добави разход
                 </div>
 
-                <div class="tm-card-text">
+                <div style="
+                    color: #8fa1b2;
+                    font-size: .9rem;
+                    line-height: 1.45;
+                ">
                     Бързо добавяне на разход към
                     избрано пътуване.
                 </div>
@@ -824,15 +875,41 @@ if st.session_state.page == "home":
         ):
             open_add_expense()
 
+    # -----------------------------------------------------
+    # NEW TRIP
+    # -----------------------------------------------------
+
     with q2:
+
         st.markdown(
             """
-            <div class="tm-card">
-                <div class="tm-card-title">
+            <div style="
+                background: linear-gradient(
+                    145deg,
+                    #102130,
+                    #0c1823
+                );
+                border: 1px solid #203446;
+                border-radius: 20px;
+                padding: 20px;
+                min-height: 118px;
+                box-shadow: 0 10px 28px rgba(0,0,0,.18);
+                margin-bottom: 8px;
+            ">
+                <div style="
+                    color: #f5f8fb;
+                    font-size: 1.12rem;
+                    font-weight: 750;
+                    margin-bottom: 7px;
+                ">
                     ✈️ Ново пътуване
                 </div>
 
-                <div class="tm-card-text">
+                <div style="
+                    color: #8fa1b2;
+                    font-size: .9rem;
+                    line-height: 1.45;
+                ">
                     Създай ново пътуване и задай
                     неговия бюджет.
                 </div>
@@ -856,11 +933,22 @@ if st.session_state.page == "home":
     # -----------------------------------------------------
 
     st.markdown(
-        '<div class="tm-section-title">Моите пътувания</div>',
+        """
+        <div style="
+            color: #f4f8fb;
+            font-size: 1.4rem;
+            font-weight: 750;
+            line-height: 1.3;
+            margin: 18px 0 15px 0;
+        ">
+            Моите пътувания
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
     if not st.session_state.trips:
+
         st.info(
             "Все още нямаш пътувания. "
             "Създай първото си пътуване от "
@@ -868,9 +956,13 @@ if st.session_state.page == "home":
         )
 
     else:
+
         for trip_id, trip in st.session_state.trips.items():
+
             spent = trip_expenses(trip)
-            trip_budget = float(trip.get("budget", 0))
+            trip_budget = float(
+                trip.get("budget", 0)
+            )
 
             if trip_budget > 0:
                 progress = min(
@@ -881,13 +973,16 @@ if st.session_state.page == "home":
                 progress = 0.0
 
             st.markdown(
-                '<div class="tm-trip-card">',
+                """
+                <div class="tm-trip-card">
+                """,
                 unsafe_allow_html=True,
             )
 
             c1, c2 = st.columns([4, 1])
 
             with c1:
+
                 st.markdown(
                     f"""
                     <div class="tm-trip-title">
@@ -917,6 +1012,7 @@ if st.session_state.page == "home":
                 )
 
             with c2:
+
                 st.write("")
 
                 if st.button(
@@ -930,7 +1026,6 @@ if st.session_state.page == "home":
                 "</div>",
                 unsafe_allow_html=True,
             )
-
 
 # =========================================================
 # NEW TRIP
