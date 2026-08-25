@@ -1464,11 +1464,45 @@ else:
                 </div>
                 """
 
+                # =========================================================
+                # ЗДРАВОСЛОВЕН СТАТУС НА БЮДЖЕТА
+                # Сравняваме реалното ежедневното харчене с плана до днес.
+                # =========================================================
+                planned_to_date = daily_budget_total * elapsed_days / total_days
+                pace_difference = daily_spent_total - planned_to_date
+                pace_ratio = (daily_spent_total / planned_to_date) if planned_to_date > 0 else 0.0
+
+                if forecast_delta >= 0 and pace_difference <= 0:
+                    health_icon = "🟢"
+                    health_title = "БЮДЖЕТЪТ ВЪРВИ ДОБРЕ"
+                    health_color = "#2ebd59"
+                    health_text = f"Под плана си с €{abs(pace_difference):.2f}"
+                elif forecast_delta >= 0:
+                    health_icon = "🟡"
+                    health_title = "ХАРЧИШ ПО-БЪРЗО ОТ ПЛАНА"
+                    health_color = "#ffaa00"
+                    health_text = f"Над плана си с €{pace_difference:.2f}"
+                else:
+                    health_icon = "🔴"
+                    health_title = "ХАРЧИШ ПРЕКАЛЕНО БЪРЗО"
+                    health_color = "#ff3b30"
+                    health_text = f"Прогнозно над бюджета с €{abs(forecast_delta):.2f}"
+
+                health_card = f"""
+                <div style='background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.09);padding:15px 16px;border-radius:16px;margin-top:12px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                    <div style='font-size:12px;color:{health_color};font-weight:800;letter-spacing:.3px;'>{health_icon} {health_title}</div>
+                    <div style='font-size:12px;color:#aeb5c0;margin-top:9px;'>Реално до момента: <b style='color:#ffffff;'>€{daily_spent_total:.2f}</b> · План до момента: <b style='color:#ffffff;'>€{planned_to_date:.2f}</b></div>
+                    <div style='margin-top:5px;font-size:12px;color:{health_color};font-weight:800;'>{health_text}</div>
+                    <div style='margin-top:4px;font-size:11px;color:#7e8494;'>Прогноза: <b style='color:#ffffff;'>€{projected_total:.2f}</b> от бюджет €{daily_budget_total:.2f}</div>
+                </div>
+                """
+
                 pace_col1, pace_col2 = st.columns(2)
                 with pace_col1:
                     st.markdown(daily_card, unsafe_allow_html=True)
                 with pace_col2:
                     st.markdown(pace_card, unsafe_allow_html=True)
+                st.markdown(health_card, unsafe_allow_html=True)
                 st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
         except Exception:
             pass
