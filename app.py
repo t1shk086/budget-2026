@@ -1818,6 +1818,7 @@ else:
                 cards_css = """
                 <style>
                 .tm-budget-mini-card {
+                    margin-bottom:3px;
                     position:relative; overflow:hidden; min-height:146px;
                     margin-bottom:1px !important;
                     padding:20px; border-radius:16px;
@@ -1853,8 +1854,11 @@ else:
                 pace_col1, pace_col2, pace_col3 = st.columns(3)
                 with pace_col1:
                     st.markdown(daily_compact, unsafe_allow_html=True)
+                    # Ясен малък spacer за мобилния режим, където Streamlit подрежда колоните вертикално.
+                    st.markdown("<div style='height:3px;line-height:3px;font-size:0;'></div>", unsafe_allow_html=True)
                 with pace_col2:
                     st.markdown(pace_compact, unsafe_allow_html=True)
+                    st.markdown("<div style='height:3px;line-height:3px;font-size:0;'></div>", unsafe_allow_html=True)
                 with pace_col3:
                     st.markdown(health_card_compact, unsafe_allow_html=True)
                 st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
