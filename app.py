@@ -1393,6 +1393,85 @@ else:
             unsafe_allow_html=True,
         )
 
+    if active_budget_mode != "none" and global_budget <= 0:
+        total_pct_budget = max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
+        remaining_text = f"Остават {active_budget_remaining:.2f} EUR" if active_budget_remaining >= 0 else f"Над бюджета с {abs(active_budget_remaining):.2f} EUR"
+        remaining_color = "#8bd5ff" if active_budget_remaining >= 0 else "#ff4b4b"
+        budget_label = "Общ бюджет" if active_budget_mode == "global" else "Общо по зададени категории"
+        st.markdown(f"""
+        <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 15px;border-radius:14px;margin-bottom:15px;font-family:inherit;">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:7px;font-family:inherit;">
+                <span style="color:#aeb5c0;font-weight:700;font-family:inherit;">{budget_label}</span>
+                <span style="font-weight:800;font-family:inherit;">{active_budget_spent:.2f} / {active_budget_total:.2f} EUR</span>
+            </div>
+            <div style="height:16px;background:rgba(0,0,0,.45);border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.5), inset -1px -1px 2px rgba(255,255,255,.05);position:relative;display:flex;align-items:center;overflow:hidden;">
+                <div style="width:{total_pct_budget:.2f}%;height:100%;background:{'#ff4b4b' if active_budget_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.35),inset 0 2px 2px rgba(255,255,255,.3);transition:width .5s ease-in-out;"></div>
+                <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,.85);text-shadow:1px 1px 2px rgba(0,0,0,.8);font-family:inherit;">{total_pct_budget:.1f}%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;font-family:inherit;">
+                <span style="color:#ffd43b;font-family:inherit;">🟡 Бюджет</span>
+                <span style="color:{remaining_color};font-weight:800;font-family:inherit;">{remaining_text}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    stat_grid = st.columns(2)
+    for idx, (kat, s_value) in enumerate(categories_totals.items()):
+        with stat_grid[idx % 2]:
+            # Процентният бар показва дела на категорията от всички изхарчени средства
+            # за пътуването, включително платените депозити.
+            grand_total_for_analysis = depozit_hotel + total_on_site
+            pct = (s_value / grand_total_for_analysis * 100) if grand_total_for_analysis > 0 else 0.0
+            display_kat = get_display_category(kat)
+            budget = float(category_budgets.get(kat, 0.0) or 0.0) if active_budget_mode == "category" else 0.0
+
+            if budget <= 0:
+                st.markdown(f"""
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 500; font-size: 15px; font-family: inherit;">{get_emoji(kat)} {display_kat}</span>
+                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{pct:.1f}%</span>
+                    </div>
+                    {"<div style='font-size:10px;color:#7e8494;margin-top:5px;font-family:inherit;'>Бюджет: няма зададен</div>" if active_budget_mode == "category" else ""}
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                ratio = s_value / budget
+                fill_pct = min(100.0, max(0.0, ratio * 100.0))
+                over = s_value > budget
+                remaining = budget - s_value
+                fill_gradient = "#ff4b4b" if over else "linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)"
+                status_html = (
+                    f"<span style='color:#ff4b4b;font-weight:800;font-family:inherit;'>Над бюджета с {abs(remaining):.2f} EUR</span>"
+                    if over else
+                    f"<span style='color:#8bd5ff;font-weight:800;font-family:inherit;'>Остават {remaining:.2f} EUR</span>"
+                )
+                st.markdown(f"""
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-weight: 500; font-size: 15px; font-family: inherit;">{get_emoji(kat)} {display_kat}</span>
+                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{pct:.1f}%</span>
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
+                        <div style="width: {fill_pct}%; height: 100%; background: {fill_gradient}; border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.35), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
+                        <div style="position: absolute; right: 0; top: -3px; width: 3px; height: 19px; background: #ffd43b; border-radius: 3px; box-shadow: 0 0 8px rgba(255,212,59,0.75);"></div>
+                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{min(100.0, ratio*100.0):.1f}%</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;font-family:inherit;">
+                        <span style="color:#ffd43b;font-family:inherit;">🟡 Бюджет</span>
+                        {status_html}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
     # =========================================================
     # ДНЕВЕН БЮДЖЕТ + ТЕМП НА ХАРЧЕНЕ
     # Хотелът и депозитът НЕ участват в тези два показателя.
@@ -1497,94 +1576,51 @@ else:
                 </div>
                 """
 
-                pace_col1, pace_col2 = st.columns(2)
+                # Трите показателя са компактни 3D карти – удобни и на телефон.
+                cards_css = """
+                <style>
+                .tm-budget-mini-card {
+                    position:relative; overflow:hidden; min-height:146px;
+                    padding:16px 16px 14px 16px; border-radius:18px;
+                    font-family:inherit;
+                    box-shadow: 0 8px 0 rgba(0,0,0,.22), 0 14px 24px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.08);
+                    transform: translateY(0); transition: transform .18s ease, box-shadow .18s ease;
+                }
+                .tm-budget-mini-card:after {
+                    content:""; position:absolute; left:-30px; top:-45px; width:110px; height:110px;
+                    border-radius:50%; background:rgba(255,255,255,.035); filter:blur(2px); pointer-events:none;
+                }
+                .tm-budget-mini-card:hover { transform:translateY(-2px); box-shadow:0 10px 0 rgba(0,0,0,.22),0 18px 28px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.10); }
+                .tm-budget-mini-label { font-size:11px; font-weight:800; letter-spacing:.35px; color:#9aa1ad; }
+                .tm-budget-mini-value { font-size:24px; font-weight:900; color:#fff; margin-top:5px; line-height:1.05; }
+                .tm-budget-mini-sub { font-size:10px; color:#7e8494; margin-top:4px; }
+                .tm-budget-mini-line { font-size:11px; color:#b7bec9; margin-top:10px; }
+                </style>
+                """
+                st.markdown(cards_css, unsafe_allow_html=True)
+
+                health_card_compact = f"""
+                <div class='tm-budget-mini-card' style='background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.018));border:1px solid {health_color}33;'>
+                    <div class='tm-budget-mini-label' style='color:{health_color};'>{health_icon} БЮДЖЕТ</div>
+                    <div class='tm-budget-mini-value' style='font-size:15px;line-height:1.2;color:{health_color};margin-top:9px;'>{health_title}</div>
+                    <div class='tm-budget-mini-line'>Реално: <b style='color:#fff;'>€{daily_spent_total:.2f}</b></div>
+                    <div class='tm-budget-mini-line' style='margin-top:4px;'>План: <b style='color:#fff;'>€{planned_to_date:.2f}</b></div>
+                    <div class='tm-budget-mini-sub' style='color:{health_color};font-weight:800;'>{health_text}</div>
+                </div>
+                """
+                daily_compact = daily_card.replace("padding:15px 16px;border-radius:16px;height:100%;", "padding:16px;height:100%;border-radius:18px;box-shadow:0 8px 0 rgba(0,0,0,.22),0 14px 24px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.08);")
+                pace_compact = pace_card.replace("padding:15px 16px;border-radius:16px;height:100%;", "padding:16px;height:100%;border-radius:18px;box-shadow:0 8px 0 rgba(0,0,0,.22),0 14px 24px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.08);")
+
+                pace_col1, pace_col2, pace_col3 = st.columns(3)
                 with pace_col1:
-                    st.markdown(daily_card, unsafe_allow_html=True)
+                    st.markdown(daily_compact, unsafe_allow_html=True)
                 with pace_col2:
-                    st.markdown(pace_card, unsafe_allow_html=True)
-                st.markdown(health_card, unsafe_allow_html=True)
-                st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+                    st.markdown(pace_compact, unsafe_allow_html=True)
+                with pace_col3:
+                    st.markdown(health_card_compact, unsafe_allow_html=True)
+                st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
         except Exception:
             pass
-
-    if active_budget_mode != "none" and global_budget <= 0:
-        total_pct_budget = max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
-        remaining_text = f"Остават {active_budget_remaining:.2f} EUR" if active_budget_remaining >= 0 else f"Над бюджета с {abs(active_budget_remaining):.2f} EUR"
-        remaining_color = "#8bd5ff" if active_budget_remaining >= 0 else "#ff4b4b"
-        budget_label = "Общ бюджет" if active_budget_mode == "global" else "Общо по зададени категории"
-        st.markdown(f"""
-        <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 15px;border-radius:14px;margin-bottom:15px;font-family:inherit;">
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:7px;font-family:inherit;">
-                <span style="color:#aeb5c0;font-weight:700;font-family:inherit;">{budget_label}</span>
-                <span style="font-weight:800;font-family:inherit;">{active_budget_spent:.2f} / {active_budget_total:.2f} EUR</span>
-            </div>
-            <div style="height:16px;background:rgba(0,0,0,.45);border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.5), inset -1px -1px 2px rgba(255,255,255,.05);position:relative;display:flex;align-items:center;overflow:hidden;">
-                <div style="width:{total_pct_budget:.2f}%;height:100%;background:{'#ff4b4b' if active_budget_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.35),inset 0 2px 2px rgba(255,255,255,.3);transition:width .5s ease-in-out;"></div>
-                <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,.85);text-shadow:1px 1px 2px rgba(0,0,0,.8);font-family:inherit;">{total_pct_budget:.1f}%</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;font-family:inherit;">
-                <span style="color:#ffd43b;font-family:inherit;">🟡 Бюджет</span>
-                <span style="color:{remaining_color};font-weight:800;font-family:inherit;">{remaining_text}</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    stat_grid = st.columns(2)
-    for idx, (kat, s_value) in enumerate(categories_totals.items()):
-        with stat_grid[idx % 2]:
-            # Процентният бар показва дела на категорията от всички изхарчени средства
-            # за пътуването, включително платените депозити.
-            grand_total_for_analysis = depozit_hotel + total_on_site
-            pct = (s_value / grand_total_for_analysis * 100) if grand_total_for_analysis > 0 else 0.0
-            display_kat = get_display_category(kat)
-            budget = float(category_budgets.get(kat, 0.0) or 0.0) if active_budget_mode == "category" else 0.0
-
-            if budget <= 0:
-                st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-weight: 500; font-size: 15px; font-family: inherit;">{get_emoji(kat)} {display_kat}</span>
-                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
-                    </div>
-                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
-                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{pct:.1f}%</span>
-                    </div>
-                    {"<div style='font-size:10px;color:#7e8494;margin-top:5px;font-family:inherit;'>Бюджет: няма зададен</div>" if active_budget_mode == "category" else ""}
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                ratio = s_value / budget
-                fill_pct = min(100.0, max(0.0, ratio * 100.0))
-                over = s_value > budget
-                remaining = budget - s_value
-                fill_gradient = "#ff4b4b" if over else "linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)"
-                status_html = (
-                    f"<span style='color:#ff4b4b;font-weight:800;font-family:inherit;'>Над бюджета с {abs(remaining):.2f} EUR</span>"
-                    if over else
-                    f"<span style='color:#8bd5ff;font-weight:800;font-family:inherit;'>Остават {remaining:.2f} EUR</span>"
-                )
-                st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-weight: 500; font-size: 15px; font-family: inherit;">{get_emoji(kat)} {display_kat}</span>
-                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
-                    </div>
-                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                        <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
-                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{pct:.1f}%</span>
-                    </div>
-                    <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
-                        <div style="width: {fill_pct}%; height: 100%; background: {fill_gradient}; border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.35), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
-                        <div style="position: absolute; right: 0; top: -3px; width: 3px; height: 19px; background: #ffd43b; border-radius: 3px; box-shadow: 0 0 8px rgba(255,212,59,0.75);"></div>
-                        <span style="position: absolute; right: 8px; font-size: 10px; font-weight: 900; color: rgba(255,255,255,0.85); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-family: inherit;">{min(100.0, ratio*100.0):.1f}%</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;font-family:inherit;">
-                        <span style="color:#ffd43b;font-family:inherit;">🟡 Бюджет</span>
-                        {status_html}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
 
     @st.dialog("📊 Разходи по Категории", width="large")
     def разходи_по_категории_dialog():
