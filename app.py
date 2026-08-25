@@ -2343,6 +2343,32 @@ else:
     </style>
     """, unsafe_allow_html=True)
 
+    # САМО за бутоните на задачите: текстът е винаги вляво,
+    # без промяна на мобилния horizontal layout от v41.
+    st.markdown("""
+    <style>
+        button[aria-label^="⬜ "],
+        button[aria-label^="✅ "] {
+            justify-content: flex-start !important;
+            text-align: left !important;
+        }
+        button[aria-label^="⬜ "] > div,
+        button[aria-label^="✅ "] > div {
+            width: 100% !important;
+            justify-content: flex-start !important;
+            text-align: left !important;
+        }
+        button[aria-label^="⬜ "] p,
+        button[aria-label^="✅ "] p,
+        button[aria-label^="⬜ "] span,
+        button[aria-label^="✅ "] span {
+            width: 100% !important;
+            text-align: left !important;
+            justify-content: flex-start !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     # =========================================================
     # 🧳 ПЛАН НА ПЪТУВАНЕТО
     # =========================================================
