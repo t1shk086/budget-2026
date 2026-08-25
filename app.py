@@ -579,30 +579,34 @@ if st.session_state["current_trip"] is None:
                     df_recent = pd.read_csv(DATA_FILE, encoding="utf-8")
                     if df_recent.empty:
                         st.info("Все още няма записани разходи.")
-                        return
-                    recent = df_recent.tail(5).iloc[::-1]
-                    st.markdown("<div class='recent-expenses-subtitle'>Последните 5 записани разхода от всички пътувания.</div>", unsafe_allow_html=True)
-                    for _, row in recent.iterrows():
-                        cat = str(row.get("category", "Други"))
-                        trip_name = str(row.get("trip_id", "")).replace("_", " ")
-                        desc = str(row.get("description", "Без описание"))
-                        dt = str(row.get("date", ""))
-                        amount = float(row.get("amount", 0) or 0)
-                        emoji = get_emoji(cat)
-                        display_cat = get_display_category(cat)
-                        st.markdown(f"""
-                        <div class='recent-expense-card'>
-                            <div class='recent-expense-top'>
-                                <div class='recent-expense-category'>{emoji} {display_cat}</div>
-                                <div class='recent-expense-amount'>{amount:.2f} EUR</div>
+                    else:
+                        recent = df_recent.tail(5).iloc[::-1]
+                        st.markdown("<div class='recent-expenses-subtitle'>Последните 5 записани разхода от всички пътувания.</div>", unsafe_allow_html=True)
+                        for _, row in recent.iterrows():
+                            cat = str(row.get("category", "Други"))
+                            trip_name = str(row.get("trip_id", "")).replace("_", " ")
+                            desc = str(row.get("description", "Без описание"))
+                            dt = str(row.get("date", ""))
+                            amount = float(row.get("amount", 0) or 0)
+                            emoji = get_emoji(cat)
+                            display_cat = get_display_category(cat)
+                            st.markdown(f"""
+                            <div class='recent-expense-card'>
+                                <div class='recent-expense-top'>
+                                    <div class='recent-expense-category'>{emoji} {display_cat}</div>
+                                    <div class='recent-expense-amount'>{amount:.2f} EUR</div>
+                                </div>
+                                <div class='recent-expense-trip'>✈️ {trip_name}</div>
+                                <div class='recent-expense-meta'>🕒 {dt}</div>
+                                <div class='recent-expense-desc'>{desc}</div>
                             </div>
-                            <div class='recent-expense-trip'>✈️ {trip_name}</div>
-                            <div class='recent-expense-meta'>🕒 {dt}</div>
-                            <div class='recent-expense-desc'>{desc}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                            """, unsafe_allow_html=True)
                 except Exception:
                     st.error("Неуспешно зареждане на последните разходи.")
+
+                st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+                if st.button("✕ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
+                    st.rerun()
             recent_expenses_modal()
 
     # 1. ЕЛЕГАНТЕН CSS: ПРЕМЕСТВА ФАБРИЧНИЯ НАДПИС ОТДЯСНО НА ТОГЪЛА С 1 ИНТЕРВАЛ РАЗСТОЯНИЕ
