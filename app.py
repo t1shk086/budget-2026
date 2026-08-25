@@ -1087,140 +1087,99 @@ elif st.session_state.page == "trip":
     for section in st.session_state.trip_layout:
 
         if section == "expenses":
-            st.subheader(
-                f"📜 Разходи ({len(trip.get('expenses', []))})"
-            )
+            st.subheader(f"💳 Разходи ({len(trip.get('expenses', []))})")
+            expenses = trip.get("expenses", [])
 
-            if not trip["expenses"]:
+            if not expenses:
                 st.info("Все още няма добавени разходи.")
             else:
-                st.caption(
-                    "Натисни върху разход, за да видиш подробностите "
-                    "и опциите за управление."
-                )
+                total_amount = sum(float(e.get("amount", 0.0)) for e in expenses)
+                st.caption(f"{len(expenses)} разхода · €{total_amount:.2f} · Натисни ред за подробности")
 
-                expenses = sorted(
-                    enumerate(trip["expenses"]),
-                    key=lambda item: item[1]["date"],
-                    reverse=True,
-                )
+                expanded_key = f"expanded_expense_{trip_id}"
+                if expanded_key not in st.session_state:
+                    st.session_state[expanded_key] = None
 
-                for original_index, expense in expenses:
-                    category = expense.get("category", "📱 Други")
-                    amount = float(expense.get("amount", 0.0))
+                ordered = sorted(enumerate(expenses), key=lambda x: x[1].get("date", date.min), reverse=True)
+                current_day = None
+
+                for original_index, expense in ordered:
                     expense_date = expense.get("date")
+                    if expense_date != current_day:
+                        current_day = expense_date
+                        st.markdown(f"**{expense_date.strftime('%d.%m.%Y') if expense_date else 'Без дата'}**")
 
-                    date_text = (
-                        expense_date.strftime("%d.%m.%Y")
-                        if expense_date
-                        else ""
-                    )
+                    category = expense.get("category", "📱 Други")
+                    note = (expense.get("note") or "Без описание").strip()
+                    amount = float(expense.get("amount", 0.0))
+                    short_note = note if len(note) <= 38 else note[:35] + "..."
+                    expanded = st.session_state[expanded_key] == original_index
 
-                    title = (
-                        f"{category}  ·  €{amount:.2f}"
-                        f"  ·  {date_text}"
-                    )
+                    r1, r2 = st.columns([5, 1.2])
+                    with r1:
+                        if st.button(f"{category} · {short_note}", key=f"expense_row_{trip_id}_{original_index}", use_container_width=True):
+                            st.session_state[expanded_key] = None if expanded else original_index
+                            st.rerun()
+                    with r2:
+                        st.markdown(f'<div style="text-align:right;padding-top:9px;font-weight:800;white-space:nowrap;">€{amount:.2f}</div>', unsafe_allow_html=True)
 
-                    with st.expander(title, expanded=False):
-                        e1, e2 = st.columns([3, 1])
-
-                        with e1:
+                    if expanded:
+                        with st.container(border=True):
+                            st.caption(f"📅 {expense_date.strftime('%d.%m.%Y') if expense_date else 'Без дата'}")
                             if expense.get("note"):
-                                st.markdown(
-                                    f"**Описание:** {expense['note']}"
-                                )
-
+                                st.write(expense["note"])
                             if expense.get("is_fuel", False):
-                                liters = float(
-                                    expense.get("fuel_liters", 0.0)
-                                )
-                                odometer = float(
-                                    expense.get("fuel_odometer", 0.0)
-                                )
-
-                                fuel_caption = f"⛽ {liters:.2f} л"
-
+                                liters = float(expense.get("fuel_liters", 0.0))
+                                odo = float(expense.get("fuel_odometer", 0.0))
+                                fuel = []
                                 if liters > 0:
-                                    fuel_caption += (
-                                        f" · €{amount / liters:.2f}/л"
-                                    )
-
-                                if odometer > 0:
-                                    fuel_caption += (
-                                        f" · {odometer:.0f} км"
-                                    )
-
+                                    fuel += [f"{liters:.2f} л", f"€{amount/liters:.2f}/л"]
+                                if odo > 0:
+                                    fuel.append(f"{odo:.0f} км")
                                 if expense.get("fuel_full_tank", False):
-                                    fuel_caption += " · ✓ пълен"
+                                    fuel.append("✓ Пълен резервоар")
+                                if fuel:
+                                    st.caption("⛽ " + " · ".join(fuel))
 
-                                st.caption(fuel_caption)
-
-                            st.caption(f"Дата: {date_text}")
-
-                        with e2:
-                            st.metric("Сума", f"€{amount:.2f}")
-
-                        confirm_key = (
-                            f"confirm_delete_{trip_id}_{original_index}"
-                        )
-
-                        if not st.session_state.get(
-                            confirm_key, False
-                        ):
-                            if st.button(
-                                "🗑️ Изтрий",
-                                key=(
-                                    f"delete_{trip_id}_"
-                                    f"{original_index}"
-                                ),
-                                use_container_width=True,
-                            ):
-                                st.session_state[confirm_key] = True
-                                st.rerun()
-                        else:
-                            st.warning(
-                                "Сигурен ли си, че искаш да изтриеш "
-                                "този разход?"
-                            )
-
-                            d1, d2 = st.columns(2)
-
-                            with d1:
-                                if st.button(
-                                    "Да, изтрий",
-                                    key=(
-                                        f"confirm_yes_{trip_id}_"
-                                        f"{original_index}"
-                                    ),
-                                    type="primary",
-                                    use_container_width=True,
-                                ):
-                                    delete_expense(
-                                        trip_id,
-                                        original_index,
-                                    )
-                                    st.session_state.pop(
-                                        confirm_key,
-                                        None,
-                                    )
+                            b1, b2 = st.columns(2)
+                            with b1:
+                                if st.button("✏️ Редактирай", key=f"edit_exp_{trip_id}_{original_index}", use_container_width=True):
+                                    st.session_state[f"editing_expense_{trip_id}"] = original_index
+                                    st.rerun()
+                            with b2:
+                                if st.button("🗑️ Изтрий", key=f"delete_exp_{trip_id}_{original_index}", use_container_width=True):
+                                    delete_expense(trip_id, original_index)
+                                    st.session_state[expanded_key] = None
                                     st.rerun()
 
-                            with d2:
-                                if st.button(
-                                    "Отказ",
-                                    key=(
-                                        f"confirm_no_{trip_id}_"
-                                        f"{original_index}"
-                                    ),
-                                    use_container_width=True,
-                                ):
-                                    st.session_state.pop(
-                                        confirm_key,
-                                        None,
-                                    )
-                                    st.rerun()
+                            edit_key = f"editing_expense_{trip_id}"
+                            if st.session_state.get(edit_key) == original_index:
+                                st.divider()
+                                edit_amount = st.number_input("Сума (€)", min_value=0.0, value=amount, step=1.0, key=f"edit_amount_{trip_id}_{original_index}")
+                                cats = ["🍔 Храна", "🏨 Нощувка", "🚗 Транспорт", "🎟️ Забавления", "🛍️ Покупки", "📱 Други"]
+                                ci = cats.index(category) if category in cats else 0
+                                edit_cat = st.selectbox("Категория", cats, index=ci, key=f"edit_cat_{trip_id}_{original_index}")
+                                edit_date = st.date_input("Дата", value=expense_date or date.today(), key=f"edit_date_{trip_id}_{original_index}")
+                                edit_note = st.text_input("Описание", value=expense.get("note", ""), key=f"edit_note_{trip_id}_{original_index}")
+                                s1, s2 = st.columns(2)
+                                with s1:
+                                    if st.button("💾 Запази", type="primary", use_container_width=True, key=f"save_edit_{trip_id}_{original_index}"):
+                                        if edit_amount <= 0:
+                                            st.error("Сумата трябва да е по-голяма от 0.")
+                                        else:
+                                            expense["amount"] = float(edit_amount)
+                                            expense["category"] = edit_cat
+                                            expense["date"] = edit_date
+                                            expense["note"] = edit_note.strip()
+                                            save_trips()
+                                            st.session_state[edit_key] = None
+                                            st.rerun()
+                                with s2:
+                                    if st.button("Отказ", use_container_width=True, key=f"cancel_edit_{trip_id}_{original_index}"):
+                                        st.session_state[edit_key] = None
+                                        st.rerun()
 
-            st.divider()
+                    st.divider()
 
         elif section == "categories":
             st.subheader("📊 Разходи по категории")
