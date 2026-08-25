@@ -125,21 +125,6 @@ for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description",
     if not os.path.exists(f): 
         pd.DataFrame(columns=cols).to_csv(f, index=False, encoding="utf-8")
 
-def format_fuel_description(description):
-    """Convert technical fuel labels into a cleaner UI label."""
-    text = str(description or "").strip()
-    upper = text.upper()
-    fuel_type = ""
-    if "ЧАСТИЧНО" in upper:
-        fuel_type = "Частично"
-    elif "ПЪЛНО" in upper or "ПЪЛЕН" in upper:
-        fuel_type = "До горе"
-    if fuel_type:
-        cleaned = re.sub(r"^\s*\[[^\]]*(?:ЧАСТИЧНО|ПЪЛНО|ПЪЛЕН)[^\]]*\]\s*", "", text, flags=re.IGNORECASE)
-        cleaned = re.sub(r"^\s*(ЧАСТИЧНО|ПЪЛНО|ПЪЛЕН)\s+ЗАРЕЖДАНЕ\s*[-:–—]?\s*", "", cleaned, flags=re.IGNORECASE)
-        return f"{fuel_type} — {cleaned}" if cleaned else fuel_type
-    return text
-
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
     return m.get(cat, "💳")
@@ -1296,7 +1281,17 @@ else:
                 km_h = float(fr.get("current_km", 0) or 0)
                 ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
                 date_h = str(fr.get("date", ""))
-                desc_h = format_fuel_description(fr.get("description", ""))
+                desc_h = str(fr.get("description", ""))
+                # По-чисто визуално описание на зареждането. Данните в CSV остават непроменени.
+                import re
+                desc_display_h = desc_h
+                fuel_match_h = re.match(r'^\[(?:\s*)ЧАСТИЧНО\s+ЗАРЕЖДАНЕ(?:\s*)\](.*)$', desc_h, flags=re.IGNORECASE)
+                if fuel_match_h:
+                    desc_display_h = f"Частично — {fuel_match_h.group(1).strip()}"
+                else:
+                    fuel_match_h = re.match(r'^\[(?:\s*)ПЪЛНО\s+ЗАРЕЖДАНЕ(?:\s*)\](.*)$', desc_h, flags=re.IGNORECASE)
+                    if fuel_match_h:
+                        desc_display_h = f"До горе — {fuel_match_h.group(1).strip()}"
 
                 compare_html = "⚪ Няма предишно зареждане за сравнение."
                 compare_color = "#7e8494"
@@ -1318,12 +1313,11 @@ else:
                             compare_color = "#aeb5c0"
 
                 st.markdown(f"""
-                <div style='background:linear-gradient(145deg,rgba(0,242,254,.085),rgba(255,255,255,.035) 48%,rgba(0,0,0,.18));border:1px solid rgba(0,242,254,.16);border-radius:18px;padding:16px 17px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 10px 24px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.08),inset 0 -1px 0 rgba(0,0,0,.20);'>
+                <div style='background:linear-gradient(135deg,rgba(0,242,254,.055),rgba(255,255,255,.018));border:1px solid rgba(0,242,254,.12);border-radius:16px;padding:15px 16px;margin-top:2px;margin-bottom:16px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
                     <div style='display:flex;justify-content:space-between;align-items:center;gap:10px;'>
                         <div style='font-size:12px;color:#8b929e;font-weight:800;letter-spacing:.3px;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
                         <div style='font-size:11px;color:#7e8494;'>{fuel_count} {'зареждане' if fuel_count == 1 else 'зареждания'}</div>
                     </div>
-                    
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
                     <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin-top:14px;'>
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Литри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{liters_h:.1f} л</div></div>
@@ -1331,7 +1325,7 @@ else:
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Цена / л</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>€{ppl_h:.2f}</div></div>
                         <div><div style='font-size:9px;color:#7e8494;text-transform:uppercase;'>Километри</div><div style='font-size:20px;color:#fff;font-weight:900;margin-top:2px;'>{km_h:.0f} км</div></div>
                     </div>
-                    <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_h)}</div>
+                    <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_display_h)}</div>
                     <div style='margin-top:10px;padding:10px 11px;border-radius:11px;background:rgba(255,255,255,.035);font-size:11px;color:{compare_color};font-weight:800;line-height:1.4;'>{compare_html}</div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1341,7 +1335,7 @@ else:
                     nav = st.container(horizontal=True, horizontal_alignment="center", vertical_alignment="center", gap="small")
                     with nav:
                         st.button("‹", key=f"fuel_prev_{trip_id}", on_click=_navigate_fuel, args=("prev", trip_id), width="content")
-                        st.markdown(f"<div style='text-align:center;min-width:55px;padding-top:3px;color:#8b929e;font-size:12px;line-height:1.25;'><b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='text-align:center;min-width:55px;padding-top:3px;color:#8b929e;font-size:11px;line-height:1.25;'><b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>", unsafe_allow_html=True)
                         st.button("›", key=f"fuel_next_{trip_id}", on_click=_navigate_fuel, args=("next", trip_id), width="content")
         except Exception:
             pass
@@ -2333,14 +2327,6 @@ else:
             min-height: 38px !important;
             padding: 0.15rem 0.25rem !important;
         }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button {
-            justify-content: flex-start !important;
-            text-align: left !important;
-        }
-        div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:first-child button p {
-            width: 100% !important;
-            text-align: left !important;
-        }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -2375,32 +2361,12 @@ else:
 
     if not plan_df.empty:
         st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
-        st.markdown("""
-        <style>
-            /* Само за редовете на задачите: името да е винаги вляво. */
-            div[class*="st-key-task_row_"] button p,
-            div[class*="st-key-task_row_"] button span {
-                width: 100% !important;
-                text-align: left !important;
-                justify-content: flex-start !important;
-                margin: 0 !important;
-            }
-            div[class*="st-key-task_row_"] button {
-                justify-content: flex-start !important;
-                text-align: left !important;
-            }
-            div[class*="st-key-task_row_"] button[aria-label="🗑️"] {
-                justify-content: center !important;
-                text-align: center !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
         for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
             icon = "✅" if item_done else "⬜"
-            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small", key=f"task_row_{trip_id}_{item_id}")
+            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
             with task_row:
                 task_label = f"{icon} {title}"
                 st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
@@ -2408,7 +2374,7 @@ else:
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:14px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(0,242,254,0.22),rgba(255,255,255,0.02));margin:20px 0 18px 0;'></div>", unsafe_allow_html=True)
+    st.markdown("---")
     st.markdown("<div style='font-size:15px;font-weight:800;color:#8b929e;letter-spacing:.3px;margin-bottom:10px;'>🗺️ КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</div>", unsafe_allow_html=True)
     df_points = get_map_points(trip_id)
     
