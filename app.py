@@ -244,7 +244,10 @@ def save_category_budgets(t_id, budgets):
         else:
             df = pd.DataFrame(columns=columns)
 
-        df = df[df["trip_id"].astype(str) != str(t_id)]
+        # Премахваме само категориалните бюджети за това пътуване.
+        # Глобалният ред __GLOBAL__ се запазва, докато не бъде изрично заменен.
+        keep_mask = ~((df["trip_id"].astype(str) == str(t_id)) & (df["category"].astype(str) != "__GLOBAL__"))
+        df = df[keep_mask]
         rows = []
         for cat in KATEGORII:
             if cat == "Депозит/Резервация":
@@ -952,9 +955,11 @@ else:
                     )
                     st.caption("В този режим не е нужно да задаваш лимит за всяка категория.")
                     if st.button("💾 Запази общия бюджет", type="primary", use_container_width=True, key=f"save_global_budget_{trip_id}"):
-                        if save_global_budget(trip_id, total_budget_input):
-                            save_category_budgets(trip_id, {cat: 0.0 for cat in KATEGORII})
-                            st.rerun()
+                        # Общият бюджет и категориалните бюджети са взаимно изключващи се.
+                        # Първо изчистваме само категориалните редове, без да заличаваме глобалния бюджет.
+                        if save_category_budgets(trip_id, {cat: 0.0 for cat in KATEGORII}):
+                            if save_global_budget(trip_id, total_budget_input):
+                                st.rerun()
                 else:
                     st.caption("Задай 0 EUR на категория, която не искаш да лимитираш.")
                     inputs = {}
@@ -967,9 +972,9 @@ else:
                                 min_value=0.0, value=float(category_budgets.get(cat, 0.0)), step=50.0, format="%.2f", key=f"cat_budget_{trip_id}_{i}"
                             )
                     if st.button("💾 Запази бюджетите по категории", type="primary", use_container_width=True, key=f"save_category_budgets_{trip_id}"):
-                        if save_category_budgets(trip_id, inputs):
-                            save_global_budget(trip_id, 0.0)
-                            st.rerun()
+                        if save_global_budget(trip_id, 0.0):
+                            if save_category_budgets(trip_id, inputs):
+                                st.rerun()
             _budget_settings_dialog()
 
     # ОБЩ БЮДЖЕТ: винаги показваме отделна обща прогрес лента.
@@ -993,7 +998,14 @@ else:
             unsafe_allow_html=True,
         )
 
-        # Native progress bar: гарантирано се визуализира и не зависи от HTML rendering.
+        # Визуална обща прогрес лента в стила на оригиналните категории.
+        st.markdown(f"""
+        <div style="background:rgba(0,0,0,0.4);height:16px;border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,0.5),inset -1px -1px 2px rgba(255,255,255,0.05);position:relative;display:flex;align-items:center;overflow:hidden;margin-bottom:6px;font-family:inherit;">
+            <div style="width:{global_pct:.2f}%;height:100%;background:{'#ff4b4b' if global_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,0.35),inset 0 2px 2px rgba(255,255,255,0.3);transition:width 0.5s ease-in-out;"></div>
+            <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,0.85);text-shadow:1px 1px 2px rgba(0,0,0,0.8);font-family:inherit;">{global_pct:.1f}%</span>
+        </div>
+        """, unsafe_allow_html=True)
+        # Native progress като резервен визуален индикатор.
         st.progress(global_pct / 100.0, text=f"{global_pct:.1f}% използван")
 
         status_color = "#ff4b4b" if global_remaining < 0 else "#8bd5ff"
