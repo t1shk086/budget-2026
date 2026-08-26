@@ -420,15 +420,26 @@ if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 def _navigate_fuel(direction, trip_id):
     try:
         df_nav = pd.read_csv(DATA_FILE, encoding="utf-8")
-        rows = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт") & (df_nav["liters"] > 0)]
+        df_nav = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт")].copy()
+
+        # Зареждане е или нормален запис с литри, или ръчно добавено
+        # пропуснато гориво, което се пази като [ПРОПУСНАТО ГОРИВО].
+        manual_mask = df_nav["description"].astype(str).str.contains(
+            r"\[ПРОПУСНАТО\s+ГОРИВО\]", case=False, regex=True, na=False
+        )
+        fuel_mask = df_nav["liters"].fillna(0).astype(float).gt(0) | manual_mask
+        rows = df_nav[fuel_mask]
         count = len(rows)
         if count <= 1:
             return
+
         key = f"fuel_history_index_{trip_id}"
         current = int(st.session_state.get(key, 0) or 0)
+        current = max(0, min(current, count - 1))
+
         # Индексът е обърнат, защото визуализираме последното зареждане като N/N.
-        # Ляво: 6/6 -> 5/6 -> 4/6 ...
-        # Дясно: 1/6 -> 2/6 -> 3/6 ...
+        # Ляво: 6/6 -> 5/6 -> 4/6 ... -> 1/6
+        # Дясно: 1/6 -> 2/6 -> 3/6 ... -> 6/6
         if direction == "prev":
             st.session_state[key] = min(count - 1, current + 1)
         else:
