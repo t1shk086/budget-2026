@@ -1700,7 +1700,7 @@ else:
         elif active_budget_mode == "global":
             budget_caption = "По обща Сума"
         else:
-            budget_caption = "По категории или обща зададена сума"
+            budget_caption = "По Категории или Обща Сума"
         st.markdown(f"""
         <div style="background:linear-gradient(135deg,rgba(255,212,59,.10),rgba(255,255,255,.025));border:1px solid rgba(255,212,59,.28);padding:14px 16px;border-radius:16px;margin-bottom:14px;font-family:inherit;">
             <div style="font-size:13px;font-weight:800;color:#ffd43b;letter-spacing:.3px;font-family:inherit;">🎯 БЮДЖЕТ</div>
