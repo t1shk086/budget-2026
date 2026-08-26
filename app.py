@@ -1397,12 +1397,12 @@ else:
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
                     <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;'>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(0,242,254,0.12);'>
-                            <div style='font-size:11px;color:#6fd9ff;font-weight:800;letter-spacing:0.5px;'>Литри</div>
-                            <div style='font-size:24px;color:#7ee7ff;font-weight:900;line-height:1.1;margin-top:4px;text-shadow:0 0 12px rgba(0,242,254,0.18);'>{liters_h:.1f} <span style='font-size:11px;color:#5ca9bb;font-weight:normal;'>л</span></div>
+                            <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:0.5px;'>Литри</div>
+                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{liters_h:.1f} <span style='font-size:11px;color:#666;font-weight:normal;'>л</span></div>
                         </div>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,215,106,0.10);'>
-                            <div style='font-size:11px;color:#ffd76a;font-weight:800;letter-spacing:0.5px;'>Стойност</div>
-                            <div style='font-size:24px;color:#ffe08a;font-weight:900;line-height:1.1;margin-top:4px;text-shadow:0 0 12px rgba(255,215,106,0.12);'>{amount_display_h}</div>
+                            <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:0.5px;'>Стойност</div>
+                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{amount_display_h}</div>
                         </div>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(46,189,89,0.10);'>
                             <div style='font-size:11px;color:{price_color_h};font-weight:800;letter-spacing:0.5px;'>Цена / л</div>
