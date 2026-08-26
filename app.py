@@ -1799,7 +1799,7 @@ else:
         st.markdown(
             f"<div style='display:flex;justify-content:space-between;align-items:center;"
             f"margin:-4px 0 15px 0;font-family:inherit;'>"
-            f"<span style='font-size:11px;color:#ffd43b;font-family:inherit;'>🟡 Бюджет</span>"
+            f"<span style='font-size:11px;color:#8b929e;font-family:inherit;'><span style='color:{status_color};font-size:12px;'>●</span> Бюджет</span>"
             f"<span style='font-size:11px;font-weight:800;color:{status_color};font-family:inherit;'>"
             f"{global_status}</span></div>",
             unsafe_allow_html=True,
@@ -2017,7 +2017,7 @@ else:
 
                 health_card_compact = f"""
                 <div class='tm-budget-mini-card tm-budget-card-inner tm-budget-accent-health'>
-                    <div class='tm-budget-mini-label' style='color:#9aa1ad;'><span style='color:{health_color};'>●</span> БЮДЖЕТ</div>
+                    <div class='tm-budget-mini-label' style='color:{health_color};'>{health_icon} БЮДЖЕТ</div>
                     <div class='tm-budget-mini-value' style='font-size:15px;line-height:1.2;color:{health_color};margin-top:9px;'>{health_title}</div>
                     <div class='tm-budget-mini-line'>Реално: <b style='color:#fff;'>€{daily_spent_total:.2f}</b></div>
                     <div class='tm-budget-mini-line' style='margin-top:4px;'>План: <b style='color:#fff;'>€{planned_to_date:.2f}</b></div>
