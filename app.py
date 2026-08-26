@@ -1785,15 +1785,14 @@ else:
             unsafe_allow_html=True,
         )
 
-        # Визуална обща прогрес лента в стила на оригиналните категории.
+        # Обща прогрес лента — същият визуален компонент като при бюджетите по категории.
+        global_fill = "#ff4b4b" if global_remaining < 0 else "linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)"
         st.markdown(f"""
-        <div style="background:rgba(0,0,0,0.4);height:16px;border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,0.5),inset -1px -1px 2px rgba(255,255,255,0.05);position:relative;display:flex;align-items:center;overflow:hidden;margin-bottom:6px;font-family:inherit;">
-            <div style="width:{global_pct:.2f}%;height:100%;background:{'#ff4b4b' if global_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,0.35),inset 0 2px 2px rgba(255,255,255,0.3);transition:width 0.5s ease-in-out;"></div>
-            <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,0.85);text-shadow:1px 1px 2px rgba(0,0,0,0.8);font-family:inherit;">{global_pct:.1f}%</span>
+        <div style="background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.06);height:18px;border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.5),inset -1px -1px 2px rgba(255,255,255,.05);position:relative;display:flex;align-items:center;overflow:hidden;margin-bottom:6px;font-family:inherit;">
+            <div style="width:{global_pct:.2f}%;height:100%;background:{global_fill};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.25),inset 0 2px 2px rgba(255,255,255,.3);transition:width .5s ease-in-out;"></div>
+            <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,.85);text-shadow:1px 1px 2px rgba(0,0,0,.8);font-family:inherit;">{global_pct:.1f}%</span>
         </div>
         """, unsafe_allow_html=True)
-        # Native progress като резервен визуален индикатор.
-        st.progress(global_pct / 100.0, text=f"{global_pct:.1f}% използван")
 
         status_color = "#ff4b4b" if global_remaining < 0 else "#8bd5ff"
         st.markdown(
