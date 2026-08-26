@@ -420,11 +420,7 @@ if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 def _navigate_fuel(direction, trip_id):
     try:
         df_nav = pd.read_csv(DATA_FILE, encoding="utf-8")
-        rows = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт") & (df_nav["liters"] > 0)].copy()
-        manual_rows = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт") & df_nav["description"].astype(str).str.contains("[ПРОПУСНАТО ГОРИВО]", regex=False, na=False)].copy()
-        if not manual_rows.empty:
-            manual_rows["liters"] = pd.to_numeric(manual_rows["description"].astype(str).str.extract(r"Добавени\s*([0-9.]+)\s*литра", expand=False), errors="coerce").fillna(0.0)
-            rows = pd.concat([rows, manual_rows], ignore_index=True)
+        rows = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт") & (df_nav["liters"] > 0)]
         count = len(rows)
         if count <= 1:
             return
@@ -1291,11 +1287,6 @@ else:
         # =========================================================
         try:
             fuel_rows = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["liters"] > 0)].copy().sort_index()
-            manual_fuel_rows = df_expenses[(df_expenses["category"] == "Транспорт") & df_expenses["description"].astype(str).str.contains("[ПРОПУСНАТО ГОРИВО]", regex=False, na=False)].copy()
-            if not manual_fuel_rows.empty:
-                manual_fuel_rows["liters"] = pd.to_numeric(manual_fuel_rows["description"].astype(str).str.extract(r"Добавени\s*([0-9.]+)\s*литра", expand=False), errors="coerce").fillna(0.0)
-                manual_fuel_rows["current_km"] = 0.0
-                fuel_rows = pd.concat([fuel_rows, manual_fuel_rows], ignore_index=True).sort_index()
             if not fuel_rows.empty:
                 fuel_rows = fuel_rows.iloc[::-1].copy()  # последното първо
                 fuel_count = len(fuel_rows)
@@ -1321,13 +1312,13 @@ else:
                     fuel_match_h = re.match(r'^\[(?:\s*)ПЪЛНО\s+ЗАРЕЖДАНЕ(?:\s*)\](.*)$', desc_h, flags=re.IGNORECASE)
                     if fuel_match_h:
                         desc_display_h = f"До горе — {fuel_match_h.group(1).strip()}"
+                    else:
+                        fuel_match_h = re.match(r'^\[ПРОПУСНАТО\s+ГОРИВО\]\s*Добавени\s*([0-9.]+)\s*литра\s*$', desc_h, flags=re.IGNORECASE)
+                        if fuel_match_h:
+                            desc_display_h = f"Добавено ръчно — {fuel_match_h.group(1)} л"
 
                 compare_html = "⚪ Няма предишно зареждане за сравнение."
                 compare_color = "#7e8494"
-                is_manual_fuel = "[ПРОПУСНАТО ГОРИВО]" in desc_h
-                if is_manual_fuel:
-                    compare_html = "📝 Ръчно добавено зареждане · без показание на километраж"
-                    compare_color = "#aeb5c0"
                 if fuel_idx < fuel_count - 1:
                     prev_fr = fuel_rows.iloc[fuel_idx + 1]
                     prev_l = float(prev_fr.get("liters", 0) or 0)
@@ -1366,7 +1357,7 @@ else:
                         </div>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
                             <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:0.5px;'>Километри</div>
-                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{("—" if is_manual_fuel else f"{km_h:.0f} <span style='font-size:11px;color:#666;font-weight:normal;'>км</span>")}</div>
+                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{km_h:.0f} <span style='font-size:11px;color:#666;font-weight:normal;'>км</span></div>
                         </div>
                     </div>
                     <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_display_h)}</div>
