@@ -1696,11 +1696,11 @@ else:
     budget_col1, budget_col2 = st.columns([2, 1])
     with budget_col1:
         if active_budget_mode == "category":
-            budget_caption = "Отделни лимити за категориите"
+            budget_caption = "По Категории"
         elif active_budget_mode == "global":
-            budget_caption = "Един общ лимит за цялото пътуване"
+            budget_caption = "По обща Сума"
         else:
-            budget_caption = "Избери общ бюджет или отделни лимити по категории"
+            budget_caption = "По категории или обща зададена сума"
         st.markdown(f"""
         <div style="background:linear-gradient(135deg,rgba(255,212,59,.10),rgba(255,255,255,.025));border:1px solid rgba(255,212,59,.28);padding:14px 16px;border-radius:16px;margin-bottom:14px;font-family:inherit;">
             <div style="font-size:13px;font-weight:800;color:#ffd43b;letter-spacing:.3px;font-family:inherit;">🎯 БЮДЖЕТ</div>
