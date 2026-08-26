@@ -1066,7 +1066,7 @@ if st.session_state["current_trip"] is None:
                         x=[vmax * 1.08] * len(names),
                         y=names,
                         orientation="h",
-                        marker=dict(color="rgba(255,255,255,0.055)",
+                        marker=dict(color="rgba(255,255,255,0.035)",
                                     line=dict(width=0)),
                         hoverinfo="skip",
                         showlegend=False,
@@ -1080,11 +1080,12 @@ if st.session_state["current_trip"] is None:
                         marker=dict(
                             color=bar_colors,
                             line=dict(width=0),
-                            cornerradius=14,
+                            cornerradius=18,
+                            opacity=0.94,
                         ),
                         text=[fmt_value(v) for v in values],
                         textposition="outside",
-                        textfont=dict(size=12, color="#f5f7fa"),
+                        textfont=dict(size=12, color="#eef2f7", family="Segoe UI, Arial, sans-serif"),
                         cliponaxis=False,
                         customdata=[[n, fmt_value(v)] for n, v in zip(names, values)],
                         hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]}<extra></extra>",
@@ -1105,42 +1106,53 @@ if st.session_state["current_trip"] is None:
 
                     fig_pixel.update_layout(
                         barmode="overlay",
+                        # Лек "glass" стил: прозрачен фон, без тежък тъмен правоъгълник.
                         title=dict(
-                            text=f"<b>{graph_title}</b><br><span style='font-size:11px;color:#7f8998'>Сравнение на {len(names)} пътувания</span>",
-                            font=dict(color="#f5f7fa", size=18),
-                            x=0.02,
+                            text=(
+                                f"<span style='font-size:16px;font-weight:800;'>"
+                                f"{graph_title}"
+                                f"</span><br>"
+                                f"<span style='font-size:10px;color:#8d96a3;'>"
+                                f"Сравнение на {len(names)} пътувания"
+                                f"</span>"
+                            ),
+                            font=dict(color="#eef2f7"),
+                            x=0.01,
                             xanchor="left",
-                            y=0.97,
+                            y=0.985,
                             yanchor="top",
+                            pad=dict(l=0, r=0, t=0, b=4),
                         ),
-                        plot_bgcolor="#11151d",
-                        paper_bgcolor="#11151d",
-                        font=dict(family="Arial, sans-serif", color="#f5f7fa"),
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font=dict(family="Segoe UI, Arial, sans-serif", color="#eef2f7"),
                         xaxis=dict(
                             showgrid=False,
                             showline=False,
                             showticklabels=False,
                             zeroline=False,
                             fixedrange=True,
-                            range=[0, vmax * 1.25],
+                            range=[0, vmax * 1.22],
                         ),
                         yaxis=dict(
                             showgrid=False,
                             showline=False,
                             zeroline=False,
                             title="",
-                            tickfont=dict(color="#d9dee7", size=11),
+                            tickfont=dict(color="#e2e7ee", size=11),
                             fixedrange=True,
                             autorange="reversed",
+                            automargin=True,
                         ),
-                        margin=dict(l=20, r=115, t=78, b=18),
-                        height=max(330, 68 * len(df_sorted) + 105),
-                        bargap=0.28,
+                        margin=dict(l=8, r=105, t=88, b=12),
+                        height=max(320, 66 * len(df_sorted) + 105),
+                        bargap=0.24,
                         showlegend=False,
                         hoverlabel=dict(
-                            bgcolor="#1b2230",
-                            bordercolor="#394150",
-                            font=dict(color="#f5f7fa", size=11),
+                            bgcolor="#ffffff",
+                            bordercolor="#d6dbe3",
+                            font=dict(color="#252b35", size=11),
+                            namelength=-1,
                         ),
                     )
 
