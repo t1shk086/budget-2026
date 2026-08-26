@@ -56,65 +56,6 @@ st.markdown("""
     }
     small { color: #7e8494 !important; }
 
-    /* =========================================================
-       КОЗМЕТИЧНИ ДЕТАЙЛИ — СЕКЦИЯ / ACTIVE CARD / COUNTER
-       ========================================================= */
-    .tm-section-title {
-        display:flex;
-        align-items:center;
-        gap:9px;
-        font-size:11px;
-        color:#888;
-        font-weight:700;
-        letter-spacing:1px;
-        text-align:center;
-        justify-content:center;
-    }
-    .tm-fuel-card {
-        transition:border-color .20s ease, box-shadow .20s ease, transform .20s ease;
-    }
-    .tm-fuel-nav button {
-        min-width:40px !important;
-        height:38px !important;
-        border-radius:999px !important;
-        background:rgba(255,255,255,.045) !important;
-        border:1px solid rgba(255,255,255,.10) !important;
-        box-shadow:0 6px 18px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.04) !important;
-        font-size:22px !important;
-        padding:0 !important;
-        transition:all .18s ease !important;
-    }
-    .tm-fuel-nav button:hover {
-        transform:translateY(-1px) !important;
-        border-color:rgba(0,242,254,.24) !important;
-        box-shadow:0 8px 22px rgba(0,0,0,.28), 0 0 14px rgba(0,242,254,.08) !important;
-    }
-    .tm-fuel-counter {
-        display:flex;
-        align-items:baseline;
-        justify-content:center;
-        min-width:58px;
-        color:#8b929e;
-        line-height:1;
-    }
-    .tm-fuel-counter-main {
-        color:#fff;
-        font-size:19px;
-        font-weight:900;
-        letter-spacing:-.4px;
-    }
-    .tm-fuel-counter-rest {
-        color:#7e8494;
-        font-size:11px;
-        font-weight:700;
-        margin-left:2px;
-    }
-    @media (max-width: 640px) {
-        .tm-section-title { font-size:10px; }
-        .tm-fuel-nav button { min-width:38px !important; height:36px !important; }
-        .tm-fuel-counter-main { font-size:18px; }
-    }
-
 /* Единен шрифт за целия интерфейс */
 html, body, [data-testid="stAppViewContainer"] {
     font-family: "Segoe UI", Roboto, sans-serif !important;
@@ -1296,7 +1237,7 @@ else:
 
 
 
-        st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n1'>1</span><span>Следене на пробега</span></div>", unsafe_allow_html=True)
+        st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n1'>1</span><span>Данни за разход и пробег</span></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 СЛЕДЕНЕ НА ПРОБЕГА</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
         # Разделяме екрана на две основни колони: за уредите и за статистика на разходите
         box_col1, box_col2 = st.columns(2)
@@ -1362,7 +1303,6 @@ else:
         # =========================================================
         # ⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА — АДАПТИВНА МОБИЛНА КАРТА
         # =========================================================
-        st.markdown("<div class='tm-section-title' style='margin-top:14px;margin-bottom:12px;'><span>Следене на пробега</span></div>", unsafe_allow_html=True)
         try:
             # Включваме и ръчно добавените пропуснати зареждания.
             # Те се записват с liters=0 в CSV, затова извличаме литрите
@@ -1449,12 +1389,11 @@ else:
                 fuel_red_threshold = float(UI_LABELS.get("fuel_red_threshold", 1.80) or 1.80)
                 price_color_h = "#ff4b4b" if ppl_h > fuel_red_threshold else ("#63d391" if ppl_h > 0 else "#7e8494")
 
-                fuel_border_h = 'rgba(0,242,254,0.28)' if fuel_count > 1 else 'rgba(255,255,255,0.08)'
-                fuel_shadow_h = '4px 4px 12px rgba(0,0,0,0.3), 0 0 16px rgba(0,242,254,0.05)' if fuel_count > 1 else '4px 4px 12px rgba(0,0,0,0.3)'
-
                 st.markdown(f"""
-                <div class='tm-fuel-card' style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid {fuel_border_h};border-radius:16px;padding:20px;margin-top:2px;margin-bottom:20px;font-family:inherit;box-shadow:{fuel_shadow_h};'>
-                    
+                <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;margin-top:2px;margin-bottom:20px;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
+                    <div style='display:flex;justify-content:center;align-items:center;gap:10px;'>
+                        <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:1px;text-align:center;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
+                    </div>
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
                     <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;'>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(0,242,254,0.12);'>
@@ -1483,11 +1422,9 @@ else:
                     st.markdown("<div class='compact-fuel-nav-marker'></div>", unsafe_allow_html=True)
                     nav = st.container(horizontal=True, horizontal_alignment="center", vertical_alignment="center", gap="small")
                     with nav:
-                        st.markdown("<div class='tm-fuel-nav'>", unsafe_allow_html=True)
                         st.button("‹", key=f"fuel_prev_{trip_id}", on_click=_navigate_fuel, args=("prev", trip_id), width="content")
-                        st.markdown(f"<div class='tm-fuel-counter'><span class='tm-fuel-counter-main'>{fuel_count - fuel_idx}</span><span class='tm-fuel-counter-rest'>/ {fuel_count}</span></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='text-align:center;min-width:55px;padding-top:3px;color:#8b929e;font-size:11px;line-height:1.25;'><b style='color:#fff;font-size:12px;'>{fuel_count - fuel_idx} / {fuel_count}</b></div>", unsafe_allow_html=True)
                         st.button("›", key=f"fuel_next_{trip_id}", on_click=_navigate_fuel, args=("next", trip_id), width="content")
-                        st.markdown("</div>", unsafe_allow_html=True)
         except Exception:
             pass
 
