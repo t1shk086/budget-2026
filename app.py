@@ -1286,8 +1286,29 @@ else:
         # ⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА — АДАПТИВНА МОБИЛНА КАРТА
         # =========================================================
         try:
-            fuel_rows = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["liters"] > 0)].copy().sort_index()
+            # Включваме и ръчно добавените пропуснати зареждания.
+            # Те се записват с liters=0 в CSV, затова извличаме литрите
+            # от описанието [ПРОПУСНАТО ГОРИВО] Добавени X.X литра.
+            fuel_rows = df_expenses[
+                (df_expenses["category"] == "Транспорт") &
+                (
+                    (df_expenses["liters"] > 0) |
+                    (df_expenses["description"].astype(str).str.contains(r"\[ПРОПУСНАТО\s+ГОРИВО\]", case=False, regex=True))
+                )
+            ].copy().sort_index()
+
             if not fuel_rows.empty:
+                import re
+                manual_mask = fuel_rows["description"].astype(str).str.contains(
+                    r"\[ПРОПУСНАТО\s+ГОРИВО\]", case=False, regex=True
+                )
+                for _idx in fuel_rows.index[manual_mask]:
+                    _desc = str(fuel_rows.loc[_idx, "description"])
+                    _match = re.search(r"Добавени\s*([0-9]+(?:\.[0-9]+)?)\s*литра", _desc, flags=re.IGNORECASE)
+                    if _match:
+                        fuel_rows.loc[_idx, "liters"] = float(_match.group(1))
+                    fuel_rows.loc[_idx, "current_km"] = 0.0
+
                 fuel_rows = fuel_rows.iloc[::-1].copy()  # последното първо
                 fuel_count = len(fuel_rows)
                 fuel_key = f"fuel_history_index_{trip_id}"
