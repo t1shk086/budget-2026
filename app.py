@@ -2000,21 +2000,31 @@ else:
                 pace_difference = daily_spent_total - planned_to_date
                 pace_ratio = (daily_spent_total / planned_to_date) if planned_to_date > 0 else 0.0
 
-                if forecast_delta >= 0 and pace_difference <= 0:
+                # Статусът под картата БЮДЖЕТ се определя САМО от реално
+                # изхарченото спрямо общия активен бюджет.
+                budget_progress_pct = (active_budget_spent / active_budget_total * 100.0) if active_budget_total > 0 else 0.0
+                budget_remaining_for_status = active_budget_total - active_budget_spent
+
+                if budget_progress_pct < 80:
                     health_icon = "🟢"
                     health_title = "БЮДЖЕТЪТ ВЪРВИ ДОБРЕ"
                     health_color = "#2ebd59"
-                    health_text = f"Под плана си с €{abs(pace_difference):.2f}"
-                elif forecast_delta >= 0:
+                    health_text = f"Използвани {budget_progress_pct:.1f}% · Остават €{budget_remaining_for_status:.2f}"
+                elif budget_progress_pct < 100:
                     health_icon = "🟡"
-                    health_title = "ХАРЧИШ ПО-БЪРЗО ОТ ПЛАНА"
+                    health_title = "ПРИБЛИЖАВАШ БЮДЖЕТА"
                     health_color = "#ffaa00"
-                    health_text = f"Над плана си с €{pace_difference:.2f}"
+                    health_text = f"Използвани {budget_progress_pct:.1f}% · Остават €{budget_remaining_for_status:.2f}"
+                elif budget_progress_pct == 100:
+                    health_icon = "🔴"
+                    health_title = "БЮДЖЕТЪТ Е ИЗЧЕРПАН"
+                    health_color = "#ff3b30"
+                    health_text = "Използвани 100.0% от бюджета"
                 else:
                     health_icon = "🔴"
-                    health_title = "ХАРЧИШ ПРЕКАЛЕНО БЪРЗО"
+                    health_title = "НАД БЮДЖЕТА"
                     health_color = "#ff3b30"
-                    health_text = f"Прогнозно над бюджета с €{abs(forecast_delta):.2f}"
+                    health_text = f"Над бюджета с €{abs(budget_remaining_for_status):.2f}"
 
                 health_card = f"""
                 <div style='background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.09);padding:15px 16px;border-radius:16px;margin-top:12px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
