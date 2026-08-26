@@ -1033,35 +1033,95 @@ if st.session_state["current_trip"] is None:
                     worse_label = "Най-висок дневен разход"
                     fmt_value = lambda v: f"€{v:.2f}/ден"
 
+                # СЕМПЪЛ + МОДЕРЕН ВИД:
+                # запазваме стандартните хоризонтални колони,
+                # но махаме тежкия градиент, излишните оси и визуалния шум.
                 fig_pixel = px.bar(
                     df_sorted,
                     x=x_col,
                     y="Пътуване",
-                    orientation='h',
+                    orientation="h",
                     text=x_col,
-                    color=x_col,
-                    color_continuous_scale=[[0, '#2ebd59'], [0.5, '#ffaa00'], [1, '#ff3b30']]
+                    color_discrete_sequence=["#6f7cff"],
                 )
 
                 fig_pixel.update_traces(
-                    marker=dict(line=dict(width=0), cornerradius=15),
+                    marker=dict(
+                        line=dict(width=0),
+                        cornerradius=9,
+                        opacity=0.92,
+                    ),
                     texttemplate=f"<b>{t_format}</b>",
-                    textposition='outside',
-                    cliponaxis=False
+                    textposition="outside",
+                    textfont=dict(
+                        family="Segoe UI, Arial, sans-serif",
+                        size=11,
+                        color="#eef2f7",
+                    ),
+                    cliponaxis=False,
+                    hovertemplate="<b>%{y}</b><br>" + f"{t_format}" + "<extra></extra>",
                 )
+
                 fig_pixel.update_layout(
-                    title=dict(text=graph_title, font=dict(color="white", size=16), x=0),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
-                    yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
-                    margin=dict(l=10, r=90, t=42, b=8),
-                    height=max(300, 64 * len(df_sorted) + 90),
-                    bargap=0.34,
-                    coloraxis_showscale=False,
-                    showlegend=False
+                    title=dict(
+                        text=f"<b>{graph_title}</b>",
+                        font=dict(
+                            family="Segoe UI, Arial, sans-serif",
+                            color="#f2f4f7",
+                            size=18,
+                        ),
+                        x=0,
+                        y=0.98,
+                        xanchor="left",
+                        yanchor="top",
+                    ),
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(
+                        family="Segoe UI, Arial, sans-serif",
+                        color="#d8dde5",
+                    ),
+                    xaxis=dict(
+                        showgrid=True,
+                        gridcolor="rgba(255,255,255,0.075)",
+                        gridwidth=1,
+                        zeroline=False,
+                        showline=False,
+                        showticklabels=False,
+                        title="",
+                    ),
+                    yaxis=dict(
+                        showgrid=False,
+                        showline=False,
+                        zeroline=False,
+                        title="",
+                        tickfont=dict(
+                            family="Segoe UI, Arial, sans-serif",
+                            color="#dfe4eb",
+                            size=11,
+                        ),
+                        automargin=True,
+                    ),
+                    margin=dict(l=10, r=105, t=58, b=10),
+                    height=max(290, 58 * len(df_sorted) + 92),
+                    bargap=0.28,
+                    showlegend=False,
+                    hoverlabel=dict(
+                        bgcolor="#ffffff",
+                        bordercolor="#d9dee6",
+                        font=dict(
+                            family="Segoe UI, Arial, sans-serif",
+                            color="#202631",
+                            size=11,
+                        ),
+                    ),
                 )
-                st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
+
+                st.plotly_chart(
+                    fig_pixel,
+                    use_container_width=True,
+                    config={"displayModeBar": False, "scrollZoom": False},
+                )
 
                 best_name = str(df_pixel.loc[better_idx, "Пътуване"]) if better_idx is not None else "—"
                 best_value = float(df_pixel.loc[better_idx, x_col]) if better_idx is not None else 0.0
