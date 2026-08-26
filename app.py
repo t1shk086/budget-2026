@@ -1799,7 +1799,7 @@ else:
         st.markdown(
             f"<div style='display:flex;justify-content:space-between;align-items:center;"
             f"margin:-4px 0 15px 0;font-family:inherit;'>"
-            f"<span style='font-size:11px;color:#8b929e;font-family:inherit;'><span style='color:{status_color};font-size:12px;'>●</span> Бюджет</span>"
+            f"<span style='font-size:11px;color:#ffd43b;font-family:inherit;'>🟡 Бюджет</span>"
             f"<span style='font-size:11px;font-weight:800;color:{status_color};font-family:inherit;'>"
             f"{global_status}</span></div>",
             unsafe_allow_html=True,
@@ -1963,21 +1963,23 @@ else:
                 pace_difference = daily_spent_total - planned_to_date
                 pace_ratio = (daily_spent_total / planned_to_date) if planned_to_date > 0 else 0.0
 
-                if forecast_delta >= 0 and pace_difference <= 0:
+                # Статусът на картата БЮДЖЕТ следва реално изхарченото спрямо активния бюджет.
+                budget_used_ratio = (active_budget_spent / active_budget_total) if active_budget_total > 0 else 0.0
+                if active_budget_spent > active_budget_total:
+                    health_icon = "🔴"
+                    health_title = "БЮДЖЕТЪТ Е НАДВИШЕН"
+                    health_color = "#ff3b30"
+                    health_text = f"Над бюджета с €{abs(active_budget_remaining):.2f}"
+                elif budget_used_ratio >= 0.80:
+                    health_icon = "🟡"
+                    health_title = "БЮДЖЕТЪТ Е ПОЧТИ ИЗЧЕРПАН"
+                    health_color = "#ffaa00"
+                    health_text = f"Остават €{max(0.0, active_budget_remaining):.2f}"
+                else:
                     health_icon = "🟢"
                     health_title = "БЮДЖЕТЪТ ВЪРВИ ДОБРЕ"
                     health_color = "#2ebd59"
-                    health_text = f"Под плана си с €{abs(pace_difference):.2f}"
-                elif forecast_delta >= 0:
-                    health_icon = "🟡"
-                    health_title = "ХАРЧИШ ПО-БЪРЗО ОТ ПЛАНА"
-                    health_color = "#ffaa00"
-                    health_text = f"Над плана си с €{pace_difference:.2f}"
-                else:
-                    health_icon = "🔴"
-                    health_title = "ХАРЧИШ ПРЕКАЛЕНО БЪРЗО"
-                    health_color = "#ff3b30"
-                    health_text = f"Прогнозно над бюджета с €{abs(forecast_delta):.2f}"
+                    health_text = f"Остават €{max(0.0, active_budget_remaining):.2f}"
 
                 health_card = f"""
                 <div style='background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.09);padding:15px 16px;border-radius:16px;margin-top:12px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
@@ -2017,7 +2019,7 @@ else:
 
                 health_card_compact = f"""
                 <div class='tm-budget-mini-card tm-budget-card-inner tm-budget-accent-health'>
-                    <div class='tm-budget-mini-label' style='color:{health_color};'>{health_icon} БЮДЖЕТ</div>
+                    <div class='tm-budget-mini-label'><span style='color:{health_color};'>{health_icon}</span> <span style='color:#9aa1ad;'>БЮДЖЕТ</span></div>
                     <div class='tm-budget-mini-value' style='font-size:15px;line-height:1.2;color:{health_color};margin-top:9px;'>{health_title}</div>
                     <div class='tm-budget-mini-line'>Реално: <b style='color:#fff;'>€{daily_spent_total:.2f}</b></div>
                     <div class='tm-budget-mini-line' style='margin-top:4px;'>План: <b style='color:#fff;'>€{planned_to_date:.2f}</b></div>
