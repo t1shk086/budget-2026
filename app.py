@@ -70,15 +70,6 @@ st.markdown("""
         text-align:center;
         justify-content:center;
     }
-    .tm-section-title::before {
-        content:"";
-        width:3px;
-        height:16px;
-        border-radius:999px;
-        background:linear-gradient(180deg,#00f2fe,#4facfe);
-        box-shadow:0 0 10px rgba(0,242,254,.22);
-        flex:0 0 auto;
-    }
     .tm-fuel-card {
         transition:border-color .20s ease, box-shadow .20s ease, transform .20s ease;
     }
@@ -1305,7 +1296,7 @@ else:
 
 
 
-        st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n1'>1</span><span>Данни за разход и пробег</span></div>", unsafe_allow_html=True)
+        st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n1'>1</span><span>Следене на пробега</span></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 СЛЕДЕНЕ НА ПРОБЕГА</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
         # Разделяме екрана на две основни колони: за уредите и за статистика на разходите
         box_col1, box_col2 = st.columns(2)
@@ -1371,6 +1362,7 @@ else:
         # =========================================================
         # ⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА — АДАПТИВНА МОБИЛНА КАРТА
         # =========================================================
+        st.markdown("<div class='tm-section-title' style='margin-top:14px;margin-bottom:12px;'><span>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</span></div>", unsafe_allow_html=True)
         try:
             # Включваме и ръчно добавените пропуснати зареждания.
             # Те се записват с liters=0 в CSV, затова извличаме литрите
@@ -1462,7 +1454,7 @@ else:
 
                 st.markdown(f"""
                 <div class='tm-fuel-card' style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid {fuel_border_h};border-radius:16px;padding:20px;margin-top:2px;margin-bottom:20px;font-family:inherit;box-shadow:{fuel_shadow_h};'>
-                    <div class='tm-section-title'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
+                    
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
                     <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;'>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(0,242,254,0.12);'>
