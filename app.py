@@ -1956,32 +1956,36 @@ else:
                 """
 
                 # =========================================================
-                # ЗДРАВОСЛОВЕН СТАТУС НА БЮДЖЕТА
-                # Сравняваме реалното ежедневното харчене с плана до днес.
+                # СТАТУС НА ТРЕТАТА КАРТА
+                # Сравняваме реалното средно харчене на ден
+                # директно с дневния лимит.
                 # =========================================================
-                planned_to_date = daily_budget_total * elapsed_days / total_days
-                pace_difference = daily_spent_total - planned_to_date
-                pace_ratio = (daily_spent_total / planned_to_date) if planned_to_date > 0 else 0.0
+                pace_difference = avg_daily_spend - daily_budget_total
+                pace_ratio = (avg_daily_spend / daily_budget_total) if daily_budget_total > 0 else 0.0
 
                 # Статусът на третата карта:
-                # до 80% от плана -> зелено
+                # до 80% от дневния лимит -> зелено
                 # над 80% до 100% -> жълто
                 # над 100% -> червено
-                if pace_ratio <= 0.80 and forecast_delta >= 0:
+                if pace_ratio <= 0.80:
                     health_icon = "🟢"
                     health_title = "БЮДЖЕТЪТ ВЪРВИ ДОБРЕ"
                     health_color = "#2ebd59"
-                    health_text = f"Под плана си с €{abs(pace_difference):.2f}"
-                elif pace_ratio <= 1.00 and forecast_delta >= 0:
+                elif pace_ratio <= 1.00:
                     health_icon = "🟡"
                     health_title = "ХАРЧИШ ПО-БЪРЗО ОТ ПЛАНА"
                     health_color = "#ffaa00"
-                    health_text = f"Под плана си с €{abs(pace_difference):.2f}" if pace_difference < 0 else f"Над плана си с €{pace_difference:.2f}"
                 else:
                     health_icon = "🔴"
                     health_title = "ХАРЧИШ ПРЕКАЛЕНО БЪРЗО"
                     health_color = "#ff3b30"
-                    health_text = f"Прогнозно над бюджета с €{abs(forecast_delta):.2f}"
+
+                if pace_difference < 0:
+                    health_text = f"Под плана си с €{abs(pace_difference):.2f}/ден"
+                elif pace_difference > 0:
+                    health_text = f"Над плана си с €{pace_difference:.2f}/ден"
+                else:
+                    health_text = "Точно по плана си"
 
                 health_card = f"""
                 <div style='background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.09);padding:15px 16px;border-radius:16px;margin-top:12px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
@@ -2026,8 +2030,8 @@ else:
                         <span style='color:#9aa1ad;'> БЮДЖЕТ - Дневен Лимит</span>
                     </div>
                     <div class='tm-budget-mini-value' style='font-size:15px;line-height:1.2;color:{health_color};margin-top:9px;'>{health_title}</div>
-                    <div class='tm-budget-mini-line'>Реално: <b style='color:#fff;'>€{daily_spent_total:.2f}</b></div>
-                    <div class='tm-budget-mini-line' style='margin-top:4px;'>План: <b style='color:#fff;'>€{planned_to_date:.2f}</b></div>
+                    <div class='tm-budget-mini-line'>Реално: <b style='color:#fff;'>€{avg_daily_spend:.2f}/ден</b></div>
+                    <div class='tm-budget-mini-line' style='margin-top:4px;'>План: <b style='color:#fff;'>€{daily_budget_total:.2f}/ден</b></div>
                     <div class='tm-budget-mini-sub' style='color:{health_color};font-weight:800;'>{health_text}</div>
                 </div>
                 """
