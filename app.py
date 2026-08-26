@@ -1963,12 +1963,16 @@ else:
                 pace_difference = daily_spent_total - planned_to_date
                 pace_ratio = (daily_spent_total / planned_to_date) if planned_to_date > 0 else 0.0
 
-                if forecast_delta >= 0 and pace_difference <= 0:
+                # Статусът на третата карта:
+                # до 80% от плана -> зелено
+                # над 80% до 100% -> жълто
+                # над 100% -> червено
+                if pace_ratio <= 0.80 and forecast_delta >= 0:
                     health_icon = "🟢"
                     health_title = "БЮДЖЕТЪТ ВЪРВИ ДОБРЕ"
                     health_color = "#2ebd59"
                     health_text = f"Под плана си с €{abs(pace_difference):.2f}"
-                elif forecast_delta >= 0:
+                elif pace_ratio <= 1.00 and forecast_delta >= 0:
                     health_icon = "🟡"
                     health_title = "ХАРЧИШ ПО-БЪРЗО ОТ ПЛАНА"
                     health_color = "#ffaa00"
@@ -2017,7 +2021,10 @@ else:
 
                 health_card_compact = f"""
                 <div class='tm-budget-mini-card tm-budget-card-inner tm-budget-accent-health'>
-                    <div class='tm-budget-mini-label' style='color:{health_color};'>{health_icon} БЮДЖЕТ - Дневен Лимит</div>
+                    <div class='tm-budget-mini-label'>
+                        <span style='color:{health_color};font-size:10px;'>●</span>
+                        <span style='color:#9aa1ad;'> БЮДЖЕТ - Дневен Лимит</span>
+                    </div>
                     <div class='tm-budget-mini-value' style='font-size:15px;line-height:1.2;color:{health_color};margin-top:9px;'>{health_title}</div>
                     <div class='tm-budget-mini-line'>Реално: <b style='color:#fff;'>€{daily_spent_total:.2f}</b></div>
                     <div class='tm-budget-mini-line' style='margin-top:4px;'>План: <b style='color:#fff;'>€{planned_to_date:.2f}</b></div>
