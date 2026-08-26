@@ -1795,31 +1795,13 @@ else:
         # Native progress като резервен визуален индикатор.
         st.progress(global_pct / 100.0, text=f"{global_pct:.1f}% използван")
 
-        # Статусът се определя според реално изхарчения процент от бюджета.
-        # < 80% = зелено, 80-100% = жълто, > 100% = червено.
-        if global_pct < 80:
-            budget_dot = "🟢"
-            budget_status_color = "#2ebd59"
-            budget_status_text = f"Бюджетът е под контрол · използвани {global_pct:.1f}%"
-        elif global_pct < 100:
-            budget_dot = "🟡"
-            budget_status_color = "#ffaa00"
-            budget_status_text = f"Приближаваш бюджета · използвани {global_pct:.1f}%"
-        else:
-            budget_dot = "🔴"
-            budget_status_color = "#ff3b30"
-            budget_status_text = (
-                f"Над бюджета с {abs(global_remaining):.2f} EUR · използвани {global_pct:.1f}%"
-                if global_remaining < 0
-                else f"Бюджетът е изчерпан · използвани {global_pct:.1f}%"
-            )
-
+        status_color = "#ff4b4b" if global_remaining < 0 else "#8bd5ff"
         st.markdown(
             f"<div style='display:flex;justify-content:space-between;align-items:center;"
             f"margin:-4px 0 15px 0;font-family:inherit;'>"
-            f"<span style='font-size:11px;color:#8b929e;font-family:inherit;'>{budget_dot} Бюджет</span>"
-            f"<span style='font-size:11px;font-weight:800;color:{budget_status_color};font-family:inherit;'>"
-            f"{budget_status_text}</span></div>",
+            f"<span style='font-size:11px;color:#ffd43b;font-family:inherit;'>🟡 Бюджет</span>"
+            f"<span style='font-size:11px;font-weight:800;color:{status_color};font-family:inherit;'>"
+            f"{global_status}</span></div>",
             unsafe_allow_html=True,
         )
 
@@ -1827,16 +1809,6 @@ else:
         total_pct_budget = max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
         remaining_text = f"Остават {active_budget_remaining:.2f} EUR" if active_budget_remaining >= 0 else f"Над бюджета с {abs(active_budget_remaining):.2f} EUR"
         remaining_color = "#8bd5ff" if active_budget_remaining >= 0 else "#ff4b4b"
-        budget_pct = total_pct_budget
-        if budget_pct < 80:
-            budget_dot = "🟢"
-            budget_status_color = "#2ebd59"
-        elif budget_pct < 100:
-            budget_dot = "🟡"
-            budget_status_color = "#ffaa00"
-        else:
-            budget_dot = "🔴"
-            budget_status_color = "#ff3b30"
         budget_label = "Общ бюджет" if active_budget_mode == "global" else "Общо по Категории"
         st.markdown(f"""
         <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 15px;border-radius:14px;margin-bottom:15px;font-family:inherit;">
@@ -1849,8 +1821,8 @@ else:
                 <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,.85);text-shadow:1px 1px 2px rgba(0,0,0,.8);font-family:inherit;">{total_pct_budget:.1f}%</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;font-family:inherit;">
-                <span style="color:{budget_status_color};font-family:inherit;">{budget_dot} Бюджет</span>
-                <span style="color:{budget_status_color};font-weight:800;font-family:inherit;">{remaining_text}</span>
+                <span style="color:#ffd43b;font-family:inherit;">🟡 Бюджет</span>
+                <span style="color:{remaining_color};font-weight:800;font-family:inherit;">{remaining_text}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1885,19 +1857,10 @@ else:
                 over = s_value > budget
                 remaining = budget - s_value
                 fill_gradient = "#ff4b4b" if over else "linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)"
-                if ratio < 0.80:
-                    cat_dot = "🟢"
-                    cat_status_color = "#2ebd59"
-                elif ratio < 1.0:
-                    cat_dot = "🟡"
-                    cat_status_color = "#ffaa00"
-                else:
-                    cat_dot = "🔴"
-                    cat_status_color = "#ff3b30"
                 status_html = (
-                    f"<span style='color:{cat_status_color};font-weight:800;font-family:inherit;'>{cat_dot} Над бюджета с {abs(remaining):.2f} EUR</span>"
+                    f"<span style='color:#ff4b4b;font-weight:800;font-family:inherit;'>Над бюджета с {abs(remaining):.2f} EUR</span>"
                     if over else
-                    f"<span style='color:{cat_status_color};font-weight:800;font-family:inherit;'>{cat_dot} Остават {remaining:.2f} EUR</span>"
+                    f"<span style='color:#8bd5ff;font-weight:800;font-family:inherit;'>Остават {remaining:.2f} EUR</span>"
                 )
                 st.markdown(f"""
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
@@ -2000,31 +1963,21 @@ else:
                 pace_difference = daily_spent_total - planned_to_date
                 pace_ratio = (daily_spent_total / planned_to_date) if planned_to_date > 0 else 0.0
 
-                # Статусът под картата БЮДЖЕТ се определя САМО от реално
-                # изхарченото спрямо общия активен бюджет.
-                budget_progress_pct = (active_budget_spent / active_budget_total * 100.0) if active_budget_total > 0 else 0.0
-                budget_remaining_for_status = active_budget_total - active_budget_spent
-
-                if budget_progress_pct < 80:
+                if forecast_delta >= 0 and pace_difference <= 0:
                     health_icon = "🟢"
                     health_title = "БЮДЖЕТЪТ ВЪРВИ ДОБРЕ"
                     health_color = "#2ebd59"
-                    health_text = f"Използвани {budget_progress_pct:.1f}% · Остават €{budget_remaining_for_status:.2f}"
-                elif budget_progress_pct < 100:
+                    health_text = f"Под плана си с €{abs(pace_difference):.2f}"
+                elif forecast_delta >= 0:
                     health_icon = "🟡"
-                    health_title = "ПРИБЛИЖАВАШ БЮДЖЕТА"
+                    health_title = "ХАРЧИШ ПО-БЪРЗО ОТ ПЛАНА"
                     health_color = "#ffaa00"
-                    health_text = f"Използвани {budget_progress_pct:.1f}% · Остават €{budget_remaining_for_status:.2f}"
-                elif budget_progress_pct == 100:
-                    health_icon = "🔴"
-                    health_title = "БЮДЖЕТЪТ Е ИЗЧЕРПАН"
-                    health_color = "#ff3b30"
-                    health_text = "Използвани 100.0% от бюджета"
+                    health_text = f"Над плана си с €{pace_difference:.2f}"
                 else:
                     health_icon = "🔴"
-                    health_title = "НАД БЮДЖЕТА"
+                    health_title = "ХАРЧИШ ПРЕКАЛЕНО БЪРЗО"
                     health_color = "#ff3b30"
-                    health_text = f"Над бюджета с €{abs(budget_remaining_for_status):.2f}"
+                    health_text = f"Прогнозно над бюджета с €{abs(forecast_delta):.2f}"
 
                 health_card = f"""
                 <div style='background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.09);padding:15px 16px;border-radius:16px;margin-top:12px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
