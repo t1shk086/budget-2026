@@ -1034,13 +1034,9 @@ if st.session_state["current_trip"] is None:
                     fmt_value = lambda v: f"€{v:.2f}/ден"
 
                 # =========================================================
-                # PREMIUM COMPARISON CHART
-                # Реално нова визуализация, а не просто сменени цветове:
-                # - тъмна dashboard карта
-                # - фонова track лента за всяко пътуване
-                # - акцентна стойност върху самата лента
-                # - отделен best/worst визуален акцент
-                # - чисти оси без стандартния Plotly вид
+                # НОВ СРАВНИТЕЛЕН DASHBOARD
+                # Ленти като UI елементи вместо стандартна осева графика.
+                # Данните и изчисленията остават непроменени.
                 # =========================================================
                 import plotly.graph_objects as go
 
@@ -1049,30 +1045,49 @@ if st.session_state["current_trip"] is None:
 
                 if values:
                     vmax = max(values) if max(values) > 0 else 1.0
-                    # Контрастен, но не крещящ акцент за всяка лента.
+
+                    # Определяме най-доброто/най-лошото според избрания показател.
+                    reverse_metrics = {"Цена / км", "€ / ден", "Общо", "Хотел"}
+                    is_lower_better = chosen_criteria in reverse_metrics
+
+                    if is_lower_better:
+                        best_pos = min(range(len(values)), key=lambda i: values[i])
+                        worst_pos = max(range(len(values)), key=lambda i: values[i])
+                    else:
+                        best_pos = max(range(len(values)), key=lambda i: values[i])
+                        worst_pos = min(range(len(values)), key=lambda i: values[i])
+
+                    # Premium палитра за UI акцентите.
+                    normal_color = "#6d7cff"
+                    best_color = "#39d98a"
+                    worst_color = "#ff5f6d"
+                    muted_track = "rgba(255,255,255,0.065)"
+                    text_main = "#f4f6f9"
+                    text_muted = "#8d96a5"
+
                     bar_colors = []
-                    for idx, value in enumerate(values):
-                        if better_idx is not None and df_sorted.index[idx] == better_idx:
-                            bar_colors.append("#38d996")
-                        elif worse_idx is not None and df_sorted.index[idx] == worse_idx:
-                            bar_colors.append("#ff5c67")
+                    for i in range(len(values)):
+                        if i == best_pos and len(values) > 1:
+                            bar_colors.append(best_color)
+                        elif i == worst_pos and len(values) > 1:
+                            bar_colors.append(worst_color)
                         else:
-                            bar_colors.append("#6f7cff")
+                            bar_colors.append(normal_color)
 
                     fig_pixel = go.Figure()
 
-                    # Фонови "track" ленти — дават усещане за dashboard component.
+                    # Track на всяко пътуване.
                     fig_pixel.add_trace(go.Bar(
-                        x=[vmax * 1.08] * len(names),
+                        x=[vmax * 1.02] * len(names),
                         y=names,
                         orientation="h",
-                        marker=dict(color="rgba(255,255,255,0.035)",
-                                    line=dict(width=0)),
+                        marker=dict(color=muted_track, line=dict(width=0)),
+                        width=0.68,
                         hoverinfo="skip",
                         showlegend=False,
-                        width=0.56,
                     ))
 
+                    # Реалната стойност.
                     fig_pixel.add_trace(go.Bar(
                         x=values,
                         y=names,
@@ -1080,80 +1095,129 @@ if st.session_state["current_trip"] is None:
                         marker=dict(
                             color=bar_colors,
                             line=dict(width=0),
-                            cornerradius=18,
-                            opacity=0.94,
+                            cornerradius=20,
                         ),
-                        text=[fmt_value(v) for v in values],
-                        textposition="outside",
-                        textfont=dict(size=12, color="#eef2f7", family="Segoe UI, Arial, sans-serif"),
-                        cliponaxis=False,
-                        customdata=[[n, fmt_value(v)] for n, v in zip(names, values)],
-                        hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]}<extra></extra>",
+                        width=0.68,
+                        hovertemplate="<b>%{y}</b><br>" + fmt_value(0).replace("0", "%{x}") + "<extra></extra>",
+                        hoverlabel=dict(
+                            bgcolor="#1b2029",
+                            bordercolor="#353d4b",
+                            font=dict(color="#ffffff", size=11),
+                        ),
                         showlegend=False,
-                        width=0.56,
                     ))
 
-                    # Малка точка/маркер в края на всяка активна стойност.
-                    fig_pixel.add_trace(go.Scatter(
-                        x=values,
-                        y=names,
-                        mode="markers",
-                        marker=dict(size=7, color=bar_colors,
-                                    line=dict(color="#0e1117", width=2)),
-                        hoverinfo="skip",
-                        showlegend=False,
-                    ))
+                    # Стойностите вдясно са собствена UI информация,
+                    # а не стандартните Plotly labels.
+                    annotations = []
+                    for i, (name, value) in enumerate(zip(names, values)):
+                        annotations.append(dict(
+                            x=vmax * 1.095,
+                            y=name,
+                            xref="x",
+                            yref="y",
+                            text=f"<b>{fmt_value(value)}</b>",
+                            showarrow=False,
+                            xanchor="left",
+                            yanchor="middle",
+                            font=dict(
+                                family="Segoe UI, Arial, sans-serif",
+                                size=12,
+                                color=text_main,
+                            ),
+                        ))
+
+                    # Имена с лек акцент, без усещане за стандартна ос.
+                    for i, name in enumerate(names):
+                        annotations.append(dict(
+                            x=0,
+                            y=name,
+                            xref="x",
+                            yref="y",
+                            text=name,
+                            showarrow=False,
+                            xanchor="left",
+                            yanchor="middle",
+                            xshift=-4,
+                            font=dict(
+                                family="Segoe UI, Arial, sans-serif",
+                                size=11,
+                                color=text_main,
+                            ),
+                        ))
+
+                    # Малък маркер за най-доброто / най-лошото.
+                    if len(names) > 1:
+                        annotations.extend([
+                            dict(
+                                x=values[best_pos],
+                                y=names[best_pos],
+                                xref="x", yref="y",
+                                text="  BEST  ",
+                                showarrow=False,
+                                xanchor="left",
+                                yanchor="middle",
+                                xshift=8,
+                                font=dict(size=8, color="#0f1713"),
+                                bgcolor=best_color,
+                                bordercolor=best_color,
+                                borderwidth=0,
+                                borderpad=3,
+                            ),
+                            dict(
+                                x=values[worst_pos],
+                                y=names[worst_pos],
+                                xref="x", yref="y",
+                                text="  HIGH  ",
+                                showarrow=False,
+                                xanchor="left",
+                                yanchor="middle",
+                                xshift=8,
+                                font=dict(size=8, color="#1b0d10"),
+                                bgcolor=worst_color,
+                                bordercolor=worst_color,
+                                borderwidth=0,
+                                borderpad=3,
+                            ),
+                        ])
 
                     fig_pixel.update_layout(
                         barmode="overlay",
-                        # Лек "glass" стил: прозрачен фон, без тежък тъмен правоъгълник.
-                        title=dict(
-                            text=(
-                                f"<span style='font-size:16px;font-weight:800;'>"
-                                f"{graph_title}"
-                                f"</span><br>"
-                                f"<span style='font-size:10px;color:#8d96a3;'>"
-                                f"Сравнение на {len(names)} пътувания"
-                                f"</span>"
-                            ),
-                            font=dict(color="#eef2f7"),
-                            x=0.01,
-                            xanchor="left",
-                            y=0.985,
-                            yanchor="top",
-                            pad=dict(l=0, r=0, t=0, b=4),
-                        ),
                         plot_bgcolor="rgba(0,0,0,0)",
                         paper_bgcolor="rgba(0,0,0,0)",
-                        font=dict(family="Segoe UI, Arial, sans-serif", color="#eef2f7"),
+                        font=dict(
+                            family="Segoe UI, Arial, sans-serif",
+                            color=text_main,
+                        ),
+                        title=dict(
+                            text=(
+                                f"<span style='font-size:17px;font-weight:800'>{graph_title}</span>"
+                                f"<br><span style='font-size:10px;color:{text_muted}'>"
+                                f"{len(names)} пътувания · подредени за лесно сравнение</span>"
+                            ),
+                            x=0.0,
+                            y=0.98,
+                            xanchor="left",
+                            yanchor="top",
+                            font=dict(color=text_main),
+                        ),
                         xaxis=dict(
-                            showgrid=False,
-                            showline=False,
-                            showticklabels=False,
-                            zeroline=False,
+                            visible=False,
                             fixedrange=True,
-                            range=[0, vmax * 1.22],
+                            range=[0, vmax * 1.32],
                         ),
                         yaxis=dict(
-                            showgrid=False,
-                            showline=False,
-                            zeroline=False,
-                            title="",
-                            tickfont=dict(color="#e2e7ee", size=11),
+                            visible=False,
                             fixedrange=True,
                             autorange="reversed",
-                            automargin=True,
+                            categoryorder="array",
+                            categoryarray=names,
                         ),
-                        margin=dict(l=8, r=105, t=88, b=12),
-                        height=max(320, 66 * len(df_sorted) + 105),
-                        bargap=0.24,
+                        annotations=annotations,
+                        margin=dict(l=4, r=86, t=72, b=10),
+                        height=max(300, 70 * len(names) + 92),
                         showlegend=False,
-                        hoverlabel=dict(
-                            bgcolor="#ffffff",
-                            bordercolor="#d6dbe3",
-                            font=dict(color="#252b35", size=11),
-                            namelength=-1,
-                        ),
+                        bargap=0.28,
                     )
 
                     st.plotly_chart(
