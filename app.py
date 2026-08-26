@@ -1033,35 +1033,122 @@ if st.session_state["current_trip"] is None:
                     worse_label = "Най-висок дневен разход"
                     fmt_value = lambda v: f"€{v:.2f}/ден"
 
-                fig_pixel = px.bar(
-                    df_sorted,
-                    x=x_col,
-                    y="Пътуване",
-                    orientation='h',
-                    text=x_col,
-                    color=x_col,
-                    color_continuous_scale=[[0, '#2ebd59'], [0.5, '#ffaa00'], [1, '#ff3b30']]
-                )
+                # =========================================================
+                # PREMIUM COMPARISON CHART
+                # Реално нова визуализация, а не просто сменени цветове:
+                # - тъмна dashboard карта
+                # - фонова track лента за всяко пътуване
+                # - акцентна стойност върху самата лента
+                # - отделен best/worst визуален акцент
+                # - чисти оси без стандартния Plotly вид
+                # =========================================================
+                import plotly.graph_objects as go
 
-                fig_pixel.update_traces(
-                    marker=dict(line=dict(width=0), cornerradius=15),
-                    texttemplate=f"<b>{t_format}</b>",
-                    textposition='outside',
-                    cliponaxis=False
-                )
-                fig_pixel.update_layout(
-                    title=dict(text=graph_title, font=dict(color="white", size=16), x=0),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    xaxis=dict(showgrid=False, showline=False, showticklabels=False, title=""),
-                    yaxis=dict(showgrid=False, showline=False, title="", tickfont=dict(color="white")),
-                    margin=dict(l=10, r=90, t=42, b=8),
-                    height=max(300, 64 * len(df_sorted) + 90),
-                    bargap=0.34,
-                    coloraxis_showscale=False,
-                    showlegend=False
-                )
-                st.plotly_chart(fig_pixel, use_container_width=True, config={'displayModeBar': False})
+                names = df_sorted["Пътуване"].astype(str).tolist()
+                values = df_sorted[x_col].astype(float).tolist()
+
+                if values:
+                    vmax = max(values) if max(values) > 0 else 1.0
+                    # Контрастен, но не крещящ акцент за всяка лента.
+                    bar_colors = []
+                    for idx, value in enumerate(values):
+                        if better_idx is not None and df_sorted.index[idx] == better_idx:
+                            bar_colors.append("#38d996")
+                        elif worse_idx is not None and df_sorted.index[idx] == worse_idx:
+                            bar_colors.append("#ff5c67")
+                        else:
+                            bar_colors.append("#6f7cff")
+
+                    fig_pixel = go.Figure()
+
+                    # Фонови "track" ленти — дават усещане за dashboard component.
+                    fig_pixel.add_trace(go.Bar(
+                        x=[vmax * 1.08] * len(names),
+                        y=names,
+                        orientation="h",
+                        marker=dict(color="rgba(255,255,255,0.055)",
+                                    line=dict(width=0)),
+                        hoverinfo="skip",
+                        showlegend=False,
+                        width=0.56,
+                    ))
+
+                    fig_pixel.add_trace(go.Bar(
+                        x=values,
+                        y=names,
+                        orientation="h",
+                        marker=dict(
+                            color=bar_colors,
+                            line=dict(width=0),
+                            cornerradius=14,
+                        ),
+                        text=[fmt_value(v) for v in values],
+                        textposition="outside",
+                        textfont=dict(size=12, color="#f5f7fa"),
+                        cliponaxis=False,
+                        customdata=[[n, fmt_value(v)] for n, v in zip(names, values)],
+                        hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]}<extra></extra>",
+                        showlegend=False,
+                        width=0.56,
+                    ))
+
+                    # Малка точка/маркер в края на всяка активна стойност.
+                    fig_pixel.add_trace(go.Scatter(
+                        x=values,
+                        y=names,
+                        mode="markers",
+                        marker=dict(size=7, color=bar_colors,
+                                    line=dict(color="#0e1117", width=2)),
+                        hoverinfo="skip",
+                        showlegend=False,
+                    ))
+
+                    fig_pixel.update_layout(
+                        barmode="overlay",
+                        title=dict(
+                            text=f"<b>{graph_title}</b><br><span style='font-size:11px;color:#7f8998'>Сравнение на {len(names)} пътувания</span>",
+                            font=dict(color="#f5f7fa", size=18),
+                            x=0.02,
+                            xanchor="left",
+                            y=0.97,
+                            yanchor="top",
+                        ),
+                        plot_bgcolor="#11151d",
+                        paper_bgcolor="#11151d",
+                        font=dict(family="Arial, sans-serif", color="#f5f7fa"),
+                        xaxis=dict(
+                            showgrid=False,
+                            showline=False,
+                            showticklabels=False,
+                            zeroline=False,
+                            fixedrange=True,
+                            range=[0, vmax * 1.25],
+                        ),
+                        yaxis=dict(
+                            showgrid=False,
+                            showline=False,
+                            zeroline=False,
+                            title="",
+                            tickfont=dict(color="#d9dee7", size=11),
+                            fixedrange=True,
+                            autorange="reversed",
+                        ),
+                        margin=dict(l=20, r=115, t=78, b=18),
+                        height=max(330, 68 * len(df_sorted) + 105),
+                        bargap=0.28,
+                        showlegend=False,
+                        hoverlabel=dict(
+                            bgcolor="#1b2230",
+                            bordercolor="#394150",
+                            font=dict(color="#f5f7fa", size=11),
+                        ),
+                    )
+
+                    st.plotly_chart(
+                        fig_pixel,
+                        use_container_width=True,
+                        config={"displayModeBar": False, "scrollZoom": False},
+                    )
 
                 best_name = str(df_pixel.loc[better_idx, "Пътуване"]) if better_idx is not None else "—"
                 best_value = float(df_pixel.loc[better_idx, x_col]) if better_idx is not None else 0.0
