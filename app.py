@@ -1362,7 +1362,7 @@ else:
         # =========================================================
         # ⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА — АДАПТИВНА МОБИЛНА КАРТА
         # =========================================================
-        st.markdown("<div class='tm-section-title' style='margin-top:14px;margin-bottom:12px;'><span>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</span></div>", unsafe_allow_html=True)
+        st.markdown("<div class='tm-section-title' style='margin-top:14px;margin-bottom:12px;'><span>Следене на пробега</span></div>", unsafe_allow_html=True)
         try:
             # Включваме и ръчно добавените пропуснати зареждания.
             # Те се записват с liters=0 в CSV, затова извличаме литрите
