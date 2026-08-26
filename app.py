@@ -1033,198 +1033,95 @@ if st.session_state["current_trip"] is None:
                     worse_label = "Най-висок дневен разход"
                     fmt_value = lambda v: f"€{v:.2f}/ден"
 
-                # =========================================================
-                # НОВ СРАВНИТЕЛЕН DASHBOARD
-                # Ленти като UI елементи вместо стандартна осева графика.
-                # Данните и изчисленията остават непроменени.
-                # =========================================================
-                import plotly.graph_objects as go
+                # СЕМПЪЛ + МОДЕРЕН ВИД:
+                # запазваме стандартните хоризонтални колони,
+                # но махаме тежкия градиент, излишните оси и визуалния шум.
+                fig_pixel = px.bar(
+                    df_sorted,
+                    x=x_col,
+                    y="Пътуване",
+                    orientation="h",
+                    text=x_col,
+                    color_discrete_sequence=["#6f7cff"],
+                )
 
-                names = df_sorted["Пътуване"].astype(str).tolist()
-                values = df_sorted[x_col].astype(float).tolist()
+                fig_pixel.update_traces(
+                    marker=dict(
+                        line=dict(width=0),
+                        cornerradius=9,
+                        opacity=0.92,
+                    ),
+                    texttemplate=f"<b>{t_format}</b>",
+                    textposition="outside",
+                    textfont=dict(
+                        family="Segoe UI, Arial, sans-serif",
+                        size=11,
+                        color="#eef2f7",
+                    ),
+                    cliponaxis=False,
+                    hovertemplate="<b>%{y}</b><br>" + f"{t_format}" + "<extra></extra>",
+                )
 
-                if values:
-                    vmax = max(values) if max(values) > 0 else 1.0
-
-                    # Определяме най-доброто/най-лошото според избрания показател.
-                    reverse_metrics = {"Цена / км", "€ / ден", "Общо", "Хотел"}
-                    is_lower_better = chosen_criteria in reverse_metrics
-
-                    if is_lower_better:
-                        best_pos = min(range(len(values)), key=lambda i: values[i])
-                        worst_pos = max(range(len(values)), key=lambda i: values[i])
-                    else:
-                        best_pos = max(range(len(values)), key=lambda i: values[i])
-                        worst_pos = min(range(len(values)), key=lambda i: values[i])
-
-                    # Premium палитра за UI акцентите.
-                    normal_color = "#6d7cff"
-                    best_color = "#39d98a"
-                    worst_color = "#ff5f6d"
-                    muted_track = "rgba(255,255,255,0.065)"
-                    text_main = "#f4f6f9"
-                    text_muted = "#8d96a5"
-
-                    bar_colors = []
-                    for i in range(len(values)):
-                        if i == best_pos and len(values) > 1:
-                            bar_colors.append(best_color)
-                        elif i == worst_pos and len(values) > 1:
-                            bar_colors.append(worst_color)
-                        else:
-                            bar_colors.append(normal_color)
-
-                    fig_pixel = go.Figure()
-
-                    # Track на всяко пътуване.
-                    fig_pixel.add_trace(go.Bar(
-                        x=[vmax * 1.02] * len(names),
-                        y=names,
-                        orientation="h",
-                        marker=dict(color=muted_track, line=dict(width=0)),
-                        width=0.68,
-                        hoverinfo="skip",
-                        showlegend=False,
-                    ))
-
-                    # Реалната стойност.
-                    fig_pixel.add_trace(go.Bar(
-                        x=values,
-                        y=names,
-                        orientation="h",
-                        marker=dict(
-                            color=bar_colors,
-                            line=dict(width=0),
-                            cornerradius=20,
-                        ),
-                        width=0.68,
-                        hovertemplate="<b>%{y}</b><br>" + fmt_value(0).replace("0", "%{x}") + "<extra></extra>",
-                        hoverlabel=dict(
-                            bgcolor="#1b2029",
-                            bordercolor="#353d4b",
-                            font=dict(color="#ffffff", size=11),
-                        ),
-                        showlegend=False,
-                    ))
-
-                    # Стойностите вдясно са собствена UI информация,
-                    # а не стандартните Plotly labels.
-                    annotations = []
-                    for i, (name, value) in enumerate(zip(names, values)):
-                        annotations.append(dict(
-                            x=vmax * 1.095,
-                            y=name,
-                            xref="x",
-                            yref="y",
-                            text=f"<b>{fmt_value(value)}</b>",
-                            showarrow=False,
-                            xanchor="left",
-                            yanchor="middle",
-                            font=dict(
-                                family="Segoe UI, Arial, sans-serif",
-                                size=12,
-                                color=text_main,
-                            ),
-                        ))
-
-                    # Имена с лек акцент, без усещане за стандартна ос.
-                    for i, name in enumerate(names):
-                        annotations.append(dict(
-                            x=0,
-                            y=name,
-                            xref="x",
-                            yref="y",
-                            text=name,
-                            showarrow=False,
-                            xanchor="left",
-                            yanchor="middle",
-                            xshift=-4,
-                            font=dict(
-                                family="Segoe UI, Arial, sans-serif",
-                                size=11,
-                                color=text_main,
-                            ),
-                        ))
-
-                    # Малък маркер за най-доброто / най-лошото.
-                    if len(names) > 1:
-                        annotations.extend([
-                            dict(
-                                x=values[best_pos],
-                                y=names[best_pos],
-                                xref="x", yref="y",
-                                text="  BEST  ",
-                                showarrow=False,
-                                xanchor="left",
-                                yanchor="middle",
-                                xshift=8,
-                                font=dict(size=8, color="#0f1713"),
-                                bgcolor=best_color,
-                                bordercolor=best_color,
-                                borderwidth=0,
-                                borderpad=3,
-                            ),
-                            dict(
-                                x=values[worst_pos],
-                                y=names[worst_pos],
-                                xref="x", yref="y",
-                                text="  HIGH  ",
-                                showarrow=False,
-                                xanchor="left",
-                                yanchor="middle",
-                                xshift=8,
-                                font=dict(size=8, color="#1b0d10"),
-                                bgcolor=worst_color,
-                                bordercolor=worst_color,
-                                borderwidth=0,
-                                borderpad=3,
-                            ),
-                        ])
-
-                    fig_pixel.update_layout(
-                        barmode="overlay",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        paper_bgcolor="rgba(0,0,0,0)",
+                fig_pixel.update_layout(
+                    title=dict(
+                        text=f"<b>{graph_title}</b>",
                         font=dict(
                             family="Segoe UI, Arial, sans-serif",
-                            color=text_main,
+                            color="#f2f4f7",
+                            size=18,
                         ),
-                        title=dict(
-                            text=(
-                                f"<span style='font-size:17px;font-weight:800'>{graph_title}</span>"
-                                f"<br><span style='font-size:10px;color:{text_muted}'>"
-                                f"{len(names)} пътувания · подредени за лесно сравнение</span>"
-                            ),
-                            x=0.0,
-                            y=0.98,
-                            xanchor="left",
-                            yanchor="top",
-                            font=dict(color=text_main),
+                        x=0,
+                        y=0.98,
+                        xanchor="left",
+                        yanchor="top",
+                    ),
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(
+                        family="Segoe UI, Arial, sans-serif",
+                        color="#d8dde5",
+                    ),
+                    xaxis=dict(
+                        showgrid=True,
+                        gridcolor="rgba(255,255,255,0.075)",
+                        gridwidth=1,
+                        zeroline=False,
+                        showline=False,
+                        showticklabels=False,
+                        title="",
+                    ),
+                    yaxis=dict(
+                        showgrid=False,
+                        showline=False,
+                        zeroline=False,
+                        title="",
+                        tickfont=dict(
+                            family="Segoe UI, Arial, sans-serif",
+                            color="#dfe4eb",
+                            size=11,
                         ),
-                        xaxis=dict(
-                            visible=False,
-                            fixedrange=True,
-                            range=[0, vmax * 1.32],
+                        automargin=True,
+                    ),
+                    margin=dict(l=10, r=105, t=58, b=10),
+                    height=max(290, 58 * len(df_sorted) + 92),
+                    bargap=0.28,
+                    showlegend=False,
+                    hoverlabel=dict(
+                        bgcolor="#ffffff",
+                        bordercolor="#d9dee6",
+                        font=dict(
+                            family="Segoe UI, Arial, sans-serif",
+                            color="#202631",
+                            size=11,
                         ),
-                        yaxis=dict(
-                            visible=False,
-                            fixedrange=True,
-                            autorange="reversed",
-                            categoryorder="array",
-                            categoryarray=names,
-                        ),
-                        annotations=annotations,
-                        margin=dict(l=4, r=86, t=72, b=10),
-                        height=max(300, 70 * len(names) + 92),
-                        showlegend=False,
-                        bargap=0.28,
-                    )
+                    ),
+                )
 
-                    st.plotly_chart(
-                        fig_pixel,
-                        use_container_width=True,
-                        config={"displayModeBar": False, "scrollZoom": False},
-                    )
+                st.plotly_chart(
+                    fig_pixel,
+                    use_container_width=True,
+                    config={"displayModeBar": False, "scrollZoom": False},
+                )
 
                 best_name = str(df_pixel.loc[better_idx, "Пътуване"]) if better_idx is not None else "—"
                 best_value = float(df_pixel.loc[better_idx, x_col]) if better_idx is not None else 0.0
