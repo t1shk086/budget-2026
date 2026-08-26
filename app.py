@@ -425,7 +425,7 @@ def _navigate_fuel(direction, trip_id):
         # Зареждане е или нормален запис с литри, или ръчно добавено
         # пропуснато гориво, което се пази като [ПРОПУСНАТО ГОРИВО].
         manual_mask = df_nav["description"].astype(str).str.contains(
-            r"\[ПРОПУСНАТО\s+ГОРИВО\]", case=False, regex=True, na=False
+            r"(?:\[ПРОПУСНАТО\s+ГОРИВО\]|\[ГОРИВО\s+БЕЗ\s+СТОЙНОСТ\])", case=False, regex=True, na=False
         )
         fuel_mask = df_nav["liters"].fillna(0).astype(float).gt(0) | manual_mask
         rows = df_nav[fuel_mask]
@@ -1304,14 +1304,14 @@ else:
                 (df_expenses["category"] == "Транспорт") &
                 (
                     (df_expenses["liters"] > 0) |
-                    (df_expenses["description"].astype(str).str.contains(r"\[ПРОПУСНАТО\s+ГОРИВО\]", case=False, regex=True))
+                    (df_expenses["description"].astype(str).str.contains(r"(?:\[ПРОПУСНАТО\s+ГОРИВО\]|\[ГОРИВО\s+БЕЗ\s+СТОЙНОСТ\])", case=False, regex=True))
                 )
             ].copy().sort_index()
 
             if not fuel_rows.empty:
                 import re
                 manual_mask = fuel_rows["description"].astype(str).str.contains(
-                    r"\[ПРОПУСНАТО\s+ГОРИВО\]", case=False, regex=True
+                    r"(?:\[ПРОПУСНАТО\s+ГОРИВО\]|\[ГОРИВО\s+БЕЗ\s+СТОЙНОСТ\])", case=False, regex=True
                 )
                 for _idx in fuel_rows.index[manual_mask]:
                     _desc = str(fuel_rows.loc[_idx, "description"])
@@ -1334,6 +1334,9 @@ else:
                 ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
                 date_h = str(fr.get("date", ""))
                 desc_h = str(fr.get("description", ""))
+                amount_display_h = f"€{amount_h:.2f}" if amount_h > 0 else "—"
+                ppl_display_h = f"€{ppl_h:.2f}" if amount_h > 0 and liters_h > 0 else "—"
+                km_display_h = f"{km_h:.0f} км" if km_h > 0 else "—"
                 # По-чисто визуално описание на зареждането. Данните в CSV остават непроменени.
                 import re
                 desc_display_h = desc_h
@@ -1348,6 +1351,10 @@ else:
                         fuel_match_h = re.match(r'^\[ПРОПУСНАТО\s+ГОРИВО\]\s*Добавени\s*([0-9.]+)\s*литра\s*$', desc_h, flags=re.IGNORECASE)
                         if fuel_match_h:
                             desc_display_h = f"Добавено ръчно — {fuel_match_h.group(1)} л"
+                        else:
+                            fuel_match_h = re.match(r'^\[ГОРИВО\s+БЕЗ\s+СТОЙНОСТ\]\s*Добавени\s*([0-9.]+)\s*литра\s*$', desc_h, flags=re.IGNORECASE)
+                            if fuel_match_h:
+                                desc_display_h = f"Добавено ръчно — само {fuel_match_h.group(1)} л"
 
                 compare_html = "⚪ Няма предишно зареждане за сравнение."
                 compare_color = "#7e8494"
@@ -1367,6 +1374,9 @@ else:
                         else:
                             compare_html = f"⚪ Същата цена · €{ppl_h:.2f}/л"
                             compare_color = "#aeb5c0"
+                    elif ppl_h <= 0:
+                        compare_html = "⚪ Няма цена за сравнение — въведени са само литрите."
+                        compare_color = "#aeb5c0"
 
                 st.markdown(f"""
                 <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;margin-top:2px;margin-bottom:20px;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
@@ -1381,15 +1391,15 @@ else:
                         </div>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
                             <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:0.5px;'>Стойност</div>
-                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>€{amount_h:.2f}</div>
+                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{amount_display_h}</div>
                         </div>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
                             <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:0.5px;'>Цена / л</div>
-                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>€{ppl_h:.2f}</div>
+                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{ppl_display_h}</div>
                         </div>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
                             <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:0.5px;'>Километри</div>
-                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{km_h:.0f} <span style='font-size:11px;color:#666;font-weight:normal;'>км</span></div>
+                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{km_display_h}</div>
                         </div>
                     </div>
                     <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_display_h)}</div>
@@ -1418,9 +1428,11 @@ else:
         
         # Полето приема само положителни числа за сигурност
         new_mf = st.number_input("Добави пропуснато гориво (л):", value=None, placeholder="Въведете литри...", min_value=0.0, disabled=is_trip_finished)
-        
-        has_cash_expense = st.checkbox("💵 Има ли финансов разход за добавеното гориво?") if (new_mf and new_mf > 0 and not is_trip_finished) else False
-        manual_cash_amt = st.number_input("Въведете платена сума (EUR):", value=None, format="%.2f") if has_cash_expense else 0.0
+
+        has_cash_expense = st.checkbox("💵 Помня и платената сума за това гориво?") if (new_mf and new_mf > 0 and not is_trip_finished) else False
+        manual_cash_amt = st.number_input("Въведете платена сума (EUR):", value=None, format="%.2f", placeholder="Въведете сумата...") if has_cash_expense else 0.0
+        if new_mf and new_mf > 0 and not is_trip_finished and not has_cash_expense:
+            st.caption("📝 Ще се запише като зареждане, за което са известни само литрите.")
         try:
             current_start = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else datetime.date.today()
             current_end = datetime.datetime.strptime(en_date, "%d.%m.%Y").date() if en_date and en_date != "nan" else datetime.date.today() + datetime.timedelta(days=5)
@@ -1437,7 +1449,7 @@ else:
         if st.button("💾 Обнови настройките", use_container_width=True, type="primary", disabled=is_trip_finished):
             sk_val = float(new_sk) if new_sk is not None else 0.0
             added_liters = float(new_mf) if new_mf is not None else 0.0
-            mf_val = max(0.0, m_fuel + added_liters)
+            mf_val = max(0.0, m_fuel + (added_liters if (has_cash_expense and manual_cash_amt and manual_cash_amt > 0) else 0.0))
 
             # БЕЗОПАСЕН ФИКС: Извикваме .strftime() САМО върху отделните обекти в списъка
             if isinstance(edit_range, (list, tuple)) and len(edit_range) > 0:
@@ -1449,8 +1461,11 @@ else:
             else:
                 s_d_str, e_d_str = st_date, en_date
 
-            if has_cash_expense and manual_cash_amt and manual_cash_amt > 0 and added_liters > 0: 
-                add_expense(trip_id, manual_cash_amt, "Транспорт", f"[ПРОПУСНАТО ГОРИВО] Добавени {added_liters:.1f} литра", False, 0.0, 0.0)
+            if added_liters > 0:
+                if has_cash_expense and manual_cash_amt and manual_cash_amt > 0:
+                    add_expense(trip_id, manual_cash_amt, "Транспорт", f"[ПРОПУСНАТО ГОРИВО] Добавени {added_liters:.1f} литра", False, 0.0, 0.0)
+                else:
+                    add_expense(trip_id, 0.0, "Транспорт", f"[ГОРИВО БЕЗ СТОЙНОСТ] Добавени {added_liters:.1f} литра", False, added_liters, 0.0)
             
             save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, s_d_str, e_d_str)
             st.session_state["form_version"] += 1
