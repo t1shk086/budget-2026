@@ -73,7 +73,8 @@ TRIP_PLAN_FILE = "trip_plan_2026.csv"
 DEFAULT_UI_LABELS = {
     "pet": "Куче",
     "hotel": "Нощувки/Хотел",
-    "deposit": "Депозит/Резервация"
+    "deposit": "Депозит/Резервация",
+    "fuel_red_threshold": 1.80
 }
 
 def get_ui_labels():
@@ -91,12 +92,18 @@ def get_ui_labels():
         pass
     return labels
 
-def save_ui_labels(pet_label, hotel_label, deposit_label):
+def save_ui_labels(pet_label, hotel_label, deposit_label, fuel_red_threshold=1.80):
     try:
+        try:
+            fuel_red_threshold = float(fuel_red_threshold)
+        except (TypeError, ValueError):
+            fuel_red_threshold = 1.80
+        fuel_red_threshold = max(0.01, fuel_red_threshold)
         pd.DataFrame([{
             "pet": pet_label,
             "hotel": hotel_label,
-            "deposit": deposit_label
+            "deposit": deposit_label,
+            "fuel_red_threshold": fuel_red_threshold
         }]).to_csv(LABELS_FILE, index=False, encoding="utf-8")
         return True
     except:
@@ -1378,10 +1385,14 @@ else:
                         compare_html = "⚪ Няма цена за сравнение — въведени са само литрите."
                         compare_color = "#aeb5c0"
 
+                # Цената е зелена до зададения праг и червена над него.
+                fuel_red_threshold = float(UI_LABELS.get("fuel_red_threshold", 1.80) or 1.80)
+                price_color_h = "#ff4b4b" if ppl_h > fuel_red_threshold else ("#63d391" if ppl_h > 0 else "#7e8494")
+
                 st.markdown(f"""
                 <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;margin-top:2px;margin-bottom:20px;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
                     <div style='display:flex;justify-content:center;align-items:center;gap:10px;'>
-                        <div style='font-size:12px;font-weight:900;letter-spacing:1px;text-align:center;background:linear-gradient(90deg,#00f2fe,#4facfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
+                        <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:1px;text-align:center;'>⛽ АНАЛИЗ НА ЗАРЕЖДАНИЯТА</div>
                     </div>
                     <div style='font-size:10px;color:#7e8494;margin-top:2px;'>{html.escape(date_h)}</div>
                     <div style='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;'>
@@ -1394,12 +1405,12 @@ else:
                             <div style='font-size:24px;color:#ffe08a;font-weight:900;line-height:1.1;margin-top:4px;text-shadow:0 0 12px rgba(255,215,106,0.12);'>{amount_display_h}</div>
                         </div>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(46,189,89,0.10);'>
-                            <div style='font-size:11px;color:#7ce38b;font-weight:800;letter-spacing:0.5px;'>Цена / л</div>
-                            <div style='font-size:24px;color:#79e08a;font-weight:900;line-height:1.1;margin-top:4px;text-shadow:0 0 12px rgba(46,189,89,0.14);'>{ppl_display_h}</div>
+                            <div style='font-size:11px;color:{price_color_h};font-weight:800;letter-spacing:0.5px;'>Цена / л</div>
+                            <div style='font-size:24px;color:{price_color_h};font-weight:900;line-height:1.1;margin-top:4px;text-shadow:0 0 12px rgba(46,189,89,0.14);'>{ppl_display_h}</div>
                         </div>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(150,110,255,0.10);'>
-                            <div style='font-size:11px;color:#b79cff;font-weight:800;letter-spacing:0.5px;'>Километри</div>
-                            <div style='font-size:24px;color:#c5adff;font-weight:900;line-height:1.1;margin-top:4px;text-shadow:0 0 12px rgba(150,110,255,0.14);'>{km_display_h}</div>
+                            <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:0.5px;'>Километри</div>
+                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{km_display_h}</div>
                         </div>
                     </div>
                     <div style='font-size:12px;color:#e4e8ef;margin-top:12px;line-height:1.4;font-weight:700;'>{html.escape(desc_display_h)}</div>
@@ -2862,7 +2873,17 @@ else:
                 key="admin_accommodation_labels"
             )
 
-        if st.button("💾 Запази имената на категориите", use_container_width=True, type="primary", key="save_category_labels_btn"):
+        current_fuel_threshold = float(UI_LABELS.get("fuel_red_threshold", 1.80) or 1.80)
+        new_fuel_threshold = st.number_input(
+            "⛽ Гориво — червено над (EUR/л):",
+            min_value=0.01,
+            value=current_fuel_threshold,
+            step=0.05,
+            format="%.2f",
+            help="Цената за литър ще се визуализира в червено, когато е над тази стойност. До прага остава зелена."
+        )
+
+        if st.button("💾 Запази настройките", use_container_width=True, type="primary", key="save_category_labels_btn"):
             if new_accommodation_labels == "Хотелски такси + Депозит за резервация":
                 hotel_label = "Хотелски такси"
                 deposit_label = "Депозит за резервация"
@@ -2870,8 +2891,8 @@ else:
                 hotel_label = "Нощувки/Хотел"
                 deposit_label = "Депозит/Резервация"
 
-            if save_ui_labels(new_pet_label, hotel_label, deposit_label):
-                st.success("✅ Имената на категориите са запазени.")
+            if save_ui_labels(new_pet_label, hotel_label, deposit_label, new_fuel_threshold):
+                st.success("✅ Настройките са запазени.")
                 st.rerun()
             else:
                 st.error("❌ Неуспешно запазване на имената на категориите.")
