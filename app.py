@@ -1987,6 +1987,9 @@ else:
                 else:
                     health_text = "Точно по плана си"
 
+                # Запазваме стария вътрешен блок валиден, въпреки че не се визуализира.
+                planned_to_date = daily_budget_total * elapsed_days / total_days
+
                 health_card = f"""
                 <div style='background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.09);padding:15px 16px;border-radius:16px;margin-top:12px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
                     <div style='font-size:12px;color:{health_color};font-weight:800;letter-spacing:.3px;'>{health_icon} {health_title}</div>
