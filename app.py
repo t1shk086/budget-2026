@@ -420,7 +420,11 @@ if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 def _navigate_fuel(direction, trip_id):
     try:
         df_nav = pd.read_csv(DATA_FILE, encoding="utf-8")
-        rows = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт") & (df_nav["liters"] > 0)]
+        rows = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт") & (df_nav["liters"] > 0)].copy()
+        manual_rows = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт") & df_nav["description"].astype(str).str.contains("[ПРОПУСНАТО ГОРИВО]", regex=False, na=False)].copy()
+        if not manual_rows.empty:
+            manual_rows["liters"] = pd.to_numeric(manual_rows["description"].astype(str).str.extract(r"Добавени\s*([0-9.]+)\s*литра", expand=False), errors="coerce").fillna(0.0)
+            rows = pd.concat([rows, manual_rows], ignore_index=True)
         count = len(rows)
         if count <= 1:
             return
@@ -1287,33 +1291,11 @@ else:
         # =========================================================
         try:
             fuel_rows = df_expenses[(df_expenses["category"] == "Транспорт") & (df_expenses["liters"] > 0)].copy().sort_index()
-
-            # Ръчно добавеното пропуснато гориво също се показва като зареждане.
-            # То няма километраж, затова current_km остава 0 и визуално показваме "—".
-            fuel_rows["_manual_fuel"] = False
-            if m_fuel > 0:
-                manual_fuel_amount = 0.0
-                try:
-                    manual_cash_rows = df_expenses[
-                        df_expenses["description"].astype(str).str.contains(
-                            "[ПРОПУСНАТО ГОРИВО]", regex=False, na=False
-                        )
-                    ]
-                    if not manual_cash_rows.empty:
-                        manual_fuel_amount = float(manual_cash_rows["amount"].sum())
-                except Exception:
-                    manual_fuel_amount = 0.0
-
-                manual_row = pd.DataFrame([{
-                    "date": "Ръчно добавено",
-                    "amount": manual_fuel_amount,
-                    "liters": float(m_fuel),
-                    "current_km": 0.0,
-                    "description": "[РЪЧНО ДОБАВЕНО ГОРИВО] Пропуснато зареждане",
-                    "_manual_fuel": True
-                }])
-                fuel_rows = pd.concat([fuel_rows, manual_row], ignore_index=True)
-
+            manual_fuel_rows = df_expenses[(df_expenses["category"] == "Транспорт") & df_expenses["description"].astype(str).str.contains("[ПРОПУСНАТО ГОРИВО]", regex=False, na=False)].copy()
+            if not manual_fuel_rows.empty:
+                manual_fuel_rows["liters"] = pd.to_numeric(manual_fuel_rows["description"].astype(str).str.extract(r"Добавени\s*([0-9.]+)\s*литра", expand=False), errors="coerce").fillna(0.0)
+                manual_fuel_rows["current_km"] = 0.0
+                fuel_rows = pd.concat([fuel_rows, manual_fuel_rows], ignore_index=True).sort_index()
             if not fuel_rows.empty:
                 fuel_rows = fuel_rows.iloc[::-1].copy()  # последното първо
                 fuel_count = len(fuel_rows)
@@ -1326,8 +1308,7 @@ else:
                 liters_h = float(fr.get("liters", 0) or 0)
                 amount_h = float(fr.get("amount", 0) or 0)
                 km_h = float(fr.get("current_km", 0) or 0)
-                is_manual_h = bool(fr.get("_manual_fuel", False))
-                ppl_h = (amount_h / liters_h) if liters_h > 0 and amount_h > 0 else 0.0
+                ppl_h = (amount_h / liters_h) if liters_h > 0 else 0.0
                 date_h = str(fr.get("date", ""))
                 desc_h = str(fr.get("description", ""))
                 # По-чисто визуално описание на зареждането. Данните в CSV остават непроменени.
@@ -1343,10 +1324,11 @@ else:
 
                 compare_html = "⚪ Няма предишно зареждане за сравнение."
                 compare_color = "#7e8494"
-                if is_manual_h:
-                    compare_html = "📝 Ръчно добавено пропуснато зареждане · без показание на километража"
-                    compare_color = "#8b929e"
-                elif fuel_idx < fuel_count - 1:
+                is_manual_fuel = "[ПРОПУСНАТО ГОРИВО]" in desc_h
+                if is_manual_fuel:
+                    compare_html = "📝 Ръчно добавено зареждане · без показание на километраж"
+                    compare_color = "#aeb5c0"
+                if fuel_idx < fuel_count - 1:
                     prev_fr = fuel_rows.iloc[fuel_idx + 1]
                     prev_l = float(prev_fr.get("liters", 0) or 0)
                     prev_a = float(prev_fr.get("amount", 0) or 0)
@@ -1384,11 +1366,10 @@ else:
                         </div>
                         <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);padding:14px 16px;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
                             <div style='font-size:11px;color:#888;font-weight:bold;letter-spacing:0.5px;'>Километри</div>
-                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{"—" if is_manual_h else f"{km_h:.0f} км"}</div>
+                            <div style='font-size:24px;color:white;font-weight:900;line-height:1.1;margin-top:4px;'>{("—" if is_manual_fuel else f"{km_h:.0f} <span style='font-size:11px;color:#666;font-weight:normal;'>км</span>")}</div>
                         </div>
                     </div>
                     <div style='font-size:11px;color:#aeb5c0;margin-top:12px;line-height:1.4;'>{html.escape(desc_display_h)}</div>
-                    {"<div style='margin-top:8px;display:inline-block;padding:5px 9px;border-radius:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);font-size:10px;color:#aeb5c0;font-weight:800;'>📝 РЪЧНО ДОБАВЕНО</div>" if is_manual_h else ""}
                     <div style='margin-top:10px;padding:10px 11px;border-radius:11px;background:rgba(0,0,0,0.18);border:1px solid rgba(255,255,255,0.06);font-size:11px;color:{compare_color};font-weight:800;line-height:1.4;'>{compare_html}</div>
                 </div>
                 """, unsafe_allow_html=True)
