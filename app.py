@@ -964,7 +964,7 @@ if st.session_state["current_trip"] is None:
                             days_count = 1
 
                     all_trips_computed.append({
-                        "Пътуване": str(t).replace("_", " ").upper(),
+                        "Пътуване": str(t).replace("_", " "),
                         "Обща Стойност (EUR)": t_total,
                         "Цена за 1 км (EUR)": (t_total / t_dist) if t_dist > 0 else 0.0,
                         "Дневен Разход (EUR)": (t_total / days_count),
