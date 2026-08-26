@@ -843,7 +843,7 @@ if st.session_state["current_trip"] is None:
         
     # 3. НОВ ДИЗАЙН НА СРАВНИТЕЛНИЯ ПАНЕЛ — СЪЩИТЕ ДАННИ, ПО-ЧИСТ UX
     if show_comparison:
-        @st.dialog("📊 Сравнителен анализ", width="large")
+        @st.dialog("📊 Сравнителен панел", width="large")
         def show_global_analytics_dialog():
             st.markdown("""
             <style>
