@@ -902,8 +902,8 @@ if st.session_state["current_trip"] is None:
                 }
             </style>
             <div class='cmp-shell'>
-                <div style='font-size:12px;color:#fff;font-weight:800;letter-spacing:.8px;'>СРАВНЕНИЕ НА ПЪТУВАНИЯТА</div>
-                <div class='cmp-intro'>Избери показател и виж кое пътуване се справя най-добре.</div>
+                <div style='font-size:12px;color:#fff;font-weight:800;letter-spacing:.8px;'>Сравнение на пътуванията</div>
+                <div class='cmp-intro'>Избери показател и виж резултатите.</div>
             </div>
             """, unsafe_allow_html=True)
 
