@@ -1976,7 +1976,7 @@ else:
                     health_icon = "🟡"
                     health_title = "ХАРЧИШ ПО-БЪРЗО ОТ ПЛАНА"
                     health_color = "#ffaa00"
-                    health_text = f"Над плана си с €{pace_difference:.2f}"
+                    health_text = f"Под плана си с €{abs(pace_difference):.2f}" if pace_difference < 0 else f"Над плана си с €{pace_difference:.2f}"
                 else:
                     health_icon = "🔴"
                     health_title = "ХАРЧИШ ПРЕКАЛЕНО БЪРЗО"
