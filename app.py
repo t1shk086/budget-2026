@@ -498,36 +498,6 @@ if st.session_state["current_trip"] is None:
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Все още нямате записани почивки. Създайте първото си приключение по-долу!</div>", unsafe_allow_html=True)
 
-    # =========================================================
-    # 7. ЖИВИ КАРТИ НА ПЪТУВАНИЯТА
-    # =========================================================
-    if existing:
-        st.markdown("<div style='margin:20px 0 10px 0;font-size:15px;font-weight:800;color:#fff;'>✈️ Твоите пътувания</div>", unsafe_allow_html=True)
-        st.markdown("""
-        <style>
-            .tm-trip-home-card{background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:16px 17px;margin-bottom:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);}
-            .tm-trip-home-name{font-size:17px;font-weight:900;color:#fff;}
-            .tm-trip-home-meta{font-size:11px;color:#8f96a3;margin-top:4px;}
-            .tm-trip-home-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px;}
-            .tm-trip-home-pill{padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06);font-size:10px;color:#c7ccd4;font-weight:700;}
-        </style>
-        """, unsafe_allow_html=True)
-        for _home_trip in existing:
-            _home_df = get_trip_data(_home_trip)
-            _home_set = get_trip_settings(_home_trip)
-            _home_total = 0.0
-            if not _home_df.empty:
-                _home_total = float(_home_df[_home_df["type"]=="expense"]["amount"].sum()) + float(_home_df[_home_df["type"]=="deposit"]["amount"].sum())
-            _home_s = float(_home_set.get("start_km",0) or 0)
-            _home_e = float(_home_set.get("end_km",0) or 0)
-            _home_max_k = float(_home_df["current_km"].max()) if (not _home_df.empty and "current_km" in _home_df.columns) else 0.0
-            _home_dist = max(0.0, (_home_e if _home_e > 0 else _home_max_k) - _home_s)
-            _home_dates = f"{_home_set.get('start_date','')} → {_home_set.get('end_date','')}" if _home_set.get('start_date') else "Датите не са зададени"
-            st.markdown(f"<div class='tm-trip-home-card'><div class='tm-trip-home-name'>🌴 {str(_home_trip).replace('_',' ')}</div><div class='tm-trip-home-meta'>{_home_dates}</div><div class='tm-trip-home-stats'><span class='tm-trip-home-pill'>💶 €{_home_total:.0f}</span><span class='tm-trip-home-pill'>🚗 {_home_dist:.0f} км</span><span class='tm-trip-home-pill'>{'✅ Приключено' if _home_e>0 else '🟢 Активно'}</span></div></div>", unsafe_allow_html=True)
-            if st.button(f"Отвори {str(_home_trip).replace('_',' ')}", use_container_width=True, key=f"home_trip_card_{_home_trip}"):
-                st.session_state["current_trip"] = _home_trip
-                st.rerun()
-
     st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
     
     @st.dialog("Създаване на ново приключение")
@@ -1099,60 +1069,6 @@ else:
     max_current_km = float(df_expenses["current_km"].max()) if not df_expenses.empty and "current_km" in df_expenses.columns else 0.0
     eff_end_km = e_km if e_km > 0 else max_current_km
     dist = eff_end_km - s_km if eff_end_km > s_km else 0.0
-
-    # =========================================================
-    # 1. БЪРЗ СТАТУС + 2. TRIP HEALTH
-    # =========================================================
-    _preview_global_budget = float(get_global_budget(trip_id) or 0.0)
-    _preview_cat_budgets = get_category_budgets(trip_id)
-    _preview_cat_total = sum(float(v or 0) for v in _preview_cat_budgets.values() if float(v or 0) > 0)
-    _preview_budget = _preview_global_budget if _preview_global_budget > 0 else _preview_cat_total
-    _preview_spent = float(depozit_hotel + total_on_site)
-    _preview_budget_pct = (_preview_spent / _preview_budget * 100.0) if _preview_budget > 0 else 0.0
-    _fuel_prices_preview = df_expenses[(df_expenses["category"]=="Транспорт") & (pd.to_numeric(df_expenses["liters"], errors="coerce").fillna(0)>0)].copy()
-    if not _fuel_prices_preview.empty:
-        _fuel_prices_preview["_ppl"] = pd.to_numeric(_fuel_prices_preview["amount"], errors="coerce").fillna(0) / pd.to_numeric(_fuel_prices_preview["liters"], errors="coerce").replace(0, pd.NA)
-        _fuel_prices_preview = _fuel_prices_preview.dropna(subset=["_ppl"])
-    _avg_price_preview = float(_fuel_prices_preview["_ppl"].mean()) if not _fuel_prices_preview.empty else 0.0
-    _fuel_threshold_preview = float(UI_LABELS.get("fuel_red_threshold",1.80) or 1.80)
-    _health_budget_color = "#63d391" if _preview_budget <= 0 or _preview_budget_pct < 80 else ("#ffb348" if _preview_budget_pct < 100 else "#ff4b4b")
-    _health_budget_icon = "🟢" if _preview_budget <= 0 or _preview_budget_pct < 80 else ("🟠" if _preview_budget_pct < 100 else "🔴")
-    _health_fuel_color = "#63d391" if _avg_price_preview <= 0 or _avg_price_preview <= _fuel_threshold_preview else "#ff4b4b"
-    _health_fuel_icon = "🟢" if _avg_price_preview <= 0 or _avg_price_preview <= _fuel_threshold_preview else "🔴"
-    if _preview_budget > 0 and _preview_budget_pct < 100:
-        _budget_health_text = f"Под бюджета · {100-_preview_budget_pct:.0f}% свободен"
-    elif _preview_budget > 0:
-        _budget_health_text = f"Над бюджета · +{_preview_budget_pct-100:.0f}%"
-    else:
-        _budget_health_text = "Няма зададен бюджет"
-    _fuel_health_text = f"Средно €{_avg_price_preview:.2f}/л" if _avg_price_preview > 0 else "Няма достатъчно данни"
-    try:
-        _trip_days_preview = max(1, (datetime.datetime.strptime(en_date, "%d.%m.%Y") - datetime.datetime.strptime(st_date, "%d.%m.%Y")).days + 1) if st_date and en_date and st_date != "nan" and en_date != "nan" else 1
-    except Exception:
-        _trip_days_preview = 1
-    st.markdown(f"""
-    <style>
-      .tm-trip-status{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 10px 0;}}
-      .tm-trip-stat{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:10px 8px;text-align:center;}}
-      .tm-trip-stat-label{{font-size:10px;color:#7e8494;font-weight:800;}}
-      .tm-trip-stat-value{{font-size:16px;color:#fff;font-weight:900;margin-top:3px;}}
-      .tm-health{{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}}
-      .tm-health-item{{background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:11px 12px;}}
-      .tm-health-title{{font-size:10px;color:#7e8494;font-weight:900;letter-spacing:.4px;}}
-      .tm-health-value{{font-size:12px;font-weight:800;margin-top:4px;}}
-      @media(max-width:600px){{.tm-trip-status{{grid-template-columns:repeat(2,minmax(0,1fr));}}.tm-health{{grid-template-columns:1fr;}}}}
-    </style>
-    <div class='tm-trip-status'>
-      <div class='tm-trip-stat'><div class='tm-trip-stat-label'>💶 ОБЩО</div><div class='tm-trip-stat-value'>€{depozit_hotel+total_on_site:.0f}</div></div>
-      <div class='tm-trip-stat'><div class='tm-trip-stat-label'>🚗 КМ</div><div class='tm-trip-stat-value'>{dist:.0f}</div></div>
-      <div class='tm-trip-stat'><div class='tm-trip-stat-label'>📅 ДНИ</div><div class='tm-trip-stat-value'>{_trip_days_preview}</div></div>
-      <div class='tm-trip-stat'><div class='tm-trip-stat-label'>⛽ ГОРИВО</div><div class='tm-trip-stat-value'>{total_liters_calculated:.1f} л</div></div>
-    </div>
-    <div class='tm-health'>
-      <div class='tm-health-item'><div class='tm-health-title'>🧠 TRIP HEALTH · БЮДЖЕТ</div><div class='tm-health-value' style='color:{_health_budget_color}'>{_health_budget_icon} {_budget_health_text}</div></div>
-      <div class='tm-health-item'><div class='tm-health-title'>⛽ TRIP HEALTH · ГОРИВО</div><div class='tm-health-value' style='color:{_health_fuel_color}'>{_health_fuel_icon} {_fuel_health_text}</div></div>
-    </div>
-    """, unsafe_allow_html=True)
 
     progressive_avg_con, has_progressive_data = 0.0, False
     try:
@@ -2122,18 +2038,16 @@ else:
         st.markdown("""
             <style>
                 .premium-expense-card {
-                    background: linear-gradient(135deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012)) !important;
-                    padding: 14px 16px !important;
-                    border-radius: 14px !important;
-                    border: 1px solid rgba(255,255,255,0.09) !important;
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.18) !important;
-                    margin-bottom: 8px !important;
+                    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%) !important;
+                    padding: 14px 18px !important;
+                    border-radius: 12px !important;
+                    border: 1px solid rgba(250, 250, 250, 0.2) !important;
+                    box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
+                    margin-bottom: 2px !important;
                     min-height: 52px !important;
                     display: flex !important;
                     flex-direction: column !important;
                 }
-                .tm-chrono-wrap{display:flex;gap:10px;align-items:flex-start;}
-                .tm-time-dot{width:8px;height:8px;border-radius:50%;background:#00d9ff;box-shadow:0 0 0 4px rgba(0,217,255,.10),0 0 12px rgba(0,217,255,.22);margin-top:5px;}
             </style>
         """, unsafe_allow_html=True)
         
@@ -2153,19 +2067,21 @@ else:
                     col_rec, col_del = st.columns([0.88, 0.12])
                     
                     with col_rec:
-                        st.markdown(f"""
-                            <div class="tm-chrono-wrap">
-                                <div style="display:flex;flex-direction:column;align-items:center;padding-top:5px;"><div class="tm-time-dot"></div></div>
-                                <div class="premium-expense-card" style="flex:1;">
-                                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;">
-                                        <div style="font-size:15px;font-weight:700;color:#fafafa;"><span>{get_emoji(r["category"])}</span> {display_category}</div>
-                                        <div style="font-size:16px;font-weight:800;color:#ff4b4b;white-space:nowrap;">-{r["amount"]:.2f} EUR</div>
+                        st.markdown(f'''
+                            <div class="premium-expense-card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
+                                        <span>{get_emoji(r["category"])}</span> {display_category}
                                     </div>
-                                    <div style="margin-top:5px;font-size:11px;color:#7e8494;">📅 {r["date"].replace(" "," / ")}</div>
-                                    <div style="margin-top:7px;font-size:12.5px;color:#dce1e8;line-height:1.4;">{r["description"]}{l_txt}</div>
+                                    <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
+                                        -{r["amount"]:.2f} EUR
+                                    </div>
+                                </div>
+                                <div style="margin-top: 6px; font-size: 12.5px; color: rgba(250,250,250,0.5);">
+                                    📅 {r["date"].replace(" ", " / ")} — <span style="color: rgba(250,250,250,0.75);">{r["description"]}</span>{l_txt}
                                 </div>
                             </div>
-                        """, unsafe_allow_html=True)
+                        ''', unsafe_allow_html=True)
                         
                     with col_del:
                         st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
