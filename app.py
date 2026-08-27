@@ -513,16 +513,6 @@ if st.session_state["current_trip"] is None:
             color:#fff; font-size:12px; font-weight:800; letter-spacing:.8px;
             text-transform:uppercase; margin:18px 0 9px 0;
         }
-        .tm-trip-mini {
-            display:flex; align-items:center; justify-content:space-between; gap:10px;
-            padding:12px 13px; margin:0 0 7px 0; border-radius:14px;
-            background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.018));
-            border:1px solid rgba(255,255,255,.08);
-        }
-        .tm-trip-mini-main { min-width:0; }
-        .tm-trip-mini-name { color:#fff; font-size:14px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .tm-trip-mini-meta { color:#858c99; font-size:10px; margin-top:3px; }
-        .tm-trip-mini-arrow { color:#00dff0; font-size:17px; font-weight:900; }
         .tm-home-note {
             color:#777f8c; font-size:10px; text-align:center; margin:12px 0 4px 0;
         }
@@ -1209,17 +1199,10 @@ if st.session_state["current_trip"] is None:
     if home_existing:
         for i, home_trip in enumerate(home_existing):
             home_name = str(home_trip).replace("_", " ")
-            # Keep the card itself visually minimal; the existing load button remains the action.
-            trip_col, arrow_col = st.columns([8, 1])
-            with trip_col:
-                st.markdown(
-                    f"<div class='tm-trip-mini'><div class='tm-trip-mini-main'><div class='tm-trip-mini-name'>✈️ {home_name}</div><div class='tm-trip-mini-meta'>Натисни стрелката, за да отвориш пътуването</div></div><div class='tm-trip-mini-arrow'>→</div></div>",
-                    unsafe_allow_html=True
-                )
-            with arrow_col:
-                if st.button("→", key=f"home_open_trip_{i}"):
-                    st.session_state["current_trip"] = home_trip
-                    st.rerun()
+            # Един-единствен бутон за всяко пътуване — самата карта е действието.
+            if st.button(f"✈️  {home_name}    →", key=f"home_open_trip_{i}", use_container_width=True):
+                st.session_state["current_trip"] = home_trip
+                st.rerun()
     else:
         st.markdown("<div class='tm-home-note'>Все още няма пътувания.</div>", unsafe_allow_html=True)
 
