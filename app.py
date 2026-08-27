@@ -8,7 +8,6 @@ from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import io
 import html
-from urllib.parse import quote
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
@@ -462,16 +461,6 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
         return False
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
-
-# Отваряне на пътуване от кликаемата HTML карта на началния екран.
-# Използваме URL параметър, за да може цялата карта да остане истински HTML
-# (и така прогрес лентите да са реални CSS ленти, а не символи).
-try:
-    _url_trip = st.query_params.get("trip", "")
-    if _url_trip:
-        st.session_state["current_trip"] = str(_url_trip)
-except Exception:
-    pass
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
 def _navigate_fuel(direction, trip_id):
@@ -772,45 +761,46 @@ if st.session_state["current_trip"] is None:
             if _budget > 0:
                 _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
                 _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct:.0f}%"
-            
-                _bar_gradient = (
-                    f"linear-gradient("
-                    f"90deg, "
-                    f"#4facfe 0%, "
-                    f"#00f2fe {_pct:.1f}%, "
-                    f"rgba(255,255,255,.12) {_pct:.1f}%, "
-                    f"rgba(255,255,255,.12) 100%)"
-                )
             else:
                 _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
-                _bar_gradient = "none"
 
-            # ============================================================
-            # КАРТА НА ПЪТУВАНЕТО — САМО ЕДНА ОБЩА ПРОГРЕС ЛЕНТА
-            # ============================================================
-            # В "МОИТЕ ПЪТУВАНИЯ" показваме само общия бюджет на пътуването.
-            # Подробните прогрес ленти по категории остават вътре в самото пътуване.
             _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
             _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
-            _card_border = "rgba(0,242,254,.28)" if not _finished else "rgba(255,255,255,.08)"
-            _status_color = "#63d391" if not _finished else "#ff6b6b"
-            _budget_pct = max(0.0, min(100.0, _pct)) if _budget > 0 else 0.0
-            _budget_fill = "linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)" if _budget >= _spent else "#ff4b4b"
+            # Винаги рисуваме трака, когато има бюджет — дори при 0% разход.
+            # Това е важно: бюджет 1000 EUR + разход 0 EUR трябва да показва
+            # празна прогрес лента, а не да премахва лентата изцяло.
+            if _budget > 0:
+                _bar_gradient = (
+                    "linear-gradient("
+                    "90deg, "
+                    f"#4facfe 0%, "
+                    f"#00f2fe {_pct:.1f}%, "
+                    f"rgba(255,255,255,.12) {_pct:.1f}%, "
+                    "rgba(255,255,255,.12) 100%"
+                    ")"
+                )
+            else:
+                _bar_gradient = "none"
 
+            # Всеки ред има точно ЕДИН Streamlit бутон.
+            # Няма абсолютно позиционирани/невидими overlay бутони —
+            # така натискането на една карта никога не може да отвори друга.
             with st.container(key=f"trip_card_{_safe_key}"):
                 st.markdown(
                     f"""
                     <style>
                     {_card_selector} div[data-testid="stButton"] button {{
-                        min-height:118px !important;
+                        min-height:108px !important;
                         height:auto !important;
                         width:100% !important;
                         box-sizing:border-box !important;
-                        padding:14px 16px 20px 16px !important;
+                        padding:14px 16px 24px 16px !important;
                         border-radius:16px !important;
-                        border:1px solid {_card_border} !important;
-                        background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
+                        border:1px solid rgba(255,255,255,.08) !important;
+                        background:
+                            {_bar_gradient} bottom / 100% 12px no-repeat,
+                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
                         box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
                         color:#fff !important;
                         text-align:left !important;
@@ -819,39 +809,52 @@ if st.session_state["current_trip"] is None:
                         white-space:pre-wrap !important;
                         font-family:inherit !important;
                         line-height:1.45 !important;
-                        transition:all .2s ease !important;
                     }}
                     {_card_selector} div[data-testid="stButton"] button:hover {{
-                        border-color:rgba(0,242,254,.30) !important;
-                        background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
+                        border-color:rgba(0,242,254,.22) !important;
+                        background:
+                            {_bar_gradient} bottom / 100% 12px no-repeat,
+                            linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
                         box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
                         transform:translateY(-1px) !important;
                     }}
-                    {_card_selector} div[data-testid="stButton"] button > div,
-                    {_card_selector} div[data-testid="stButton"] button > div > div,
                     {_card_selector} div[data-testid="stButton"] button p {{
+                        width:100% !important;
+                        margin:0 !important;
+                        text-align:left !important;
+                        justify-content:flex-start !important;
+                        white-space:pre-wrap !important;
+                    }}
+                    @media(max-width:640px) {{
+                        {_card_selector} div[data-testid="stButton"] button {{
+                            min-height:102px !important;
+                            padding:12px 14px 23px 14px !important;
+                        }}
+                    }}
+                    div[data-testid="stButton"] button > div {{
+                        width:100% !important;
+                        display:block !important;
+                    }}
+                    div[data-testid="stButton"] button > div > div {{
+                        width:100% !important;
+                        display:block !important;
+                    }}
+                    div[data-testid="stButton"] button p {{
                         width:100% !important;
                         display:block !important;
                         text-align:left !important;
                         margin:0 !important;
                         padding:0 !important;
                     }}
-                    @media(max-width:640px) {{
-                        {_card_selector} div[data-testid="stButton"] button {{
-                            min-height:112px !important;
-                            padding:13px 14px 19px 14px !important;
-                        }}
-                    }}
                     </style>
                     """,
                     unsafe_allow_html=True
                 )
 
-                # Заглавие и статус са в текста на единствения бутон.
                 _label = (
                     f"✈️  {_trip_name}    →\n"
                     f"{_status_dot}  {_status_text}\n"
-                    f"💰  {_budget_line}"
+                    f"{_budget_line}"
                 )
                 if st.button(
                     _label,
@@ -860,38 +863,6 @@ if st.session_state["current_trip"] is None:
                 ):
                     st.session_state["current_trip"] = _trip_id
                     st.rerun()
-
-                # Истинска CSS прогрес лента — една за ЦЕЛИЯ бюджет.
-                if _budget > 0:
-                    st.markdown(
-                        f"""
-                        <style>
-                        {_card_selector} .tm-home-overall-progress {{
-                            width:calc(100% - 32px);
-                            height:10px;
-                            margin:-29px 16px 12px 16px;
-                            border-radius:20px;
-                            overflow:hidden;
-                            background:rgba(0,0,0,.42);
-                            box-shadow:inset 2px 2px 5px rgba(0,0,0,.45);
-                            position:relative;
-                            z-index:5;
-                            pointer-events:none;
-                        }}
-                        {_card_selector} .tm-home-overall-progress-fill {{
-                            height:100%;
-                            width:{_budget_pct:.2f}%;
-                            border-radius:20px;
-                            background:{_budget_fill};
-                            box-shadow:inset 0 2px 2px rgba(255,255,255,.25);
-                        }}
-                        </style>
-                        <div class="tm-home-overall-progress">
-                            <div class="tm-home-overall-progress-fill"></div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
 
@@ -1625,10 +1596,6 @@ else:
 
     if st.button("🔙 НАЗАД КЪМ НАЧАЛЕН ЕКРАН", use_container_width=True): 
         st.session_state["current_trip"] = None
-        try:
-            st.query_params.clear()
-        except Exception:
-            pass
         st.rerun()
 
     v_id = st.session_state["form_version"]
