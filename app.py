@@ -765,17 +765,8 @@ if st.session_state["current_trip"] is None:
                 _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
 
-            _progress_width = max(0, min(100, int(round(_pct))))
-            
-            st.markdown(
-                f"""
-                <div class="trip-progress">
-                    <div class="trip-progress-fill"
-                         style="width:{_progress_width}%"></div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
+            _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
             # Ако има бюджет, лентата винаги се показва — дори при €0 разход.
             # При 0% се вижда празната писта, а запълването започва от 0%.
             _bar_gradient = (
