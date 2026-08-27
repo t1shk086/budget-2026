@@ -765,17 +765,16 @@ if st.session_state["current_trip"] is None:
                 _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
 
-                     # Почистване на ключа от специални символи и кирилица за CSS селектора
-            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id).lower()[:30]
-            _card_selector = f'div[class*="st-key-open_trip_card_{_safe_key}"]'
-            
-            # Ако има бюджет - запълва с градиент, ако няма - показва празна сива писта
-            if _budget > 0:
-                _bar_gradient = f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
-            else:
-                _bar_gradient = "linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 100%)"
+            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
+            _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
+            # Ако има бюджет, прогресът се рисува ВЪТРЕ в самия бутон.
+            # Важно: дори при €0 разход лентата остава видима на 0%.
+            _progress_pct = _pct if _budget > 0 else 0.0
 
-            with st.container():
+            # Всеки ред има точно ЕДИН Streamlit бутон.
+            # Няма абсолютно позиционирани/невидими overlay бутони —
+            # така натискането на една карта никога не може да отвори друга.
+            with st.container(key=f"trip_card_{_safe_key}"):
                 st.markdown(
                     f"""
                     <style>
@@ -787,9 +786,9 @@ if st.session_state["current_trip"] is None:
                         padding:14px 16px 24px 16px !important;
                         border-radius:16px !important;
                         border:1px solid rgba(255,255,255,.08) !important;
-                        background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
+                        position:relative !important;
+                        overflow:hidden !important;
+                        background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
                         box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
                         color:#fff !important;
                         text-align:left !important;
@@ -801,55 +800,40 @@ if st.session_state["current_trip"] is None:
                     }}
                     {_card_selector} div[data-testid="stButton"] button:hover {{
                         border-color:rgba(0,242,254,.22) !important;
-                    }}
-                    </style>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-                _label = (
-                    f"✈️  {_trip_name}    →\n"
-                    f"{_status_dot}  {_status_text}\n"
-                    f"{_budget_line}"
-                )
-                if st.button(
-                    _label,
-                    use_container_width=True,
-                    key=f"open_trip_card_{_safe_key}"
-                ):
-                    st.session_state["current_trip"] = _trip_id
-                    st.rerun()
-
-                st.markdown(
-                    f"""
-                    <style>
-                    {_card_selector} div[data-testid="stButton"] button {{
-                        min-height:108px !important;
-                        height:auto !important;
-                        width:100% !important;
-                        box-sizing:border-box !important;
-                        padding:14px 16px 24px 16px !important;
-                        border-radius:16px !important;
-                        border:1px solid rgba(255,255,255,.08) !important;
-                        background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
-                        box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
-                        color:#fff !important;
-                        text-align:left !important;
-                        justify-content:flex-start !important;
-                        align-items:flex-start !important;
-                        white-space:pre-wrap !important;
-                        font-family:inherit !important;
-                        line-height:1.45 !important;
-                    }}
-                    {_card_selector} div[data-testid="stButton"] button:hover {{
-                        border-color:rgba(0,242,254,.22) !important;
-                        background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
+                        background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
                         box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
                         transform:translateY(-1px) !important;
+                    }}
+
+                    {_card_selector} div[data-testid="stButton"] button::before {{
+                        content:"" !important;
+                        position:absolute !important;
+                        left:0 !important;
+                        right:0 !important;
+                        bottom:0 !important;
+                        height:10px !important;
+                        border-radius:0 0 16px 16px !important;
+                        background:rgba(255,255,255,.12) !important;
+                        z-index:0 !important;
+                        pointer-events:none !important;
+                    }}
+
+                    {_card_selector} div[data-testid="stButton"] button::after {{
+                        content:"" !important;
+                        position:absolute !important;
+                        left:0 !important;
+                        bottom:0 !important;
+                        width:{_progress_pct:.1f}% !important;
+                        height:10px !important;
+                        border-radius:0 999px 999px 0 !important;
+                        background:linear-gradient(90deg,#4facfe,#00f2fe) !important;
+                        z-index:1 !important;
+                        pointer-events:none !important;
+                    }}
+
+                    {_card_selector} div[data-testid="stButton"] button > div {{
+                        position:relative !important;
+                        z-index:2 !important;
                     }}
                     {_card_selector} div[data-testid="stButton"] button p {{
                         width:100% !important;
