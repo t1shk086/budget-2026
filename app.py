@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import datetime
 import os
+import hashlib
 import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
@@ -709,6 +710,7 @@ if st.session_state["current_trip"] is None:
 
             try:
                 _spent = 0.0
+
                 if not _df_home_trip.empty and "amount" in _df_home_trip.columns:
                     _type = (
                         _df_home_trip["type"].astype(str).str.strip().str.lower()
@@ -716,7 +718,8 @@ if st.session_state["current_trip"] is None:
                         else pd.Series(["expense"] * len(_df_home_trip), index=_df_home_trip.index)
                     )
 
-                    # ФИКС: При ОБЩ бюджет всичко платено влиза в сумата без филтриране по категории
+                    # При ОБЩ бюджет всичко платено за пътуването влиза:
+                    # нормални разходи + депозити.
                     if _budget_mode == "global":
                         _spent = float(
                             _df_home_trip.loc[_type.isin(["expense", "deposit"]), "amount"]
@@ -724,7 +727,10 @@ if st.session_state["current_trip"] is None:
                             .sum()
                         )
 
-                    # При БЮДЖЕТ ПО КАТЕГОРИИ филтрираме само за бюджетните категории
+                    # При БЮДЖЕТ ПО КАТЕГОРИИ:
+                    # броим разходите само за категориите, за които има бюджет.
+                    # Депозитът е логически част от "Нощувки/Хотел", затова
+                    # влиза само ако има зададен бюджет за хотел.
                     elif _budget_mode == "category":
                         _budgeted_categories = {
                             str(cat)
@@ -742,12 +748,14 @@ if st.session_state["current_trip"] is None:
                             ]
                             _spent += float(_expense_rows["amount"].fillna(0).sum())
 
+                        # Deposit -> Hotel, но само когато Hotel има бюджет.
                         if "Нощувки/Хотел" in _budgeted_categories:
                             _spent += float(
                                 _df_home_trip.loc[_type == "deposit", "amount"]
                                 .fillna(0)
                                 .sum()
                             )
+
             except Exception:
                 _spent = 0.0
 
@@ -758,24 +766,38 @@ if st.session_state["current_trip"] is None:
                 _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
 
-            # ВРЪЩАНЕ НА ОРИГИНАЛНИТЕ СЕЛЕКТОРИ И КОНТЕЙНЕРИ
-            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
-            _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
-            
-            # Показваме лентата винаги, когато има бюджет. Ако няма - празна тъмна писта
-            if _budget > 0:
-                _bar_gradient = (
-                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
-                    f"rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
-                )
-            else:
-                _bar_gradient = "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%)"
+            # =========================================================
+            # ПРОГРЕС ЛЕНТА — БЕЗОПАСЕН KEY ЗА КИРИЛИЦА И ЛАТИНИЦА
+            # =========================================================
+            # Името на пътуването никога не се използва директно в CSS.
+            # Това премахва разликата между кирилица и латиница.
+            _trip_id_text = str(_trip_id).strip()
+            _safe_key = "trip_" + hashlib.sha256(
+                _trip_id_text.encode("utf-8")
+            ).hexdigest()[:16]
 
-            with st.container(key=f"trip_card_{_safe_key}"):
+            # Реалният key на Streamlit бутона е ASCII и CSS класът му е:
+            # .st-key-open_trip_card_<hash>
+            _button_key = f"open_trip_card_{_safe_key}"
+            _card_selector = f".st-key-{_button_key}"
+
+            # Ако има бюджет, лентата винаги се показва, включително при 0%.
+            _bar_pct = max(0.0, min(100.0, float(_pct))) if _budget > 0 else 0.0
+            _bar_gradient = (
+                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, "
+                f"rgba(255,255,255,0.12) 100%)"
+            ) if _budget > 0 else (
+                "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, "
+                "rgba(255,255,255,0.06) 100%)"
+            )
+
+            # Един контейнер и един бутон за всяко пътуване.
+            with st.container():
                 st.markdown(
                     f"""
                     <style>
-                    {_card_selector} div[data-testid="stButton"] button {{
+                    {_card_selector} button {{
                         min-height:108px !important;
                         height:auto !important;
                         width:100% !important;
@@ -795,7 +817,7 @@ if st.session_state["current_trip"] is None:
                         font-family:inherit !important;
                         line-height:1.45 !important;
                     }}
-                    {_card_selector} div[data-testid="stButton"] button:hover {{
+                    {_card_selector} button:hover {{
                         border-color:rgba(0,242,254,.22) !important;
                         background:
                             {_bar_gradient} bottom / 100% 12px no-repeat,
@@ -803,22 +825,18 @@ if st.session_state["current_trip"] is None:
                         box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
                         transform:translateY(-1px) !important;
                     }}
-                    {_card_selector} div[data-testid="stButton"] button p {{
+                    {_card_selector} button p {{
                         width:100% !important;
                         margin:0 !important;
                         text-align:left !important;
-                        justify-content:flex-start !important;
                         white-space:pre-wrap !important;
                     }}
                     @media(max-width:640px) {{
-                        {_card_selector} div[data-testid="stButton"] button {{
+                        {_card_selector} button {{
                             min-height:102px !important;
                             padding:12px 14px 23px 14px !important;
                         }}
                     }}
-                    div[data-testid="stButton"] button > div {{ width:100% !important; display:block !important; }}
-                    div[data-testid="stButton"] button > div > div {{ width:100% !important; display:block !important; }}
-                    div[data-testid="stButton"] button p {{ width:100% !important; display:block !important; text-align:left !important; margin:0 !important; padding:0 !important; }}
                     </style>
                     """,
                     unsafe_allow_html=True
@@ -829,15 +847,14 @@ if st.session_state["current_trip"] is None:
                     f"{_status_dot}  {_status_text}\n"
                     f"{_budget_line}"
                 )
+
                 if st.button(
                     _label,
                     use_container_width=True,
-                    key=f"open_trip_card_{_safe_key}"
+                    key=_button_key
                 ):
                     st.session_state["current_trip"] = _trip_id
                     st.rerun()
-
-
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
 
