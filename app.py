@@ -820,21 +820,21 @@ if st.session_state["current_trip"] is None:
                             padding:12px 14px 23px 14px !important;
                         }}
                     }}
-                    div[data-testid="stButton"] button > div {
+                    div[data-testid="stButton"] button > div {{
                         width:100% !important;
                         display:block !important;
-                    }
-                    div[data-testid="stButton"] button > div > div {
+                    }}
+                    div[data-testid="stButton"] button > div > div {{
                         width:100% !important;
                         display:block !important;
-                    }
-                    div[data-testid="stButton"] button p {
+                    }}
+                    div[data-testid="stButton"] button p {{
                         width:100% !important;
                         display:block !important;
                         text-align:left !important;
                         margin:0 !important;
                         padding:0 !important;
-                    }
+                    }}
                     </style>
                     """,
                     unsafe_allow_html=True
