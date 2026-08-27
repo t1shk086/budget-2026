@@ -825,11 +825,25 @@ if st.session_state["current_trip"] is None:
                         box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
                         transform:translateY(-1px) !important;
                     }}
-                    {_card_selector} button p {{
+                    {_card_selector} button > div {{
+                        width:100% !important;
+                        display:flex !important;
+                        justify-content:flex-start !important;
+                        align-items:flex-start !important;
+                        padding:0 !important;
+                        margin:0 !important;
+                    }}
+                    {_card_selector} button > div > p {{
                         width:100% !important;
                         margin:0 !important;
+                        padding:0 !important;
                         text-align:left !important;
                         white-space:pre-wrap !important;
+                        align-self:flex-start !important;
+                    }}
+                    {_card_selector} button span {{
+                        margin-left:0 !important;
+                        padding-left:0 !important;
                     }}
                     @media(max-width:640px) {{
                         {_card_selector} button {{
