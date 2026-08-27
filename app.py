@@ -828,13 +828,13 @@ if st.session_state["current_trip"] is None:
                         width:100% !important;
                         display:block !important;
                     }}
-                    div[data-testid="stButton"] button p {
+                    div[data-testid="stButton"] button p {{
                         width:100% !important;
                         display:block !important;
                         text-align:left !important;
                         margin:0 !important;
                         padding:0 !important;
-                    }
+                    }}
                     </style>
                     """,
                     unsafe_allow_html=True
