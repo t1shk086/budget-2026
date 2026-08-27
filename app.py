@@ -767,10 +767,12 @@ if st.session_state["current_trip"] is None:
 
             _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
             _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
+
             _bar_gradient = (
                 f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
-                f"rgba(0,0,0,0) {_pct:.1f}%, rgba(0,0,0,0) 100%)"
-            ) if _budget > 0 and _pct > 0 else "none"
+                f"rgba(255,255,255,0.08) {_pct:.1f}%, "
+                f"rgba(255,255,255,0.08) 100%)"
+            )
 
             # Всеки ред има точно ЕДИН Streamlit бутон.
             # Няма абсолютно позиционирани/невидими overlay бутони —
