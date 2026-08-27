@@ -909,8 +909,6 @@ if st.session_state["current_trip"] is None:
                         width:100%;
                         height:6px;
                         margin-top:-10px;
-                        position:relative;
-                        z-index:5;
                         border-radius:999px;
                         overflow:hidden;
                         background:rgba(255,255,255,.12);
@@ -925,19 +923,11 @@ if st.session_state["current_trip"] is None:
                                 #4facfe,
                                 #00f2fe
                             );
-                            transition:width .3s ease;
                         "></div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
-                if st.button(
-                    _label,
-                    use_container_width=True,
-                    key=f"open_trip_card_{_safe_key}"
-                ):
-                    st.session_state["current_trip"] = _trip_id
-                    st.rerun()
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
 
