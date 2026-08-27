@@ -663,7 +663,7 @@ if st.session_state["current_trip"] is None:
         create_trip_modal()
 
     if existing:
-        st.markdown("<div class='tm-home-trips-title'>МОИТЕ ПЪТУВАНИЯ</div>", unsafe_allow_html=True)
+        st.markdown("<div class='tm-home-trips-title'>Избери Дестинация</div>", unsafe_allow_html=True)
 
         for _trip in existing:
             _trip_id = str(_trip)
