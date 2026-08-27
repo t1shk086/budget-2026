@@ -766,16 +766,20 @@ if st.session_state["current_trip"] is None:
                 _budget_line = "Няма зададен бюджет"
 
             # Почистване на ключа от специални символи и кирилица за CSS селектора
-            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id).lower()[:30]
-            _card_selector = f'div[class*="st-key-open_trip_card_{_safe_key}"]'
+            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
+            _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
             
-            # Ако има бюджет - запълва с градиент, ако няма - показва празна сива писта
+            # ФИКС: Ако има бюджет – слага син градиент, ако няма – показва тъмна празна писта, за да се вижда на всички бутони
             if _budget > 0:
-                _bar_gradient = f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
+                _bar_gradient = (
+                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
+                    f"rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
+                )
             else:
-                _bar_gradient = "linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 100%)"
+                _bar_gradient = "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%)"
 
-            with st.container():
+            # Връщаме оригиналния ти контейнер и оригинален ключ на бутона
+            with st.container(key=f"trip_card_{_safe_key}"):
                 st.markdown(
                     f"""
                     <style>
@@ -801,6 +805,11 @@ if st.session_state["current_trip"] is None:
                     }}
                     {_card_selector} div[data-testid="stButton"] button:hover {{
                         border-color:rgba(0,242,254,.22) !important;
+                        background:
+                            {_bar_gradient} bottom / 100% 12px no-repeat,
+                            linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
+                        box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
+                        transform:translateY(-1px) !important;
                     }}
                     </style>
                     """,
@@ -819,6 +828,7 @@ if st.session_state["current_trip"] is None:
                 ):
                     st.session_state["current_trip"] = _trip_id
                     st.rerun()
+
 
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
