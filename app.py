@@ -802,7 +802,7 @@ if st.session_state["current_trip"] is None:
                         height:auto !important;
                         width:100% !important;
                         box-sizing:border-box !important;
-                        padding:14px 16px 24px 16px !important;
+                        padding:14px 0 24px 0 !important;
                         border-radius:16px !important;
                         border:1px solid rgba(255,255,255,.08) !important;
                         background:
@@ -834,7 +834,7 @@ if st.session_state["current_trip"] is None:
                     @media(max-width:640px) {{
                         {_card_selector} button {{
                             min-height:102px !important;
-                            padding:12px 14px 23px 14px !important;
+                            padding:12px 0 23px 0 !important;
                         }}
                     }}
                     </style>
