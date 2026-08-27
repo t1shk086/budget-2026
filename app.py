@@ -486,63 +486,58 @@ def _add_plan_item_and_clear(t_id, widget_key):
 
 if st.session_state["current_trip"] is None:
     # =========================================================
-    # НАЧАЛЕН ЕКРАН — минималистичен, mobile-first
-    # Бързият разход е първото и най-лесно действие.
+    # HOME — clean, action-first layout
     # =========================================================
     st.markdown("""
     <style>
-        .tm-home-brand {
-            text-align:center;
-            margin: 0 0 18px 0;
+        .tm-home-logo {
+            text-align:center; margin:4px 0 18px 0;
         }
-        .tm-home-brand h1 {
-            font-family:"Segoe UI",Roboto,sans-serif;
-            font-weight:900;
-            font-size:46px;
-            line-height:1.05;
-            margin:0;
+        .tm-home-logo h1 {
+            font-family:"Segoe UI",Roboto,sans-serif; font-weight:900;
+            font-size:46px; margin:0; line-height:1.05;
             background:linear-gradient(135deg,#00f2fe,#4facfe,#ff4b4b);
-            -webkit-background-clip:text;
-            -webkit-text-fill-color:transparent;
-            text-shadow:2px 2px 10px rgba(0,242,254,.20);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            text-shadow:2px 2px 10px rgba(0,242,254,.2);
         }
-        .tm-home-brand p {
-            font-family:"Segoe UI",Roboto,sans-serif;
-            font-size:16px;
-            color:#ffd700;
-            font-weight:500;
-            margin:-7px 0 0 0;
+        .tm-home-logo p {
+            font-family:"Segoe UI",Roboto,sans-serif; font-size:16px;
+            color:#ffd700; font-weight:500; margin:-2px 0 0 0;
         }
-        .tm-home-section {
-            color:#8b929e;
-            font-size:11px;
-            font-weight:800;
-            letter-spacing:1px;
-            text-transform:uppercase;
-            margin:18px 0 7px 2px;
+        .tm-quick-intro {
+            text-align:center; color:#8f96a3; font-size:12px;
+            margin:0 auto 10px auto;
         }
-        .tm-home-hint {
-            color:#707784;
-            font-size:11px;
-            text-align:center;
-            margin:-2px 0 12px 0;
+        .tm-home-divider { height:1px; background:rgba(255,255,255,.07); margin:18px 0 16px 0; }
+        .tm-section-title {
+            color:#fff; font-size:12px; font-weight:800; letter-spacing:.8px;
+            text-transform:uppercase; margin:18px 0 9px 0;
+        }
+        .tm-trip-mini {
+            display:flex; align-items:center; justify-content:space-between; gap:10px;
+            padding:12px 13px; margin:0 0 7px 0; border-radius:14px;
+            background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.018));
+            border:1px solid rgba(255,255,255,.08);
+        }
+        .tm-trip-mini-main { min-width:0; }
+        .tm-trip-mini-name { color:#fff; font-size:14px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .tm-trip-mini-meta { color:#858c99; font-size:10px; margin-top:3px; }
+        .tm-trip-mini-arrow { color:#00dff0; font-size:17px; font-weight:900; }
+        .tm-home-note {
+            color:#777f8c; font-size:10px; text-align:center; margin:12px 0 4px 0;
         }
         @media (max-width:640px) {
-            .tm-home-brand h1 { font-size:38px; }
-            .tm-home-brand { margin-bottom:14px; }
+            .tm-home-logo h1 {font-size:40px;}
+            .tm-home-logo {margin-top:0; margin-bottom:14px;}
         }
     </style>
-    <div class="tm-home-brand">
+    <div class='tm-home-logo'>
         <h1>🐾 PixelApp</h1>
         <p>Travel Manager</p>
     </div>
-    <div class="tm-home-section">Бързо действие</div>
-    <div class="tm-home-hint">Добави разход за секунди — без да търсиш из менюта.</div>
+    <div class='tm-quick-intro'>Добави разход за секунди — без да търсиш из менюта.</div>
     """, unsafe_allow_html=True)
 
-    existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
-    existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
-    
     @st.dialog("Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:",placeholder="Въведете име...").strip()
@@ -574,6 +569,9 @@ if st.session_state["current_trip"] is None:
                 pass
             st.session_state["current_trip"] = target_id
             st.rerun()
+
+    if st.button("Ново пътуване", use_container_width=True): 
+        create_trip_modal()
 
     @st.dialog("➕ Бърз разход", width="large")
     def quick_expense_modal():
@@ -752,22 +750,13 @@ if st.session_state["current_trip"] is None:
                 st.error("❌ Разходът не можа да бъде записан.")
 
 
-    # Бърз разход е самостоятелният основен бутон — не го делим с други действия.
-    if st.button("➕  БЪРЗ РАЗХОД", use_container_width=True, type="primary", key="quick_expense_home_btn"):
+    st.markdown("<div class='tm-section-title'>Бързо действие</div>", unsafe_allow_html=True)
+    if st.button("＋  БЪРЗ РАЗХОД", use_container_width=True, type="primary", key="quick_expense_home_btn"):
         quick_expense_modal()
 
-    st.markdown("<div class='tm-home-section'>Моите пътувания</div>", unsafe_allow_html=True)
-
-    if existing:
-        opts = [t.replace("_", " ") for t in existing]
-        choice = st.selectbox("Изберете пътуване до:", opts, key="home_trip_selector")
-        if st.button("✈️  Отвори пътуването", use_container_width=True, key="home_load_trip_btn"):
-            st.session_state["current_trip"] = choice.replace(" ", "_")
-            st.rerun()
-    else:
-        st.markdown("<div style='text-align:center; padding:18px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:12px; border:1px dashed rgba(255,255,255,0.10); margin-bottom:12px;'>Все още нямате записани пътувания.</div>", unsafe_allow_html=True)
-
-    if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
+    quick_col1, quick_col2 = st.columns(2)
+    with quick_col1:
+        if st.button("🧾 Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
             @st.dialog("➖ Последни разходи", width="large")
             def recent_expenses_modal():
                 st.markdown("""
@@ -862,10 +851,6 @@ if st.session_state["current_trip"] is None:
                 if st.button("❌ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
                     st.rerun()
             recent_expenses_modal()
-
-    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-    if st.button("＋  Ново пътуване", use_container_width=True, key="home_new_trip_btn"):
-        create_trip_modal()
 
     # 1. ЕЛЕГАНТЕН CSS: ПРЕМЕСТВА ФАБРИЧНИЯ НАДПИС ОТДЯСНО НА ТОГЪЛА С 1 ИНТЕРВАЛ РАЗСТОЯНИЕ
     st.html("""
@@ -1215,6 +1200,32 @@ if st.session_state["current_trip"] is None:
     # =========================================================
     # БЪРЗИ ДЕЙСТВИЯ НА НАЧАЛНИЯ ЕКРАН
     # =========================================================
+
+    # Compact trip picker — no selectbox on the home screen.
+    st.markdown("<div class='tm-home-divider'></div><div class='tm-section-title'>Моите пътувания</div>", unsafe_allow_html=True)
+    home_existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
+    home_existing = [t for t in home_existing if pd.notna(t) and str(t).strip() != ""]
+
+    if home_existing:
+        for i, home_trip in enumerate(home_existing):
+            home_name = str(home_trip).replace("_", " ")
+            # Keep the card itself visually minimal; the existing load button remains the action.
+            trip_col, arrow_col = st.columns([8, 1])
+            with trip_col:
+                st.markdown(
+                    f"<div class='tm-trip-mini'><div class='tm-trip-mini-main'><div class='tm-trip-mini-name'>✈️ {home_name}</div><div class='tm-trip-mini-meta'>Натисни стрелката, за да отвориш пътуването</div></div><div class='tm-trip-mini-arrow'>→</div></div>",
+                    unsafe_allow_html=True
+                )
+            with arrow_col:
+                if st.button("→", key=f"home_open_trip_{i}"):
+                    st.session_state["current_trip"] = home_trip
+                    st.rerun()
+    else:
+        st.markdown("<div class='tm-home-note'>Все още няма пътувания.</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:5px'></div>", unsafe_allow_html=True)
+    if st.button("＋ Ново пътуване", use_container_width=True, key="home_new_trip_btn"):
+        create_trip_modal()
 
 else:
     trip_id = st.session_state["current_trip"]
