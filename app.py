@@ -808,11 +808,14 @@ if st.session_state["current_trip"] is None:
                     _cat_info = f"€{_cat_spent:,.0f} · {_cat_pct:.0f}% дял"
                     _cat_over = False
 
+                # Използваме само ASCII символи в самия Streamlit button.
+                # Unicode блоковете (█/░/▓) се визуализират различно според
+                # шрифта на браузъра и на телефона и изглеждат като счупени
+                #/шарени правоъгълници.
                 _filled = int(round(_cat_pct / 10.0))
                 _filled = max(0, min(10, _filled))
-                _bar_char = "▓" if _cat_over else "█"
-                _cat_bar = _bar_char * _filled + "░" * (10 - _filled)
-                _home_bar_lines.append(f"{get_emoji(_cat)} {get_display_category(_cat)}  {_cat_bar}  {_cat_info}")
+                _cat_bar = "=" * _filled + "-" * (10 - _filled)
+                _home_bar_lines.append(f"{get_emoji(_cat)} {get_display_category(_cat)}  [{_cat_bar}]  {_cat_info}")
 
             _home_category_block = "\n".join(_home_bar_lines)
 
@@ -850,7 +853,7 @@ if st.session_state["current_trip"] is None:
                         align-items:flex-start !important;
                         white-space:pre-wrap !important;
                         font-family:inherit !important;
-                        line-height:1.45 !important;
+                        line-height:1.55 !important;
                     }}
                     {_card_selector} div[data-testid="stButton"] button:hover {{
                         border-color:rgba(0,242,254,.22) !important;
@@ -869,7 +872,7 @@ if st.session_state["current_trip"] is None:
                     }}
                     @media(max-width:640px) {{
                         {_card_selector} div[data-testid="stButton"] button {{
-                            min-height:102px !important;
+                            min-height:250px !important;
                             padding:12px 14px 23px 14px !important;
                         }}
                     }}
