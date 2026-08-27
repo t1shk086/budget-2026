@@ -765,19 +765,61 @@ if st.session_state["current_trip"] is None:
                 _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
 
-            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
-            _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
-            # Ако има бюджет, лентата винаги се показва — дори при €0 разход.
-            # При 0% се вижда празната писта, а запълването започва от 0%.
-            _bar_gradient = (
-                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
-                f"rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
-            ) if _budget > 0 else "none"
+                     # Почистване на ключа от специални символи и кирилица за CSS селектора
+            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id).lower()[:30]
+            _card_selector = f'div[class*="st-key-open_trip_card_{_safe_key}"]'
+            
+            # Ако има бюджет - запълва с градиент, ако няма - показва празна сива писта
+            if _budget > 0:
+                _bar_gradient = f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
+            else:
+                _bar_gradient = "linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 100%)"
 
-            # Всеки ред има точно ЕДИН Streamlit бутон.
-            # Няма абсолютно позиционирани/невидими overlay бутони —
-            # така натискането на една карта никога не може да отвори друга.
-            with st.container(key=f"trip_card_{_safe_key}"):
+            with st.container():
+                st.markdown(
+                    f"""
+                    <style>
+                    {_card_selector} div[data-testid="stButton"] button {{
+                        min-height:108px !important;
+                        height:auto !important;
+                        width:100% !important;
+                        box-sizing:border-box !important;
+                        padding:14px 16px 24px 16px !important;
+                        border-radius:16px !important;
+                        border:1px solid rgba(255,255,255,.08) !important;
+                        background:
+                            {_bar_gradient} bottom / 100% 12px no-repeat,
+                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
+                        box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
+                        color:#fff !important;
+                        text-align:left !important;
+                        justify-content:flex-start !important;
+                        align-items:flex-start !important;
+                        white-space:pre-wrap !important;
+                        font-family:inherit !important;
+                        line-height:1.45 !important;
+                    }}
+                    {_card_selector} div[data-testid="stButton"] button:hover {{
+                        border-color:rgba(0,242,254,.22) !important;
+                    }}
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                _label = (
+                    f"✈️  {_trip_name}    →\n"
+                    f"{_status_dot}  {_status_text}\n"
+                    f"{_budget_line}"
+                )
+                if st.button(
+                    _label,
+                    use_container_width=True,
+                    key=f"open_trip_card_{_safe_key}"
+                ):
+                    st.session_state["current_trip"] = _trip_id
+                    st.rerun()
+
                 st.markdown(
                     f"""
                     <style>
