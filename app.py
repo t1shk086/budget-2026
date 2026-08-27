@@ -790,9 +790,7 @@ if st.session_state["current_trip"] is None:
                     "rgba(255,255,255,0.10) 0%, "
                     "rgba(255,255,255,0.10) 100%)"
                 )
-                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
-                f"rgba(0,0,0,0) {_pct:.1f}%, rgba(0,0,0,0) 100%)"
-            ) if _budget > 0 and _pct > 0 else "none"
+
 
             # Всеки ред има точно ЕДИН Streamlit бутон.
             # Няма абсолютно позиционирани/невидими overlay бутони —
