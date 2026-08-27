@@ -730,7 +730,7 @@ if st.session_state["current_trip"] is None:
                     # броим разходите само за категориите, за които има бюджет.
                     # Депозитът е логически част от "Нощувки/Хотел", затова
                     # влиза само ако има зададен бюджет за хотел.
-                    elif _budget_mode == "category":
+elif _budget_mode == "category":
                         _budgeted_categories = {
                             str(cat)
                             for cat, val in _cat_budgets.items()
@@ -755,12 +755,7 @@ if st.session_state["current_trip"] is None:
                                 .sum()
                             )
 
-                    try:
-                        # Тук е кодът, който изчислява _spent (напр. извличане от база данни или списък)
-                        _spent = float(trip.get("spent", 0.0))
-                    except Exception:
-                        _spent = 0.0
-                    
+                    # Логика за визуализация на бюджета
                     if _budget > 0:
                         _raw_pct = (_spent / _budget) * 100.0 if _budget > 0 else 0.0
                         _pct = max(0.0, min(100.0, _raw_pct))
@@ -780,6 +775,11 @@ if st.session_state["current_trip"] is None:
                     
                     _safe_key = "".join(ch if ch.isalnum() else "_" for ch in str(_trip_id))[:40]
                     _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
+
+            # Всеки ред има точно ЕДИН Streamlit бутон.
+            # Няма абсолютно позиционирани/невидими overlay бутони —
+            # така натискането на една карта никога не може да отвори друга.
+            with st.container(key=f"trip_card_{_safe_key}"):
 
             # Всеки ред има точно ЕДИН Streamlit бутон.
             # Няма абсолютно позиционирани/невидими overlay бутони —
