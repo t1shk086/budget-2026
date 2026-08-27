@@ -60,6 +60,51 @@ st.markdown("""
 html, body, [data-testid="stAppViewContainer"] {
     font-family: "Segoe UI", Roboto, sans-serif !important;
 }
+
+        /* Финална визия на картите: една карта = един бутон, текстът вляво. */
+        div[class*="st-key-trip_card_"] { position:relative; margin-bottom:8px; }
+        div[class*="st-key-trip_card_"] .tm-trip-card-visual {
+            box-sizing:border-box; min-height:108px; padding:13px 16px 13px;
+            border-radius:16px; border:1px solid rgba(255,255,255,.08);
+            background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+            box-shadow:4px 4px 12px rgba(0,0,0,.24); color:#fff; text-align:left;
+        }
+        div[class*="st-key-trip_card_"] .tm-trip-card-title {
+            display:flex; align-items:center; justify-content:space-between; width:100%;
+            font-size:14px; line-height:1.35; font-weight:800; text-align:left;
+        }
+        div[class*="st-key-trip_card_"] .tm-trip-arrow { margin-left:auto; padding-left:10px; opacity:.85; }
+        div[class*="st-key-trip_card_"] .tm-trip-card-status {
+            margin-top:3px; font-size:12px; line-height:1.3; font-weight:700; text-align:left;
+        }
+        div[class*="st-key-trip_card_"] .tm-trip-card-budget { margin-top:7px; }
+        div[class*="st-key-trip_card_"] .tm-trip-card-budget-text {
+            margin-bottom:4px; font-size:11px; line-height:1.25; font-weight:800;
+            color:rgba(255,255,255,.88); text-align:left;
+        }
+        div[class*="st-key-trip_card_"] .tm-trip-card-budget-track {
+            width:100%; height:12px; padding:2px; box-sizing:border-box; overflow:hidden;
+            border-radius:20px; background:rgba(0,0,0,.42);
+            box-shadow:inset 2px 2px 5px rgba(0,0,0,.45);
+        }
+        div[class*="st-key-trip_card_"] .tm-trip-card-budget-fill {
+            height:100%; border-radius:20px;
+            background:linear-gradient(90deg,#4facfe 0%,#00f2fe 100%);
+            box-shadow:inset 0 2px 2px rgba(255,255,255,.25);
+        }
+        div[class*="st-key-trip_card_"] div[data-testid="stButton"] {
+            position:absolute; inset:0; z-index:10; margin:0 !important;
+        }
+        div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
+            width:100% !important; height:100% !important; min-height:108px !important;
+            padding:0 !important; margin:0 !important; border:0 !important;
+            background:transparent !important; box-shadow:none !important; color:transparent !important;
+            opacity:0 !important; cursor:pointer !important; text-align:left !important;
+        }
+        @media(max-width:640px){
+            div[class*="st-key-trip_card_"] .tm-trip-card-visual { min-height:102px; padding:12px 14px; }
+            div[class*="st-key-trip_card_"] div[data-testid="stButton"] button { min-height:102px !important; }
+        }
 </style>
 """, unsafe_allow_html=True)
 
@@ -620,15 +665,24 @@ if st.session_state["current_trip"] is None:
             else:
                 _budget_line = "Няма зададен бюджет"
 
-            # Компактен прогрес бар в стила на съществуващия бюджетен индикатор.
-            if _budget > 0:
-                _filled = max(0, min(12, round(_pct / 100 * 12)))
-                _bar = "█" * _filled + "░" * (12 - _filled)
-                _budget_line = f"{_budget_line}  ·  {_pct:.0f}%\n{_bar}"
-            _label = f"✈️  {_trip_name}    →\n{_status_dot}  {_status_text}\n{_budget_line}"
-
+            # Визуална карта: реален CSS прогрес бар, без ASCII символи.
             _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
+            _bar_pct = max(0.0, min(100.0, float(_pct))) if _budget > 0 else 0.0
             with st.container(key=f"trip_card_{_safe_key}"):
+                st.markdown(
+                    f"""<div class=\"tm-trip-card-visual\">
+                        <div class=\"tm-trip-card-title\">
+                            <span>✈️  {_trip_name}</span><span class=\"tm-trip-arrow\">→</span>
+                        </div>
+                        <div class=\"tm-trip-card-status\">{_status_dot}  {_status_text}</div>
+                        <div class=\"tm-trip-card-budget\">
+                            <div class=\"tm-trip-card-budget-text\">{_budget_line}  ·  {_pct:.0f}%</div>
+                            {f'<div class=\"tm-trip-card-budget-track\"><div class=\"tm-trip-card-budget-fill\" style=\"width:{_bar_pct:.1f}%;\"></div></div>' if _budget > 0 else ''}
+                        </div>
+                    </div>""",
+                    unsafe_allow_html=True
+                )
+                _label = f"✈️  {_trip_name}    →\n{_status_dot}  {_status_text}\n{_budget_line}"
                 if st.button(_label, use_container_width=True, key=f"open_trip_card_{_safe_key}"):
                     st.session_state["current_trip"] = _trip_id
                     st.rerun()
