@@ -758,12 +758,7 @@ if st.session_state["current_trip"] is None:
             except Exception:
                 _spent = 0.0
 
-            if _budget > 0:
-                _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
-                _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct:.0f}%"
-            else:
-                _pct = 0.0
-                _budget_line = "Няма зададен бюджет"
+            ) if _budget > 0 else "linear-gradient(90deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.10) 100%)"
 
             _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
             _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
