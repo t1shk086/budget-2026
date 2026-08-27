@@ -777,113 +777,158 @@ if st.session_state["current_trip"] is None:
             _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
 
             # =====================================================
-            # ПРОГРЕС БАР НА БЮДЖЕТА
+            # ПРОГРЕС НА БЮДЖЕТА
             # =====================================================
             if _budget > 0:
-                _bar_gradient = (
-                    f"linear-gradient("
-                    f"90deg, "
-                    f"#4facfe 0%, "
-                    f"#00f2fe {_pct:.1f}%, "
-                    f"rgba(255,255,255,0.12) {_pct:.1f}%, "
-                    f"rgba(255,255,255,0.12) 100%)"
+                _progress_pct = max(
+                    0.0,
+                    min(100.0, (_spent / _budget) * 100.0)
                 )
             else:
-                _bar_gradient = (
-                    "linear-gradient("
-                    "90deg, "
-                    "rgba(255,255,255,0.12) 0%, "
-                    "rgba(255,255,255,0.12) 100%)"
-                )
+                _progress_pct = 0.0
 
-            # Всеки ред има точно ЕДИН Streamlit бутон.
             with st.container(key=f"trip_card_{_safe_key}"):
 
                 st.markdown(
                     f"""
-                    <style>
-                    {_card_selector} div[data-testid="stButton"] button {{
-                        min-height:108px !important;
-                        height:auto !important;
-                        width:100% !important;
-                        box-sizing:border-box !important;
-                        padding:14px 16px 14px 16px !important;
-                        border-radius:16px !important;
-                        border:1px solid rgba(255,255,255,.08) !important;
-                        background:linear-gradient(
-                            135deg,
-                            rgba(255,255,255,.035),
-                            rgba(255,255,255,.012)
-                        ) !important;
-                        box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
-                        color:#fff !important;
-                        text-align:left !important;
-                        justify-content:flex-start !important;
-                        align-items:flex-start !important;
-                        white-space:pre-wrap !important;
-                        font-family:inherit !important;
-                        line-height:1.45 !important;
-                    }}
+                    <div class="tm-trip-card">
 
-                    {_card_selector} div[data-testid="stButton"] button p {{
-                        width:100% !important;
-                        margin:0 !important;
-                        text-align:left !important;
-                        white-space:pre-wrap !important;
-                    }}
-                    </style>
+                        <div class="tm-trip-card-content">
+                            <div class="tm-trip-name">
+                                ✈️ {_trip_name} →
+                            </div>
+
+                            <div class="tm-trip-status">
+                                {_status_dot} {_status_text}
+                            </div>
+
+                            <div class="tm-trip-budget">
+                                {_budget_line}
+                            </div>
+                        </div>
+
+                        <div class="tm-trip-progress">
+                            <div class="tm-trip-progress-fill"
+                                 style="width:{_progress_pct:.1f}%;">
+                            </div>
+                        </div>
+
+                    </div>
                     """,
                     unsafe_allow_html=True
                 )
 
-                _label = (
-                    f"✈️  {_trip_name}    →\n"
-                    f"{_status_dot}  {_status_text}\n"
-                    f"{_budget_line}"
-                )
-
+                # Единственият реален Streamlit бутон
                 if st.button(
-                    _label,
+                    "",
                     use_container_width=True,
                     key=f"open_trip_card_{_safe_key}"
                 ):
                     st.session_state["current_trip"] = _trip_id
                     st.rerun()
 
-                # =====================================================
-                # БЮДЖЕТЕН ПРОГРЕС БАР
-                # =====================================================
-
-                if _budget > 0:
-                    _progress_pct = max(
-                        0.0,
-                        min(100.0, (_spent / _budget) * 100.0)
-                    )
-                else:
-                    _progress_pct = 0.0
-
                 st.markdown(
-                    f"""
-                    <div style="
+                    """
+                    <style>
+
+                    .tm-trip-card {
+                        position:relative;
                         width:100%;
-                        height:6px;
-                        margin-top:-10px;
-                        border-radius:999px;
+                        min-height:108px;
+                        box-sizing:border-box;
+                        padding:14px 16px 22px 16px;
+                        margin-top:-116px;
+                        margin-bottom:8px;
+
+                        border-radius:16px;
+                        border:1px solid rgba(255,255,255,.08);
+
+                        background:linear-gradient(
+                            135deg,
+                            rgba(255,255,255,.035),
+                            rgba(255,255,255,.012)
+                        );
+
+                        box-shadow:4px 4px 12px rgba(0,0,0,.24);
+
+                        pointer-events:none;
+                        z-index:5;
+                    }
+
+                    .tm-trip-card-content {
+                        position:relative;
+                        z-index:6;
+                    }
+
+                    .tm-trip-name {
+                        color:#fff;
+                        font-weight:700;
+                        font-size:15px;
+                        line-height:1.45;
+                    }
+
+                    .tm-trip-status {
+                        color:#d7dbe2;
+                        font-size:13px;
+                        margin-top:4px;
+                    }
+
+                    .tm-trip-budget {
+                        color:#bfc5cf;
+                        font-size:13px;
+                        margin-top:4px;
+                    }
+
+                    .tm-trip-progress {
+                        position:absolute;
+                        left:0;
+                        right:0;
+                        bottom:0;
+                        height:8px;
+                        border-radius:0 0 16px 16px;
                         overflow:hidden;
                         background:rgba(255,255,255,.12);
-                        pointer-events:none;
-                    ">
-                        <div style="
-                            width:{_progress_pct:.1f}%;
-                            height:100%;
-                            border-radius:999px;
-                            background:linear-gradient(
-                                90deg,
-                                #4facfe,
-                                #00f2fe
-                            );
-                        "></div>
-                    </div>
+                    }
+
+                    .tm-trip-progress-fill {
+                        height:100%;
+                        border-radius:0 0 16px 16px;
+                        background:linear-gradient(
+                            90deg,
+                            #4facfe,
+                            #00f2fe
+                        );
+                    }
+
+                    div[class*="st-key-trip_card_"]
+                    div[data-testid="stButton"] button {
+                        min-height:108px !important;
+                        height:108px !important;
+                        opacity:0 !important;
+                        border:none !important;
+                        background:transparent !important;
+                        position:relative !important;
+                        z-index:10 !important;
+                        cursor:pointer !important;
+                    }
+
+                    @media(max-width:640px) {
+
+                        .tm-trip-card {
+                            min-height:102px;
+                            padding:12px 14px 21px 14px;
+                            margin-top:-110px;
+                        }
+
+                        div[class*="st-key-trip_card_"]
+                        div[data-testid="stButton"] button {
+                            min-height:102px !important;
+                            height:102px !important;
+                        }
+
+                    }
+
+                    </style>
                     """,
                     unsafe_allow_html=True
                 )
