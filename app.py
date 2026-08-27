@@ -675,28 +675,27 @@ if st.session_state["current_trip"] is None:
             _status_text = "Активно" if not _finished else "Приключено"
 
             _df_home_trip = get_trip_data(_trip_id)
-            try:
-                # На началния екран показваме само реалните разходи,
-                # а не бюджети или други стойности.
-                if not _df_home_trip.empty and "type" in _df_home_trip.columns:
-                    _spent = float(
-                        _df_home_trip.loc[
-                            _df_home_trip["type"].astype(str).str.lower() == "expense",
-                            "amount"
-                        ].fillna(0).sum()
-                    )
-                else:
-                    _spent = 0.0
-            except Exception:
-                _spent = 0.0
 
-            # Бюджетът на картата следва двата режима в приложението:
-            # 1) изрично зададен ОБЩ бюджет;
-            # 2) ако няма общ — сбор на реално зададените бюджети по КАТЕГОРИИ.
-            # Ако няма нито един от двата вида, не показваме измислен бюджет.
+            # ============================================================
+            # НАЧАЛНА КАРТА — БЮДЖЕТ
+            #
+            # Важно: тук "изхарчено" означава реално похарчено за пътуването,
+            # а не само това, което участва в ДНЕВНИЯ ЛИМИТ.
+            #
+            # Затова:
+            #   expense  -> влиза
+            #   deposit  -> влиза
+            # Хотел/стаи и депозит НЕ се изключват тук. Те се изключват
+            # само от малките карти за дневен лимит/темпо.
+            # ============================================================
+
             _global = float(get_global_budget(_trip_id) or 0.0)
             _cat_budgets = get_category_budgets(_trip_id)
-            _category_total = sum(float(v or 0.0) for v in _cat_budgets.values() if float(v or 0.0) > 0)
+            _category_total = sum(
+                float(v or 0.0)
+                for v in _cat_budgets.values()
+                if float(v or 0.0) > 0
+            )
 
             if _global > 0:
                 _budget_mode = "global"
@@ -708,25 +707,56 @@ if st.session_state["current_trip"] is None:
                 _budget_mode = "none"
                 _budget = 0.0
 
-            # Изхарченото е само от реални expense записи.
-            # При бюджет по категории броим разходите само в категориите,
-            # за които действително е зададен бюджет.
-            if _budget_mode == "category" and not _df_home_trip.empty and "type" in _df_home_trip.columns:
-                try:
-                    _budgeted_categories = {
-                        str(cat) for cat, val in _cat_budgets.items()
-                        if float(val or 0.0) > 0
-                    }
-                    _expense_rows = _df_home_trip[
-                        _df_home_trip["type"].astype(str).str.lower() == "expense"
-                    ]
-                    if "category" in _expense_rows.columns:
-                        _expense_rows = _expense_rows[
-                            _expense_rows["category"].astype(str).isin(_budgeted_categories)
-                        ]
-                    _spent = float(_expense_rows["amount"].fillna(0).sum())
-                except Exception:
-                    _spent = 0.0
+            try:
+                _spent = 0.0
+
+                if not _df_home_trip.empty and "amount" in _df_home_trip.columns:
+                    _type = (
+                        _df_home_trip["type"].astype(str).str.strip().str.lower()
+                        if "type" in _df_home_trip.columns
+                        else pd.Series(["expense"] * len(_df_home_trip), index=_df_home_trip.index)
+                    )
+
+                    # При ОБЩ бюджет всичко платено за пътуването влиза:
+                    # нормални разходи + депозити.
+                    if _budget_mode == "global":
+                        _spent = float(
+                            _df_home_trip.loc[_type.isin(["expense", "deposit"]), "amount"]
+                            .fillna(0)
+                            .sum()
+                        )
+
+                    # При БЮДЖЕТ ПО КАТЕГОРИИ:
+                    # броим разходите само за категориите, за които има бюджет.
+                    # Депозитът е логически част от "Нощувки/Хотел", затова
+                    # влиза само ако има зададен бюджет за хотел.
+                    elif _budget_mode == "category":
+                        _budgeted_categories = {
+                            str(cat)
+                            for cat, val in _cat_budgets.items()
+                            if float(val or 0.0) > 0
+                        }
+
+                        _expense_rows = _df_home_trip.loc[
+                            _type == "expense"
+                        ].copy()
+
+                        if "category" in _expense_rows.columns:
+                            _expense_rows = _expense_rows[
+                                _expense_rows["category"].astype(str).isin(_budgeted_categories)
+                            ]
+                            _spent += float(_expense_rows["amount"].fillna(0).sum())
+
+                        # Deposit -> Hotel, но само когато Hotel има бюджет.
+                        if "Нощувки/Хотел" in _budgeted_categories:
+                            _spent += float(
+                                _df_home_trip.loc[_type == "deposit", "amount"]
+                                .fillna(0)
+                                .sum()
+                            )
+
+            except Exception:
+                _spent = 0.0
 
             if _budget > 0:
                 _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
@@ -790,6 +820,21 @@ if st.session_state["current_trip"] is None:
                             padding:12px 14px 23px 14px !important;
                         }}
                     }}
+                    div[data-testid="stButton"] button > div {
+                        width:100% !important;
+                        display:block !important;
+                    }
+                    div[data-testid="stButton"] button > div > div {
+                        width:100% !important;
+                        display:block !important;
+                    }
+                    div[data-testid="stButton"] button p {
+                        width:100% !important;
+                        display:block !important;
+                        text-align:left !important;
+                        margin:0 !important;
+                        padding:0 !important;
+                    }
                     </style>
                     """,
                     unsafe_allow_html=True
