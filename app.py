@@ -755,22 +755,25 @@ if st.session_state["current_trip"] is None:
                                 .sum()
                             )
 
-            except Exception:
-                _spent = 0.0
+except Exception:
+    _spent = 0.0
 
-            if _budget > 0:
-                _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
-                _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct:.0f}%"
-            else:
-                _pct = 0.0
-                _budget_line = "Няма зададен бюджет"
-
-            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
-            _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
-            _bar_gradient = (
-                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
-                f"rgba(0,0,0,0) {_pct:.1f}%, rgba(0,0,0,0) 100%)"
-            ) if _budget > 0 and _pct > 0 else "none"
+if _budget > 0:
+    _raw_pct = (_spent / _budget) * 100.0 if _budget > 0 else 0.0
+    _pct = max(0.0, min(100.0, _raw_pct))
+    
+    # Изписва "€0.00 / €1,000.00 · 0%" при 0 разход
+    _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_raw_pct:.0f}%"
+    
+    # Градиентът се показва САМО ако има реално изразходван процент (> 0)
+    if _pct > 0:
+        _bar_gradient = f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, transparent {_pct:.1f}%)"
+    else:
+        _bar_gradient = "none"
+else:
+    _pct = 0.0
+    _budget_line = "Няма зададен бюджет"
+    _bar_gradient = "none"
 
             # Всеки ред има точно ЕДИН Streamlit бутон.
             # Няма абсолютно позиционирани/невидими overlay бутони —
