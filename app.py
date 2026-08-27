@@ -765,70 +765,158 @@ if st.session_state["current_trip"] is None:
                 _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
 
-            # Генерация на чист алфанумеричен ключ без специални символи и интервали за CSS селектора
-            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id).lower()[:30]
-            _card_selector = f'div[class*="st-key-trip_btn_{_safe_key}"]'
+# =========================================================
+# МОИТЕ ПЪТУВАНИЯ — БЕЗОПАСЕН ASCII KEY + ПРОГРЕС БАР
+# =========================================================
 
-            # Ако има бюджет – изчислява градиента, ако няма – показва празна сива писта
-            if _budget > 0:
-                _bar_gradient = (
-                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
-                    f"rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
-                )
-            else:
-                _bar_gradient = "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%)"
+import hashlib
 
-            # Картата се изрисува в един контейнер с един чист бутон вътре
-            with st.container():
-                st.markdown(
-                    f"""
-                    <style>
-                    {_card_selector} div[data-testid="stButton"] button {{
-                        min-height: 108px !important;
-                        height: auto !important;
-                        width: 100% !important;
-                        box-sizing: border-box !important;
-                        padding: 14px 16px 24px 16px !important;
-                        border-radius: 16px !important;
-                        border: 1px solid rgba(255,255,255,.08) !important;
-                        background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
-                        box-shadow: 4px 4px 12px rgba(0,0,0,.24) !important;
-                        color: #fff !important;
-                        text-align: left !important;
-                        justify-content: flex-start !important;
-                        align-items: flex-start !important;
-                        white-space: pre-wrap !important;
-                        font-family: inherit !important;
-                        line-height: 1.45 !important;
-                    }}
-                    {_card_selector} div[data-testid="stButton"] button:hover {{
-                        border-color: rgba(0,242,254,.22) !important;
-                        background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
-                        box-shadow: 4px 6px 16px rgba(0,0,0,.30), 0 0 14px rgba(0,242,254,.05) !important;
-                        transform: translateY(-1px) !important;
-                    }}
-                    </style>
-                    """,
-                    unsafe_allow_html=True
-                )
+# ВАЖНО:
+# Името може да бъде на кирилица, с интервали, emoji и т.н.
+# То НЕ се използва директно в CSS selector-а.
+_trip_id_string = str(_trip_id).strip()
 
-                _label = (
-                    f"✈️  {_trip_name}    →\n"
-                    f"{_status_dot}  {_status_text}\n"
-                    f"{_budget_line}"
-                )
-                if st.button(
-                    _label,
-                    use_container_width=True,
-                    key=f"trip_btn_{_safe_key}"
-                ):
-                    st.session_state["current_trip"] = _trip_id
-                    st.rerun()
+# Генерираме винаги само ASCII символи:
+# trip_btn_ + 16 hex символа
+_safe_key = (
+    "trip_btn_"
+    + hashlib.sha256(_trip_id_string.encode("utf-8")).hexdigest()[:16]
+)
 
+# Процентът вече е изчислен в _pct.
+# Ограничаваме го между 0 и 100.
+_bar_pct = max(0.0, min(100.0, float(_pct))) if _budget > 0 else 0.0
+
+# CSS selector за САМИЯ keyed button.
+# Streamlit превръща key="trip_btn_xxx"
+# в CSS клас .st-key-trip_btn_xxx
+_card_selector = f".st-key-{_safe_key}"
+
+if _budget > 0:
+    _bar_gradient = (
+        f"linear-gradient("
+        f"90deg, "
+        f"#4facfe 0%, "
+        f"#00f2fe {_bar_pct:.1f}%, "
+        f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, "
+        f"rgba(255,255,255,0.12) 100%"
+        f")"
+    )
+else:
+    _bar_gradient = (
+        "linear-gradient("
+        "90deg, "
+        "rgba(255,255,255,0.06) 0%, "
+        "rgba(255,255,255,0.06) 100%"
+        ")"
+    )
+
+# ---------------------------------------------------------
+# СТИЛИЗИРАНЕ НА КАРТАТА
+# ---------------------------------------------------------
+with st.container():
+
+    st.markdown(
+        f"""
+        <style>
+
+        /* =================================================
+           ОСНОВЕН БУТОН НА ПЪТУВАНЕТО
+           ================================================= */
+
+        { _card_selector } button {{
+            min-height: 108px !important;
+            height: auto !important;
+            width: 100% !important;
+
+            box-sizing: border-box !important;
+
+            padding: 14px 16px 24px 16px !important;
+
+            border-radius: 16px !important;
+            border: 1px solid rgba(255,255,255,.08) !important;
+
+            background:
+                {_bar_gradient} bottom / 100% 12px no-repeat,
+                linear-gradient(
+                    135deg,
+                    rgba(255,255,255,.035),
+                    rgba(255,255,255,.012)
+                ) !important;
+
+            box-shadow:
+                4px 4px 12px rgba(0,0,0,.24) !important;
+
+            color: #fff !important;
+
+            text-align: left !important;
+            justify-content: flex-start !important;
+            align-items: flex-start !important;
+
+            white-space: pre-wrap !important;
+
+            font-family: inherit !important;
+            line-height: 1.45 !important;
+        }}
+
+        /* =================================================
+           HOVER
+           ================================================= */
+
+        { _card_selector } button:hover {{
+            border-color: rgba(0,242,254,.22) !important;
+
+            background:
+                {_bar_gradient} bottom / 100% 12px no-repeat,
+                linear-gradient(
+                    135deg,
+                    rgba(255,255,255,.055),
+                    rgba(255,255,255,.018)
+                ) !important;
+
+            box-shadow:
+                4px 6px 16px rgba(0,0,0,.30),
+                0 0 14px rgba(0,242,254,.05) !important;
+
+            transform: translateY(-1px) !important;
+        }}
+
+        /* =================================================
+           ТЕКСТЪТ В БУТОНА
+           ================================================= */
+
+        { _card_selector } button p {{
+            white-space: pre-wrap !important;
+            text-align: left !important;
+            width: 100% !important;
+        }}
+
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # -----------------------------------------------------
+    # ТЕКСТ НА КАРТАТА
+    # -----------------------------------------------------
+
+    _label = (
+        f"✈️  {_trip_name}    →\n"
+        f"{_status_dot}  {_status_text}\n"
+        f"{_budget_line}"
+    )
+
+    # -----------------------------------------------------
+    # САМИЯТ БУТОН
+    # -----------------------------------------------------
+
+    if st.button(
+        _label,
+        use_container_width=True,
+        key=_safe_key
+    ):
+        st.session_state["current_trip"] = _trip_id
+        st.rerun()
 
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
