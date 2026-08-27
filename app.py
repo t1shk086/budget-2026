@@ -663,6 +663,7 @@ if st.session_state["current_trip"] is None:
                 _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
                 _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}"
             else:
+                _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
 
             # Визуална карта: реален CSS прогрес бар, без ASCII символи.
