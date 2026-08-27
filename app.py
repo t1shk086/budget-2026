@@ -765,72 +765,70 @@ if st.session_state["current_trip"] is None:
                 _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
 
-            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
-            _card_selector = f'div[class*="st-key-open_trip_card_{_safe_key}"]'
+            # Генерация на чист алфанумеричен ключ без специални символи и интервали за CSS селектора
+            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id).lower()[:30]
+            _card_selector = f'div[class*="st-key-trip_btn_{_safe_key}"]'
 
-            # Изчисляване на цвета и запълването на HTML лентата
+            # Ако има бюджет – изчислява градиента, ако няма – показва празна сива писта
             if _budget > 0:
-                _fill_width = f"{_pct:.1f}%"
-                _fill_background = "linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)"
+                _bar_gradient = (
+                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
+                    f"rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
+                )
             else:
-                _fill_width = "100%"
-                _fill_background = "rgba(255, 255, 255, 0.08)"
+                _bar_gradient = "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%)"
 
+            # Картата се изрисува в един контейнер с един чист бутон вътре
             with st.container():
-                # Основен стил за изравняване на текста вляво, за да не се чупят бутоните ти
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                     <style>
-                    {_card_selector} button {{
-                        min-height: 96px !important;
+                    {_card_selector} div[data-testid="stButton"] button {{
+                        min-height: 108px !important;
                         height: auto !important;
                         width: 100% !important;
-                        padding: 14px 16px !important;
-                        border-radius: 16px 16px 0 0 !important;
+                        box-sizing: border-box !important;
+                        padding: 14px 16px 24px 16px !important;
+                        border-radius: 16px !important;
                         border: 1px solid rgba(255,255,255,.08) !important;
-                        border-bottom: none !important;
-                        background: linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
-                        box-shadow: 4px 4px 12px rgba(0,0,0,0.1) !important;
+                        background:
+                            {_bar_gradient} bottom / 100% 12px no-repeat,
+                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
+                        box-shadow: 4px 4px 12px rgba(0,0,0,.24) !important;
                         color: #fff !important;
                         text-align: left !important;
                         justify-content: flex-start !important;
                         align-items: flex-start !important;
+                        white-space: pre-wrap !important;
+                        font-family: inherit !important;
+                        line-height: 1.45 !important;
                     }}
-                    {_card_selector} button:hover {{
+                    {_card_selector} div[data-testid="stButton"] button:hover {{
                         border-color: rgba(0,242,254,.22) !important;
-                        background: linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
+                        background:
+                            {_bar_gradient} bottom / 100% 12px no-repeat,
+                            linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
+                        box-shadow: 4px 6px 16px rgba(0,0,0,.30), 0 0 14px rgba(0,242,254,.05) !important;
+                        transform: translateY(-1px) !important;
                     }}
                     </style>
-                """, unsafe_allow_html=True)
+                    """,
+                    unsafe_allow_html=True
+                )
 
-                # 1. Изрисуване на бутона
-                _label = f"✈️  {_trip_name}    →\n{_status_dot}  {_status_text}\n{_budget_line}"
-                if st.button(_label, use_container_width=True, key=f"open_trip_card_{_safe_key}"):
+                _label = (
+                    f"✈️  {_trip_name}    →\n"
+                    f"{_status_dot}  {_status_text}\n"
+                    f"{_budget_line}"
+                )
+                if st.button(
+                    _label,
+                    use_container_width=True,
+                    key=f"trip_btn_{_safe_key}"
+                ):
                     st.session_state["current_trip"] = _trip_id
                     st.rerun()
 
-                # 2. Физическо инжектиране на HTML прогрес бар точно под бутона
-                st.markdown(f"""
-                    <div style="
-                        width: 100%; 
-                        height: 12px; 
-                        background: rgba(0,0,0,0.42); 
-                        border-radius: 0 0 16px 16px; 
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-top: none;
-                        overflow: hidden; 
-                        margin-top: -16px; 
-                        margin-bottom: 12px;
-                        box-shadow: 4px 4px 12px rgba(0,0,0,0.24);
-                    ">
-                        <div style="
-                            width: {_fill_width}; 
-                            height: 100%; 
-                            background: {_fill_background};
-                            border-radius: 0 0 0 16px;
-                            transition: width 0.3s ease;
-                        "></div>
-                    </div>
-                """, unsafe_allow_html=True)
 
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
