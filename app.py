@@ -772,9 +772,19 @@ if st.session_state["current_trip"] is None:
             if _budget > 0:
                 _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
                 _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct:.0f}%"
+            
+                _bar_gradient = (
+                    f"linear-gradient("
+                    f"90deg, "
+                    f"#4facfe 0%, "
+                    f"#00f2fe {_pct:.1f}%, "
+                    f"rgba(255,255,255,.12) {_pct:.1f}%, "
+                    f"rgba(255,255,255,.12) 100%)"
+                )
             else:
                 _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
+                _bar_gradient = "none"
 
             # ============================================================
             # КАРТА НА ПЪТУВАНЕТО — САМО ЕДНА ОБЩА ПРОГРЕС ЛЕНТА
