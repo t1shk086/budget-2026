@@ -767,21 +767,12 @@ if st.session_state["current_trip"] is None:
 
             _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
             _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
-            # Винаги рисуваме трака, когато има бюджет — дори при 0% разход.
-            # Това е важно: бюджет 1000 EUR + разход 0 EUR трябва да показва
-            # празна прогрес лента, а не да премахва лентата изцяло.
-            if _budget > 0:
-                _bar_gradient = (
-                    "linear-gradient("
-                    "90deg, "
-                    f"#4facfe 0%, "
-                    f"#00f2fe {_pct:.1f}%, "
-                    f"rgba(255,255,255,.12) {_pct:.1f}%, "
-                    "rgba(255,255,255,.12) 100%"
-                    ")"
-                )
-            else:
-                _bar_gradient = "none"
+            # Ако има бюджет, лентата винаги се показва — дори при €0 разход.
+            # При 0% се вижда празната писта, а запълването започва от 0%.
+            _bar_gradient = (
+                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
+                f"rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
+            ) if _budget > 0 else "none"
 
             # Всеки ред има точно ЕДИН Streamlit бутон.
             # Няма абсолютно позиционирани/невидими overlay бутони —
