@@ -758,39 +758,38 @@ if st.session_state["current_trip"] is None:
             except Exception:
                 _spent = 0.0
 
-if _budget > 0:
-    _pct_real = max(0.0, (_spent / _budget) * 100.0)
+            if _budget > 0:
+                _pct_real = max(0.0, (_spent / _budget) * 100.0)
+                _pct = min(100.0, _pct_real)
+                _budget_line = (
+                    f"€{_spent:,.2f} / €{_budget:,.2f}  ·  "
+                    f"{_pct_real:.0f}%"
+                )
+            else:
+                _pct = 0.0
+                _pct_real = 0.0
+                _budget_line = "Няма зададен бюджет"
 
-    # Визуалната лента не може да надхвърля 100%
-    _pct = min(100.0, _pct_real)
+            _safe_key = "".join(
+                ch if ch.isalnum() else "_" for ch in _trip_id
+            )[:40]
 
-    _budget_line = (
-        f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct_real:.0f}%"
-    )
-else:
-    _pct = 0.0
-    _pct_real = 0.0
-    _budget_line = "Няма зададен бюджет"
+            _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
 
-_safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
-_card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
-
-# Прогрес лентата винаги има видима основа,
-# дори когато разходът е €0.
-if _budget > 0:
-    _bar_gradient = (
-        f"linear-gradient(90deg, "
-        f"#4facfe 0%, "
-        f"#00f2fe {_pct:.1f}%, "
-        f"rgba(255,255,255,0.10) {_pct:.1f}%, "
-        f"rgba(255,255,255,0.10) 100%)"
-    )
-else:
-    _bar_gradient = (
-        "linear-gradient(90deg, "
-        "rgba(255,255,255,0.10) 0%, "
-        "rgba(255,255,255,0.10) 100%)"
-    )
+            if _budget > 0:
+                _bar_gradient = (
+                    f"linear-gradient(90deg, "
+                    f"#4facfe 0%, "
+                    f"#00f2fe {_pct:.1f}%, "
+                    f"rgba(255,255,255,0.10) {_pct:.1f}%, "
+                    f"rgba(255,255,255,0.10) 100%)"
+                )
+            else:
+                _bar_gradient = (
+                    "linear-gradient(90deg, "
+                    "rgba(255,255,255,0.10) 0%, "
+                    "rgba(255,255,255,0.10) 100%)"
+                )
                 f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
                 f"rgba(0,0,0,0) {_pct:.1f}%, rgba(0,0,0,0) 100%)"
             ) if _budget > 0 and _pct > 0 else "none"
