@@ -778,17 +778,16 @@ if st.session_state["current_trip"] is None:
 
             if _budget > 0:
                 _bar_gradient = (
-                    f"linear-gradient(90deg, "
+                    f"linear-gradient("
+                    f"90deg, "
                     f"#4facfe 0%, "
                     f"#00f2fe {_pct:.1f}%, "
-                    f"rgba(255,255,255,0.10) {_pct:.1f}%, "
-                    f"rgba(255,255,255,0.10) 100%)"
+                    f"rgba(255,255,255,0.12) {_pct:.1f}%, "
+                    f"rgba(255,255,255,0.12) 100%)"
                 )
             else:
                 _bar_gradient = (
-                    "linear-gradient(90deg, "
-                    "rgba(255,255,255,0.10) 0%, "
-                    "rgba(255,255,255,0.10) 100%)"
+                    "rgba(255,255,255,0.12)"
                 )
 
 
