@@ -799,38 +799,23 @@ if st.session_state["current_trip"] is None:
             # Всеки ред има точно ЕДИН Streamlit бутон.
             with st.container(key=f"trip_card_{_safe_key}"):
 
-                # =====================================================
-                # СТИЛ НА КАРТАТА + ПРОГРЕС БАР
-                # =====================================================
                 st.markdown(
                     f"""
                     <style>
-
-                    {_card_selector} div[data-testid="stButton"] {{
-                        position:relative !important;
-                        width:100% !important;
-                    }}
-
                     {_card_selector} div[data-testid="stButton"] button {{
-                        position:relative !important;
                         min-height:108px !important;
                         height:auto !important;
                         width:100% !important;
                         box-sizing:border-box !important;
-                        padding:14px 16px 20px 16px !important;
+                        padding:14px 16px 14px 16px !important;
                         border-radius:16px !important;
                         border:1px solid rgba(255,255,255,.08) !important;
-
-                        background:
-                            linear-gradient(
-                                135deg,
-                                rgba(255,255,255,.035),
-                                rgba(255,255,255,.012)
-                            ) !important;
-
-                        box-shadow:
-                            4px 4px 12px rgba(0,0,0,.24) !important;
-
+                        background:linear-gradient(
+                            135deg,
+                            rgba(255,255,255,.035),
+                            rgba(255,255,255,.012)
+                        ) !important;
+                        box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
                         color:#fff !important;
                         text-align:left !important;
                         justify-content:flex-start !important;
@@ -838,103 +823,14 @@ if st.session_state["current_trip"] is None:
                         white-space:pre-wrap !important;
                         font-family:inherit !important;
                         line-height:1.45 !important;
-
-                        overflow:hidden !important;
-                    }}
-
-                    /* ФОН НА ПРОГРЕС БАРА */
-                    {_card_selector} div[data-testid="stButton"] button::after {{
-                        content:"" !important;
-                        position:absolute !important;
-                        left:0 !important;
-                        bottom:0 !important;
-                        width:100% !important;
-                        height:9px !important;
-
-                        background:
-                            rgba(255,255,255,.12) !important;
-
-                        border-radius:
-                            0 0 16px 16px !important;
-
-                        pointer-events:none !important;
-                        z-index:1 !important;
-                    }}
-
-                    /* ЗАПЪЛНЕНА ЧАСТ */
-                    {_card_selector} div[data-testid="stButton"] button::before {{
-                        content:"" !important;
-                        position:absolute !important;
-                        left:0 !important;
-                        bottom:0 !important;
-
-                        width:{_pct:.1f}% !important;
-                        height:9px !important;
-
-                        background:
-                            linear-gradient(
-                                90deg,
-                                #4facfe,
-                                #00f2fe
-                            ) !important;
-
-                        border-radius:
-                            0 0 16px 16px !important;
-
-                        pointer-events:none !important;
-                        z-index:2 !important;
-                    }}
-
-                    {_card_selector} div[data-testid="stButton"] button:hover {{
-                        border-color:rgba(0,242,254,.22) !important;
-
-                        background:
-                            linear-gradient(
-                                135deg,
-                                rgba(255,255,255,.055),
-                                rgba(255,255,255,.018)
-                            ) !important;
-
-                        box-shadow:
-                            4px 6px 16px rgba(0,0,0,.30),
-                            0 0 14px rgba(0,242,254,.05) !important;
-
-                        transform:translateY(-1px) !important;
                     }}
 
                     {_card_selector} div[data-testid="stButton"] button p {{
                         width:100% !important;
                         margin:0 !important;
                         text-align:left !important;
-                        justify-content:flex-start !important;
                         white-space:pre-wrap !important;
                     }}
-
-                    div[data-testid="stButton"] button > div {{
-                        width:100% !important;
-                        display:block !important;
-                    }}
-
-                    div[data-testid="stButton"] button > div > div {{
-                        width:100% !important;
-                        display:block !important;
-                    }}
-
-                    div[data-testid="stButton"] button p {{
-                        width:100% !important;
-                        display:block !important;
-                        text-align:left !important;
-                        margin:0 !important;
-                        padding:0 !important;
-                    }}
-
-                    @media(max-width:640px) {{
-                        {_card_selector} div[data-testid="stButton"] button {{
-                            min-height:102px !important;
-                            padding:12px 14px 20px 14px !important;
-                        }}
-                    }}
-
                     </style>
                     """,
                     unsafe_allow_html=True
@@ -946,9 +842,6 @@ if st.session_state["current_trip"] is None:
                     f"{_budget_line}"
                 )
 
-                # =====================================================
-                # ЕДИНСТВЕНИЯТ БУТОН НА КАРТАТА
-                # =====================================================
                 if st.button(
                     _label,
                     use_container_width=True,
