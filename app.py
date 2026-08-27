@@ -802,7 +802,7 @@ if st.session_state["current_trip"] is None:
                         height:auto !important;
                         width:100% !important;
                         box-sizing:border-box !important;
-                        padding:14px 0 24px 6px !important;
+                        padding:14px 0 24px 8px !important;
                         border-radius:16px !important;
                         border:1px solid rgba(255,255,255,.08) !important;
                         background:
