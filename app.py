@@ -105,6 +105,12 @@ html, body, [data-testid="stAppViewContainer"] {
             div[class*="st-key-trip_card_"] .tm-trip-card-visual { min-height:102px; padding:12px 14px; }
             div[class*="st-key-trip_card_"] div[data-testid="stButton"] button { min-height:102px !important; }
         }
+
+
+        /* No-budget card: keep it clean and compact. */
+        div[class*="st-key-trip_card_"] .tm-trip-card-budget-text {
+            text-align:left !important;
+        }
 </style>
 """, unsafe_allow_html=True)
 
@@ -670,17 +676,26 @@ if st.session_state["current_trip"] is None:
             _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
             _bar_pct = max(0.0, min(100.0, float(_pct))) if _budget > 0 else 0.0
             with st.container(key=f"trip_card_{_safe_key}"):
+                _budget_bar_html = (
+                    f'<div class="tm-trip-card-budget-track">'
+                    f'<div class="tm-trip-card-budget-fill" style="width:{_bar_pct:.1f}%;"></div>'
+                    f'</div>'
+                    if _budget > 0 else ""
+                )
                 st.markdown(
-                    f"""<div class=\"tm-trip-card-visual\">
-                        <div class=\"tm-trip-card-title\">
-                            <span>✈️  {_trip_name}</span><span class=\"tm-trip-arrow\">→</span>
+                    f"""
+                    <div class="tm-trip-card-visual">
+                        <div class="tm-trip-card-title">
+                            <span>✈️  {_trip_name}</span>
+                            <span class="tm-trip-arrow">→</span>
                         </div>
-                        <div class=\"tm-trip-card-status\">{_status_dot}  {_status_text}</div>
-                        <div class=\"tm-trip-card-budget\">
-                            <div class=\"tm-trip-card-budget-text\">{_budget_line}  ·  {_pct:.0f}%</div>
-                            {f'<div class=\"tm-trip-card-budget-track\"><div class=\"tm-trip-card-budget-fill\" style=\"width:{_bar_pct:.1f}%;\"></div></div>' if _budget > 0 else ''}
+                        <div class="tm-trip-card-status">{_status_dot}  {_status_text}</div>
+                        <div class="tm-trip-card-budget">
+                            <div class="tm-trip-card-budget-text">{_budget_line}  ·  {_pct:.0f}%</div>
+                            {_budget_bar_html}
                         </div>
-                    </div>""",
+                    </div>
+                    """,
                     unsafe_allow_html=True
                 )
                 _label = f"✈️  {_trip_name}    →\n{_status_dot}  {_status_text}\n{_budget_line}"
