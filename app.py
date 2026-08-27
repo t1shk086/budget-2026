@@ -767,10 +767,12 @@ if st.session_state["current_trip"] is None:
 
             _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
             _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
+            # Ако има бюджет, лентата винаги се показва — дори при €0 разход.
+            # При 0% се вижда празната писта, а запълването започва от 0%.
             _bar_gradient = (
                 f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
-                f"rgba(0,0,0,0) {_pct:.1f}%, rgba(0,0,0,0) 100%)"
-            ) if _budget > 0 and _pct > 0 else "none"
+                f"rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
+            ) if _budget > 0 else "none"
 
             # Всеки ред има точно ЕДИН Streamlit бутон.
             # Няма абсолютно позиционирани/невидими overlay бутони —
