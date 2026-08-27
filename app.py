@@ -516,6 +516,36 @@ if st.session_state["current_trip"] is None:
         .tm-home-note {
             color:#777f8c; font-size:10px; text-align:center; margin:12px 0 4px 0;
         }
+        .tm-trip-card-marker + div[data-testid="stButton"] button {
+            min-height:118px !important;
+            padding:16px 18px !important;
+            border-radius:18px !important;
+            text-align:left !important;
+            background:linear-gradient(145deg,rgba(37,41,50,.98),rgba(20,23,29,.98)) !important;
+            border:1px solid rgba(255,255,255,.08) !important;
+            box-shadow:0 8px 24px rgba(0,0,0,.30) !important;
+            white-space:pre-line !important;
+            line-height:1.45 !important;
+        }
+        .tm-trip-card-marker + div[data-testid="stButton"] button:hover {
+            transform:translateY(-2px) !important;
+            border-color:rgba(0,242,254,.28) !important;
+            box-shadow:0 12px 30px rgba(0,0,0,.38) !important;
+        }
+        .tm-trip-card-marker + div[data-testid="stButton"] button p {
+            white-space:pre-line !important;
+            text-align:left !important;
+            font-size:14px !important;
+        }
+        @media (max-width:640px) {
+            .tm-trip-card-marker + div[data-testid="stButton"] button {
+                min-height:112px !important;
+                padding:14px !important;
+            }
+            .tm-trip-card-marker + div[data-testid="stButton"] button p {
+                font-size:13px !important;
+            }
+        }
         @media (max-width:640px) {
             .tm-home-logo h1 {font-size:40px;}
             .tm-home-logo {margin-top:0; margin-bottom:14px;}
@@ -1199,8 +1229,33 @@ if st.session_state["current_trip"] is None:
     if home_existing:
         for i, home_trip in enumerate(home_existing):
             home_name = str(home_trip).replace("_", " ")
-            # Един-единствен бутон за всяко пътуване — самата карта е действието.
-            if st.button(f"✈️  {home_name}    →", key=f"home_open_trip_{i}", use_container_width=True):
+            # Самият Streamlit button е картата — няма втори бутон/контрол.
+            try:
+                df_home_trip = get_trip_data(home_trip)
+                spent_home = float(df_home_trip["amount"].sum()) if not df_home_trip.empty and "amount" in df_home_trip.columns else 0.0
+            except Exception:
+                spent_home = 0.0
+            try:
+                budget_home = float(get_global_budget(home_trip) or 0.0)
+            except Exception:
+                budget_home = 0.0
+
+            if budget_home > 0:
+                pct_home = max(0.0, min(100.0, spent_home / budget_home * 100.0))
+                progress_chars = max(0, min(12, round(pct_home / 100 * 12)))
+                progress = "█" * progress_chars + "░" * (12 - progress_chars)
+                card_label = (
+                    f"✈️  {home_name}                                      →\n\n"
+                    f"Активно\n\n"
+                    f"€ {spent_home:,.2f} / € {budget_home:,.2f}    {pct_home:.0f}%\n"
+                    f"{progress}"
+                )
+            else:
+                card_label = f"✈️  {home_name}                                      →\n\nНяма зададен общ бюджет"
+
+            # Маркерът позволява да стилизираме само този бутон като карта.
+            st.markdown("<div class='tm-trip-card-marker'></div>", unsafe_allow_html=True)
+            if st.button(card_label, key=f"home_open_trip_{i}", use_container_width=True):
                 st.session_state["current_trip"] = home_trip
                 st.rerun()
     else:
