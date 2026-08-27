@@ -3107,7 +3107,21 @@ else:
                 width: 100% !important;
                 display: block !important;
             }
-        </style>
+        
+/* ===== V11 SAFE CARD BUTTONS ===== */
+div[class*="st-key-trip_card_"] div[data-testid="stButton"] {
+    position: relative !important;
+    z-index: 3 !important;
+    margin-top: 6px !important;
+}
+div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
+    width: 100% !important;
+    min-height: 42px !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+}
+/* ===== END V11 SAFE CARD BUTTONS ===== */
+</style>
     """, unsafe_allow_html=True)
 
     st.markdown("<br><br>", unsafe_allow_html=True)
