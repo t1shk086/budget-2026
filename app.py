@@ -92,15 +92,6 @@ html, body, [data-testid="stAppViewContainer"] {
             background:linear-gradient(90deg,#4facfe 0%,#00f2fe 100%);
             box-shadow:inset 0 2px 2px rgba(255,255,255,.25);
         }
-        div[class*="st-key-trip_card_"] div[data-testid="stButton"] {
-            position:absolute; inset:0; z-index:10; margin:0 !important;
-        }
-        div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
-            width:100% !important; height:100% !important; min-height:108px !important;
-            padding:0 !important; margin:0 !important; border:0 !important;
-            background:transparent !important; box-shadow:none !important; color:transparent !important;
-            opacity:0 !important; cursor:pointer !important; text-align:left !important;
-        }
         @media(max-width:640px){
             div[class*="st-key-trip_card_"] .tm-trip-card-visual { min-height:102px; padding:12px 14px; }
             div[class*="st-key-trip_card_"] div[data-testid="stButton"] button { min-height:102px !important; }
