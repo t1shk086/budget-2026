@@ -764,7 +764,7 @@ if st.session_state["current_trip"] is None:
                 _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct:.0f}%"
             else:
                 _pct = 0.0
-                _budget_line = "Няма зададен бюджет"
+                _budget_line = "Без Бюджет"
 
             # =========================================================
             # ПРОГРЕС ЛЕНТА — БЕЗОПАСЕН KEY ЗА КИРИЛИЦА И ЛАТИНИЦА
