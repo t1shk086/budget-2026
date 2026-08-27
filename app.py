@@ -857,7 +857,7 @@ if st.session_state["current_trip"] is None:
                 )
 
                 _label = (
-                    f"✈️  {_trip_name}    →\n"
+                    f"🚙  {_trip_name}    →\n"
                     f"{_status_dot}  {_status_text}\n"
                     f"{_budget_line}"
                 )
