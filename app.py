@@ -485,20 +485,63 @@ def _add_plan_item_and_clear(t_id, widget_key):
 
 
 if st.session_state["current_trip"] is None:
-    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
-    
+    # =========================================================
+    # НАЧАЛЕН ЕКРАН — минималистичен, mobile-first
+    # Бързият разход е първото и най-лесно действие.
+    # =========================================================
+    st.markdown("""
+    <style>
+        .tm-home-brand {
+            text-align:center;
+            margin: 0 0 18px 0;
+        }
+        .tm-home-brand h1 {
+            font-family:"Segoe UI",Roboto,sans-serif;
+            font-weight:900;
+            font-size:46px;
+            line-height:1.05;
+            margin:0;
+            background:linear-gradient(135deg,#00f2fe,#4facfe,#ff4b4b);
+            -webkit-background-clip:text;
+            -webkit-text-fill-color:transparent;
+            text-shadow:2px 2px 10px rgba(0,242,254,.20);
+        }
+        .tm-home-brand p {
+            font-family:"Segoe UI",Roboto,sans-serif;
+            font-size:16px;
+            color:#ffd700;
+            font-weight:500;
+            margin:-7px 0 0 0;
+        }
+        .tm-home-section {
+            color:#8b929e;
+            font-size:11px;
+            font-weight:800;
+            letter-spacing:1px;
+            text-transform:uppercase;
+            margin:18px 0 7px 2px;
+        }
+        .tm-home-hint {
+            color:#707784;
+            font-size:11px;
+            text-align:center;
+            margin:-2px 0 12px 0;
+        }
+        @media (max-width:640px) {
+            .tm-home-brand h1 { font-size:38px; }
+            .tm-home-brand { margin-bottom:14px; }
+        }
+    </style>
+    <div class="tm-home-brand">
+        <h1>🐾 PixelApp</h1>
+        <p>Travel Manager</p>
+    </div>
+    <div class="tm-home-section">Бързо действие</div>
+    <div class="tm-home-hint">Добави разход за секунди — без да търсиш из менюта.</div>
+    """, unsafe_allow_html=True)
+
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
-    if existing:
-        opts = [t.replace("_", " ") for t in existing]
-        choice = st.selectbox("Изберете пътуване до:", opts)
-        if st.button("✔️ Зареди", use_container_width=True):
-            st.session_state["current_trip"] = choice.replace(" ", "_")
-            st.rerun()
-    else:
-        st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Все още нямате записани почивки. Създайте първото си приключение по-долу!</div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
     
     @st.dialog("Създаване на ново приключение")
     def create_trip_modal():
@@ -531,9 +574,6 @@ if st.session_state["current_trip"] is None:
                 pass
             st.session_state["current_trip"] = target_id
             st.rerun()
-
-    if st.button("Ново пътуване", use_container_width=True): 
-        create_trip_modal()
 
     @st.dialog("➕ Бърз разход", width="large")
     def quick_expense_modal():
@@ -712,12 +752,22 @@ if st.session_state["current_trip"] is None:
                 st.error("❌ Разходът не можа да бъде записан.")
 
 
-    quick_col1, quick_col2 = st.columns(2)
-    with quick_col1:
-        if st.button("➕ Бърз разход", use_container_width=True, type="primary", key="quick_expense_home_btn"):
-            quick_expense_modal()
-    with quick_col2:
-        if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
+    # Бърз разход е самостоятелният основен бутон — не го делим с други действия.
+    if st.button("➕  БЪРЗ РАЗХОД", use_container_width=True, type="primary", key="quick_expense_home_btn"):
+        quick_expense_modal()
+
+    st.markdown("<div class='tm-home-section'>Моите пътувания</div>", unsafe_allow_html=True)
+
+    if existing:
+        opts = [t.replace("_", " ") for t in existing]
+        choice = st.selectbox("Изберете пътуване до:", opts, key="home_trip_selector")
+        if st.button("✈️  Отвори пътуването", use_container_width=True, key="home_load_trip_btn"):
+            st.session_state["current_trip"] = choice.replace(" ", "_")
+            st.rerun()
+    else:
+        st.markdown("<div style='text-align:center; padding:18px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:12px; border:1px dashed rgba(255,255,255,0.10); margin-bottom:12px;'>Все още нямате записани пътувания.</div>", unsafe_allow_html=True)
+
+    if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
             @st.dialog("➖ Последни разходи", width="large")
             def recent_expenses_modal():
                 st.markdown("""
@@ -812,6 +862,10 @@ if st.session_state["current_trip"] is None:
                 if st.button("❌ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
                     st.rerun()
             recent_expenses_modal()
+
+    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+    if st.button("＋  Ново пътуване", use_container_width=True, key="home_new_trip_btn"):
+        create_trip_modal()
 
     # 1. ЕЛЕГАНТЕН CSS: ПРЕМЕСТВА ФАБРИЧНИЯ НАДПИС ОТДЯСНО НА ТОГЪЛА С 1 ИНТЕРВАЛ РАЗСТОЯНИЕ
     st.html("""
