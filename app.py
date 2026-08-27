@@ -765,20 +765,18 @@ if st.session_state["current_trip"] is None:
                 _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
 
-            # Почистване на ключа от специални символи и кирилица за CSS селектора
             _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
             _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
-            
-            # ФИКС: Ако има бюджет – слага син градиент, ако няма – показва тъмна празна писта, за да се вижда на всички бутони
-            if _budget > 0:
-                _bar_gradient = (
-                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
-                    f"rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
-                )
-            else:
-                _bar_gradient = "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%)"
+            # Ако има бюджет, лентата винаги се показва — дори при €0 разход.
+            # При 0% се вижда празната писта, а запълването започва от 0%.
+            _bar_gradient = (
+                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
+                f"rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
+            ) if _budget > 0 else "none"
 
-            # Връщаме оригиналния ти контейнер и оригинален ключ на бутона
+            # Всеки ред има точно ЕДИН Streamlit бутон.
+            # Няма абсолютно позиционирани/невидими overlay бутони —
+            # така натискането на една карта никога не може да отвори друга.
             with st.container(key=f"trip_card_{_safe_key}"):
                 st.markdown(
                     f"""
@@ -811,6 +809,34 @@ if st.session_state["current_trip"] is None:
                         box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
                         transform:translateY(-1px) !important;
                     }}
+                    {_card_selector} div[data-testid="stButton"] button p {{
+                        width:100% !important;
+                        margin:0 !important;
+                        text-align:left !important;
+                        justify-content:flex-start !important;
+                        white-space:pre-wrap !important;
+                    }}
+                    @media(max-width:640px) {{
+                        {_card_selector} div[data-testid="stButton"] button {{
+                            min-height:102px !important;
+                            padding:12px 14px 23px 14px !important;
+                        }}
+                    }}
+                    div[data-testid="stButton"] button > div {{
+                        width:100% !important;
+                        display:block !important;
+                    }}
+                    div[data-testid="stButton"] button > div > div {{
+                        width:100% !important;
+                        display:block !important;
+                    }}
+                    div[data-testid="stButton"] button p {{
+                        width:100% !important;
+                        display:block !important;
+                        text-align:left !important;
+                        margin:0 !important;
+                        padding:0 !important;
+                    }}
                     </style>
                     """,
                     unsafe_allow_html=True
@@ -828,8 +854,6 @@ if st.session_state["current_trip"] is None:
                 ):
                     st.session_state["current_trip"] = _trip_id
                     st.rerun()
-
-
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
 
