@@ -765,60 +765,6 @@ if st.session_state["current_trip"] is None:
                 _pct = 0.0
                 _budget_line = "Няма зададен бюджет"
 
-            # ------------------------------------------------------------
-            # ПРОГРЕСИ ПО КАТЕГОРИИ В "МОИТЕ ПЪТУВАНИЯ"
-            # Използваме същата логика като в отвореното пътуване:
-            # депозитите се отчитат към Нощувки/Хотел.
-            # Ако има бюджет по категория -> барът е спрямо бюджета.
-            # Ако няма бюджет за конкретната категория -> барът показва
-            # дела на категорията от всички реално похарчени средства.
-            # Така всички категории остават видими, включително 0%.
-            # ------------------------------------------------------------
-            _home_types = (
-                _df_home_trip["type"].astype(str).str.strip().str.lower()
-                if not _df_home_trip.empty and "type" in _df_home_trip.columns
-                else pd.Series([], dtype=str)
-            )
-            _home_category_spent = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
-            if not _df_home_trip.empty and "amount" in _df_home_trip.columns:
-                _home_expenses = _df_home_trip.loc[_home_types == "expense"].copy()
-                if "category" in _home_expenses.columns:
-                    for _cat, _amount in _home_expenses.groupby("category")["amount"].sum().items():
-                        if _cat in _home_category_spent:
-                            _home_category_spent[_cat] += float(_amount or 0.0)
-                if "Нощувки/Хотел" in _home_category_spent:
-                    _home_category_spent["Нощувки/Хотел"] += float(
-                        _df_home_trip.loc[_home_types == "deposit", "amount"].fillna(0).sum()
-                    )
-
-            _home_grand_total = float(sum(_home_category_spent.values()))
-            _home_bar_lines = []
-            for _cat in KATEGORII:
-                if _cat == "Депозит/Резервация":
-                    continue
-                _cat_spent = float(_home_category_spent.get(_cat, 0.0) or 0.0)
-                _cat_budget = float(_cat_budgets.get(_cat, 0.0) or 0.0) if _budget_mode == "category" else 0.0
-
-                if _cat_budget > 0:
-                    _cat_pct = max(0.0, min(100.0, (_cat_spent / _cat_budget) * 100.0))
-                    _cat_info = f"€{_cat_spent:,.0f} / €{_cat_budget:,.0f} · {_cat_pct:.0f}%"
-                    _cat_over = _cat_spent > _cat_budget
-                else:
-                    _cat_pct = max(0.0, min(100.0, (_cat_spent / _home_grand_total) * 100.0)) if _home_grand_total > 0 else 0.0
-                    _cat_info = f"€{_cat_spent:,.0f} · {_cat_pct:.0f}% дял"
-                    _cat_over = False
-
-                # Използваме само ASCII символи в самия Streamlit button.
-                # Unicode блоковете (█/░/▓) се визуализират различно според
-                # шрифта на браузъра и на телефона и изглеждат като счупени
-                #/шарени правоъгълници.
-                _filled = int(round(_cat_pct / 10.0))
-                _filled = max(0, min(10, _filled))
-                _cat_bar = "=" * _filled + "-" * (10 - _filled)
-                _home_bar_lines.append(f"{get_emoji(_cat)} {get_display_category(_cat)}  [{_cat_bar}]  {_cat_info}")
-
-            _home_category_block = "\n".join(_home_bar_lines)
-
             _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
             _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
             # Ако има бюджет, лентата винаги се показва — дори при €0 разход.
@@ -836,7 +782,7 @@ if st.session_state["current_trip"] is None:
                     f"""
                     <style>
                     {_card_selector} div[data-testid="stButton"] button {{
-                        min-height:250px !important;
+                        min-height:108px !important;
                         height:auto !important;
                         width:100% !important;
                         box-sizing:border-box !important;
@@ -853,7 +799,7 @@ if st.session_state["current_trip"] is None:
                         align-items:flex-start !important;
                         white-space:pre-wrap !important;
                         font-family:inherit !important;
-                        line-height:1.55 !important;
+                        line-height:1.45 !important;
                     }}
                     {_card_selector} div[data-testid="stButton"] button:hover {{
                         border-color:rgba(0,242,254,.22) !important;
@@ -872,7 +818,7 @@ if st.session_state["current_trip"] is None:
                     }}
                     @media(max-width:640px) {{
                         {_card_selector} div[data-testid="stButton"] button {{
-                            min-height:250px !important;
+                            min-height:102px !important;
                             padding:12px 14px 23px 14px !important;
                         }}
                     }}
@@ -899,8 +845,7 @@ if st.session_state["current_trip"] is None:
                 _label = (
                     f"✈️  {_trip_name}    →\n"
                     f"{_status_dot}  {_status_text}\n"
-                    f"💰  {_budget_line}\n"
-                    f"\n{_home_category_block}"
+                    f"{_budget_line}"
                 )
                 if st.button(
                     _label,
