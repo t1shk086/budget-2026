@@ -490,83 +490,65 @@ if st.session_state["current_trip"] is None:
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
     existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
 
-    # Основното действие е най-отгоре: бърз разход. Самото отваряне използва
-    # session_state, така че не променя URL и не създава нова страница/таб.
+    # ---------------------------------------------------------
+    # НАЧАЛЕН ЕКРАН — запазваме визуалния език на приложението.
+    # Бърз разход е първи, след него Ново пътуване, после пътуванията.
+    # ---------------------------------------------------------
+    st.markdown("""
+    <style>
+        /* Големите действия използват същия визуален език като приложението */
+        .tm-home-action-space { margin-top: 2px; margin-bottom: 8px; }
+        .tm-home-trips-title {
+            color:#8b929e;
+            font-size:12px;
+            font-weight:800;
+            letter-spacing:1px;
+            margin:18px 0 9px 2px;
+        }
+        .tm-trip-card-wrap { margin-bottom:8px; }
+
+        /* Самата Streamlit карта-бутон */
+        div[class*="st-key-trip_card_"] button {
+            min-height:92px !important;
+            padding:14px 16px !important;
+            border-radius:16px !important;
+            border:1px solid rgba(255,255,255,.08) !important;
+            background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
+            box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
+            color:#fff !important;
+            font-family:inherit !important;
+            text-align:left !important;
+            justify-content:flex-start !important;
+            align-items:flex-start !important;
+            white-space:pre-wrap !important;
+            transition:all .2s ease !important;
+        }
+        div[class*="st-key-trip_card_"] button:hover {
+            background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
+            border-color:rgba(0,242,254,.22) !important;
+            box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
+            transform:translateY(-1px) !important;
+        }
+        div[class*="st-key-trip_card_"] button p {
+            font-size:14px !important;
+            line-height:1.45 !important;
+            margin:0 !important;
+        }
+        @media(max-width:640px){
+            div[class*="st-key-trip_card_"] button {
+                min-height:88px !important;
+                padding:13px 14px !important;
+            }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Бърз разход — първи и най-лесен за достигане.
     if st.button("➕  БЪРЗ РАЗХОД", use_container_width=True, type="primary", key="quick_expense_top_btn"):
         st.session_state["open_quick_expense"] = True
         st.rerun()
 
-    if existing:
-        st.markdown("""
-        <style>
-            .tm-home-trips-title {
-                color:#ffffff; font-size:13px; font-weight:800; letter-spacing:.9px;
-                margin:18px 0 10px 2px;
-            }
-            div[class*="st-key-trip_card_"] button {
-                width:100%; min-height:112px; text-align:left !important;
-                justify-content:flex-start !important; align-items:flex-start !important;
-                white-space:pre-wrap !important;
-                padding:15px 17px !important; margin:0 0 9px 0 !important;
-                border-radius:16px !important;
-                border:1px solid rgba(255,255,255,.09) !important;
-                background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.018)) !important;
-                box-shadow:0 6px 18px rgba(0,0,0,.18) !important;
-                color:#fff !important;
-                font-family:inherit !important;
-                transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease !important;
-            }
-            div[class*="st-key-trip_card_"] button:hover {
-                transform:translateY(-1px);
-                border-color:rgba(0,242,254,.24) !important;
-                box-shadow:0 9px 24px rgba(0,0,0,.28),0 0 18px rgba(0,242,254,.06) !important;
-            }
-            div[class*="st-key-trip_card_"] button p {
-                line-height:1.55 !important; font-size:14px !important;
-            }
-            @media(max-width:640px){
-                div[class*="st-key-trip_card_"] button { min-height:104px; padding:14px !important; }
-            }
-        </style>
-        <div class='tm-home-trips-title'>МОИТЕ ПЪТУВАНИЯ</div>
-        """, unsafe_allow_html=True)
-
-        for _trip in existing:
-            _trip_id = str(_trip)
-            _trip_name = _trip_id.replace("_", " ")
-            _settings = get_trip_settings(_trip_id)
-            _finished = float(_settings.get("end_km", 0.0) or 0.0) > 0.0
-            _status = "⚪ Приключено" if _finished else "🟢 Активно"
-
-            _df_home_trip = get_trip_data(_trip_id)
-            try:
-                _spent = float(_df_home_trip["amount"].fillna(0).sum()) if not _df_home_trip.empty else 0.0
-            except Exception:
-                _spent = 0.0
-
-            _global = float(get_global_budget(_trip_id) or 0.0)
-            _cat_budgets = get_category_budgets(_trip_id)
-            _category_total = sum(float(v or 0.0) for v in _cat_budgets.values())
-            _budget = _global if _global > 0 else _category_total
-
-            if _budget > 0:
-                _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
-                _budget_text = f"€{_spent:,.2f} / €{_budget:,.2f}   •   {_pct:.0f}%"
-                _progress_bar = "█" * max(1, min(16, int(round(_pct / 6.25)))) + "░" * max(0, 16 - int(round(_pct / 6.25)))
-                _label = f"✈️  **{_trip_name}**  →\n{_status}\n€{_spent:,.2f} / €{_budget:,.2f}   •   {_pct:.0f}%\n{_progress_bar}"
-            else:
-                _label = f"✈️  **{_trip_name}**  →\n{_status}\nНяма зададен бюджет"
-
-            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
-            with st.container(key=f"trip_card_{_safe_key}"):
-                if st.button(_label, use_container_width=True, key=f"open_trip_card_{_safe_key}"):
-                    st.session_state["current_trip"] = _trip_id
-                    st.rerun()
-    else:
-        st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:15px;'>Все още нямате записани почивки. Създайте първото си приключение по-долу!</div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='text-align:center; margin: 10px 0; color:#555;'>или</div>", unsafe_allow_html=True)
-    
+    # Диалогът за ново пътуване е дефиниран преди бутона, за да няма нова страница.
     @st.dialog("Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:",placeholder="Въведете име...").strip()
@@ -581,10 +563,10 @@ if st.session_state["current_trip"] is None:
             if isinstance(d_range, (list, tuple)):
                 s_d_str = d_range[0].strftime("%d.%m.%Y") if len(d_range) > 0 else ""
                 e_d_str = d_range[-1].strftime("%d.%m.%Y") if len(d_range) > 1 else s_d_str
-            elif hasattr(d_range, "strftime"): 
+            elif hasattr(d_range, "strftime"):
                 s_d_str = d_range.strftime("%d.%m.%Y")
                 e_d_str = s_d_str
-            else: 
+            else:
                 s_d_str, e_d_str = "", ""
             sk = float(new_skm) if new_skm is not None else 0.0
             target_id = txt.replace(" ", "_")
@@ -592,15 +574,57 @@ if st.session_state["current_trip"] is None:
             try:
                 geolocator = Nominatim(user_agent="pixelapp_travel_manager_2026")
                 location = geolocator.geocode(f"{txt}, Europe", language="bg,en")
-                if location: 
+                if location:
                     add_map_point(target_id, location.latitude, location.longitude, f"🏁 Център: {txt}", "red")
-            except: 
+            except:
                 pass
             st.session_state["current_trip"] = target_id
             st.rerun()
 
-    if st.button("Ново пътуване", use_container_width=True): 
+    # Ново пътуване — над списъка, но след основното действие.
+    if st.button("✈️  НОВО ПЪТУВАНЕ", use_container_width=True, key="new_trip_home_btn"):
         create_trip_modal()
+
+    if existing:
+        st.markdown("<div class='tm-home-trips-title'>МОИТЕ ПЪТУВАНИЯ</div>", unsafe_allow_html=True)
+
+        for _trip in existing:
+            _trip_id = str(_trip)
+            _trip_name = _trip_id.replace("_", " ")
+            _settings = get_trip_settings(_trip_id)
+            _finished = float(_settings.get("end_km", 0.0) or 0.0) > 0.0
+
+            # Точно една точка за статус — зелена при активно, неутрална при приключено.
+            _status_dot = "🟢" if not _finished else "⚪"
+            _status_text = "Активно" if not _finished else "Приключено"
+
+            _df_home_trip = get_trip_data(_trip_id)
+            try:
+                _spent = float(_df_home_trip["amount"].fillna(0).sum()) if not _df_home_trip.empty else 0.0
+            except Exception:
+                _spent = 0.0
+
+            _global = float(get_global_budget(_trip_id) or 0.0)
+            _cat_budgets = get_category_budgets(_trip_id)
+            _category_total = sum(float(v or 0.0) for v in _cat_budgets.values())
+            _budget = _global if _global > 0 else _category_total
+
+            if _budget > 0:
+                _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
+                _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct:.0f}%"
+            else:
+                _budget_line = "Няма зададен бюджет"
+
+            # Няма прогрес бар — картата използва същия минималистичен език с точки/статус.
+            _label = f"✈️  {_trip_name}    →\n{_status_dot}  {_status_text}\n{_budget_line}"
+
+            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
+            with st.container(key=f"trip_card_{_safe_key}"):
+                if st.button(_label, use_container_width=True, key=f"open_trip_card_{_safe_key}"):
+                    st.session_state["current_trip"] = _trip_id
+                    st.rerun()
+    else:
+        st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
 
     @st.dialog("➕ Бърз разход", width="large")
     def quick_expense_modal():
