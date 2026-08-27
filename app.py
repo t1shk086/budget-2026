@@ -621,7 +621,7 @@ if st.session_state["current_trip"] is None:
     """, unsafe_allow_html=True)
 
     # Бърз разход — първи и най-лесен за достигане.
-    if st.button("➕  БЪРЗ РАЗХОД", use_container_width=True, type="primary", key="quick_expense_top_btn"):
+    if st.button("➕Бърз Разход", use_container_width=True, type="primary", key="quick_expense_top_btn"):
         st.session_state["open_quick_expense"] = True
         st.rerun()
 
@@ -659,7 +659,7 @@ if st.session_state["current_trip"] is None:
             st.rerun()
 
     # Ново пътуване — над списъка, но след основното действие.
-    if st.button("✈️  НОВО ПЪТУВАНЕ", use_container_width=True, key="new_trip_home_btn"):
+    if st.button("Ново Пътуване", use_container_width=True, key="new_trip_home_btn"):
         create_trip_modal()
 
     if existing:
