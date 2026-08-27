@@ -506,6 +506,11 @@ if st.session_state["current_trip"] is None:
             margin:18px 0 9px 2px;
         }
         .tm-trip-card-wrap { margin-bottom:8px; }
+        .tm-trip-budget-mini { margin-top:7px; }
+        .tm-trip-budget-track { position:relative; height:12px; border-radius:20px; background:rgba(0,0,0,.42); padding:2px; overflow:hidden; box-shadow:inset 2px 2px 5px rgba(0,0,0,.45); }
+        .tm-trip-budget-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,#4facfe 0%,#00f2fe 100%); box-shadow:inset 0 2px 2px rgba(255,255,255,.25); }
+        .tm-trip-budget-percent { position:absolute; right:6px; top:0; line-height:12px; font-size:8px; font-weight:900; color:rgba(255,255,255,.9); text-shadow:1px 1px 2px rgba(0,0,0,.8); }
+
 
         /* Самата Streamlit карта-бутон */
         div[class*="st-key-trip_card_"] button {
@@ -595,7 +600,7 @@ if st.session_state["current_trip"] is None:
             _finished = float(_settings.get("end_km", 0.0) or 0.0) > 0.0
 
             # Точно една точка за статус — зелена при активно, неутрална при приключено.
-            _status_dot = "🟢" if not _finished else "⚪"
+            _status_dot = "🟢" if not _finished else "🔴"
             _status_text = "Активно" if not _finished else "Приключено"
 
             _df_home_trip = get_trip_data(_trip_id)
@@ -611,11 +616,15 @@ if st.session_state["current_trip"] is None:
 
             if _budget > 0:
                 _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
-                _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct:.0f}%"
+                _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}"
             else:
                 _budget_line = "Няма зададен бюджет"
 
-            # Няма прогрес бар — картата използва същия минималистичен език с точки/статус.
+            # Компактен прогрес бар в стила на съществуващия бюджетен индикатор.
+            if _budget > 0:
+                _filled = max(0, min(12, round(_pct / 100 * 12)))
+                _bar = "█" * _filled + "░" * (12 - _filled)
+                _budget_line = f"{_budget_line}  ·  {_pct:.0f}%\n{_bar}"
             _label = f"✈️  {_trip_name}    →\n{_status_dot}  {_status_text}\n{_budget_line}"
 
             _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
