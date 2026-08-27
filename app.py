@@ -795,6 +795,10 @@ if st.session_state["current_trip"] is None:
             # Няма абсолютно позиционирани/невидими overlay бутони —
             # така натискането на една карта никога не може да отвори друга.
             with st.container(key=f"trip_card_{_safe_key}"):
+
+                # =====================================================
+                # СТИЛ НА КАРТАТА
+                # =====================================================
                 st.markdown(
                     f"""
                     <style>
@@ -803,12 +807,15 @@ if st.session_state["current_trip"] is None:
                         height:auto !important;
                         width:100% !important;
                         box-sizing:border-box !important;
-                        padding:14px 16px 24px 16px !important;
+                        padding:14px 16px 14px 16px !important;
                         border-radius:16px !important;
                         border:1px solid rgba(255,255,255,.08) !important;
                         background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
+                            linear-gradient(
+                                135deg,
+                                rgba(255,255,255,.035),
+                                rgba(255,255,255,.012)
+                            ) !important;
                         box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
                         color:#fff !important;
                         text-align:left !important;
@@ -818,14 +825,21 @@ if st.session_state["current_trip"] is None:
                         font-family:inherit !important;
                         line-height:1.45 !important;
                     }}
+
                     {_card_selector} div[data-testid="stButton"] button:hover {{
                         border-color:rgba(0,242,254,.22) !important;
                         background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
-                        box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
+                            linear-gradient(
+                                135deg,
+                                rgba(255,255,255,.055),
+                                rgba(255,255,255,.018)
+                            ) !important;
+                        box-shadow:
+                            4px 6px 16px rgba(0,0,0,.30),
+                            0 0 14px rgba(0,242,254,.05) !important;
                         transform:translateY(-1px) !important;
                     }}
+
                     {_card_selector} div[data-testid="stButton"] button p {{
                         width:100% !important;
                         margin:0 !important;
@@ -833,20 +847,24 @@ if st.session_state["current_trip"] is None:
                         justify-content:flex-start !important;
                         white-space:pre-wrap !important;
                     }}
+
                     @media(max-width:640px) {{
                         {_card_selector} div[data-testid="stButton"] button {{
                             min-height:102px !important;
-                            padding:12px 14px 23px 14px !important;
+                            padding:12px 14px 14px 14px !important;
                         }}
                     }}
+
                     div[data-testid="stButton"] button > div {{
                         width:100% !important;
                         display:block !important;
                     }}
+
                     div[data-testid="stButton"] button > div > div {{
                         width:100% !important;
                         display:block !important;
                     }}
+
                     div[data-testid="stButton"] button p {{
                         width:100% !important;
                         display:block !important;
@@ -863,6 +881,55 @@ if st.session_state["current_trip"] is None:
                     f"✈️  {_trip_name}    →\n"
                     f"{_status_dot}  {_status_text}\n"
                     f"{_budget_line}"
+                )
+
+                if st.button(
+                    _label,
+                    use_container_width=True,
+                    key=f"open_trip_card_{_safe_key}"
+                ):
+                    st.session_state["current_trip"] = _trip_id
+                    st.rerun()
+
+                # =====================================================
+                # БЮДЖЕТЕН ПРОГРЕС БАР
+                # =====================================================
+
+                if _budget > 0:
+                    _progress_pct = max(
+                        0.0,
+                        min(100.0, (_spent / _budget) * 100.0)
+                    )
+                else:
+                    _progress_pct = 0.0
+
+                st.markdown(
+                    f"""
+                    <div style="
+                        width:100%;
+                        height:6px;
+                        margin-top:-10px;
+                        position:relative;
+                        z-index:5;
+                        border-radius:999px;
+                        overflow:hidden;
+                        background:rgba(255,255,255,.12);
+                        pointer-events:none;
+                    ">
+                        <div style="
+                            width:{_progress_pct:.1f}%;
+                            height:100%;
+                            border-radius:999px;
+                            background:linear-gradient(
+                                90deg,
+                                #4facfe,
+                                #00f2fe
+                            );
+                            transition:width .3s ease;
+                        "></div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
                 )
                 if st.button(
                     _label,
