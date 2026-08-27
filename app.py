@@ -759,75 +759,99 @@ if st.session_state["current_trip"] is None:
                 _spent = 0.0
 
             if _budget > 0:
-                _pct_real = max(0.0, (_spent / _budget) * 100.0)
-                _pct = min(100.0, _pct_real)
-                _budget_line = (
-                    f"€{_spent:,.2f} / €{_budget:,.2f}  ·  "
-                    f"{_pct_real:.0f}%"
-                )
+                _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
+                _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct:.0f}%"
             else:
                 _pct = 0.0
-                _pct_real = 0.0
                 _budget_line = "Няма зададен бюджет"
 
-            _safe_key = "".join(
-                ch if ch.isalnum() else "_" for ch in _trip_id
-            )[:40]
-
+            _safe_key = "".join(ch if ch.isalnum() else "_" for ch in _trip_id)[:40]
             _card_selector = f'div[class*="st-key-trip_card_{_safe_key}"]'
+            _bar_gradient = (
+                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, "
+                f"rgba(0,0,0,0) {_pct:.1f}%, rgba(0,0,0,0) 100%)"
+            ) if _budget > 0 and _pct > 0 else "none"
 
-            # =====================================================
-            # ПРОГРЕС НА БЮДЖЕТА
-            # =====================================================
-            if _budget > 0:
-                _progress_pct = max(
-                    0.0,
-                    min(100.0, (_spent / _budget) * 100.0)
-                )
-            else:
-                _progress_pct = 0.0
-
+            # Всеки ред има точно ЕДИН Streamlit бутон.
+            # Няма абсолютно позиционирани/невидими overlay бутони —
+            # така натискането на една карта никога не може да отвори друга.
             with st.container(key=f"trip_card_{_safe_key}"):
-
                 st.markdown(
                     f"""
-                    <div class="tm-trip-card">
-
-                        <div class="tm-trip-card-content">
-                            <div class="tm-trip-name">
-                                ✈️ {_trip_name} →
-                            </div>
-
-                            <div class="tm-trip-status">
-                                {_status_dot} {_status_text}
-                            </div>
-
-                            <div class="tm-trip-budget">
-                                {_budget_line}
-                            </div>
-                        </div>
-
-                        <div class="tm-trip-progress">
-                            <div class="tm-trip-progress-fill"
-                                 style="width:{_progress_pct:.1f}%;">
-                            </div>
-                        </div>
-
-                    </div>
+                    <style>
+                    {_card_selector} div[data-testid="stButton"] button {{
+                        min-height:108px !important;
+                        height:auto !important;
+                        width:100% !important;
+                        box-sizing:border-box !important;
+                        padding:14px 16px 24px 16px !important;
+                        border-radius:16px !important;
+                        border:1px solid rgba(255,255,255,.08) !important;
+                        background:
+                            {_bar_gradient} bottom / 100% 12px no-repeat,
+                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
+                        box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
+                        color:#fff !important;
+                        text-align:left !important;
+                        justify-content:flex-start !important;
+                        align-items:flex-start !important;
+                        white-space:pre-wrap !important;
+                        font-family:inherit !important;
+                        line-height:1.45 !important;
+                    }}
+                    {_card_selector} div[data-testid="stButton"] button:hover {{
+                        border-color:rgba(0,242,254,.22) !important;
+                        background:
+                            {_bar_gradient} bottom / 100% 12px no-repeat,
+                            linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
+                        box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
+                        transform:translateY(-1px) !important;
+                    }}
+                    {_card_selector} div[data-testid="stButton"] button p {{
+                        width:100% !important;
+                        margin:0 !important;
+                        text-align:left !important;
+                        justify-content:flex-start !important;
+                        white-space:pre-wrap !important;
+                    }}
+                    @media(max-width:640px) {{
+                        {_card_selector} div[data-testid="stButton"] button {{
+                            min-height:102px !important;
+                            padding:12px 14px 23px 14px !important;
+                        }}
+                    }}
+                    div[data-testid="stButton"] button > div {{
+                        width:100% !important;
+                        display:block !important;
+                    }}
+                    div[data-testid="stButton"] button > div > div {{
+                        width:100% !important;
+                        display:block !important;
+                    }}
+                    div[data-testid="stButton"] button p {{
+                        width:100% !important;
+                        display:block !important;
+                        text-align:left !important;
+                        margin:0 !important;
+                        padding:0 !important;
+                    }}
+                    </style>
                     """,
                     unsafe_allow_html=True
                 )
 
-                # Единственият реален Streamlit бутон
+                _label = (
+                    f"✈️  {_trip_name}    →\n"
+                    f"{_status_dot}  {_status_text}\n"
+                    f"{_budget_line}"
+                )
                 if st.button(
-                    "",
+                    _label,
                     use_container_width=True,
                     key=f"open_trip_card_{_safe_key}"
                 ):
                     st.session_state["current_trip"] = _trip_id
                     st.rerun()
-
-
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
 
