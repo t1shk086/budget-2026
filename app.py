@@ -1318,36 +1318,36 @@ if st.session_state["current_trip"] is None:
             if os.path.exists(CATEGORY_BUDGETS_FILE) else []
         )
 
-        # Бърз Разход показва само активните пътувания.
-        existing_quick = []
-        
-        for _quick_tid in _quick_ids_settings:
-            _quick_tid = str(_quick_tid).strip()
-        
-            if not _quick_tid:
-                continue
-        
-            _quick_settings = get_trip_settings(_quick_tid)
-        
-            _quick_car = str(_quick_settings.get("car_trip", "Не")).strip()
-            _quick_end_km = float(_quick_settings.get("end_km", 0.0) or 0.0)
-        
-            # При пътуване без автомобил гледаме отделния флаг за приключване.
-            _quick_finished_manual = (
-                str(_quick_settings.get("trip_finished", "Не")).strip().lower()
-                in ["да", "yes", "true", "1"]
-            )
-        
-            # С автомобил → приключено при въведени крайни километри.
-            # Без автомобил → приключено при trip_finished = Да.
-            _quick_finished = (
-                _quick_end_km > 0.0
-                if _quick_car == "Да"
-                else _quick_finished_manual
-            )
-        
-            if not _quick_finished:
-                existing_quick.append(_quick_tid)
+# Бърз Разход показва само активните пътувания.
+existing_quick = []
+
+for _quick_tid in _quick_ids_settings:
+    _quick_tid = str(_quick_tid).strip()
+
+    if not _quick_tid:
+        continue
+
+    _quick_settings = get_trip_settings(_quick_tid)
+
+    _quick_car = str(_quick_settings.get("car_trip", "Не")).strip()
+    _quick_end_km = float(_quick_settings.get("end_km", 0.0) or 0.0)
+
+    # При пътуване без автомобил гледаме отделния флаг за приключване.
+    _quick_finished_manual = (
+        str(_quick_settings.get("trip_finished", "Не")).strip().lower()
+        in ["да", "yes", "true", "1"]
+    )
+
+    # С автомобил → приключено при въведени крайни километри.
+    # Без автомобил → приключено при trip_finished = Да.
+    _quick_finished = (
+        _quick_end_km > 0.0
+        if _quick_car == "Да"
+        else _quick_finished_manual
+    )
+
+    if not _quick_finished:
+        existing_quick.append(_quick_tid)
 
 existing_quick = list(dict.fromkeys(existing_quick))
 
