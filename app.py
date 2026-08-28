@@ -1182,43 +1182,41 @@ if st.session_state["current_trip"] is None:
             recent_expenses_modal()
 
     # 1. ЕЛЕГАНТЕН CSS: ПРЕМЕСТВА ФАБРИЧНИЯ НАДПИС ОТДЯСНО НА ТОГЪЛА С 1 ИНТЕРВАЛ РАЗСТОЯНИЕ
-    st.html("""
-    <style>
-        /* Пренастройва контейнера на toggle бутона да подрежда елементите в линия */
-        div[data-testid="stCheckbox"] > label {
-            display: inline-flex !important;
-            flex-direction: row-reverse !important; /* Мести оригиналния текст отдясно */
-            align-items: center !important;
-            gap: 10px !important; /* Разстояние точно колкото 1 интервал */
-            width: auto !important;
-            max-width: none !important;
-            flex-shrink: 0 !important;
-        }
-        /* Подсигурява, че текстът няма да се пречупи на два реда на телефон */
-        div[data-testid="stCheckbox"] p {
-            font-size: 13px !important;
-            font-weight: 800 !important;
-            letter-spacing: 0 !important;
-            color: #aeb5c0 !important;
-            white-space: nowrap !important;
-            margin: 0 !important;
-            font-size: 11px !important;
-            font-weight: 800 !important;
-            letter-spacing: 0 !important;
-            color: #9aa1ad !important;
-            font-family: inherit !important;
-        }
-        /* Streamlit понякога поставя текста в допълнителен span */
-        div[data-testid="stCheckbox"] label,
-        div[data-testid="stCheckbox"] label span {
-            font-size: 14px !important;
-            font-weight: 800 !important;
-            letter-spacing: 0 !important;
-            color: #9aa1ad !important;
-            font-family: inherit !important;
-        }
-    </style>
-    """)
+st.html("""
+<style>
+    /* Пренастройва контейнера на toggle бутона да подрежда елементите в линия */
+    div[data-testid="stCheckbox"] > label {
+        display: inline-flex !important;
+        flex-direction: row-reverse !important;
+        align-items: center !important;
+        gap: 10px !important;
+        width: auto !important;
+        max-width: none !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Текстът на Сравнителен панел */
+    div[data-testid="stCheckbox"] p {
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0 !important;
+        color: #aeb5c0 !important;
+        white-space: nowrap !important;
+        margin: 0 !important;
+        font-family: inherit !important;
+    }
+
+    /* Streamlit понякога поставя текста в допълнителен span */
+    div[data-testid="stCheckbox"] label,
+    div[data-testid="stCheckbox"] label span {
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0 !important;
+        color: #aeb5c0 !important;
+        font-family: inherit !important;
+    }
+</style>
+""")
 
     # 2. ОФИЦИАЛЕН TOGGLE БУТОН С ДИРЕКТЕН НАДПИС (БЕЗ ДОПЪЛНИТЕЛНИ КОЛОНИ И HTML)
     show_comparison = st.toggle(
