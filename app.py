@@ -1303,97 +1303,188 @@ if st.session_state["current_trip"] is None:
 
     @st.dialog("➕ Бърз разход", width="large")
     def quick_expense_modal():
-        
-        # пътуването съществува дори когато все още няма разход.
-        _quick_ids_data = (
-            list(pd.read_csv(DATA_FILE)["trip_id"].dropna().unique())
-            if os.path.exists(DATA_FILE) else []
-        )
-        _quick_ids_settings = (
-            list(pd.read_csv(SETTINGS_FILE)["trip_id"].dropna().unique())
-            if os.path.exists(SETTINGS_FILE) else []
-        )
-        _quick_ids_budget = (
-            list(pd.read_csv(CATEGORY_BUDGETS_FILE)["trip_id"].dropna().unique())
-            if os.path.exists(CATEGORY_BUDGETS_FILE) else []
-        )
 
-# Бърз Разход показва само активните пътувания.
-existing_quick = []
+        # Бърз Разход показва само АКТИВНИТЕ пътувания.
+        existing_quick = []
 
-for _quick_tid in _quick_ids_settings:
-    _quick_tid = str(_quick_tid).strip()
+        if os.path.exists(SETTINGS_FILE):
+            try:
+                _quick_settings_df = pd.read_csv(
+                    SETTINGS_FILE,
+                    encoding="utf-8"
+                )
 
-    if not _quick_tid:
-        continue
+                if "trip_id" in _quick_settings_df.columns:
 
-    _quick_settings = get_trip_settings(_quick_tid)
+                    for _, _quick_row in _quick_settings_df.iterrows():
 
-    _quick_car = str(_quick_settings.get("car_trip", "Не")).strip()
-    _quick_end_km = float(_quick_settings.get("end_km", 0.0) or 0.0)
+                        _quick_tid = str(
+                            _quick_row.get("trip_id", "")
+                        ).strip()
 
-    # При пътуване без автомобил гледаме отделния флаг за приключване.
-    _quick_finished_manual = (
-        str(_quick_settings.get("trip_finished", "Не")).strip().lower()
-        in ["да", "yes", "true", "1"]
-    )
+                        if not _quick_tid:
+                            continue
 
-    # С автомобил → приключено при въведени крайни километри.
-    # Без автомобил → приключено при trip_finished = Да.
-    _quick_finished = (
-        _quick_end_km > 0.0
-        if _quick_car == "Да"
-        else _quick_finished_manual
-    )
+                        _quick_car = str(
+                            _quick_row.get("car_trip", "Не")
+                        ).strip()
 
-    if not _quick_finished:
-        existing_quick.append(_quick_tid)
+                        _quick_end_km = float(
+                            _quick_row.get("end_km", 0.0) or 0.0
+                        )
 
-existing_quick = list(dict.fromkeys(existing_quick))
+                        # За пътуване без автомобил гледаме
+                        # новия флаг за приключване.
+                        _quick_finished_manual = (
+                            str(
+                                _quick_row.get(
+                                    "trip_finished",
+                                    "Не"
+                                )
+                            ).strip().lower()
+                            in ["да", "yes", "true", "1"]
+                        )
 
-if not existing_quick:
-        st.info("Първо създайте поне едно пътуване.")
-        return
+                        # С автомобил:
+                        # приключено = има финални километри.
+                        #
+                        # Без автомобил:
+                        # приключено = trip_finished = Да.
+                        _quick_finished = (
+                            _quick_end_km > 0.0
+                            if _quick_car == "Да"
+                            else _quick_finished_manual
+                        )
 
-        trip_display = [t.replace("_", " ") for t in existing_quick]
+                        # Само активните попадат в списъка.
+                        if not _quick_finished:
+                            existing_quick.append(_quick_tid)
+
+                    existing_quick = list(
+                        dict.fromkeys(existing_quick)
+                    )
+
+            except Exception:
+                existing_quick = []
+
+        if not existing_quick:
+            st.info(
+                "Първо създайте поне едно активно пътуване."
+            )
+            return
+
+        trip_display = [
+            get_trip_display_name(t)
+            if "get_trip_display_name" in globals()
+            else t.replace("_", " ")
+            for t in existing_quick
+        ]
+
         selected_trip_display = st.selectbox(
             "Пътуване",
             trip_display,
             key="quick_expense_trip"
         )
-        selected_trip = existing_quick[trip_display.index(selected_trip_display)]
-        quick_settings = get_trip_settings(selected_trip)
-        quick_car_trip = str(quick_settings.get("car_trip", "Не")) == "Да"
-        quick_start_km = float(quick_settings.get("start_km", 0.0) or 0.0)
-        quick_end_km = float(quick_settings.get("end_km", 0.0) or 0.0)
-        quick_manual_fuel = float(quick_settings.get("manual_fuel", 0.0) or 0.0)
-        quick_trip_finished = quick_end_km > 0.0
+
+        selected_trip = existing_quick[
+            trip_display.index(selected_trip_display)
+        ]
+
+        quick_settings = get_trip_settings(
+            selected_trip
+        )
+
+        quick_car_trip = (
+            str(
+                quick_settings.get(
+                    "car_trip",
+                    "Не"
+                )
+            ).strip() == "Да"
+        )
+
+        quick_start_km = float(
+            quick_settings.get(
+                "start_km",
+                0.0
+            ) or 0.0
+        )
+
+        quick_end_km = float(
+            quick_settings.get(
+                "end_km",
+                0.0
+            ) or 0.0
+        )
+
+        quick_manual_fuel = float(
+            quick_settings.get(
+                "manual_fuel",
+                0.0
+            ) or 0.0
+        )
+
+        quick_trip_finished = (
+            quick_end_km > 0.0
+            if quick_car_trip
+            else str(
+                quick_settings.get(
+                    "trip_finished",
+                    "Не"
+                )
+            ).strip().lower()
+            in ["да", "yes", "true", "1"]
+        )
 
         c1, c2 = st.columns(2)
+
         with c1:
             amount = st.number_input(
-                "Сума (EUR)", min_value=0.01, value=None, step=1.00,
-                placeholder="Въведете сума...", format="%.2f", key="quick_expense_amount"
+                "Сума (EUR)",
+                min_value=0.01,
+                value=None,
+                step=1.00,
+                placeholder="Въведете сума...",
+                format="%.2f",
+                key="quick_expense_amount"
             )
+
         with c2:
             description = st.text_input(
-                "Описание", placeholder="Например: обяд, паркинг...",
+                "Описание",
+                placeholder="Например: обяд, паркинг...",
                 key="quick_expense_description"
             )
 
-        category_options = [cat for cat in KATEGORII if cat != "Депозит/Резервация"]
+        category_options = [
+            cat
+            for cat in KATEGORII
+            if cat != "Депозит/Резервация"
+        ]
+
         selected_category = st.selectbox(
             "Категория",
             category_options,
-            format_func=lambda cat: f"{get_emoji(cat)} {get_display_category(cat)}",
+            format_func=lambda cat:
+                f"{get_emoji(cat)} {get_display_category(cat)}",
             key="quick_expense_category"
         )
 
-        # Същото разпознаване на гориво като в основния екран.
-        fuel_keywords = ["газ", "гориво", "зареждане", "бензин", "дизел"]
+        # Същото разпознаване на гориво.
+        fuel_keywords = [
+            "газ",
+            "гориво",
+            "зареждане",
+            "бензин",
+            "дизел"
+        ]
+
         is_quick_fuel = (
             selected_category == "Транспорт"
-            and any(k in description.strip().lower() for k in fuel_keywords)
+            and any(
+                k in description.strip().lower()
+                for k in fuel_keywords
+            )
         )
 
         liters = 0.0
@@ -1402,133 +1493,396 @@ if not existing_quick:
         last_km = quick_start_km
 
         if is_quick_fuel:
+
             st.markdown("---")
+
             st.markdown(
-                "<div style='color:#00f2fe;font-weight:700;font-size:14px;margin-bottom:10px;font-family:inherit;'>⛽ Данни за зареждането</div>",
+                "<div style='color:#00f2fe;"
+                "font-weight:700;font-size:14px;"
+                "margin-bottom:10px;"
+                "font-family:inherit;'>"
+                "⛽ Данни за зареждането"
+                "</div>",
                 unsafe_allow_html=True
             )
 
             if not quick_car_trip:
-                st.warning("🚗 За проследяване на горивото това пътуване трябва да е със собствен автомобил.")
-            elif quick_trip_finished and not trip_edit_unlocked(selected_trip):
-                st.error("🔒 Пътуването е приключено. Зареждането на гориво е заключено.")
+
+                st.warning(
+                    "🚗 За проследяване на горивото "
+                    "това пътуване трябва да е със "
+                    "собствен автомобил."
+                )
+
+            elif (
+                quick_trip_finished
+                and not trip_edit_unlocked(selected_trip)
+            ):
+
+                st.error(
+                    "🔒 Пътуването е приключено. "
+                    "Зареждането на гориво е заключено."
+                )
+
             else:
+
                 fuel_c1, fuel_c2 = st.columns(2)
+
                 with fuel_c1:
                     liters_input = st.number_input(
-                        "Литри", value=None, min_value=0.0, step=0.1,
-                        placeholder="Напишете литри...", key="quick_fuel_liters"
+                        "Литри",
+                        value=None,
+                        min_value=0.0,
+                        step=0.1,
+                        placeholder="Напишете литри...",
+                        key="quick_fuel_liters"
                     )
+
                 with fuel_c2:
                     fuel_type_choice = st.radio(
                         "Тип на зареждането",
-                        ["Да, до горе (Пълен резервоар)", "Не, частично (за конкретна сума)"],
-                        index=0, key="quick_fuel_type"
+                        [
+                            "Да, до горе (Пълен резервоар)",
+                            "Не, частично (за конкретна сума)"
+                        ],
+                        index=0,
+                        key="quick_fuel_type"
                     )
+
                 km_input_value = st.number_input(
-                    "Текущи километри на таблото (км)", value=None,
-                    min_value=0.0, step=1.0, placeholder="Въведете км...",
+                    "Текущи километри на таблото (км)",
+                    value=None,
+                    min_value=0.0,
+                    step=1.0,
+                    placeholder="Въведете км...",
                     key="quick_fuel_km"
                 )
 
-                df_qf = get_trip_data(selected_trip)
-                if not df_qf.empty and "current_km" in df_qf.columns:
-                    df_qf = df_qf[(df_qf["category"] == "Транспорт") & (df_qf["current_km"] > 0)].sort_index()
-                    last_km = float(df_qf["current_km"].max()) if not df_qf.empty else quick_start_km
+                df_qf = get_trip_data(
+                    selected_trip
+                )
+
+                if (
+                    not df_qf.empty
+                    and "current_km" in df_qf.columns
+                ):
+
+                    df_qf = df_qf[
+                        (df_qf["category"] == "Транспорт")
+                        & (df_qf["current_km"] > 0)
+                    ].sort_index()
+
+                    last_km = (
+                        float(df_qf["current_km"].max())
+                        if not df_qf.empty
+                        else quick_start_km
+                    )
+
                 else:
-                    df_qf = pd.DataFrame(columns=["current_km", "liters", "description"])
 
-                liters = float(liters_input) if liters_input is not None else 0.0
-                km_input = float(km_input_value) if km_input_value is not None else 0.0
-                fuel_type = "ПЪЛНО" if "до горе" in fuel_type_choice.lower() else "ЧАСТИЧНО"
+                    df_qf = pd.DataFrame(
+                        columns=[
+                            "current_km",
+                            "liters",
+                            "description"
+                        ]
+                    )
 
-                # Същото изчисление за етапен реален разход като в основния екран.
-                if liters > 0 and km_input > last_km and fuel_type == "ПЪЛНО":
-                    df_since_full = df_qf[df_qf["description"].astype(str).str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
+                liters = (
+                    float(liters_input)
+                    if liters_input is not None
+                    else 0.0
+                )
+
+                km_input = (
+                    float(km_input_value)
+                    if km_input_value is not None
+                    else 0.0
+                )
+
+                fuel_type = (
+                    "ПЪЛНО"
+                    if "до горе"
+                    in fuel_type_choice.lower()
+                    else "ЧАСТИЧНО"
+                )
+
+                if (
+                    liters > 0
+                    and km_input > last_km
+                    and fuel_type == "ПЪЛНО"
+                ):
+
+                    df_since_full = df_qf[
+                        df_qf["description"]
+                        .astype(str)
+                        .str.contains(
+                            "ПЪЛЕН|ПЪЛНО",
+                            na=False
+                        )
+                    ]
+
                     if not df_since_full.empty:
-                        last_full_km = float(df_since_full.iloc[-1]["current_km"])
-                        partial_liters = float(df_qf[df_qf["current_km"] > last_full_km]["liters"].sum())
-                        total_segment_liters = partial_liters + liters
-                        segment_dist = km_input - last_full_km
-                    else:
-                        total_segment_liters = float(df_qf["liters"].sum()) + liters + quick_manual_fuel
-                        segment_dist = km_input - quick_start_km
 
-                    if segment_dist > 0 and total_segment_liters > 0:
+                        last_full_km = float(
+                            df_since_full.iloc[-1]["current_km"]
+                        )
+
+                        partial_liters = float(
+                            df_qf[
+                                df_qf["current_km"]
+                                > last_full_km
+                            ]["liters"].sum()
+                        )
+
+                        total_segment_liters = (
+                            partial_liters
+                            + liters
+                        )
+
+                        segment_dist = (
+                            km_input
+                            - last_full_km
+                        )
+
+                    else:
+
+                        total_segment_liters = (
+                            float(
+                                df_qf["liters"].sum()
+                            )
+                            + liters
+                            + quick_manual_fuel
+                        )
+
+                        segment_dist = (
+                            km_input
+                            - quick_start_km
+                        )
+
+                    if (
+                        segment_dist > 0
+                        and total_segment_liters > 0
+                    ):
+
                         st.success(
-                            f"📊 Реален разход за етапа: **{(total_segment_liters / segment_dist * 100):.1f} л / 100 км**"
+                            f"📊 Реален разход за етапа: "
+                            f"**{(total_segment_liters / segment_dist * 100):.1f} "
+                            f"л / 100 км**"
                         )
 
         if st.button(
-            "✔️ Запиши", use_container_width=True,
-            type="primary", key="quick_expense_save"
+            "✔️ Запиши",
+            use_container_width=True,
+            type="primary",
+            key="quick_expense_save"
         ):
-            # Не допускаме float(None) при празно поле за сумата.
+
+            # Заключено приключено пътуване никога
+            # не приема нов разход.
+            if (
+                quick_trip_finished
+                and not trip_edit_unlocked(selected_trip)
+            ):
+
+                st.error(
+                    "🔒 Това пътуване е приключено и заключено."
+                )
+                return
+
             if amount is None or float(amount) <= 0:
-                st.warning("⚠️ Добавете разход или затворете полето.")
+
+                st.warning(
+                    "⚠️ Добавете разход или затворете полето."
+                )
                 return
 
-            desc = description.strip() or "Бърз разход"
+            desc = (
+                description.strip()
+                or "Бърз разход"
+            )
 
-            # Ако е гориво, записваме със същия формат и литри/км полета.
+            # Гориво.
             if is_quick_fuel:
+
                 if not quick_car_trip:
-                    st.error("❌ Това пътуване не е настроено за собствен автомобил.")
+
+                    st.error(
+                        "❌ Това пътуване не е настроено "
+                        "за собствен автомобил."
+                    )
                     return
-                if quick_trip_finished and not trip_edit_unlocked(selected_trip):
-                    st.error("❌ Пътуването е приключено.")
+
+                if (
+                    quick_trip_finished
+                    and not trip_edit_unlocked(selected_trip)
+                ):
+
+                    st.error(
+                        "❌ Пътуването е приключено."
+                    )
                     return
+
                 if liters <= 0:
-                    st.error("❌ Въведете литри за зареждането.")
+
+                    st.error(
+                        "❌ Въведете литри за зареждането."
+                    )
                     return
+
                 if km_input <= 0:
-                    st.error("❌ Въведете текущите километри на таблото.")
+
+                    st.error(
+                        "❌ Въведете текущите километри "
+                        "на таблото."
+                    )
                     return
 
-                df_qf = get_trip_data(selected_trip)
-                if not df_qf.empty and "current_km" in df_qf.columns:
-                    df_qf = df_qf[(df_qf["category"] == "Транспорт") & (df_qf["current_km"] > 0)].sort_index()
+                df_qf = get_trip_data(
+                    selected_trip
+                )
+
+                if (
+                    not df_qf.empty
+                    and "current_km" in df_qf.columns
+                ):
+
+                    df_qf = df_qf[
+                        (df_qf["category"] == "Транспорт")
+                        & (df_qf["current_km"] > 0)
+                    ].sort_index()
+
                 else:
-                    df_qf = pd.DataFrame(columns=["current_km", "liters", "description"])
-                last_km_save = float(df_qf["current_km"].max()) if not df_qf.empty else quick_start_km
 
-                full_desc = f"[{fuel_type} ЗАРЕЖДАНЕ] {desc}"
+                    df_qf = pd.DataFrame(
+                        columns=[
+                            "current_km",
+                            "liters",
+                            "description"
+                        ]
+                    )
 
-                if km_input > last_km_save and fuel_type == "ПЪЛНО":
-                    df_since_full = df_qf[df_qf["description"].astype(str).str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
+                last_km_save = (
+                    float(df_qf["current_km"].max())
+                    if not df_qf.empty
+                    else quick_start_km
+                )
+
+                full_desc = (
+                    f"[{fuel_type} ЗАРЕЖДАНЕ] {desc}"
+                )
+
+                if (
+                    km_input > last_km_save
+                    and fuel_type == "ПЪЛНО"
+                ):
+
+                    df_since_full = df_qf[
+                        df_qf["description"]
+                        .astype(str)
+                        .str.contains(
+                            "ПЪЛЕН|ПЪЛНО",
+                            na=False
+                        )
+                    ]
+
                     if not df_since_full.empty:
-                        last_full_km = float(df_since_full.iloc[-1]["current_km"])
-                        partial_liters = float(df_qf[df_qf["current_km"] > last_full_km]["liters"].sum())
-                        t_liters = partial_liters + liters
-                        t_dist = km_input - last_full_km
+
+                        last_full_km = float(
+                            df_since_full.iloc[-1]["current_km"]
+                        )
+
+                        partial_liters = float(
+                            df_qf[
+                                df_qf["current_km"]
+                                > last_full_km
+                            ]["liters"].sum()
+                        )
+
+                        t_liters = (
+                            partial_liters
+                            + liters
+                        )
+
+                        t_dist = (
+                            km_input
+                            - last_full_km
+                        )
+
                     else:
-                        t_liters = float(df_qf["liters"].sum()) + liters + quick_manual_fuel
-                        t_dist = km_input - quick_start_km
 
-                    if t_dist > 0 and t_liters > 0:
-                        full_desc += f" (Етап: {t_dist:.0f}км, Реален разход: {(t_liters / t_dist * 100):.1f}л/100км)"
+                        t_liters = (
+                            float(
+                                df_qf["liters"].sum()
+                            )
+                            + liters
+                            + quick_manual_fuel
+                        )
 
-                if add_expense(selected_trip, float(amount), "Транспорт", full_desc, False, liters, km_input):
-                    st.success("✅ Зареждането е записано успешно.")
+                        t_dist = (
+                            km_input
+                            - quick_start_km
+                        )
+
+                    if (
+                        t_dist > 0
+                        and t_liters > 0
+                    ):
+
+                        full_desc += (
+                            f" (Етап: {t_dist:.0f}км, "
+                            f"Реален разход: "
+                            f"{(t_liters / t_dist * 100):.1f}"
+                            f"л/100км)"
+                        )
+
+                if add_expense(
+                    selected_trip,
+                    float(amount),
+                    "Транспорт",
+                    full_desc,
+                    False,
+                    liters,
+                    km_input
+                ):
+
+                    st.success(
+                        "✅ Зареждането е записано успешно."
+                    )
                     st.rerun()
+
                 else:
-                    st.error("❌ Зареждането не можа да бъде записано.")
+
+                    st.error(
+                        "❌ Зареждането не можа да бъде записано."
+                    )
+
                 return
 
-            if quick_trip_finished and not trip_edit_unlocked(selected_trip):
-                st.error("🔒 Това пътуване е приключено. Отключете го от „Административни Инструменти“, ако искате да го редактирате.")
-                return
+            # Нормален разход.
+            if add_expense(
+                selected_trip,
+                float(amount),
+                selected_category,
+                desc,
+                False
+            ):
 
-            # Последна защита: никога не записваме разход към заключено приключено пътуване.
-            if quick_trip_finished and not trip_edit_unlocked(selected_trip):
-                st.error("🔒 Това пътуване е приключено и заключено. Отключете го от „Административни Инструменти“, ако искате да добавяте разход.")
-                return
-
-            if add_expense(selected_trip, float(amount), selected_category, desc, False):
-                st.success("✅ Разходът е записан успешно.")
+                st.success(
+                    "✅ Разходът е записан успешно."
+                )
                 st.rerun()
+
             else:
-                st.error("❌ Разходът не можа да бъде записан.")
+
+                st.error(
+                    "❌ Разходът не можа да бъде записан."
+                )
+
+
+    if st.session_state.get("open_quick_expense", False):
+        st.session_state["open_quick_expense"] = False
+        quick_expense_modal()
 
 
     if st.session_state.get("open_quick_expense", False):
