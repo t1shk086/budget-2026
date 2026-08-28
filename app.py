@@ -4685,7 +4685,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
 
         current_fuel_threshold = float(UI_LABELS.get("fuel_red_threshold", 1.80) or 1.80)
         new_fuel_threshold = st.number_input(
-            "⛽ Гориво — червено над (EUR/л):",
+            "⛽ Гориво — индикатор за висока цена (EUR/л):",
             min_value=0.01,
             value=current_fuel_threshold,
             step=0.05,
