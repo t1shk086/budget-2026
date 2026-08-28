@@ -571,7 +571,7 @@ if st.session_state["current_trip"] is None:
         .tm-home-action-space { margin-top: 2px; margin-bottom: 8px; }
         .tm-home-trips-title {
             color:#9aa1ad;
-            font-size:11px;
+            font-size:13px;
             font-weight:800;
             letter-spacing:0;
             margin:18px 0 9px 2px;
