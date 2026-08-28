@@ -220,7 +220,11 @@ def get_trip_display_name(t_id):
     Вътрешният ID може да има суфикс __2, __3 и т.н. при дублирани пътувания.
     """
     name = str(t_id).replace("_", " ")
-    name = re.sub(r"\s+__\s*\d+$", "", name)
+    marker = " __ "
+    if marker in name:
+        base_name, suffix = name.rsplit(marker, 1)
+        if suffix.strip().isdigit():
+            return base_name.strip()
     return name
 
 
@@ -2021,7 +2025,6 @@ else:
             df_only_full = df_trans_fuel[df_trans_fuel["description"].str.contains("ПЪЛЕН|ПЪЛНО", na=False)]
             if not df_only_full.empty:
                 last_full_row = df_only_full.iloc[-1]["description"]
-                import re
                 match = re.search(r"(?:Реален разход:|Разход:)\s*([0-9.]+)", last_full_row)
                 if match:
                     val_real = float(match.group(1))
@@ -2124,7 +2127,6 @@ else:
             ].copy().sort_index()
 
             if not fuel_rows.empty:
-                import re
                 manual_mask = fuel_rows["description"].astype(str).str.contains(
                     r"(?:\[ПРОПУСНАТО\s+ГОРИВО\]|\[ГОРИВО\s+БЕЗ\s+СТОЙНОСТ\])", case=False, regex=True
                 )
@@ -2153,7 +2155,6 @@ else:
                 ppl_display_h = f"€{ppl_h:.2f}" if amount_h > 0 and liters_h > 0 else "—"
                 km_display_h = f"{km_h:.0f} км" if km_h > 0 else "—"
                 # По-чисто визуално описание на зареждането. Данните в CSV остават непроменени.
-                import re
                 desc_display_h = desc_h
                 fuel_match_h = re.match(r'^\[(?:\s*)ЧАСТИЧНО\s+ЗАРЕЖДАНЕ(?:\s*)\](.*)$', desc_h, flags=re.IGNORECASE)
                 if fuel_match_h:
@@ -2927,7 +2928,6 @@ else:
                             
                             # Ако изтриваме ръчно добавено пропуснато гориво
                             if "[ПРОПУСНАТО ГОРИВО]" in desc_str:
-                                import re
                                 match = re.search(r"Добавени\s*([0-9.]+)\s*литра", desc_str)
                                 if match:
                                     liters_to_subtract = float(match.group(1))
