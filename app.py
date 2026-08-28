@@ -11,195 +11,7 @@ import io
 import html
 import streamlit.components.v1 as components
 
-# =========================================================
-# MOBILE UI TEST — визуален слой, без промяна на бизнес логиката
-# =========================================================
-
-
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
-
-st.markdown("""
-<style>
-/* Keep the existing logic/widgets; change only their visual presentation. */
-.block-container {
-    max-width: 980px !important;
-    padding-top: 1.0rem !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-}
-
-/* Mobile cards */
-[data-testid="stVerticalBlockBorderWrapper"] {
-    border-radius: 18px !important;
-}
-
-.tm-mobile-shell {
-    background: linear-gradient(180deg, #061018 0%, #03070b 100%);
-    border: 1px solid rgba(255,255,255,.07);
-    border-radius: 22px;
-    padding: 14px;
-    margin: 8px 0 14px;
-    box-shadow: 0 12px 30px rgba(0,0,0,.24);
-}
-
-.tm-mobile-label {
-    color:#8d96a3;
-    font-size:10px;
-    font-weight:800;
-    letter-spacing:.4px;
-    text-transform:uppercase;
-}
-
-.tm-mobile-title {
-    color:#fff;
-    font-size:24px;
-    line-height:1.15;
-    font-weight:850;
-    margin-top:4px;
-}
-
-.tm-mobile-date {
-    color:#8993a1;
-    font-size:12px;
-    margin-top:6px;
-}
-
-.tm-mobile-status {
-    display:inline-block;
-    margin-top:10px;
-    padding:5px 9px;
-    border-radius:999px;
-    background:rgba(0,220,120,.12);
-    color:#35e890;
-    font-size:10px;
-    font-weight:800;
-}
-
-.tm-mobile-photo {
-    height:190px;
-    margin:12px 0 14px;
-    border-radius:18px;
-    background:
-        linear-gradient(180deg, rgba(0,0,0,.03), rgba(0,0,0,.55)),
-        url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85") center/cover;
-    position:relative;
-    overflow:hidden;
-}
-
-.tm-mobile-photo-badge {
-    position:absolute;
-    right:12px;
-    bottom:12px;
-    background:rgba(3,8,12,.88);
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:12px;
-    padding:9px 11px;
-    color:#fff;
-    font-size:11px;
-    line-height:1.35;
-    backdrop-filter:blur(8px);
-}
-
-.tm-mobile-summary {
-    background:linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:18px;
-    padding:14px;
-    margin:10px 0;
-}
-
-.tm-mobile-summary-title {
-    color:#a1a9b4;
-    font-size:11px;
-    font-weight:800;
-}
-
-.tm-mobile-summary-money {
-    color:#ffcc36;
-    font-size:25px;
-    font-weight:900;
-    margin-top:4px;
-}
-
-.tm-mobile-summary-money span {
-    color:#fff;
-    font-weight:700;
-}
-
-.tm-mobile-progress {
-    height:7px;
-    border-radius:999px;
-    background:#26313b;
-    overflow:hidden;
-    margin-top:10px;
-}
-
-.tm-mobile-progress > div {
-    height:100%;
-    width:71%;
-    border-radius:999px;
-    background:#27c66d;
-}
-
-@media (max-width:640px) {
-    .block-container {
-        padding-left: .55rem !important;
-        padding-right: .55rem !important;
-        padding-top: .5rem !important;
-    }
-    .tm-mobile-photo { height:175px; }
-    .tm-mobile-title { font-size:22px; }
-}
-
-                .tm-trip-hero{
-                    margin:4px 0 18px;
-                    border-radius:24px;
-                    overflow:hidden;
-                    background:#080d12;
-                    border:1px solid rgba(255,255,255,.08);
-                    box-shadow:0 16px 40px rgba(0,0,0,.28);
-                }
-                .tm-trip-hero-image{
-                    height:235px;
-                    position:relative;
-                    background:url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=90") center/cover;
-                }
-                .tm-trip-hero-overlay{
-                    position:absolute; inset:0;
-                    background:linear-gradient(180deg,rgba(0,0,0,.05) 20%,rgba(0,0,0,.78) 100%);
-                }
-                .tm-trip-hero-content{
-                    position:absolute; left:17px; right:17px; bottom:17px;
-                    color:#fff;
-                }
-                .tm-trip-kicker{font-size:9px;font-weight:900;letter-spacing:1px;color:rgba(255,255,255,.7);}
-                .tm-trip-title{font-size:29px;font-weight:900;line-height:1.05;margin-top:5px;text-shadow:0 2px 14px rgba(0,0,0,.45);}
-                .tm-trip-date{font-size:12px;color:rgba(255,255,255,.78);margin-top:7px;}
-                .tm-trip-pill{display:inline-block;margin-top:10px;padding:5px 10px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:.5px;}
-                .tm-trip-pill.active{background:rgba(39,198,109,.18);color:#45e78b;border:1px solid rgba(69,231,139,.24);}
-                .tm-trip-pill.finished{background:rgba(255,255,255,.12);color:#e5e8ec;border:1px solid rgba(255,255,255,.12);}
-                .tm-trip-finance{padding:15px 16px 12px;background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.018));}
-                .tm-trip-finance-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;}
-                .tm-trip-eyebrow{font-size:9px;font-weight:900;color:#7f8995;letter-spacing:.7px;}
-                .tm-trip-total{font-size:26px;font-weight:900;color:#ffcc36;line-height:1.1;margin-top:3px;}
-                .tm-trip-budget{text-align:right;color:#77818e;font-size:9px;line-height:1.45;}
-                .tm-trip-budget strong{color:#e8ebef;font-size:13px;}
-                .tm-trip-progress-track{height:8px;background:#222c35;border-radius:99px;overflow:hidden;margin-top:13px;}
-                .tm-trip-progress-track>div{height:100%;background:#28c76f;border-radius:99px;}
-                .tm-trip-progress-row{display:flex;justify-content:space-between;margin-top:7px;font-size:9px;color:#7f8995;}
-                .tm-trip-mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.05);}
-                .tm-trip-mini-stats>div{background:#080d12;padding:12px 8px;text-align:center;}
-                .tm-trip-mini-stats strong{display:block;color:#f2f4f6;font-size:16px;font-weight:900;}
-                .tm-trip-mini-stats span{display:block;color:#737e8a;font-size:8px;font-weight:900;margin-top:3px;letter-spacing:.4px;}
-                @media(max-width:640px){
-                    .tm-trip-hero{border-radius:20px;margin-left:-2px;margin-right:-2px;}
-                    .tm-trip-hero-image{height:210px;}
-                    .tm-trip-title{font-size:26px;}
-                    .tm-trip-total{font-size:23px;}
-                }
-
-</style>
-""", unsafe_allow_html=True)
 
 # =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
@@ -1169,32 +981,6 @@ if st.session_state["current_trip"] is None:
     </style>
     """, unsafe_allow_html=True)
 
-    # ---------------------------------------------------------
-    # DASHBOARD HOME — визуална цел като одобрения mockup
-    # ---------------------------------------------------------
-    st.markdown("""
-        <div class="tm-home-dashboard-hero">
-            <div class="tm-home-dashboard-glow"></div>
-            <div class="tm-home-dashboard-kicker">PIXELAPP · TRAVEL MANAGER</div>
-            <div class="tm-home-dashboard-title">Планирай. Пътувай. Запомни.</div>
-            <div class="tm-home-dashboard-sub">Всичко за твоите пътувания на едно място.</div>
-        </div>
-        <style>
-            .tm-home-dashboard-hero{
-                position:relative; overflow:hidden; margin:4px 0 14px; padding:22px 20px;
-                border-radius:24px; border:1px solid rgba(255,255,255,.08);
-                background:linear-gradient(135deg,rgba(0,242,254,.08),rgba(255,204,54,.035) 45%,rgba(255,255,255,.018)),
-                           radial-gradient(circle at 85% 10%,rgba(0,242,254,.15),transparent 38%),#080d12;
-                box-shadow:0 16px 38px rgba(0,0,0,.28);
-            }
-            .tm-home-dashboard-kicker{font-size:9px;font-weight:900;letter-spacing:1.2px;color:#00dff0;}
-            .tm-home-dashboard-title{margin-top:7px;color:#fff;font-size:25px;font-weight:900;line-height:1.08;}
-            .tm-home-dashboard-sub{margin-top:7px;color:#87919d;font-size:11px;line-height:1.35;}
-            .tm-home-dashboard-glow{position:absolute;width:130px;height:130px;right:-55px;top:-65px;border-radius:50%;background:rgba(0,242,254,.10);filter:blur(10px);}
-            @media(max-width:640px){.tm-home-dashboard-hero{padding:19px 16px;border-radius:20px}.tm-home-dashboard-title{font-size:22px}}
-        </style>
-    """, unsafe_allow_html=True)
-
     # Бърз разход — първи и най-лесен за достигане.
     if st.button("➕ Бърз Разход", use_container_width=True, type="primary", key="quick_expense_top_btn"):
         st.session_state["open_quick_expense"] = True
@@ -1250,18 +1036,7 @@ if st.session_state["current_trip"] is None:
         create_trip_modal()
 
     if existing:
-        st.markdown("""
-            <div class="tm-home-section-head">
-                <div><span>ПЪТУВАНИЯ</span><strong>Твоите приключения</strong></div>
-                <div class="tm-home-section-count">{len(existing)}</div>
-            </div>
-            <style>
-                .tm-home-section-head{display:flex;justify-content:space-between;align-items:flex-end;margin:18px 2px 10px;}
-                .tm-home-section-head span{display:block;color:#7d8792;font-size:9px;font-weight:900;letter-spacing:1px;}
-                .tm-home-section-head strong{display:block;color:#fff;font-size:18px;font-weight:900;margin-top:3px;}
-                .tm-home-section-count{min-width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(0,242,254,.08);border:1px solid rgba(0,242,254,.12);color:#00e5f5;font-size:11px;font-weight:900;}
-            </style>
-        """, unsafe_allow_html=True)
+        st.markdown("<div class='tm-home-trips-title'>Избери Дестинация</div>", unsafe_allow_html=True)
 
         for _trip in existing:
             _trip_id = str(_trip)
@@ -1409,32 +1184,32 @@ if st.session_state["current_trip"] is None:
                     f"""
                     <style>
                     {_card_selector} button {{
-                        min-height:164px !important;
+                        min-height:108px !important;
                         height:auto !important;
                         width:100% !important;
                         box-sizing:border-box !important;
-                        padding:16px 16px 34px 16px !important;
-                        border-radius:22px !important;
-                        border:1px solid rgba(255,255,255,.10) !important;
+                        padding:14px 0 24px 8px !important;
+                        border-radius:16px !important;
+                        border:1px solid rgba(255,255,255,.08) !important;
                         background:
-                            {_bar_gradient} bottom / 100% 10px no-repeat,
-                            linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.68)),
-                            linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015)),
-                            url("https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1400&q=82") center/cover !important;
-                        box-shadow:0 12px 28px rgba(0,0,0,.30) !important;
+                            {_bar_gradient} bottom / 100% 12px no-repeat,
+                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
+                        box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
                         color:#fff !important;
                         text-align:left !important;
-                        justify-content:flex-end !important;
+                        justify-content:flex-start !important;
                         align-items:flex-start !important;
                         white-space:pre-wrap !important;
                         font-family:inherit !important;
-                        line-height:1.42 !important;
-                        transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease !important;
+                        line-height:1.45 !important;
                     }}
                     {_card_selector} button:hover {{
-                        border-color:rgba(0,242,254,.30) !important;
-                        box-shadow:0 16px 34px rgba(0,0,0,.38),0 0 18px rgba(0,242,254,.07) !important;
-                        transform:translateY(-2px) !important;
+                        border-color:rgba(0,242,254,.22) !important;
+                        background:
+                            {_bar_gradient} bottom / 100% 12px no-repeat,
+                            linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
+                        box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
+                        transform:translateY(-1px) !important;
                     }}
                     {_card_selector} button > div {{
                         width:100% !important;
@@ -1458,9 +1233,8 @@ if st.session_state["current_trip"] is None:
                     }}
                     @media(max-width:640px) {{
                         {_card_selector} button {{
-                            min-height:156px !important;
-                            padding:14px 14px 32px 14px !important;
-                            border-radius:20px !important;
+                            min-height:102px !important;
+                            padding:12px 0 23px 6px !important;
                         }}
                     }}
                     </style>
@@ -2825,75 +2599,8 @@ else:
     except: 
         pass
 
-    # MOBILE DESIGN HERO — цялостен header за отвореното пътуване.
-    is_trip_finished = (
-        e_km > 0.0 if car_trip == "Да" else trip_finished_manual
-    )
-    is_edit_unlocked = trip_edit_unlocked(trip_id)
-    trip_locked = is_trip_finished and not is_edit_unlocked
-
-    _mobile_trip_name = html.escape(get_trip_display_name(str(trip_id)))
-    _mobile_date_text = html.escape(
-        f"{st_date} → {en_date}" if st_date and st_date != "nan" else ""
-    )
-    _mobile_status = "ПРИКЛЮЧЕНО" if is_trip_finished else "АКТИВНО ПЪТУВАНЕ"
-    _mobile_status_class = "finished" if is_trip_finished else "active"
-
-    # Budget data must be available before the redesigned hero is rendered.
-    # The old code calculated the budget later in the trip page, which caused
-    # a NameError here when the new visual header tried to use total_budget.
-    _mobile_global_budget = float(get_global_budget(trip_id) or 0.0)
-    _mobile_category_budgets = get_category_budgets(trip_id)
-    _mobile_category_budget_total = sum(
-        float(v or 0.0) for v in _mobile_category_budgets.values() if float(v or 0.0) > 0
-    )
-    _mobile_total_budget = (
-        _mobile_global_budget
-        if _mobile_global_budget > 0
-        else _mobile_category_budget_total
-    )
-    _mobile_grand_total = float(depozit_hotel + total_on_site)
-    _budget_pct = min(
-        100.0,
-        max(
-            0.0,
-            (_mobile_grand_total / _mobile_total_budget * 100.0)
-            if _mobile_total_budget > 0 else 0.0
-        )
-    )
-
-    st.markdown(f"""
-        <div class="tm-trip-hero">
-            <div class="tm-trip-hero-image">
-                <div class="tm-trip-hero-overlay"></div>
-                <div class="tm-trip-hero-content">
-                    <div class="tm-trip-kicker">TRAVEL MANAGER · ПЪТУВАНЕ</div>
-                    <div class="tm-trip-title">{_mobile_trip_name}</div>
-                    <div class="tm-trip-date">📅 {_mobile_date_text}</div>
-                    <div class="tm-trip-pill {_mobile_status_class}">{_mobile_status}</div>
-                </div>
-            </div>
-
-            <div class="tm-trip-finance">
-                <div class="tm-trip-finance-top">
-                    <div>
-                        <div class="tm-trip-eyebrow">ОБЩ РАЗХОД</div>
-                        <div class="tm-trip-total">€{_mobile_grand_total:,.2f}</div>
-                    </div>
-                    <div class="tm-trip-budget">БЮДЖЕТ<br><strong>€{_mobile_total_budget:,.2f}</strong></div>
-                </div>
-                <div class="tm-trip-progress-track"><div style="width:{_budget_pct:.0f}%"></div></div>
-                <div class="tm-trip-progress-row"><span>{_budget_pct:.0f}% от бюджета</span><span>{'🔒 Заключено' if trip_locked else '● Активно'}</span></div>
-            </div>
-
-            <div class="tm-trip-mini-stats">
-                <div><strong>{len(df_expenses)}</strong><span>РАЗХОДИ</span></div>
-                <div><strong>€{total_on_site:,.0f}</strong><span>НА МЯСТО</span></div>
-                <div><strong>{dist:,.0f}</strong><span>КМ</span></div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
+    date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
+    st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {str(trip_id).replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
     
@@ -2912,6 +2619,12 @@ else:
         s_input = st.number_input("Сума (EUR)", value=None, placeholder="Въведете разход...", format="%.2f", key=f"su_{v_id}")
     with col2: 
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
+
+    is_trip_finished = (
+        e_km > 0.0 if car_trip == "Да" else trip_finished_manual
+    )
+    is_edit_unlocked = trip_edit_unlocked(trip_id)
+    trip_locked = is_trip_finished and not is_edit_unlocked
 
     @st.dialog("⛽ Зареждане на гориво")
     def fuel_modal(amount, category, description, is_dep):
@@ -4728,16 +4441,16 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 # =====================================================
                 # ИЗПРАЩАНЕ ПО ИМЕЙЛ
                 # =====================================================
-                st.markdown("##### 📧 Изпращане на архив по имейл")
+                st.markdown("##### 📧 Изпращане на архив по e-mail")
 
                 email_to = st.text_input(
-                    "Имейл получател",
+                    "Получател",
                     placeholder="name@example.com",
                     key="backup_email_to"
                 )
 
                 if st.button(
-                    "📧 Изпрати архива по имейл",
+                    "📧 Изпрати архива",
                     use_container_width=True,
                     key="send_backup_email_btn"
                 ):
@@ -4972,7 +4685,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
 
         current_fuel_threshold = float(UI_LABELS.get("fuel_red_threshold", 1.80) or 1.80)
         new_fuel_threshold = st.number_input(
-            "⛽ Гориво — червено над (EUR/л):",
+            "⛽ Гориво — индикатор за висока цена (EUR/л):",
             min_value=0.01,
             value=current_fuel_threshold,
             step=0.05,
