@@ -176,9 +176,20 @@ if not os.path.exists(TRIP_PLAN_FILE):
     pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"]).to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
 
 for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters","current_km"]), 
-                (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date"])]:
+                (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date","trip_finished"])]:
     if not os.path.exists(f): 
         pd.DataFrame(columns=cols).to_csv(f, index=False, encoding="utf-8")
+
+# Миграция за вече съществуващи настройки: добавяме флаг за приключване
+# само за пътувания без автомобил. Старите записи не се променят.
+try:
+    if os.path.exists(SETTINGS_FILE):
+        _settings_migration = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        if "trip_finished" not in _settings_migration.columns:
+            _settings_migration["trip_finished"] = "Не"
+            _settings_migration.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+except Exception:
+    pass
 
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
@@ -195,7 +206,7 @@ def get_trip_data(t_id):
         return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters","current_km"])
 
 def get_trip_settings(t_id):
-    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": ""}
+    d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": "", "trip_finished": "Не"}
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
@@ -209,7 +220,8 @@ def get_trip_settings(t_id):
                 "end_km": float(res.get("end_km", 0.0)), 
                 "manual_fuel": float(res.get("manual_fuel", 0.0)), 
                 "start_date": str(res.get("start_date", "")), 
-                "end_date": str(res.get("end_date", ""))
+                "end_date": str(res.get("end_date", "")),
+                "trip_finished": str(res.get("trip_finished", "Не"))
             }
     except: 
         pass
@@ -350,14 +362,22 @@ def rename_trip(old_id, new_name):
         return False, str(exc)
 
 
-def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
+def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d="", trip_finished=None):
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        old_rows = df[df["trip_id"] == t_id]
+        old_finished = str(old_rows.iloc[0].get("trip_finished", "Не")) if not old_rows.empty else "Не"
         df = df[df["trip_id"] != t_id]
-        new_row = pd.DataFrame([{"trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f), "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f), "start_date": str(s_d), "end_date": str(e_d)}])
+        if trip_finished is None:
+            trip_finished = old_finished
+        new_row = pd.DataFrame([{
+            "trip_id": t_id, "car_trip": str(c_t), "track_fuel": str(t_f),
+            "start_km": float(s_k), "end_km": float(e_k), "manual_fuel": float(m_f),
+            "start_date": str(s_d), "end_date": str(e_d), "trip_finished": str(trip_finished)
+        }])
         df = pd.concat([df, new_row], ignore_index=True)
         df.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
-    except: 
+    except:
         pass
 
 def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
@@ -612,15 +632,20 @@ def lock_trip_editing(t_id=None):
         st.session_state["edit_unlocked_trip"] = None
 
 def get_finished_trip_ids():
-    """Връща всички приключени пътувания по записания краен километраж."""
+    """Връща всички приключени пътувания — end_km при автомобил, флаг при останалите."""
     result = []
     try:
         if os.path.exists(SETTINGS_FILE):
             df_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-            if not df_settings.empty and "trip_id" in df_settings.columns and "end_km" in df_settings.columns:
+            if not df_settings.empty and "trip_id" in df_settings.columns:
                 for _, row in df_settings.iterrows():
                     tid = str(row.get("trip_id", "")).strip()
-                    if tid and float(row.get("end_km", 0.0) or 0.0) > 0:
+                    if not tid:
+                        continue
+                    row_car = str(row.get("car_trip", "Не")).strip()
+                    row_end_km = float(row.get("end_km", 0.0) or 0.0)
+                    row_finished = str(row.get("trip_finished", "Не")).strip().lower() in ["да", "yes", "true", "1"]
+                    if (row_car == "Да" and row_end_km > 0) or (row_car != "Да" and row_finished):
                         result.append(tid)
     except Exception:
         pass
@@ -871,7 +896,11 @@ if st.session_state["current_trip"] is None:
                     if _trip_end_date and _trip_end_date.lower() != "nan" and _trip_end_date != _trip_start_date
                     else _trip_start_date
                 )
-            _finished = float(_settings.get("end_km", 0.0) or 0.0) > 0.0
+            _finished = (
+                float(_settings.get("end_km", 0.0) or 0.0) > 0.0
+                if str(_settings.get("car_trip", "Не")) == "Да"
+                else str(_settings.get("trip_finished", "Не")).strip().lower() in ["да", "yes", "true", "1"]
+            )
 
             # Статус: активно = зелена точка, приключено = червена точка.
             _status_dot = "🟢" if not _finished else "🔴"
@@ -1943,6 +1972,7 @@ else:
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
     st_date, en_date = str(c_s.get("start_date", "")), str(c_s.get("end_date", ""))
+    trip_finished_manual = str(c_s.get("trip_finished", "Не")).strip().lower() in ["да", "yes", "true", "1"]
 
     @st.dialog("🗑️ Потвърждение за изтриване")
     def confirm_delete_dialog():
@@ -2054,7 +2084,9 @@ else:
     with col2: 
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
-    is_trip_finished = (e_km > 0.0)
+    is_trip_finished = (
+        e_km > 0.0 if car_trip == "Да" else trip_finished_manual
+    )
     is_edit_unlocked = trip_edit_unlocked(trip_id)
     trip_locked = is_trip_finished and not is_edit_unlocked
 
@@ -2451,13 +2483,32 @@ else:
 
     @st.dialog("🏁 Край на пътуването")
     def finish_trip_modal():
-        end_km_input = st.number_input("Финални километри от таблото (км):", value=None if e_km == 0.0 else e_km, step=1.0)
+        # Без автомобил: директно приключване, без да искаме километри.
+        if car_trip != "Да":
+            st.success("✅ Това пътуване е приключено.")
+            save_trip_settings(
+                trip_id, car_trip, t_fuel, s_km, e_km,
+                m_fuel, st_date, en_date, "Да"
+            )
+            st.session_state["form_version"] += 1
+            st.rerun()
+            return
+
+        # С автомобил: старата логика с финални километри.
+        end_km_input = st.number_input(
+            "Финални километри от таблото:",
+            value=None if e_km == 0.0 else e_km,
+            step=1.0
+        )
         if st.button("🔒 ЗАКЛЮЧИ И ПРИКЛЮЧИ", use_container_width=True, type="primary"):
-            if end_km_input and end_km_input > s_km: 
-                save_trip_settings(trip_id, car_trip, t_fuel, s_km, float(end_km_input), m_fuel, st_date, en_date)
+            if end_km_input and end_km_input > s_km:
+                save_trip_settings(
+                    trip_id, car_trip, t_fuel, s_km, float(end_km_input),
+                    m_fuel, st_date, en_date, "Не"
+                )
                 st.session_state["form_version"] += 1
                 st.rerun()
-            else: 
+            else:
                 st.error(f"Трябва да са над {s_km:.0f} км!")
 
     if car_trip == "Да":
@@ -2486,8 +2537,27 @@ else:
                     on_click=finish_trip_modal
                 )
     else:
-        if st.button("🚗 Добави автомобил към пътуването", use_container_width=True, disabled=trip_locked):
-            edit_car_modal()
+        col_manage1, col_manage2 = st.columns(2)
+        with col_manage1:
+            if st.button("🚗 Добави автомобил към пътуването", use_container_width=True, disabled=trip_locked):
+                edit_car_modal()
+        with col_manage2:
+            if not is_trip_finished:
+                st.button(
+                    "🏁 Край на пътуването",
+                    use_container_width=True,
+                    on_click=finish_trip_modal,
+                    key=f"finish_no_car_{trip_id}"
+                )
+            else:
+                if st.button(
+                    "🔒 Заключи редакцията" if is_edit_unlocked else "🏁 Пътуването е приключено 🔒",
+                    use_container_width=True,
+                    disabled=not is_edit_unlocked,
+                    key=f"relock_trip_no_car_{trip_id}"
+                ):
+                    lock_trip_editing(trip_id)
+                    st.rerun()
 
 
 
