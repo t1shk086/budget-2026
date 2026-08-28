@@ -4627,7 +4627,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
 
             admin_new_trip_name = st.text_input(
                 "Ново име на дестинацията:",
-                value=get_trip_display_name(admin_rename_choice),
+                value="",
                 key="admin_rename_trip_name",
                 placeholder="Например: Бургас"
             ).strip()
