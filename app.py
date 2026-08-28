@@ -836,7 +836,7 @@ if st.session_state["current_trip"] is None:
                         background:
                             {_bar_gradient} bottom / 100% 12px no-repeat,
                             linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
-                        box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
+                        box-shadow:0 6px 20px rgba(0,0,0,.38), 0 0 0 1px rgba(0,242,254,.06) !important;
                         color:#fff !important;
                         text-align:left !important;
                         justify-content:flex-start !important;
