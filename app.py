@@ -1351,7 +1351,7 @@ for _quick_tid in _quick_ids_settings:
 
 existing_quick = list(dict.fromkeys(existing_quick))
 
-        if not existing_quick:
+    if not existing_quick:
             st.info("Първо създайте поне едно пътуване.")
             return
 
