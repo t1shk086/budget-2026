@@ -4290,7 +4290,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 from email.message import EmailMessage
 
                 # =====================================================
-                # СЪЗДАВЯНЕ НА ZIP АРХИВ
+                # СЪЗДАВАНЕ НА ZIP АРХИВ
                 # =====================================================
                 zip_buffer = io.BytesIO()
 
@@ -4299,6 +4299,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                     "w",
                     zipfile.ZIP_DEFLATED
                 ) as zip_file:
+
                     for file_name in [
                         DATA_FILE,
                         SETTINGS_FILE,
@@ -4342,21 +4343,27 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                     use_container_width=True,
                     key="send_backup_email_btn"
                 ):
+
                     if not email_to.strip():
-                        st.warning("⚠️ Моля, въведи имейл адрес.")
+
+                        st.warning(
+                            "⚠️ Моля, въведи имейл адрес."
+                        )
 
                     else:
 
                         # =================================================
-                        # ABV SMTP НАСТРОЙКИ
+                        # GMAIL НАСТРОЙКИ
                         # =================================================
-                        SMTP_SERVER = "smtp.abv.bg"
+                        SMTP_SERVER = "smtp.gmail.com"
                         SMTP_PORT = 465
-                        SMTP_USERNAME = "ТВОЯТ_ABV_ИМЕЙЛ"
-                        SMTP_PASSWORD = "ТВОЯТА_ABV_ПАРОЛА"
+
+                        # Тези две стойности се вземат от Streamlit Secrets
+                        SMTP_USERNAME = st.secrets["gmail"]["username"]
+                        SMTP_PASSWORD = st.secrets["gmail"]["app_password"]
 
                         # =================================================
-                        # СЪЗДАВАНЕ НА ИМЕЙЛА
+                        # СЪЗДАВЯНЕ НА ИМЕЙЛА
                         # =================================================
                         msg = EmailMessage()
 
@@ -4383,7 +4390,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         )
 
                         # =================================================
-                        # ABV - SSL / PORT 465
+                        # GMAIL SMTP - SSL / PORT 465
                         # =================================================
                         with smtplib.SMTP_SSL(
                             SMTP_SERVER,
@@ -4404,10 +4411,10 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         )
 
             except Exception as e:
+
                 st.error(
                     f"❌ Грешка при създаване или изпращане на архива: {e}"
                 )
-
 
                 
         with col_backup2:
