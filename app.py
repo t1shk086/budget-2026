@@ -11,7 +11,7 @@ import io
 import html
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide")
 
 st.markdown("""
 <style>
