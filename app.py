@@ -30,7 +30,7 @@ components.html(
             border: none;
             border-radius: 10px;
             background: rgba(30,30,30,0.85);
-            color: white;
+            color: #9ca3af;
             font-size: 22px;
             cursor: pointer;
         }
