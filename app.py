@@ -4444,7 +4444,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 st.markdown("##### 📧 Изпращане на архив по e-mail")
 
                 email_to = st.text_input(
-                    "Pолучател",
+                    "Получател",
                     placeholder="name@example.com",
                     key="backup_email_to"
                 )
