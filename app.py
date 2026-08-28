@@ -632,23 +632,67 @@ def lock_trip_editing(t_id=None):
         st.session_state["edit_unlocked_trip"] = None
 
 def get_finished_trip_ids():
-    """Връща всички приключени пътувания — end_km при автомобил, флаг при останалите."""
+    """Връща всички приключени пътувания:
+    - с автомобил -> по end_km
+    - без автомобил -> по trip_finished
+    """
     result = []
+
     try:
         if os.path.exists(SETTINGS_FILE):
-            df_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-            if not df_settings.empty and "trip_id" in df_settings.columns:
+            df_settings = pd.read_csv(
+                SETTINGS_FILE,
+                encoding="utf-8"
+            )
+
+            if (
+                not df_settings.empty
+                and "trip_id" in df_settings.columns
+            ):
                 for _, row in df_settings.iterrows():
-                    tid = str(row.get("trip_id", "")).strip()
+
+                    tid = str(
+                        row.get("trip_id", "")
+                    ).strip()
+
                     if not tid:
                         continue
-                    row_car = str(row.get("car_trip", "Не")).strip()
-                    row_end_km = float(row.get("end_km", 0.0) or 0.0)
-                    row_finished = str(row.get("trip_finished", "Не")).strip().lower() in ["да", "yes", "true", "1"]
-                    if (row_car == "Да" and row_end_km > 0) or (row_car != "Да" and row_finished):
+
+                    car_trip = str(
+                        row.get("car_trip", "Не")
+                    ).strip()
+
+                    end_km = float(
+                        row.get("end_km", 0.0) or 0.0
+                    )
+
+                    trip_finished = (
+                        str(
+                            row.get(
+                                "trip_finished",
+                                "Не"
+                            )
+                        ).strip().lower()
+                        in ["да", "yes", "true", "1"]
+                    )
+
+                    # С автомобил:
+                    # приключено при въведени крайни километри.
+                    #
+                    # Без автомобил:
+                    # приключено при trip_finished = Да.
+                    if (
+                        car_trip == "Да"
+                        and end_km > 0
+                    ) or (
+                        car_trip != "Да"
+                        and trip_finished
+                    ):
                         result.append(tid)
+
     except Exception:
         pass
+
     return list(dict.fromkeys(result))
 
 def _navigate_fuel(direction, trip_id):
