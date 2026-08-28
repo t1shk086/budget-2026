@@ -11,6 +11,144 @@ import io
 import html
 import streamlit.components.v1 as components
 
+# =========================================================
+# MOBILE UI TEST — визуален слой, без промяна на бизнес логиката
+# =========================================================
+st.markdown("""
+<style>
+/* Keep the existing logic/widgets; change only their visual presentation. */
+.block-container {
+    max-width: 980px !important;
+    padding-top: 1.0rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
+/* Mobile cards */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 18px !important;
+}
+
+.tm-mobile-shell {
+    background: linear-gradient(180deg, #061018 0%, #03070b 100%);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 22px;
+    padding: 14px;
+    margin: 8px 0 14px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.24);
+}
+
+.tm-mobile-label {
+    color:#8d96a3;
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.4px;
+    text-transform:uppercase;
+}
+
+.tm-mobile-title {
+    color:#fff;
+    font-size:24px;
+    line-height:1.15;
+    font-weight:850;
+    margin-top:4px;
+}
+
+.tm-mobile-date {
+    color:#8993a1;
+    font-size:12px;
+    margin-top:6px;
+}
+
+.tm-mobile-status {
+    display:inline-block;
+    margin-top:10px;
+    padding:5px 9px;
+    border-radius:999px;
+    background:rgba(0,220,120,.12);
+    color:#35e890;
+    font-size:10px;
+    font-weight:800;
+}
+
+.tm-mobile-photo {
+    height:190px;
+    margin:12px 0 14px;
+    border-radius:18px;
+    background:
+        linear-gradient(180deg, rgba(0,0,0,.03), rgba(0,0,0,.55)),
+        url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85") center/cover;
+    position:relative;
+    overflow:hidden;
+}
+
+.tm-mobile-photo-badge {
+    position:absolute;
+    right:12px;
+    bottom:12px;
+    background:rgba(3,8,12,.88);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;
+    padding:9px 11px;
+    color:#fff;
+    font-size:11px;
+    line-height:1.35;
+    backdrop-filter:blur(8px);
+}
+
+.tm-mobile-summary {
+    background:linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;
+    padding:14px;
+    margin:10px 0;
+}
+
+.tm-mobile-summary-title {
+    color:#a1a9b4;
+    font-size:11px;
+    font-weight:800;
+}
+
+.tm-mobile-summary-money {
+    color:#ffcc36;
+    font-size:25px;
+    font-weight:900;
+    margin-top:4px;
+}
+
+.tm-mobile-summary-money span {
+    color:#fff;
+    font-weight:700;
+}
+
+.tm-mobile-progress {
+    height:7px;
+    border-radius:999px;
+    background:#26313b;
+    overflow:hidden;
+    margin-top:10px;
+}
+
+.tm-mobile-progress > div {
+    height:100%;
+    width:71%;
+    border-radius:999px;
+    background:#27c66d;
+}
+
+@media (max-width:640px) {
+    .block-container {
+        padding-left: .55rem !important;
+        padding-right: .55rem !important;
+        padding-top: .5rem !important;
+    }
+    .tm-mobile-photo { height:175px; }
+    .tm-mobile-title { font-size:22px; }
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 # =========================================================
@@ -2601,6 +2739,27 @@ else:
 
     date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
     st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {str(trip_id).replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+    # MOBILE DESIGN HERO — само визуален слой.
+    _mobile_trip_name = html.escape(get_trip_display_name(str(trip_id)))
+    _mobile_date_text = html.escape(f"{st_date} → {en_date}" if st_date and st_date != "nan" else "")
+    _mobile_finished_text = "ПРИКЛЮЧЕНО" if is_trip_finished else "В ПРОЦЕС" if 'is_trip_finished' in locals() else "ПЪТУВАНЕ"
+    st.markdown(f"""
+        <div class="tm-mobile-shell">
+            <div class="tm-mobile-label">🌴 ДЕСТИНАЦИЯ</div>
+            <div class="tm-mobile-title">{_mobile_trip_name}</div>
+            <div class="tm-mobile-date">📅 {_mobile_date_text}</div>
+            <div class="tm-mobile-status">{_mobile_finished_text}</div>
+            <div class="tm-mobile-photo">
+                <div class="tm-mobile-photo-badge">☀️ Travel Manager<br><span style="color:#62d9ff">Твоето пътуване</span></div>
+            </div>
+            <div class="tm-mobile-summary">
+                <div class="tm-mobile-summary-title">ОТЧЕТ ЗА ПЪТУВАНЕ</div>
+                <div class="tm-mobile-summary-money">€{grand_total:,.0f} <span>/ €{total_budget:,.0f}</span></div>
+                <div class="tm-mobile-progress"><div style="width:{min(100.0, max(0.0, (grand_total / total_budget * 100.0) if total_budget > 0 else 0.0)):.0f}%"></div></div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("---")
     st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
     
@@ -4441,16 +4600,16 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 # =====================================================
                 # ИЗПРАЩАНЕ ПО ИМЕЙЛ
                 # =====================================================
-                st.markdown("##### 📧 Изпращане на архив по e-mail")
+                st.markdown("##### 📧 Изпращане на архив по имейл")
 
                 email_to = st.text_input(
-                    "Получател",
+                    "Имейл получател",
                     placeholder="name@example.com",
                     key="backup_email_to"
                 )
 
                 if st.button(
-                    "📧 Изпрати архива",
+                    "📧 Изпрати архива по имейл",
                     use_container_width=True,
                     key="send_backup_email_btn"
                 ):
@@ -4685,7 +4844,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
 
         current_fuel_threshold = float(UI_LABELS.get("fuel_red_threshold", 1.80) or 1.80)
         new_fuel_threshold = st.number_input(
-            "⛽ Гориво — индикатор за висока цена (EUR/л):",
+            "⛽ Гориво — червено над (EUR/л):",
             min_value=0.01,
             value=current_fuel_threshold,
             step=0.05,
