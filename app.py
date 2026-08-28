@@ -4441,7 +4441,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 # =====================================================
                 # ИЗПРАЩАНЕ ПО ИМЕЙЛ
                 # =====================================================
-                st.markdown("##### 📧 Изпращане на архив по имейл")
+                st.markdown("##### 📧 Изпращане на архив по e-mail")
 
                 email_to = st.text_input(
                     "Имейл получател",
@@ -4450,7 +4450,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 )
 
                 if st.button(
-                    "📧 Изпрати архива по имейл",
+                    "📧 Изпрати архива",
                     use_container_width=True,
                     key="send_backup_email_btn"
                 ):
