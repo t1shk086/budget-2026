@@ -575,6 +575,8 @@ if st.session_state["current_trip"] is None:
             font-weight:800;
             letter-spacing:0;
             margin:18px 0 9px 2px;
+            padding-bottom:8px;
+            border-bottom:1px solid rgba(255,255,255,0.08);
         }
         .tm-trip-card-wrap { margin-bottom:8px; }
         .tm-trip-budget-mini { margin-top:7px; }
