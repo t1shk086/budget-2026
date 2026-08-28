@@ -4279,26 +4279,156 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
         
         col_backup1, col_backup2 = st.columns(2)
         
+```python
         with col_backup1:
             st.markdown("##### 📥 Сваляне на архив")
+
             try:
                 import zipfile
                 import io
+                import smtplib
+                from email.message import EmailMessage
+
+                # =====================================================
+                # СЪЗДАВАНЕ НА ZIP АРХИВ
+                # =====================================================
                 zip_buffer = io.BytesIO()
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE]:
+
+                with zipfile.ZipFile(
+                    zip_buffer,
+                    "w",
+                    zipfile.ZIP_DEFLATED
+                ) as zip_file:
+
+                    for file_name in [
+                        DATA_FILE,
+                        SETTINGS_FILE,
+                        MAP_FILE,
+                        LABELS_FILE,
+                        CATEGORY_BUDGETS_FILE
+                    ]:
                         if os.path.exists(file_name):
-                            zip_file.write(file_name, arcname=file_name)
+                            zip_file.write(
+                                file_name,
+                                arcname=file_name
+                            )
+
+                zip_data = zip_buffer.getvalue()
+
+                # =====================================================
+                # ЛОКАЛНО СВАЛЯНЕ
+                # =====================================================
                 st.download_button(
                     label="📥 Свали всички CSV логове (.ZIP)",
-                    data=zip_buffer.getvalue(),
+                    data=zip_data,
                     file_name="PixelApp_Data_Backup.zip",
-                    mime="application/octet-stream",
+                    mime="application/zip",
                     use_container_width=True,
                     key="download_all_csv_backup_btn"
                 )
-            except:
-                st.error("Грешка при генериране на архива.")
+
+                # =====================================================
+                # ИЗПРАЩАНЕ ПО ИМЕЙЛ
+                # =====================================================
+                st.markdown("##### 📧 Изпращане на архив по имейл")
+
+                email_to = st.text_input(
+                    "Имейл получател",
+                    value="",
+                    placeholder="например: name@example.com",
+                    key="backup_email_to"
+                )
+
+                if st.button(
+                    "📧 Изпрати архива по имейл",
+                    use_container_width=True,
+                    key="send_backup_email_btn"
+                ):
+
+                    if not email_to.strip():
+                        st.warning("⚠️ Моля, въведи имейл адрес.")
+                    else:
+
+                        # =================================================
+                        # SMTP НАСТРОЙКИ
+                        # ПОПЪЛНИ С ТВОИТЕ ДАННИ
+                        # =================================================
+                        SMTP_SERVER = "smtp.abv.bg"
+                        SMTP_PORT = 465
+                        SMTP_USERNAME = "pixelapp@abv.bg"
+                        SMTP_PASSWORD = "t1shk086"
+
+                        SMTP_USE_TLS = True
+
+                        # =================================================
+                        # СЪЗДАВЯНЕ НА ИМЕЙЛА
+                        # =================================================
+                        msg = EmailMessage()
+
+                        msg["Subject"] = "PixelApp – архив на данните"
+                        msg["From"] = SMTP_USERNAME
+                        msg["To"] = email_to.strip()
+
+                        msg.set_content(
+                            "Здравей,\n\n"
+                            "Прикачен е архив с данните от PixelApp.\n\n"
+                            "Файл: PixelApp_Data_Backup.zip\n\n"
+                            "Поздрави,\n"
+                            "PixelApp"
+                        )
+
+                        msg.add_attachment(
+                            zip_data,
+                            maintype="application",
+                            subtype="zip",
+                            filename="PixelApp_Data_Backup.zip"
+                        )
+
+                        # =================================================
+                        # ИЗПРАЩАНЕ
+                        # =================================================
+                        if SMTP_USE_TLS:
+
+                            with smtplib.SMTP(
+                                SMTP_SERVER,
+                                SMTP_PORT,
+                                timeout=30
+                            ) as server:
+
+                                server.starttls()
+                                server.login(
+                                    SMTP_USERNAME,
+                                    SMTP_PASSWORD
+                                )
+
+                                server.send_message(msg)
+
+                        else:
+
+                            with smtplib.SMTP_SSL(
+                                SMTP_SERVER,
+                                SMTP_PORT,
+                                timeout=30
+                            ) as server:
+
+                                server.login(
+                                    SMTP_USERNAME,
+                                    SMTP_PASSWORD
+                                )
+
+                                server.send_message(msg)
+
+                        st.success(
+                            f"✅ Архивът беше изпратен успешно до {email_to.strip()}."
+                        )
+
+            except Exception as e:
+
+                st.error(
+                    f"❌ Грешка при създаване или изпращане на архива: {e}"
+                )
+```
+
                 
         with col_backup2:
             st.markdown("##### 📤 Качване на архив")
