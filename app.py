@@ -4279,7 +4279,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
         
         col_backup1, col_backup2 = st.columns(2)
         
-```python
+   python
         with col_backup1:
             st.markdown("##### 📥 Сваляне на архив")
 
@@ -4427,7 +4427,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 st.error(
                     f"❌ Грешка при създаване или изпращане на архива: {e}"
                 )
-```
+
 
                 
         with col_backup2:
