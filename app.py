@@ -1196,7 +1196,7 @@ if st.session_state["current_trip"] is None:
         }
         /* Подсигурява, че текстът няма да се пречупи на два реда на телефон */
         div[data-testid="stCheckbox"] p {
-            font-size: 13px !important;
+            font-size: 14px !important;
             font-weight: 800 !important;
             letter-spacing: 0 !important;
             color: #aeb5c0 !important;
