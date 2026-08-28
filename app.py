@@ -215,6 +215,35 @@ def get_trip_settings(t_id):
         pass
     return d
 
+def get_trip_display_name(t_id):
+    """Връща чистото име на дестинацията за показване.
+    Вътрешният ID може да има суфикс __2, __3 и т.н. при дублирани пътувания.
+    """
+    name = str(t_id).replace("_", " ")
+    name = re.sub(r"\s+__\s*\d+$", "", name)
+    return name
+
+
+def get_unique_trip_id(base_id):
+    """Гарантира уникален вътрешен ID, без да забранява една и съща дестинация."""
+    base_id = str(base_id).strip()
+    try:
+        existing_ids = set(
+            str(x).strip()
+            for x in pd.read_csv(DATA_FILE, encoding="utf-8")["trip_id"].dropna().unique()
+        ) if os.path.exists(DATA_FILE) else set()
+    except Exception:
+        existing_ids = set()
+
+    if base_id not in existing_ids:
+        return base_id
+
+    n = 2
+    while f"{base_id}__{n}" in existing_ids:
+        n += 1
+    return f"{base_id}__{n}"
+
+
 def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
@@ -659,6 +688,17 @@ if st.session_state["current_trip"] is None:
     @st.dialog("Създаване на ново приключение")
     def create_trip_modal():
         txt = st.text_input("Име на дестинацията:",placeholder="Въведете име...").strip()
+
+        # Дубликатите са позволени — показваме само информативно предупреждение.
+        _existing_base_ids = set(
+            str(x).strip()
+            for x in existing
+            if str(x).strip()
+        )
+        _typed_base_id = txt.replace(" ", "_") if txt else ""
+        if _typed_base_id in _existing_base_ids:
+            st.info("ℹ️ Вече имаш пътуване до тази дестинация. Новото ще бъде отделно пътуване със собствен бюджет и разходи.")
+
         d_range = st.date_input("Изберете дати за почивката:", value=[datetime.date.today(), datetime.date.today()])
         st.write("---")
         st.write("🚗 Пътувате ли със собствен автомобил?")
@@ -676,7 +716,8 @@ if st.session_state["current_trip"] is None:
             else:
                 s_d_str, e_d_str = "", ""
             sk = float(new_skm) if new_skm is not None else 0.0
-            target_id = txt.replace(" ", "_")
+            base_id = txt.replace(" ", "_")
+            target_id = get_unique_trip_id(base_id)
             save_trip_settings(target_id, "Да" if viber_car == "Да, със собствен автомобил" else "Не", "Да" if viber_car == "Да, със собствен автомобил" else "Добави впоследствие", sk, 0.0, 0.0, s_d_str, e_d_str)
             try:
                 geolocator = Nominatim(user_agent="pixelapp_travel_manager_2026")
@@ -697,8 +738,17 @@ if st.session_state["current_trip"] is None:
 
         for _trip in existing:
             _trip_id = str(_trip)
-            _trip_name = _trip_id.replace("_", " ")
+            _trip_name = get_trip_display_name(_trip_id)
             _settings = get_trip_settings(_trip_id)
+            _trip_start_date = str(_settings.get("start_date", "") or "").strip()
+            _trip_end_date = str(_settings.get("end_date", "") or "").strip()
+            _trip_dates_line = ""
+            if _trip_start_date and _trip_start_date.lower() != "nan":
+                _trip_dates_line = (
+                    f"{_trip_start_date} → {_trip_end_date}"
+                    if _trip_end_date and _trip_end_date.lower() != "nan" and _trip_end_date != _trip_start_date
+                    else _trip_start_date
+                )
             _finished = float(_settings.get("end_km", 0.0) or 0.0) > 0.0
 
             # Статус: активно = зелена точка, приключено = червена точка.
@@ -888,7 +938,8 @@ if st.session_state["current_trip"] is None:
 
                 _label = (
                     f"🚙  **{_trip_name}**    →\n"
-                    f"{_status_dot}  {_status_text}\n"
+                    f"{_status_dot}  {_status_text}"
+                    f"{f' · {_trip_dates_line}' if _trip_dates_line else ''}\n"
                     f"{_budget_line}"
                 )
 
