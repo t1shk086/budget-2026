@@ -2838,7 +2838,29 @@ else:
     )
     _mobile_status = "ПРИКЛЮЧЕНО" if is_trip_finished else "АКТИВНО ПЪТУВАНЕ"
     _mobile_status_class = "finished" if is_trip_finished else "active"
-    _budget_pct = min(100.0, max(0.0, (grand_total / total_budget * 100.0) if total_budget > 0 else 0.0))
+
+    # Budget data must be available before the redesigned hero is rendered.
+    # The old code calculated the budget later in the trip page, which caused
+    # a NameError here when the new visual header tried to use total_budget.
+    _mobile_global_budget = float(get_global_budget(trip_id) or 0.0)
+    _mobile_category_budgets = get_category_budgets(trip_id)
+    _mobile_category_budget_total = sum(
+        float(v or 0.0) for v in _mobile_category_budgets.values() if float(v or 0.0) > 0
+    )
+    _mobile_total_budget = (
+        _mobile_global_budget
+        if _mobile_global_budget > 0
+        else _mobile_category_budget_total
+    )
+    _mobile_grand_total = float(depozit_hotel + total_on_site)
+    _budget_pct = min(
+        100.0,
+        max(
+            0.0,
+            (_mobile_grand_total / _mobile_total_budget * 100.0)
+            if _mobile_total_budget > 0 else 0.0
+        )
+    )
 
     st.markdown(f"""
         <div class="tm-trip-hero">
@@ -2856,9 +2878,9 @@ else:
                 <div class="tm-trip-finance-top">
                     <div>
                         <div class="tm-trip-eyebrow">ОБЩ РАЗХОД</div>
-                        <div class="tm-trip-total">€{grand_total:,.2f}</div>
+                        <div class="tm-trip-total">€{_mobile_grand_total:,.2f}</div>
                     </div>
-                    <div class="tm-trip-budget">БЮДЖЕТ<br><strong>€{total_budget:,.2f}</strong></div>
+                    <div class="tm-trip-budget">БЮДЖЕТ<br><strong>€{_mobile_total_budget:,.2f}</strong></div>
                 </div>
                 <div class="tm-trip-progress-track"><div style="width:{_budget_pct:.0f}%"></div></div>
                 <div class="tm-trip-progress-row"><span>{_budget_pct:.0f}% от бюджета</span><span>{'🔒 Заключено' if trip_locked else '● Активно'}</span></div>
