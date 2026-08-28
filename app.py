@@ -263,6 +263,93 @@ def get_unique_trip_id(base_id):
     return f"{base_id}__{n}"
 
 
+def rename_trip(old_id, new_name):
+    """Преименува пътуване във всички свързани CSV файлове.
+    Самото пътуване остава същото: разходи, бюджет, километри и дати се запазват.
+    """
+    try:
+        old_id = str(old_id).strip()
+        new_name = str(new_name).strip()
+
+        if not old_id or not new_name:
+            return False, "Името не може да бъде празно."
+
+        base_id = new_name.replace(" ", "_")
+        # Не броим старото ID като заето, за да може да се преименува обратно
+        # или да се използва същото основно име.
+        all_ids = set()
+
+        for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, TRIP_PLAN_FILE, CATEGORY_BUDGETS_FILE]:
+            if os.path.exists(file_name):
+                try:
+                    df_tmp = pd.read_csv(file_name, encoding="utf-8")
+                    if "trip_id" in df_tmp.columns:
+                        all_ids.update(
+                            str(x).strip()
+                            for x in df_tmp["trip_id"].dropna().unique()
+                            if str(x).strip()
+                        )
+                except Exception:
+                    pass
+
+        all_ids.discard(old_id)
+
+        if base_id in all_ids:
+            n = 2
+            new_id = f"{base_id}__{n}"
+            while new_id in all_ids:
+                n += 1
+                new_id = f"{base_id}__{n}"
+        else:
+            new_id = base_id
+
+        # Променяме trip_id във всички файлове, без да закачаме другите данни.
+        for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, TRIP_PLAN_FILE, CATEGORY_BUDGETS_FILE]:
+            if not os.path.exists(file_name):
+                continue
+
+            try:
+                df_tmp = pd.read_csv(file_name, encoding="utf-8")
+                if "trip_id" in df_tmp.columns:
+                    df_tmp.loc[df_tmp["trip_id"].astype(str) == old_id, "trip_id"] = new_id
+
+                    # При картата обновяваме и генерирания надпис на центъра.
+                    if file_name == MAP_FILE and "title" in df_tmp.columns:
+                        old_name_display = get_trip_display_name(old_id)
+                        new_name_display = get_trip_display_name(new_id)
+                        mask_title = df_tmp["trip_id"].astype(str) == new_id
+                        df_tmp.loc[
+                            mask_title & df_tmp["title"].astype(str).str.contains(
+                                f"Център: {old_name_display}", regex=False, na=False
+                            ),
+                            "title"
+                        ] = df_tmp.loc[
+                            mask_title & df_tmp["title"].astype(str).str.contains(
+                                f"Център: {old_name_display}", regex=False, na=False
+                            ),
+                            "title"
+                        ].astype(str).str.replace(
+                            f"Център: {old_name_display}",
+                            f"Център: {new_name_display}",
+                            regex=False
+                        )
+
+                    df_tmp.to_csv(file_name, index=False, encoding="utf-8")
+            except Exception:
+                return False, f"Проблем при обновяване на {file_name}."
+
+        if st.session_state.get("current_trip") == old_id:
+            st.session_state["current_trip"] = new_id
+
+        if st.session_state.get("edit_unlocked_trip") == old_id:
+            st.session_state["edit_unlocked_trip"] = new_id
+
+        return True, new_id
+
+    except Exception as exc:
+        return False, str(exc)
+
+
 def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d=""):
     try:
         df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
@@ -3758,6 +3845,73 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                     st.rerun()
         else:
             st.info("Няма приключени пътувания за отключване.")
+
+        st.markdown("---")
+        st.markdown("##### ✏️ Преименуване на съществуващо пътуване")
+        st.caption("Преименуването променя само името на пътуването. Разходи, бюджети, километри, маршрут и дати се запазват.")
+
+        _admin_trip_ids = []
+        for _rename_file in [DATA_FILE, SETTINGS_FILE, MAP_FILE, TRIP_PLAN_FILE, CATEGORY_BUDGETS_FILE]:
+            if os.path.exists(_rename_file):
+                try:
+                    _rename_df = pd.read_csv(_rename_file, encoding="utf-8")
+                    if "trip_id" in _rename_df.columns:
+                        _admin_trip_ids.extend(
+                            str(x).strip()
+                            for x in _rename_df["trip_id"].dropna().unique()
+                            if str(x).strip()
+                        )
+                except Exception:
+                    pass
+
+        _admin_trip_ids = list(dict.fromkeys(_admin_trip_ids))
+
+        if _admin_trip_ids:
+            def _rename_trip_label(tid):
+                display_name = get_trip_display_name(tid)
+                settings = get_trip_settings(tid)
+                sd = str(settings.get("start_date", "") or "").strip()
+                ed = str(settings.get("end_date", "") or "").strip()
+
+                if sd and sd.lower() != "nan":
+                    date_part = f"{sd} → {ed}" if ed and ed.lower() != "nan" and ed != sd else sd
+                    return f"🚙 {display_name} · {date_part}"
+                return f"🚙 {display_name}"
+
+            admin_rename_choice = st.selectbox(
+                "Избери пътуване:",
+                _admin_trip_ids,
+                format_func=_rename_trip_label,
+                key="admin_rename_trip_select"
+            )
+
+            admin_new_trip_name = st.text_input(
+                "Ново име на дестинацията:",
+                value=get_trip_display_name(admin_rename_choice),
+                key="admin_rename_trip_name",
+                placeholder="Например: Бургас"
+            ).strip()
+
+            if st.button(
+                "✏️ ПРЕИМЕНУВАЙ ПЪТУВАНЕТО",
+                use_container_width=True,
+                type="primary",
+                key="admin_rename_trip_btn"
+            ):
+                if not admin_new_trip_name:
+                    st.warning("⚠️ Въведи ново име.")
+                elif admin_new_trip_name == get_trip_display_name(admin_rename_choice):
+                    st.info("ℹ️ Новото име е същото като текущото.")
+                else:
+                    ok_rename, rename_result = rename_trip(admin_rename_choice, admin_new_trip_name)
+                    if ok_rename:
+                        st.success(f"✅ Пътуването е преименувано на „{get_trip_display_name(rename_result)}“.")
+                        st.session_state["show_admin_panel"] = False
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Преименуването не успя: {rename_result}")
+        else:
+            st.info("Няма налични пътувания за преименуване.")
 
         st.markdown("---")
         st.markdown("##### 🏷️ Имена на категориите")
