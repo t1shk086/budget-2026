@@ -12,43 +12,71 @@ import html
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
+
 # =========================================================
 # FULLSCREEN BUTTON
 # =========================================================
 
-st.markdown("""
-<style>
-.fullscreen-btn {
-    position: fixed;
-    top: 12px;
-    right: 18px;
-    z-index: 999999;
-    background: rgba(30, 30, 30, 0.85);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.25);
-    border-radius: 10px;
-    padding: 8px 12px;
-    font-size: 18px;
-    cursor: pointer;
-}
-</style>
+components.html(
+    """
+    <style>
+        #fullscreenBtn {
+            position: fixed;
+            top: 10px;
+            right: 15px;
+            z-index: 999999;
+            width: 42px;
+            height: 42px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(30,30,30,0.85);
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+        }
 
-<button class="fullscreen-btn" onclick="toggleFullscreen()">
-    ⛶
-</button>
+        #fullscreenBtn:hover {
+            background: rgba(60,60,60,0.95);
+        }
+    </style>
 
-<script>
-function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(function(err) {
-            console.log("Fullscreen error:", err);
+    <button id="fullscreenBtn" title="Fullscreen">⛶</button>
+
+    <script>
+        const btn = document.getElementById("fullscreenBtn");
+
+        btn.addEventListener("click", async () => {
+            try {
+                if (!window.parent.document.fullscreenElement) {
+                    await window.parent.document.documentElement.requestFullscreen();
+                    btn.textContent = "✕";
+                    btn.title = "Изход от Fullscreen";
+                } else {
+                    await window.parent.document.exitFullscreen();
+                    btn.textContent = "⛶";
+                    btn.title = "Fullscreen";
+                }
+            } catch (error) {
+                console.log("Fullscreen error:", error);
+            }
         });
-    } else {
-        document.exitFullscreen();
-    }
-}
-</script>
-""", unsafe_allow_html=True)
+
+        window.parent.document.addEventListener(
+            "fullscreenchange",
+            () => {
+                if (window.parent.document.fullscreenElement) {
+                    btn.textContent = "✕";
+                    btn.title = "Изход от Fullscreen";
+                } else {
+                    btn.textContent = "⛶";
+                    btn.title = "Fullscreen";
+                }
+            }
+        );
+    </script>
+    """,
+    height=55,
+)
 
 st.markdown("""
 <style>
