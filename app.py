@@ -464,6 +464,33 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
+# Временно отключване на заключването на приключено пътуване.
+# end_km и статусът „Приключено“ НЕ се променят.
+if "edit_unlocked_trip" not in st.session_state:
+    st.session_state["edit_unlocked_trip"] = None
+
+def trip_edit_unlocked(t_id):
+    return st.session_state.get("edit_unlocked_trip") == str(t_id)
+
+def lock_trip_editing(t_id=None):
+    if t_id is None or st.session_state.get("edit_unlocked_trip") == str(t_id):
+        st.session_state["edit_unlocked_trip"] = None
+
+def get_finished_trip_ids():
+    """Връща всички приключени пътувания по записания краен километраж."""
+    result = []
+    try:
+        if os.path.exists(SETTINGS_FILE):
+            df_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+            if not df_settings.empty and "trip_id" in df_settings.columns and "end_km" in df_settings.columns:
+                for _, row in df_settings.iterrows():
+                    tid = str(row.get("trip_id", "")).strip()
+                    if tid and float(row.get("end_km", 0.0) or 0.0) > 0:
+                        result.append(tid)
+    except Exception:
+        pass
+    return list(dict.fromkeys(result))
+
 def _navigate_fuel(direction, trip_id):
     try:
         df_nav = pd.read_csv(DATA_FILE, encoding="utf-8")
@@ -528,6 +555,7 @@ if "open_quick_expense" not in st.session_state:
     st.session_state["open_quick_expense"] = False
 
 if st.session_state["current_trip"] is None:
+    st.session_state["edit_unlocked_trip"] = None
     st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
 
     existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
@@ -937,7 +965,7 @@ if st.session_state["current_trip"] is None:
 
             if not quick_car_trip:
                 st.warning("🚗 За проследяване на горивото това пътуване трябва да е със собствен автомобил.")
-            elif quick_trip_finished:
+            elif quick_trip_finished and not trip_edit_unlocked(selected_trip):
                 st.error("🔒 Пътуването е приключено. Зареждането на гориво е заключено.")
             else:
                 fuel_c1, fuel_c2 = st.columns(2)
@@ -1002,7 +1030,7 @@ if st.session_state["current_trip"] is None:
                 if not quick_car_trip:
                     st.error("❌ Това пътуване не е настроено за собствен автомобил.")
                     return
-                if quick_trip_finished:
+                if quick_trip_finished and not trip_edit_unlocked(selected_trip):
                     st.error("❌ Пътуването е приключено.")
                     return
                 if liters <= 0:
@@ -1040,6 +1068,10 @@ if st.session_state["current_trip"] is None:
                     st.rerun()
                 else:
                     st.error("❌ Зареждането не можа да бъде записано.")
+                return
+
+            if quick_trip_finished and not trip_edit_unlocked(selected_trip):
+                st.error("🔒 Това пътуване е приключено. Отключете го от „Административни Инструменти“, ако искате да го редактирате.")
                 return
 
             if add_expense(selected_trip, float(amount), selected_category, desc, False):
@@ -1602,6 +1634,7 @@ else:
 
     if st.button("🔙 НАЗАД КЪМ НАЧАЛЕН ЕКРАН", use_container_width=True): 
         st.session_state["current_trip"] = None
+        st.session_state["edit_unlocked_trip"] = None
         st.rerun()
 
     v_id = st.session_state["form_version"]
@@ -1614,10 +1647,12 @@ else:
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
     is_trip_finished = (e_km > 0.0)
+    is_edit_unlocked = trip_edit_unlocked(trip_id)
+    trip_locked = is_trip_finished and not is_edit_unlocked
 
     @st.dialog("⛽ Зареждане на гориво")
     def fuel_modal(amount, category, description, is_dep):
-        if is_trip_finished: 
+        if trip_locked: 
             st.error("🔒 Пътуването е приключено!")
             return
         liters = st.number_input("Литри:", value=None, placeholder="Напишете литри...", step=0.1)
@@ -1688,7 +1723,7 @@ else:
             }
             for i, kat in enumerate(KATEGORII):
                 with grid[i % 3]:
-                    is_disabled = is_trip_finished and (kat == "Транспорт")
+                    is_disabled = trip_locked
                     button_label = display_categories.get(kat, kat)
                     if st.button(f"🔒 {button_label}" if is_disabled else button_label, use_container_width=True, key=f"bt_{i}", disabled=is_disabled):
                         desc, is_d = o_input.strip(), (kat == "Депозит/Резервация")
@@ -1943,15 +1978,15 @@ else:
     
     @st.dialog("⚙️ Настройки за автомобил и период")
     def edit_car_modal():
-        v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1, disabled=is_trip_finished)
-        new_sk = st.number_input("Начални километри (км):", value=None if s_km == 0.0 else s_km, placeholder="Въведете началните км...", disabled=is_trip_finished)
+        v_car = st.radio("Автомобил ли използвате?", ["Не", "Да"], index=0 if car_trip == "Не" else 1, disabled=trip_locked)
+        new_sk = st.number_input("Начални километри (км):", value=None if s_km == 0.0 else s_km, placeholder="Въведете началните км...", disabled=trip_locked)
         
         # Полето приема само положителни числа за сигурност
-        new_mf = st.number_input("Добави пропуснато гориво (л):", value=None, placeholder="Въведете литри...", min_value=0.0, disabled=is_trip_finished)
+        new_mf = st.number_input("Добави пропуснато гориво (л):", value=None, placeholder="Въведете литри...", min_value=0.0, disabled=trip_locked)
 
-        has_cash_expense = st.checkbox("💵 Помня и платената сума за това гориво?") if (new_mf and new_mf > 0 and not is_trip_finished) else False
+        has_cash_expense = st.checkbox("💵 Помня и платената сума за това гориво?") if (new_mf and new_mf > 0 and not trip_locked) else False
         manual_cash_amt = st.number_input("Въведете платена сума (EUR):", value=None, format="%.2f", placeholder="Въведете сумата...") if has_cash_expense else 0.0
-        if new_mf and new_mf > 0 and not is_trip_finished and not has_cash_expense:
+        if new_mf and new_mf > 0 and not trip_locked and not has_cash_expense:
             st.caption("📝 Ще се запише като зареждане, за което са известни само литрите.")
         try:
             current_start = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else datetime.date.today()
@@ -1966,7 +2001,7 @@ else:
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        if st.button("💾 Обнови настройките", use_container_width=True, type="primary", disabled=is_trip_finished):
+        if st.button("💾 Обнови настройките", use_container_width=True, type="primary", disabled=trip_locked):
             sk_val = float(new_sk) if new_sk is not None else 0.0
             added_liters = float(new_mf) if new_mf is not None else 0.0
             mf_val = max(0.0, m_fuel + (added_liters if (has_cash_expense and manual_cash_amt and manual_cash_amt > 0) else 0.0))
@@ -1992,7 +2027,7 @@ else:
             st.rerun()
             
         # Автоматизирано нулиране на литри И премахване на паричните записи от хронологията
-        if m_fuel > 0 and not is_trip_finished:
+        if m_fuel > 0 and not trip_locked:
             if st.button("🗑️ Изчисти натрупаните ръчни литри и разходи", use_container_width=True):
                 # 1. Нулиране на литрите в SETTINGS_FILE
                 save_trip_settings(trip_id, car_trip, "Да", s_km, e_km, 0.0, st_date, en_date)
@@ -2022,15 +2057,32 @@ else:
 
     if car_trip == "Да":
         col_manage1, col_manage2 = st.columns(2)
-        with col_manage1: 
-            st.button("🔒 Заключени настройки" if is_trip_finished else "⚙️ Настройки автомобил", use_container_width=True, disabled=is_trip_finished, on_click=edit_car_modal)
-        with col_manage2: 
-            st.button("🏁 Пътуването е приключено 🔒" if is_trip_finished else "🏁 Край на пътуването", use_container_width=True, disabled=is_trip_finished, on_click=finish_trip_modal)
+        with col_manage1:
+            st.button(
+                "🔒 Заключени настройки" if trip_locked else "⚙️ Настройки автомобил",
+                use_container_width=True,
+                disabled=trip_locked,
+                on_click=edit_car_modal
+            )
+        with col_manage2:
+            if is_trip_finished:
+                if st.button(
+                    "🔒 Заключи редакцията" if is_edit_unlocked else "🏁 Пътуването е приключено 🔒",
+                    use_container_width=True,
+                    disabled=not is_edit_unlocked,
+                    key=f"relock_trip_{trip_id}"
+                ):
+                    lock_trip_editing(trip_id)
+                    st.rerun()
+            else:
+                st.button(
+                    "🏁 Край на пътуването",
+                    use_container_width=True,
+                    on_click=finish_trip_modal
+                )
     else:
-        if st.button("🚗 Добави автомобил към пътуването", use_container_width=True): 
+        if st.button("🚗 Добави автомобил към пътуването", use_container_width=True, disabled=trip_locked):
             edit_car_modal()
-
-
 
 
 
@@ -2104,7 +2156,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
     with budget_col2:
-        budget_locked = float(e_km) > 0.0
+        budget_locked = trip_locked
         if st.button(
             "🔒 Настрой бюджет" if budget_locked else "🎯 Настрой бюджет",
             use_container_width=True,
@@ -2604,7 +2656,7 @@ else:
                         
                     with col_del:
                         st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
-                        if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True):
+                        if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True, disabled=trip_locked):
                             df_fresh = pd.read_csv(DATA_FILE, encoding="utf-8")
                             target_row = df_fresh.loc[idx]
                             desc_str = str(target_row["description"])
@@ -3181,7 +3233,7 @@ else:
             st.session_state["active_click"] = new_click
             st.rerun()
             
-    if "active_click" in st.session_state and st.session_state["active_click"] is not None and not is_trip_finished:
+    if "active_click" in st.session_state and st.session_state["active_click"] is not None and not trip_locked:
         click_coords = st.session_state["active_click"]
         st.markdown(f"📌 **Избрано място:** Ширина: `{click_coords['lat']:.4f}`, Дължина: `{click_coords['lng']:.4f}`")
         c_m1, c_m2 = st.columns([0.7, 0.3])
@@ -3224,7 +3276,7 @@ else:
                         "❌",
                         key=f"del_pin_{idx}",
                         use_container_width=True,
-                        disabled=is_trip_finished,
+                        disabled=trip_locked,
                         on_click=_delete_map_point,
                         args=(idx,)
                     )
@@ -3382,6 +3434,35 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         st.session_state["show_admin_panel"] = False
                         st.session_state["current_trip"] = None
                         st.rerun()
+
+        st.markdown("---")
+        st.markdown("##### 🔓 Редакция на приключено пътуване")
+        st.caption("Отключването е временно. Крайните километри и статусът „Приключено“ се запазват. След редакцията натисни „🔒 Заключи редакцията“.")
+
+        finished_trips_admin = get_finished_trip_ids()
+        if finished_trips_admin:
+            finished_trip_labels = {tid: tid.replace("_", " ") for tid in finished_trips_admin}
+            current_unlocked_admin = st.session_state.get("edit_unlocked_trip")
+
+            if current_unlocked_admin in finished_trips_admin:
+                st.success(f"✏️ В момента е отключено: **{finished_trip_labels[current_unlocked_admin]}**")
+                if st.button("🔒 ЗАКЛЮЧИ РЕДАКЦИЯТА", use_container_width=True, type="primary", key="admin_relock_finished_trip_btn"):
+                    lock_trip_editing(current_unlocked_admin)
+                    st.rerun()
+            else:
+                admin_finished_choice = st.selectbox(
+                    "Избери приключено пътуване:",
+                    finished_trips_admin,
+                    format_func=lambda tid: f"🔴 {finished_trip_labels.get(tid, tid.replace('_', ' '))}",
+                    key="admin_finished_trip_select"
+                )
+                if st.button("🔓 ОТКЛЮЧИ ЗА РЕДАКЦИЯ", use_container_width=True, type="primary", key="admin_unlock_finished_trip_btn"):
+                    st.session_state["edit_unlocked_trip"] = str(admin_finished_choice)
+                    st.session_state["current_trip"] = str(admin_finished_choice)
+                    st.session_state["show_admin_panel"] = False
+                    st.rerun()
+        else:
+            st.info("Няма приключени пътувания за отключване.")
 
         st.markdown("---")
         st.markdown("##### 🏷️ Имена на категориите")
