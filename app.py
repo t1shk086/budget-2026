@@ -1274,9 +1274,26 @@ if st.session_state["current_trip"] is None:
 
     @st.dialog("➕ Бърз разход", width="large")
     def quick_expense_modal():
-        # Използваме абсолютно същия списък като полето „Изберете пътуване до:“ на началния екран.
-        existing_quick = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
-        existing_quick = [t for t in existing_quick if pd.notna(t) and str(t).strip() != ""]
+        # Същият списък като началния екран:
+        # пътуването съществува дори когато все още няма разход.
+        _quick_ids_data = (
+            list(pd.read_csv(DATA_FILE)["trip_id"].dropna().unique())
+            if os.path.exists(DATA_FILE) else []
+        )
+        _quick_ids_settings = (
+            list(pd.read_csv(SETTINGS_FILE)["trip_id"].dropna().unique())
+            if os.path.exists(SETTINGS_FILE) else []
+        )
+        _quick_ids_budget = (
+            list(pd.read_csv(CATEGORY_BUDGETS_FILE)["trip_id"].dropna().unique())
+            if os.path.exists(CATEGORY_BUDGETS_FILE) else []
+        )
+
+        existing_quick = list(dict.fromkeys(
+            [str(t).strip() for t in
+             (_quick_ids_settings + _quick_ids_budget + _quick_ids_data)
+             if pd.notna(t) and str(t).strip() != ""]
+        ))
 
         if not existing_quick:
             st.info("Първо създайте поне едно пътуване.")
