@@ -4359,8 +4359,8 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         SMTP_PORT = 465
 
                         # Тези две стойности се вземат от Streamlit Secrets
-                        SMTP_USERNAME = st.secrets["gmail"]["username"]
-                        SMTP_PASSWORD = st.secrets["gmail"]["app_password"]
+                        SMTP_USERNAME = "t.senkov86@gmail.com"
+                        SMTP_PASSWORD = "abcdefghijklmnop"
 
                         # =================================================
                         # СЪЗДАВЯНЕ НА ИМЕЙЛА
