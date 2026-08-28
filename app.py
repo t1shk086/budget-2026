@@ -958,7 +958,8 @@ if st.session_state["current_trip"] is None:
                                     _last_activity = (
                                         str(_home_tid).replace("_", " "),
                                         float(_row.get("amount", 0.0) or 0.0),
-                                        str(_row.get("category", "Разход"))
+                                        str(_row.get("category", "Разход")),
+                                        str(_row.get("description", "Без описание") or "Без описание")
                                     )
                             except Exception:
                                 pass
@@ -967,7 +968,10 @@ if st.session_state["current_trip"] is None:
 
         st.markdown("""
             <style>
-                .tm-home-extra {
+                .st-key-recent_expenses_home_btn {
+            margin-top:12px !important;
+        }
+        .tm-home-extra {
                     margin-top:12px;
                     padding:12px 14px;
                     border-radius:14px;
@@ -975,23 +979,27 @@ if st.session_state["current_trip"] is None:
                     background:rgba(255,255,255,.018);
                 }
                 .tm-home-extra-title {
-                    color:#aeb5c0;
-                    font-size:12px;
+                    color:#9aa1ad;
+                    font-size:13px;
                     font-weight:800;
                     letter-spacing:0;
                     margin-bottom:8px;
+                    font-family:inherit;
                 }
                 .tm-home-extra-main {
                     color:#ffffff;
-                    font-size:14px;
-                    font-weight:700;
-                    line-height:1.35;
+                    font-size:15px;
+                    font-weight:800;
+                    line-height:1.3;
+                    font-family:inherit;
                 }
                 .tm-home-extra-sub {
                     color:#8f97a3;
                     font-size:11px;
+                    font-weight:400;
                     margin-top:3px;
                     line-height:1.35;
+                    font-family:inherit;
                 }
                 .tm-home-stats {
                     display:flex;
@@ -1009,9 +1017,19 @@ if st.session_state["current_trip"] is None:
                 }
                 .tm-home-stat-value {
                     color:#fff;
-                    font-size:14px;
+                    font-size:15px;
                     font-weight:800;
                     line-height:1.2;
+                    font-family:inherit;
+                }
+                .tm-home-stat-trips {
+                    color:#00f2fe;
+                }
+                .tm-home-stat-spent {
+                    color:#ffd43b;
+                }
+                .tm-home-stat-km {
+                    color:#63d391;
                 }
                 .tm-home-stat-label {
                     color:#858d99;
@@ -1044,13 +1062,13 @@ if st.session_state["current_trip"] is None:
             )
 
         if _last_activity:
-            _la_trip, _la_amount, _la_cat = _last_activity
+            _la_trip, _la_amount, _la_cat, _la_desc = _last_activity
             st.markdown(
                 f"""
                 <div class="tm-home-extra">
                     <div class="tm-home-extra-title">🕐 ПОСЛЕДНА АКТИВНОСТ</div>
                     <div class="tm-home-extra-main">{_la_trip} · €{_la_amount:,.2f}</div>
-                    <div class="tm-home-extra-sub">{_la_cat}</div>
+                    <div class="tm-home-extra-sub">{_la_cat} - {_la_desc}</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -1062,15 +1080,15 @@ if st.session_state["current_trip"] is None:
                 <div class="tm-home-extra-title">📊 БЪРЗ ПОГЛЕД</div>
                 <div class="tm-home-stats">
                     <div class="tm-home-stat">
-                        <div class="tm-home-stat-value">{_home_stats["trips"]}</div>
+                        <div class="tm-home-stat-value tm-home-stat-trips">{_home_stats["trips"]}</div>
                         <div class="tm-home-stat-label">ПЪТУВАНИЯ</div>
                     </div>
                     <div class="tm-home-stat">
-                        <div class="tm-home-stat-value">€{_home_stats["spent"]:,.0f}</div>
+                        <div class="tm-home-stat-value tm-home-stat-spent">€{_home_stats["spent"]:,.0f}</div>
                         <div class="tm-home-stat-label">РАЗХОДИ</div>
                     </div>
                     <div class="tm-home-stat">
-                        <div class="tm-home-stat-value">{_home_stats["km"]:,.0f}</div>
+                        <div class="tm-home-stat-value tm-home-stat-km">{_home_stats["km"]:,.0f}</div>
                         <div class="tm-home-stat-label">КМ</div>
                     </div>
                 </div>
