@@ -4290,7 +4290,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 from email.message import EmailMessage
 
                 # =====================================================
-                # СЪЗДАВАНЕ НА ZIP АРХИВ
+                # СЪЗДАВЯНЕ НА ZIP АРХИВ
                 # =====================================================
                 zip_buffer = io.BytesIO()
 
@@ -4299,7 +4299,6 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                     "w",
                     zipfile.ZIP_DEFLATED
                 ) as zip_file:
-
                     for file_name in [
                         DATA_FILE,
                         SETTINGS_FILE,
@@ -4334,8 +4333,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
 
                 email_to = st.text_input(
                     "Имейл получател",
-                    value="",
-                    placeholder="например: name@example.com",
+                    placeholder="name@example.com",
                     key="backup_email_to"
                 )
 
@@ -4344,24 +4342,21 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                     use_container_width=True,
                     key="send_backup_email_btn"
                 ):
-
                     if not email_to.strip():
                         st.warning("⚠️ Моля, въведи имейл адрес.")
+
                     else:
 
                         # =================================================
-                        # SMTP НАСТРОЙКИ
-                        # ПОПЪЛНИ С ТВОИТЕ ДАННИ
+                        # ABV SMTP НАСТРОЙКИ
                         # =================================================
                         SMTP_SERVER = "smtp.abv.bg"
                         SMTP_PORT = 465
-                        SMTP_USERNAME = "pixelapp@abv.bg"
-                        SMTP_PASSWORD = "t1shk086"
-
-                        SMTP_USE_TLS = True
+                        SMTP_USERNAME = "ТВОЯТ_ABV_ИМЕЙЛ"
+                        SMTP_PASSWORD = "ТВОЯТА_ABV_ПАРОЛА"
 
                         # =================================================
-                        # СЪЗДАВЯНЕ НА ИМЕЙЛА
+                        # СЪЗДАВАНЕ НА ИМЕЙЛА
                         # =================================================
                         msg = EmailMessage()
 
@@ -4377,6 +4372,9 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                             "PixelApp"
                         )
 
+                        # =================================================
+                        # ПРИКАЧВАНЕ НА ZIP АРХИВА
+                        # =================================================
                         msg.add_attachment(
                             zip_data,
                             maintype="application",
@@ -4385,45 +4383,27 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         )
 
                         # =================================================
-                        # ИЗПРАЩАНЕ
+                        # ABV - SSL / PORT 465
                         # =================================================
-                        if SMTP_USE_TLS:
+                        with smtplib.SMTP_SSL(
+                            SMTP_SERVER,
+                            SMTP_PORT,
+                            timeout=30
+                        ) as server:
 
-                            with smtplib.SMTP(
-                                SMTP_SERVER,
-                                SMTP_PORT,
-                                timeout=30
-                            ) as server:
+                            server.login(
+                                SMTP_USERNAME,
+                                SMTP_PASSWORD
+                            )
 
-                                server.starttls()
-                                server.login(
-                                    SMTP_USERNAME,
-                                    SMTP_PASSWORD
-                                )
-
-                                server.send_message(msg)
-
-                        else:
-
-                            with smtplib.SMTP_SSL(
-                                SMTP_SERVER,
-                                SMTP_PORT,
-                                timeout=30
-                            ) as server:
-
-                                server.login(
-                                    SMTP_USERNAME,
-                                    SMTP_PASSWORD
-                                )
-
-                                server.send_message(msg)
+                            server.send_message(msg)
 
                         st.success(
-                            f"✅ Архивът беше изпратен успешно до {email_to.strip()}."
+                            f"✅ Архивът беше изпратен успешно до "
+                            f"{email_to.strip()}."
                         )
 
             except Exception as e:
-
                 st.error(
                     f"❌ Грешка при създаване или изпращане на архива: {e}"
                 )
