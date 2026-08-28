@@ -12,6 +12,43 @@ import html
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
+# =========================================================
+# FULLSCREEN BUTTON
+# =========================================================
+
+st.markdown("""
+<style>
+.fullscreen-btn {
+    position: fixed;
+    top: 12px;
+    right: 18px;
+    z-index: 999999;
+    background: rgba(30, 30, 30, 0.85);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 18px;
+    cursor: pointer;
+}
+</style>
+
+<button class="fullscreen-btn" onclick="toggleFullscreen()">
+    ⛶
+</button>
+
+<script>
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(function(err) {
+            console.log("Fullscreen error:", err);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+</script>
+""", unsafe_allow_html=True)
 
 st.markdown("""
 <style>
