@@ -16,31 +16,44 @@ st.set_page_config(
 )
 
 # =========================================================
-# DESKTOP DARK THEME & DASHBOARD STYLING
+# ИНИЦИАЛИЗАЦИЯ НА ФАЙЛОВЕ И СЕСИЯ (ПЪЛНА ЛОГИКА)
+# =========================================================
+
+DATA_FILE = "expenses.csv"
+SETTINGS_FILE = "settings.csv"
+TRIP_PLAN_FILE = "trip_plans.csv"
+NOTES_FILE = "notes.csv"
+
+def init_files():
+    if not os.path.exists(DATA_FILE):
+        pd.DataFrame(columns=["id", "trip_id", "amount", "description", "category", "is_fuel", "odometer", "liters", "full_tank", "date"]).to_csv(DATA_FILE, index=False)
+    if not os.path.exists(SETTINGS_FILE):
+        pd.DataFrame([{"trip_id": "Бургас", "budget": 1200.0, "start_date": "2025-08-20", "end_date": "2025-08-24", "is_finished": False}]).to_csv(SETTINGS_FILE, index=False)
+    if not os.path.exists(NOTES_FILE):
+        pd.DataFrame(columns=["id", "trip_id", "note", "date"]).to_csv(NOTES_FILE, index=False)
+
+init_files()
+
+def load_data(file_path):
+    return pd.read_csv(file_path)
+
+def save_data(df, file_path):
+    df.to_csv(file_path, index=False)
+
+# Управление на състоянието на навигацията
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "Начална страница"
+
+# =========================================================
+# CSS СТИЛИЗИРАНЕ
 # =========================================================
 
 st.markdown("""
 <style>
-    /* Главен заден фон */
-    .stAppViewContainer, .stApp {
-        background-color: #0B0E14 !important;
-        color: #E2E8F0 !important;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+    .stAppViewContainer, .stApp { background-color: #0B0E14 !important; color: #E2E8F0 !important; }
+    header[data-testid="stHeader"] { background: transparent !important; }
+    section[data-testid="stSidebar"] { background-color: #121620 !important; border-right: 1px solid rgba(255, 255, 255, 0.05) !important; }
     
-    /* Скриване на стандартния Streamlit хедър */
-    header[data-testid="stHeader"] {
-        background: transparent !important;
-    }
-
-    /* Настройки за Sidebar */
-    section[data-testid="stSidebar"] {
-        background-color: #121620 !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
-        padding-top: 10px;
-    }
-
-    /* Главни карти (Card Elements) */
     .dark-card {
         background: #121620;
         border: 1px solid rgba(255, 255, 255, 0.05);
@@ -48,311 +61,234 @@ st.markdown("""
         padding: 18px;
         margin-bottom: 16px;
     }
-
-    /* Hero банер с изображение за дестинацията */
-    .hero-banner {
-        position: relative;
-        background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.7)), 
-                    url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80');
-        background-size: cover;
-        background-position: center;
-        border-radius: 16px;
-        height: 180px;
-        padding: 20px;
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        margin-bottom: 20px;
-    }
-
-    .hero-overlay-card {
-        background: rgba(18, 22, 32, 0.85);
-        backdrop-filter: blur(8px);
-        border-radius: 12px;
-        padding: 12px 20px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* KPI Иконни карти (Карти за бюджети и километри) */
     .kpi-card {
         background: #121620;
         border: 1px solid rgba(255, 255, 255, 0.05);
         border-radius: 12px;
         padding: 14px 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
     }
-
-    .kpi-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-    }
-
-    .kpi-val {
-        font-size: 18px;
-        font-weight: 700;
-        color: #FFFFFF;
-        margin-top: 2px;
-    }
-
-    .kpi-lbl {
-        font-size: 10px;
-        color: #718096;
-        text-transform: uppercase;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-    }
-
-    /* Стил на списъци с последни разходи */
-    .expense-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    }
+    .kpi-val { font-size: 18px; font-weight: 700; color: #FFFFFF; }
+    .kpi-lbl { font-size: 10px; color: #718096; text-transform: uppercase; font-weight: 600; }
+    .status-tag { background: rgba(16, 185, 129, 0.15); color: #10B981; font-size: 11px; padding: 4px 10px; border-radius: 6px; font-weight: 600; }
     
-    .expense-item:last-child {
-        border-bottom: none;
-    }
-
-    /* Зелен статус таг */
-    .status-tag {
-        background: rgba(16, 185, 129, 0.15);
-        color: #10B981;
-        font-size: 11px;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-weight: 600;
-        display: inline-block;
-    }
-
-    /* Бутони */
     .stButton > button {
         border-radius: 10px !important;
         background-color: #1E2538 !important;
         color: #E2E8F0 !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        font-weight: 500 !important;
         width: 100%;
-        transition: all 0.2s ease;
     }
-
-    .stButton > button:hover {
-        background-color: #2D3748 !important;
-        color: #FFFFFF !important;
-    }
+    .stButton > button:hover { background-color: #2D3748 !important; color: #FFFFFF !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # Fullscreen бутон
-components.html(
-    """
-    <style>
-        #fullscreenBtn {
-            position: fixed;
-            top: 14px;
-            right: 20px;
-            z-index: 999999;
-            width: 34px;
-            height: 34px;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            color: #E2E8F0;
-            font-size: 16px;
-            cursor: pointer;
-        }
-    </style>
-    <button id="fullscreenBtn" onclick="toggleFS()">⛶</button>
+components.html("""
+    <button id="fullscreenBtn" onclick="toggleFS()" style="position: fixed; top: 14px; right: 20px; z-index: 999999; width: 34px; height: 34px; border: none; border-radius: 8px; background: rgba(255, 255, 255, 0.08); color: #E2E8F0; cursor: pointer;">⛶</button>
     <script>
         function toggleFS() {
             var doc = window.parent.document;
-            if (!doc.fullscreenElement) {
-                doc.documentElement.requestFullscreen();
-            } else {
-                doc.exitFullscreen();
-            }
+            if (!doc.fullscreenElement) { doc.documentElement.requestFullscreen(); } 
+            else { doc.exitFullscreen(); }
         }
     </script>
-    """,
-    height=40,
-)
+""", height=40)
 
 # =========================================================
-# SIDEBAR (СТРАНИЧНО МЕНЮ И АКТИВНО ПЪТУВАНЕ)
+# ДИАЛОЗИ ЗА БЪРЗИ ДЕЙСТВИЯ (РАБОТЕЩИ МOДАЛНИ ПРОЗОРЦИ)
 # =========================================================
+
+@st.dialog("➕ Добави нов разход")
+def modal_add_expense(active_trip):
+    with st.form("modal_exp_form"):
+        amount = st.number_input("Сума (€)", min_value=0.01, step=1.0)
+        category = st.selectbox("Категория", ["Храна и напитки", "Транспорт", "Настаняване", "Забавления", "Покупки", "Други"])
+        description = st.text_input("Описание", placeholder="напр. Вечеря в ресторант")
+        is_fuel = st.checkbox("Гориво ⛽")
+        
+        if st.form_submit_button("Запази разхода"):
+            df_exp = load_data(DATA_FILE)
+            new_id = hashlib.md5(f"{datetime.datetime.now()}_{amount}".encode()).hexdigest()[:8]
+            new_row = pd.DataFrame([{
+                "id": new_id, "trip_id": active_trip, "amount": amount,
+                "category": category, "description": description, "is_fuel": is_fuel,
+                "odometer": 0, "liters": 0.0, "full_tank": False,
+                "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            }])
+            save_data(pd.concat([df_exp, new_row], ignore_index=True), DATA_FILE)
+            st.success("Разходът е добавен!")
+            st.rerun()
+
+@st.dialog("📝 Добави нова бележка")
+def modal_add_note(active_trip):
+    with st.form("modal_note_form"):
+        note_text = st.text_area("Бележка")
+        if st.form_submit_button("Запази бележката"):
+            df_notes = load_data(NOTES_FILE)
+            new_id = hashlib.md5(f"{datetime.datetime.now()}".encode()).hexdigest()[:8]
+            new_row = pd.DataFrame([{
+                "id": new_id, "trip_id": active_trip, "note": note_text,
+                "date": datetime.datetime.now().strftime("%d %b")
+            }])
+            save_data(pd.concat([df_notes, new_row], ignore_index=True), NOTES_FILE)
+            st.success("Бележката е запазена!")
+            st.rerun()
+
+# =========================================================
+# SIDEBAR МЕНЮ С ФУНКЦИОНАЛНИ БУТОНИ
+# =========================================================
+
+settings_df = load_data(SETTINGS_FILE)
+active_trips = settings_df[settings_df["is_finished"] == False]
+active_trip_id = active_trips.iloc[0]["trip_id"] if not active_trips.empty else "Бургас"
+current_budget = float(active_trips.iloc[0]["budget"]) if not active_trips.empty else 1200.0
 
 with st.sidebar:
     st.markdown("### 🟨 **PIXEL APP**")
     st.caption("Travel Manager")
     st.write("")
     
-    # Главна навигация
     st.markdown("**Навигация**")
-    st.button("🏠 Начална страница")
-    st.button("🌴 Пътувания")
-    st.button("🗺️ Карта на пътуванията")
-    st.button("📊 Анализи")
-    st.button("⚙️ Настройки")
-    
+    pages = ["🏠 Начална страница", "🌴 Пътувания", "🗺️ Карта на пътуванията", "📊 Анализи", "⚙️ Настройки"]
+    for page in pages:
+        if st.button(page, key=f"nav_{page}"):
+            st.session_state["current_page"] = page
+            st.rerun()
+            
     st.divider()
     
-    # Активно пътуване карта
     st.markdown('<div class="kpi-lbl">АКТИВНО ПЪТУВАНЕ</div>', unsafe_allow_html=True)
-    st.markdown("""
+    st.markdown(f"""
     <div style="background: #181F2E; padding: 12px; border-radius: 10px; margin-top: 6px; border: 1px solid rgba(255,255,255,0.05);">
-        <div style="font-weight: 700; font-size: 15px;">Бургас</div>
+        <div style="font-weight: 700; font-size: 15px;">{active_trip_id}</div>
         <div style="font-size: 11px; color: #A0AEC0;">20 – 24 Авг 2025</div>
         <div style="margin-top: 6px;"><span class="status-tag">В ПРОЦЕС</span></div>
     </div>
     """, unsafe_allow_html=True)
     
     st.divider()
-    
-    # Бързи действия
     st.markdown('**Бързи действия**')
-    if st.button("➕ Нов разход"):
-        st.toast("Отворен диалог за нов разход")
-    st.button("📝 Нова бележка")
-    st.button("📤 Качване на файл")
-    st.button("📊 Експорт на отчет")
+    if st.button("➕ Нов разход", key="btn_quick_add"):
+        modal_add_expense(active_trip_id)
+    if st.button("📝 Нова бележка", key="btn_quick_note"):
+        modal_add_note(active_trip_id)
 
 # =========================================================
-# MAIN DASHBOARD CONTENT (ГЛАВНА ИНФОРМАЦИОННА ЧАСТ)
+# ДАННИ И ИЗЧИСЛЕНИЯ
 # =========================================================
 
-# Горен заглавен ред
-head_col1, head_col2 = st.columns([3, 1])
-with head_col1:
-    st.markdown("## 🌴 Дестинация: Бургас")
-    st.markdown("<span style='color: #A0AEC0; font-size: 13px;'>🗓️ 20 – 24 Авг 2025 (4 дни) &nbsp;&nbsp;</span> <span class='status-tag'>В ПРОЦЕС</span>", unsafe_allow_html=True)
+df_expenses = load_data(DATA_FILE)
+trip_expenses = df_expenses[df_expenses["trip_id"] == active_trip_id]
+total_spent = trip_expenses["amount"].sum() if not trip_expenses.empty else 0.0
+remaining_budget = current_budget - total_spent
 
-with head_col2:
-    b1, b2, b3 = st.columns(3)
-    with b1: st.button("⬅️")
-    with b2: st.button("✏️")
-    with b3: st.button("🗑️")
+# =========================================================
+# ОСНОВЕН ДАШБОРД (СПРЯМО ИЗБРАНАТА СТРАНИЦА)
+# =========================================================
 
-st.write("")
+if st.session_state["current_page"] in ["🏠 Начална страница", "🌴 Пътувания"]:
+    
+    # Хедър с бутони за управление
+    head_col1, head_col2 = st.columns([3, 1])
+    with head_col1:
+        st.markdown(f"## 🌴 Дестинация: {active_trip_id}")
+        st.markdown("<span style='color: #A0AEC0; font-size: 13px;'>🗓️ 20 – 24 Авг 2025 (4 дни) &nbsp;&nbsp;</span> <span class='status-tag'>В ПРОЦЕС</span>", unsafe_allow_html=True)
 
-# 1. HERO BANNER С ОПИСАНИЕ И ПРОГНОЗА ЗА ВРЕМЕТО
-st.markdown("""
-<div class="hero-banner">
-    <div class="hero-overlay-card">
-        <div class="kpi-lbl">ОТЧЕТ ЗА ПЪТУВАНЕ</div>
-        <div style="font-size: 22px; font-weight: 800; color: #FFF;">€856 / €1,200</div>
-        <div style="width: 180px; background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; margin-top: 6px;">
-            <div style="width: 71%; background: #10B981; height: 100%; border-radius: 3px;"></div>
-        </div>
-    </div>
-    <div class="hero-overlay-card" style="text-align: right;">
-        <div style="font-size: 20px; font-weight: 700;">☀️ 28°C</div>
-        <div style="font-size: 11px; color: #CBD5E0;">Слънчево</div>
-        <div style="font-size: 10px; color: #718096;">📍 Бургас, България</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    with head_col2:
+        b1, b2 = st.columns(2)
+        with b1:
+            if st.button("➕ Разход", key="head_exp"): modal_add_expense(active_trip_id)
+        with b2:
+            if st.button("📝 Бележка", key="head_note"): modal_add_note(active_trip_id)
 
-# 2. KPI ПОЛЕТА В ЕДИН РЕД (5 Колони)
-kpi_cols = st.columns(5)
-metrics = [
-    ("ОБЩ БЮДЖЕТ", "€1,200.00", "👛", "#2B6CB0"),
-    ("ПОХАРЧЕНО ДО СЕГА", "€856.00", "💸", "#D69E2E"),
-    ("ОСТАВАЩ БЮДЖЕТ", "€344.00", "🟣", "#805AD5"),
-    ("ОСТАВАЩИ ДНИ", "2 дни", "📅", "#DD6B20"),
-    ("СРЕДНО НА ДЕН", "€214.00", "📈", "#319795")
-]
+    st.write("")
 
-for col, (title, val, icon, color) in zip(kpi_cols, metrics):
-    with col:
-        st.markdown(f"""
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background: {color}22; color: {color};">{icon}</div>
-            <div>
+    # KPI Показатели
+    kpi_cols = st.columns(5)
+    metrics = [
+        ("ОБЩ БЮДЖЕТ", f"€{current_budget:.2f}"),
+        ("ПОХАРЧЕНО ДО СЕГА", f"€{total_spent:.2f}"),
+        ("ОСТАВАЩ БЮДЖЕТ", f"€{remaining_budget:.2f}"),
+        ("ОСТАВАЩИ ДНИ", "2 дни"),
+        ("СРЕДНО НА ДЕН", f"€{(total_spent/4 if total_spent>0 else 0):.2f}")
+    ]
+
+    for col, (title, val) in zip(kpi_cols, metrics):
+        with col:
+            st.markdown(f"""
+            <div class="kpi-card">
                 <div class="kpi-lbl">{title}</div>
                 <div class="kpi-val">{val}</div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-st.write("")
+    st.write("")
 
-# 3. ОСНОВНА ГРИД СТРУКТУРА (3 Колони)
-main_col1, main_col2, main_col3 = st.columns([1.1, 1.1, 1.3])
+    # Грид с динамична информация
+    col_left, col_mid, col_right = st.columns([1.1, 1.1, 1.3])
 
-with main_col1:
+    with col_left:
+        st.markdown('<div class="dark-card">', unsafe_allow_html=True)
+        st.markdown("**РАЗПРЕДЕЛЕНИЕ ПО КАТЕГОРИИ**")
+        if not trip_expenses.empty and "category" in trip_expenses.columns:
+            cat_df = trip_expenses.groupby("category")["amount"].sum().reset_index()
+            st.dataframe(cat_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("Няма данни за категории все още.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="dark-card">', unsafe_allow_html=True)
+        st.markdown("**ПОСЛЕДНИ РАЗХОДИ**")
+        if not trip_expenses.empty:
+            for _, row in trip_expenses.tail(4).iterrows():
+                st.markdown(f"""
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <div><b>{row['description']}</b><br><small style="color:#718096">{row['date']}</small></div>
+                    <div style="font-weight:700;">€{row['amount']:.2f}</div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.caption("Няма последни разходи.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_mid:
+        st.markdown('<div class="dark-card">', unsafe_allow_html=True)
+        st.markdown("**ДНЕВЕН ПРОГРЕС**")
+        if not trip_expenses.empty:
+            st.bar_chart(trip_expenses.set_index("date")["amount"])
+        else:
+            st.caption("Графиката ще се покаже при въведени разходи.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="dark-card">', unsafe_allow_html=True)
+        st.markdown("**БЕЛЕЖКИ**")
+        df_notes = load_data(NOTES_FILE)
+        trip_notes = df_notes[df_notes["trip_id"] == active_trip_id] if not df_notes.empty else pd.DataFrame()
+        if not trip_notes.empty:
+            for _, n_row in trip_notes.iterrows():
+                st.markdown(f"• **{n_row['date']}**: {n_row['note']}")
+        else:
+            st.caption("Няма добавени бележки.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_right:
+        st.markdown('<div class="dark-card">', unsafe_allow_html=True)
+        st.markdown("**КАРТА НА ПЪТУВАНЕТО**")
+        m = folium.Map(location=[42.5042, 27.4626], zoom_start=11)
+        st_folium(m, width="100%", height=380)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+elif st.session_state["current_page"] == "⚙️ Настройки":
+    st.title("⚙️ Настройки")
     st.markdown('<div class="dark-card">', unsafe_allow_html=True)
-    st.markdown("**РАЗПРЕДЕЛЕНИЕ ПО КАТЕГОРИИ**")
-    
-    # Симулирана кръгова диаграма/данни
-    st.markdown("""
-    <div style="text-align: center; padding: 20px 0;">
-        <div style="font-size: 24px; font-weight: 800;">€856</div>
-        <div style="font-size: 11px; color: #718096;">общо</div>
-    </div>
-    <div class="expense-item"><span style="color:#10B981;">🟢 Храна и напитки</span> <span>€256 (29.9%)</span></div>
-    <div class="expense-item"><span style="color:#3182CE;">🔵 Транспорт</span> <span>€190 (22.2%)</span></div>
-    <div class="expense-item"><span style="color:#805AD5;">🟣 Настаняване</span> <span>€180 (21.0%)</span></div>
-    <div class="expense-item"><span style="color:#DD6B20;">🟠 Забавления</span> <span>€120 (14.0%)</span></div>
-    <div class="expense-item"><span style="color:#D69E2E;">🟡 Покупки</span> <span>€70 (8.2%)</span></div>
-    <div class="expense-item"><span style="color:#718096;">⚪ Други</span> <span>€40 (4.7%)</span></div>
-    """, unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Последни разходи
-    st.markdown('<div class="dark-card">', unsafe_allow_html=True)
-    st.markdown("**ПОСЛЕДНИ РАЗХОДИ**")
-    st.markdown("""
-    <div class="expense-item">
-        <div>🍴 <b>Обяд в ресторант</b><br><small style="color:#718096">22 Авг 2025 14:30</small></div>
-        <div style="font-weight:700;">€32.50</div>
-    </div>
-    <div class="expense-item">
-        <div>🚕 <b>Такси до плажа</b><br><small style="color:#718096">22 Авг 2025 11:15</small></div>
-        <div style="font-weight:700;">€12.00</div>
-    </div>
-    <div class="expense-item">
-        <div>☕ <b>Кафе и закуска</b><br><small style="color:#718096">22 Авг 2025 09:00</small></div>
-        <div style="font-weight:700;">€8.90</div>
-    </div>
-    """, unsafe_allow_html=True)
+    new_b = st.number_input("Промени бюджет за активното пътуване (€)", value=current_budget)
+    if st.button("💾 Запази промените"):
+        settings_df.loc[settings_df["trip_id"] == active_trip_id, "budget"] = new_b
+        save_data(settings_df, SETTINGS_FILE)
+        st.success("Настройките са обновени!")
+        st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-with main_col2:
-    st.markdown('<div class="dark-card">', unsafe_allow_html=True)
-    st.markdown("**ДНЕВЕН ПРОГРЕС**")
-    st.caption("Реални разходи спрямо план по дни")
-    # Място за стълбова графика (Bar chart)
-    st.bar_chart({"20 Авг": 120, "21 Авг": 210, "22 Авг": 280, "23 Авг": 160, "24 Авг": 86})
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Бележки
-    st.markdown('<div class="dark-card">', unsafe_allow_html=True)
-    st.markdown("**БЕЛЕЖКИ**")
-    st.markdown("""
-    <div style="border-left: 3px solid #D69E2E; padding-left: 10px; margin-bottom: 10px;">
-        <small style="color:#718096">20 Авг</small><br>Резервирах маса за вечеря на 23.08 в 20:00
-    </div>
-    <div style="border-left: 3px solid #3182CE; padding-left: 10px; margin-bottom: 10px;">
-        <small style="color:#718096">21 Авг</small><br>Посещение на остров Св. Анастасия 24.08 сутринта
-    </div>
-    <div style="border-left: 3px solid #10B981; padding-left: 10px;">
-        <small style="color:#718096">21 Авг</small><br>Проверка за концерт на 22.08
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with main_col3:
-    st.markdown('<div class="dark-card">', unsafe_allow_html=True)
-    st.markdown("**КАРТА НА ПЪТУВАНЕТО**")
-    m = folium.Map(location=[42.5042, 27.4626], zoom_start=11)
-    st_folium(m, width="100%", height=440)
-    st.button("🗺️ Виж маршрута")
-    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    st.title(st.session_state["current_page"])
+    st.info("Разделът е готов за въвеждане на допълнителни модули.")
