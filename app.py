@@ -571,7 +571,7 @@ if st.session_state["current_trip"] is None:
         .tm-home-action-space { margin-top: 2px; margin-bottom: 8px; }
         .tm-home-trips-title {
             color:#9aa1ad;
-            font-size:13px;
+            font-size:11px;
             font-weight:800;
             letter-spacing:0;
             margin:18px 0 9px 2px;
@@ -885,7 +885,7 @@ if st.session_state["current_trip"] is None:
                 )
 
                 _label = (
-                    f"🚙  {_trip_name}    →\n"
+                    f"🚙  **{_trip_name}**    →\n"
                     f"{_status_dot}  {_status_text}\n"
                     f"{_budget_line}"
                 )
@@ -1187,32 +1187,30 @@ if st.session_state["current_trip"] is None:
         /* Пренастройва контейнера на toggle бутона да подрежда елементите в линия */
         div[data-testid="stCheckbox"] > label {
             display: inline-flex !important;
-            flex-direction: row-reverse !important;
+            flex-direction: row-reverse !important; /* Мести оригиналния текст отдясно */
             align-items: center !important;
-            gap: 10px !important;
+            gap: 10px !important; /* Разстояние точно колкото 1 интервал */
             width: auto !important;
             max-width: none !important;
             flex-shrink: 0 !important;
         }
-    
-        /* Текстът на Сравнителен панел */
+        /* Подсигурява, че текстът няма да се пречупи на два реда на телефон */
         div[data-testid="stCheckbox"] p {
-            font-size: 13px !important;
-            font-weight: 800 !important;
-            letter-spacing: 0 !important;
-            color: #aeb5c0 !important;
             white-space: nowrap !important;
             margin: 0 !important;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0 !important;
+            color: #9aa1ad !important;
             font-family: inherit !important;
         }
-    
         /* Streamlit понякога поставя текста в допълнителен span */
         div[data-testid="stCheckbox"] label,
         div[data-testid="stCheckbox"] label span {
-            font-size: 13px !important;
+            font-size: 11px !important;
             font-weight: 800 !important;
             letter-spacing: 0 !important;
-            color: #aeb5c0 !important;
+            color: #9aa1ad !important;
             font-family: inherit !important;
         }
     </style>
