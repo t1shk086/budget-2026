@@ -33,7 +33,6 @@ components.html(
             border-radius: 9px;
 
             background: transparent;
-
             color: #8b8f98;
 
             font-size: 20px;
@@ -44,7 +43,6 @@ components.html(
             justify-content: center;
 
             cursor: pointer;
-
             opacity: 0.65;
 
             transition:
@@ -64,6 +62,19 @@ components.html(
         #fullscreenBtn:active {
             transform: scale(0.94);
         }
+
+        /* Иконка за изход от fullscreen */
+        #fullscreenBtn.exit {
+            transform: rotate(180deg);
+        }
+
+        #fullscreenBtn.exit:hover {
+            transform: rotate(180deg) scale(1.04);
+        }
+
+        #fullscreenBtn.exit:active {
+            transform: rotate(180deg) scale(0.94);
+        }
     </style>
 
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
@@ -71,22 +82,31 @@ components.html(
     <script>
         const btn = document.getElementById("fullscreenBtn");
 
+        function updateFullscreenIcon() {
+            if (window.parent.document.fullscreenElement) {
+                // Fullscreen → иконката се обръща навътре
+                btn.classList.add("exit");
+                btn.title = "Изход от Fullscreen";
+            } else {
+                // Нормален режим → иконката сочи навън
+                btn.classList.remove("exit");
+                btn.title = "Fullscreen";
+            }
+        }
+
         btn.addEventListener("click", async () => {
             try {
                 if (!window.parent.document.fullscreenElement) {
 
                     await window.parent.document.documentElement.requestFullscreen();
 
-                    btn.textContent = "✕";
-                    btn.title = "Изход от Fullscreen";
-
                 } else {
 
                     await window.parent.document.exitFullscreen();
 
-                    btn.textContent = "⛶";
-                    btn.title = "Fullscreen";
                 }
+
+                updateFullscreenIcon();
 
             } catch (error) {
                 console.log("Fullscreen error:", error);
@@ -95,18 +115,10 @@ components.html(
 
         window.parent.document.addEventListener(
             "fullscreenchange",
-            () => {
-
-                if (window.parent.document.fullscreenElement) {
-                    btn.textContent = "✕";
-                    btn.title = "Изход от Fullscreen";
-                } else {
-                    btn.textContent = "⛶";
-                    btn.title = "Fullscreen";
-                }
-
-            }
+            updateFullscreenIcon
         );
+
+        updateFullscreenIcon();
     </script>
     """,
     height=48,
