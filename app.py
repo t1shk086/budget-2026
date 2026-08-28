@@ -791,10 +791,13 @@ if st.session_state["current_trip"] is None:
 
             if _budget > 0:
                 _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
+                _remaining = max(0.0, _budget - _spent)
                 _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct:.0f}%"
+                _remaining_line = f"Остават €{_remaining:,.2f}"
             else:
                 _pct = 0.0
                 _budget_line = "Без Бюджет"
+                _remaining_line = ""
 
             # =========================================================
             # ПРОГРЕС ЛЕНТА — БЕЗОПАСЕН KEY ЗА КИРИЛИЦА И ЛАТИНИЦА
@@ -889,7 +892,8 @@ if st.session_state["current_trip"] is None:
                 _label = (
                     f"🚙  **{_trip_name}**    →\n"
                     f"{_status_dot}  {_status_text}\n"
-                    f"{_budget_line}"
+                    f"{_budget_line}\n"
+                    f"{_remaining_line}"
                 )
 
                 if st.button(
