@@ -1446,6 +1446,11 @@ if st.session_state["current_trip"] is None:
                 st.error("🔒 Това пътуване е приключено. Отключете го от „Административни Инструменти“, ако искате да го редактирате.")
                 return
 
+            # Последна защита: никога не записваме разход към заключено приключено пътуване.
+            if quick_trip_finished and not trip_edit_unlocked(selected_trip):
+                st.error("🔒 Това пътуване е приключено и заключено. Отключете го от „Административни Инструменти“, ако искате да добавяте разход.")
+                return
+
             if add_expense(selected_trip, float(amount), selected_category, desc, False):
                 st.success("✅ Разходът е записан успешно.")
                 st.rerun()
@@ -3850,21 +3855,19 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
         st.markdown("##### ✏️ Преименуване на съществуващо пътуване")
         st.caption("Преименуването променя само името на пътуването. Разходи, бюджети, километри, маршрут и дати се запазват.")
 
+        # Само реално създадените пътувания от SETTINGS_FILE.
         _admin_trip_ids = []
-        for _rename_file in [DATA_FILE, SETTINGS_FILE, MAP_FILE, TRIP_PLAN_FILE, CATEGORY_BUDGETS_FILE]:
-            if os.path.exists(_rename_file):
-                try:
-                    _rename_df = pd.read_csv(_rename_file, encoding="utf-8")
-                    if "trip_id" in _rename_df.columns:
-                        _admin_trip_ids.extend(
-                            str(x).strip()
-                            for x in _rename_df["trip_id"].dropna().unique()
-                            if str(x).strip()
-                        )
-                except Exception:
-                    pass
-
-        _admin_trip_ids = list(dict.fromkeys(_admin_trip_ids))
+        if os.path.exists(SETTINGS_FILE):
+            try:
+                _admin_settings_df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                if "trip_id" in _admin_settings_df.columns:
+                    _admin_trip_ids = list(dict.fromkeys(
+                        str(x).strip()
+                        for x in _admin_settings_df["trip_id"].dropna().unique()
+                        if str(x).strip()
+                    ))
+            except Exception:
+                _admin_trip_ids = []
 
         if _admin_trip_ids:
             def _rename_trip_label(tid):
