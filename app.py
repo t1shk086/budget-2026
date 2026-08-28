@@ -1351,9 +1351,9 @@ for _quick_tid in _quick_ids_settings:
 
 existing_quick = list(dict.fromkeys(existing_quick))
 
-    if not existing_quick:
-            st.info("Първо създайте поне едно пътуване.")
-            return
+if not existing_quick:
+        st.info("Първо създайте поне едно пътуване.")
+        return
 
         trip_display = [t.replace("_", " ") for t in existing_quick]
         selected_trip_display = st.selectbox(
