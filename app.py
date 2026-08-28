@@ -232,10 +232,25 @@ def get_unique_trip_id(base_id):
     """Гарантира уникален вътрешен ID, без да забранява една и съща дестинация."""
     base_id = str(base_id).strip()
     try:
-        existing_ids = set(
-            str(x).strip()
-            for x in pd.read_csv(DATA_FILE, encoding="utf-8")["trip_id"].dropna().unique()
-        ) if os.path.exists(DATA_FILE) else set()
+        existing_ids = set()
+
+        if os.path.exists(DATA_FILE):
+            existing_ids.update(
+                str(x).strip()
+                for x in pd.read_csv(DATA_FILE, encoding="utf-8")["trip_id"].dropna().unique()
+            )
+
+        if os.path.exists(SETTINGS_FILE):
+            existing_ids.update(
+                str(x).strip()
+                for x in pd.read_csv(SETTINGS_FILE, encoding="utf-8")["trip_id"].dropna().unique()
+            )
+
+        if os.path.exists(CATEGORY_BUDGETS_FILE):
+            existing_ids.update(
+                str(x).strip()
+                for x in pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")["trip_id"].dropna().unique()
+            )
     except Exception:
         existing_ids = set()
 
@@ -591,8 +606,24 @@ if st.session_state["current_trip"] is None:
     st.session_state["edit_unlocked_trip"] = None
     st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
 
-    existing = list(pd.read_csv(DATA_FILE)["trip_id"].unique()) if os.path.exists(DATA_FILE) else []
-    existing = [t for t in existing if pd.notna(t) and str(t).strip() != ""]
+    # Пътуване се счита за съществуващо и без разход:
+    # пазим го в SETTINGS_FILE още при създаването, а бюджетът е отделно в CATEGORY_BUDGETS_FILE.
+    _trip_ids_data = (
+        list(pd.read_csv(DATA_FILE)["trip_id"].dropna().unique())
+        if os.path.exists(DATA_FILE) else []
+    )
+    _trip_ids_settings = (
+        list(pd.read_csv(SETTINGS_FILE)["trip_id"].dropna().unique())
+        if os.path.exists(SETTINGS_FILE) else []
+    )
+    _trip_ids_budget = (
+        list(pd.read_csv(CATEGORY_BUDGETS_FILE)["trip_id"].dropna().unique())
+        if os.path.exists(CATEGORY_BUDGETS_FILE) else []
+    )
+    existing = list(dict.fromkeys(
+        [str(t).strip() for t in (_trip_ids_settings + _trip_ids_budget + _trip_ids_data)
+         if pd.notna(t) and str(t).strip() != ""]
+    ))
 
     # ---------------------------------------------------------
     # НАЧАЛЕН ЕКРАН — запазваме визуалния език на приложението.
