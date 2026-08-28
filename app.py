@@ -791,13 +791,10 @@ if st.session_state["current_trip"] is None:
 
             if _budget > 0:
                 _pct = max(0.0, min(100.0, (_spent / _budget) * 100.0))
-                _remaining = max(0.0, _budget - _spent)
                 _budget_line = f"€{_spent:,.2f} / €{_budget:,.2f}  ·  {_pct:.0f}%"
-                _remaining_line = f"Остават €{_remaining:,.2f}"
             else:
                 _pct = 0.0
                 _budget_line = "Без Бюджет"
-                _remaining_line = ""
 
             # =========================================================
             # ПРОГРЕС ЛЕНТА — БЕЗОПАСЕН KEY ЗА КИРИЛИЦА И ЛАТИНИЦА
@@ -892,8 +889,7 @@ if st.session_state["current_trip"] is None:
                 _label = (
                     f"🚙  **{_trip_name}**    →\n"
                     f"{_status_dot}  {_status_text}\n"
-                    f"{_budget_line}\n"
-                    f"{_remaining_line}"
+                    f"{_budget_line}"
                 )
 
                 if st.button(
@@ -913,7 +909,175 @@ if st.session_state["current_trip"] is None:
             "></div>
             """,
             unsafe_allow_html=True
-        )                    
+        )
+
+        # ---------------------------------------------------------
+        # НАЧАЛЕН ЕКРАН — БЪРЗ ПОГЛЕД / СЛЕДВАЩО ПЪТУВАНЕ / АКТИВНОСТ
+        # Само информационни панели — не променят картите и бутоните.
+        # ---------------------------------------------------------
+        _home_stats = {
+            "trips": len(existing),
+            "spent": 0.0,
+            "km": 0.0,
+        }
+        _next_trip = None
+        _next_trip_date = None
+        _last_activity = None
+        _last_activity_date = None
+
+        for _home_tid in existing:
+            try:
+                _hs = get_trip_settings(str(_home_tid))
+                _hs_start = str(_hs.get("start_date", "") or "").strip()
+                _hs_end = str(_hs.get("end_date", "") or "").strip()
+
+                if _hs_start and _hs_start.lower() != "nan":
+                    _hs_start_obj = datetime.datetime.strptime(_hs_start, "%d.%m.%Y").date()
+                    if _hs_start_obj >= datetime.date.today() and (_next_trip_date is None or _hs_start_obj < _next_trip_date):
+                        _next_trip_date = _hs_start_obj
+                        _next_trip = str(_home_tid).replace("_", " ")
+
+                _hs_skm = float(_hs.get("start_km", 0.0) or 0.0)
+                _hs_ekm = float(_hs.get("end_km", 0.0) or 0.0)
+                if _hs_ekm > _hs_skm:
+                    _home_stats["km"] += _hs_ekm - _hs_skm
+
+                _hs_df = get_trip_data(str(_home_tid))
+                if not _hs_df.empty:
+                    if "amount" in _hs_df.columns:
+                        _home_stats["spent"] += float(
+                            pd.to_numeric(_hs_df["amount"], errors="coerce").fillna(0).sum()
+                        )
+
+                    if "date" in _hs_df.columns:
+                        for _idx, _row in _hs_df.iterrows():
+                            try:
+                                _d = pd.to_datetime(_row["date"], dayfirst=True, errors="coerce")
+                                if pd.notna(_d) and (_last_activity_date is None or _d > _last_activity_date):
+                                    _last_activity_date = _d
+                                    _last_activity = (
+                                        str(_home_tid).replace("_", " "),
+                                        float(_row.get("amount", 0.0) or 0.0),
+                                        str(_row.get("category", "Разход"))
+                                    )
+                            except Exception:
+                                pass
+            except Exception:
+                pass
+
+        st.markdown("""
+            <style>
+                .tm-home-extra {
+                    margin-top:12px;
+                    padding:12px 14px;
+                    border-radius:14px;
+                    border:1px solid rgba(255,255,255,.07);
+                    background:rgba(255,255,255,.018);
+                }
+                .tm-home-extra-title {
+                    color:#aeb5c0;
+                    font-size:12px;
+                    font-weight:800;
+                    letter-spacing:0;
+                    margin-bottom:8px;
+                }
+                .tm-home-extra-main {
+                    color:#ffffff;
+                    font-size:14px;
+                    font-weight:700;
+                    line-height:1.35;
+                }
+                .tm-home-extra-sub {
+                    color:#8f97a3;
+                    font-size:11px;
+                    margin-top:3px;
+                    line-height:1.35;
+                }
+                .tm-home-stats {
+                    display:flex;
+                    gap:7px;
+                    margin-top:12px;
+                }
+                .tm-home-stat {
+                    flex:1;
+                    min-width:0;
+                    padding:10px 8px;
+                    border-radius:12px;
+                    border:1px solid rgba(255,255,255,.06);
+                    background:rgba(255,255,255,.018);
+                    text-align:center;
+                }
+                .tm-home-stat-value {
+                    color:#fff;
+                    font-size:14px;
+                    font-weight:800;
+                    line-height:1.2;
+                }
+                .tm-home-stat-label {
+                    color:#858d99;
+                    font-size:9px;
+                    margin-top:4px;
+                    white-space:nowrap;
+                }
+                @media(max-width:640px){
+                    .tm-home-extra { padding:11px 12px; }
+                    .tm-home-stats { gap:5px; }
+                    .tm-home-stat { padding:9px 5px; }
+                    .tm-home-stat-value { font-size:13px; }
+                    .tm-home-stat-label { font-size:8px; }
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        if _next_trip:
+            _days_to_next = max(0, (_next_trip_date - datetime.date.today()).days)
+            _when = "днес" if _days_to_next == 0 else f"след {_days_to_next} дни"
+            st.markdown(
+                f"""
+                <div class="tm-home-extra">
+                    <div class="tm-home-extra-title">✈️ СЛЕДВАЩО ПЪТУВАНЕ</div>
+                    <div class="tm-home-extra-main">{_next_trip}</div>
+                    <div class="tm-home-extra-sub">{_next_trip_date.strftime("%d.%m.%Y")} · {_when}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        if _last_activity:
+            _la_trip, _la_amount, _la_cat = _last_activity
+            st.markdown(
+                f"""
+                <div class="tm-home-extra">
+                    <div class="tm-home-extra-title">🕐 ПОСЛЕДНА АКТИВНОСТ</div>
+                    <div class="tm-home-extra-main">{_la_trip} · €{_la_amount:,.2f}</div>
+                    <div class="tm-home-extra-sub">{_la_cat}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        st.markdown(
+            f"""
+            <div class="tm-home-extra" style="margin-bottom:4px;">
+                <div class="tm-home-extra-title">📊 БЪРЗ ПОГЛЕД</div>
+                <div class="tm-home-stats">
+                    <div class="tm-home-stat">
+                        <div class="tm-home-stat-value">{_home_stats["trips"]}</div>
+                        <div class="tm-home-stat-label">ПЪТУВАНИЯ</div>
+                    </div>
+                    <div class="tm-home-stat">
+                        <div class="tm-home-stat-value">€{_home_stats["spent"]:,.0f}</div>
+                        <div class="tm-home-stat-label">РАЗХОДИ</div>
+                    </div>
+                    <div class="tm-home-stat">
+                        <div class="tm-home-stat-value">{_home_stats["km"]:,.0f}</div>
+                        <div class="tm-home-stat-label">КМ</div>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
 
