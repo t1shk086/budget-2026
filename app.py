@@ -4359,8 +4359,8 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         SMTP_PORT = 465
 
                         # Тези две стойности се вземат от Streamlit Secrets
-                        SMTP_USERNAME = "t.senkov86@gmail.com"
-                        SMTP_PASSWORD = "abcdefghijklmnop"
+                        SMTP_USERNAME = st.secrets["gmail"]["username"]
+                        SMTP_PASSWORD = st.secrets["gmail"]["app_password"]
 
                         # =================================================
                         # СЪЗДАВЯНЕ НА ИМЕЙЛА
@@ -4391,19 +4391,16 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
 
                         # =================================================
                         # GMAIL SMTP - SSL / PORT 465
-                        # =================================================
+                                                # =================================================
                         with smtplib.SMTP_SSL(
                             SMTP_SERVER,
                             SMTP_PORT,
                             timeout=30
                         ) as server:
-
-                            server.login(
-                                SMTP_USERNAME,
-                                SMTP_PASSWORD
-                            )
-
+                            server.login(SMTP_USERNAME, SMTP_PASSWORD)
                             server.send_message(msg)
+
+
 
                         st.success(
                             f"✅ Архивът беше изпратен успешно до "
