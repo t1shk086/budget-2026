@@ -14,7 +14,7 @@ import streamlit.components.v1 as components
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 # =========================================================
-# FULLSCREEN BUTTON
+# FULLSCREEN BUTTON - PIXELAPP STYLE
 # =========================================================
 
 components.html(
@@ -22,21 +22,47 @@ components.html(
     <style>
         #fullscreenBtn {
             position: fixed;
-            top: 10px;
-            right: 15px;
+            top: 12px;
+            right: 16px;
             z-index: 999999;
-            width: 42px;
-            height: 42px;
+
+            width: 34px;
+            height: 34px;
+
             border: none;
-            border-radius: 10px;
-            background: rgba(30,30,30,0.85);
-            color: #9ca3af;
-            font-size: 22px;
+            border-radius: 9px;
+
+            background: transparent;
+
+            color: #8b8f98;
+
+            font-size: 20px;
+            font-weight: 400;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
             cursor: pointer;
+
+            opacity: 0.65;
+
+            transition:
+                opacity 0.2s ease,
+                background 0.2s ease,
+                color 0.2s ease,
+                transform 0.2s ease;
         }
 
         #fullscreenBtn:hover {
-            background: rgba(60,60,60,0.95);
+            opacity: 1;
+            color: #b0b4bc;
+            background: rgba(255,255,255,0.06);
+            transform: scale(1.04);
+        }
+
+        #fullscreenBtn:active {
+            transform: scale(0.94);
         }
     </style>
 
@@ -48,14 +74,20 @@ components.html(
         btn.addEventListener("click", async () => {
             try {
                 if (!window.parent.document.fullscreenElement) {
+
                     await window.parent.document.documentElement.requestFullscreen();
+
                     btn.textContent = "✕";
                     btn.title = "Изход от Fullscreen";
+
                 } else {
+
                     await window.parent.document.exitFullscreen();
+
                     btn.textContent = "⛶";
                     btn.title = "Fullscreen";
                 }
+
             } catch (error) {
                 console.log("Fullscreen error:", error);
             }
@@ -64,6 +96,7 @@ components.html(
         window.parent.document.addEventListener(
             "fullscreenchange",
             () => {
+
                 if (window.parent.document.fullscreenElement) {
                     btn.textContent = "✕";
                     btn.title = "Изход от Fullscreen";
@@ -71,11 +104,12 @@ components.html(
                     btn.textContent = "⛶";
                     btn.title = "Fullscreen";
                 }
+
             }
         );
     </script>
     """,
-    height=55,
+    height=48,
 )
 
 st.markdown("""
