@@ -1197,7 +1197,7 @@ if st.session_state["current_trip"] is None:
     
         /* Текстът на Сравнителен панел */
         div[data-testid="stCheckbox"] p {
-            font-size: 14px !important;
+            font-size: 13px !important;
             font-weight: 800 !important;
             letter-spacing: 0 !important;
             color: #aeb5c0 !important;
