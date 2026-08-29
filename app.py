@@ -2612,6 +2612,12 @@ else:
     _budget_spent_now = grand_total if _budget_global_now > 0 else sum(float(categories_totals.get(k, 0)) for k,v in _budget_cats_now.items() if float(v or 0) > 0)
     _budget_left_now = _active_budget_now - _budget_spent_now if _active_budget_now > 0 else 0.0
     _budget_pct_now = max(0.0, min(100.0, (_budget_spent_now / _active_budget_now * 100.0))) if _active_budget_now > 0 else 0.0
+
+    # Статусът на пътуването трябва да е изчислен преди новия dashboard,
+    # защото dashboard-ът го използва още при изграждането на HTML-а.
+    is_trip_finished = (
+        e_km > 0.0 if car_trip == "Да" else trip_finished_manual
+    )
     _status_now = "ПРИКЛЮЧЕНО" if is_trip_finished else "В ПРОЦЕС"
     _status_class = "done" if is_trip_finished else "live"
 
@@ -2719,9 +2725,6 @@ else:
     with col2: 
         o_input = st.text_input("Описание", placeholder="Напишете описание...", key=f"op_{v_id}")
 
-    is_trip_finished = (
-        e_km > 0.0 if car_trip == "Да" else trip_finished_manual
-    )
     is_edit_unlocked = trip_edit_unlocked(trip_id)
     trip_locked = is_trip_finished and not is_edit_unlocked
 
