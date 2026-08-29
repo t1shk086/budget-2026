@@ -1104,6 +1104,128 @@ if st.session_state["current_trip"] is None:
         </div>
     """, unsafe_allow_html=True)
 
+    # =========================================================
+    # PIXEL APP — СВЕТОВНА КАРТА НА ПОСЕТЕНИТЕ МЕСТА
+    # Всички запазени точки от MAP_FILE се показват на началния екран
+    # като обща карта. Картата в отделното пътуване е премахната.
+    # =========================================================
+    st.markdown("""
+        <style>
+            .px-world-map {
+                margin: 4px 0 14px;
+                padding: 14px;
+                border: 1px solid #202b34;
+                background: #091117;
+                border-radius: 14px;
+            }
+            .px-world-map-head {
+                display:flex;
+                justify-content:space-between;
+                align-items:flex-end;
+                gap:12px;
+                margin-bottom:10px;
+            }
+            .px-world-map-title {
+                font-size:12px;
+                font-weight:900;
+                letter-spacing:.45px;
+                color:#f4f7fa;
+            }
+            .px-world-map-sub {
+                margin-top:4px;
+                color:#7f8a95;
+                font-size:10px;
+            }
+            .px-world-map-count {
+                color:#45d878;
+                font-size:11px;
+                font-weight:900;
+                white-space:nowrap;
+            }
+            .px-world-map-legend {
+                margin-top:8px;
+                color:#71808d;
+                font-size:9px;
+            }
+            @media(max-width:640px){
+                .px-world-map { padding:10px; border-radius:12px; }
+                .px-world-map-head { align-items:flex-start; }
+                .px-world-map-count { font-size:10px; }
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    try:
+        _world_points = pd.read_csv(MAP_FILE, encoding="utf-8") if os.path.exists(MAP_FILE) else pd.DataFrame()
+        if not _world_points.empty and {"lat", "lon"}.issubset(_world_points.columns):
+            _world_points = _world_points.copy()
+            _world_points["lat"] = pd.to_numeric(_world_points["lat"], errors="coerce")
+            _world_points["lon"] = pd.to_numeric(_world_points["lon"], errors="coerce")
+            _world_points = _world_points.dropna(subset=["lat", "lon"])
+        else:
+            _world_points = pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
+
+        _world_count = len(_world_points)
+        st.markdown(
+            f"""
+            <div class='px-world-map'>
+                <div class='px-world-map-head'>
+                    <div>
+                        <div class='px-world-map-title'>🌍 МОИТЕ МЕСТА</div>
+                        <div class='px-world-map-sub'>Всички дестинации и запазени места от пътуванията ти на една карта.</div>
+                    </div>
+                    <div class='px-world-map-count'>{_world_count} {'мяста' if _world_count != 1 else 'място'}</div>
+                </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if _world_count > 0:
+            _world_lat = float(_world_points["lat"].mean())
+            _world_lon = float(_world_points["lon"].mean())
+            if _world_count == 1:
+                _world_zoom = 7
+            elif _world_count <= 4:
+                _world_zoom = 6
+            else:
+                _world_zoom = 4
+
+            _world_map = folium.Map(
+                location=[_world_lat, _world_lon],
+                zoom_start=_world_zoom,
+                control_scale=True,
+                tiles="CartoDB dark_matter",
+            )
+            _world_map.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
+
+            for _, _pt in _world_points.iterrows():
+                _pt_trip = get_trip_display_name(str(_pt.get("trip_id", "")))
+                _pt_title = str(_pt.get("title", "Запазено място") or "Запазено място")
+                _pt_color = str(_pt.get("color", "green") or "green")
+                _popup_html = (
+                    f"<div style='min-width:170px;font-family:Segoe UI,Arial,sans-serif;'>"
+                    f"<div style='font-weight:800;font-size:13px;margin-bottom:5px;'>{html.escape(_pt_title)}</div>"
+                    f"<div style='color:#66717c;font-size:11px;'>✈️ {html.escape(_pt_trip)}</div>"
+                    f"<div style='color:#66717c;font-size:10px;margin-top:4px;'>{float(_pt['lat']):.4f}, {float(_pt['lon']):.4f}</div>"
+                    f"</div>"
+                )
+                folium.Marker(
+                    location=[float(_pt["lat"]), float(_pt["lon"])],
+                    popup=folium.Popup(_popup_html, max_width=260),
+                    tooltip=_pt_title,
+                    icon=folium.Icon(color=_pt_color if _pt_color in {"blue","green","red","purple","orange"} else "green", icon="map-marker"),
+                ).add_to(_world_map)
+
+            _world_map_key = f"home_world_map_{_world_count}_{hashlib.sha256(_world_points.to_csv(index=False).encode('utf-8')).hexdigest()[:10]}"
+            st_folium(_world_map, width=None, height=360, key=_world_map_key, returned_objects=[])
+            st.markdown("<div class='px-world-map-legend'>Кликни върху маркер, за да видиш мястото и пътуването, към което принадлежи.</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='height:140px;border:1px dashed #26323c;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#71808d;font-size:11px;'>Все още няма запазени места за показване на картата.</div>", unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+    except Exception as _home_map_error:
+        st.markdown("<div class='px-empty'>Картата не може да бъде заредена в момента.</div>", unsafe_allow_html=True)
+
     # Диалог за създаване на ново пътуване.
     @st.dialog("Създаване на ново приключение")
     def create_trip_modal():
@@ -4077,106 +4199,8 @@ else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
-    df_points = get_map_points(trip_id)
-    
-    if "map_current_trip_id" not in st.session_state or st.session_state["map_current_trip_id"] != trip_id:
-        st.session_state["map_current_trip_id"] = trip_id
-        if not df_points.empty:
-            st.session_state["stable_lat"] = float(df_points["lat"].mean())
-            st.session_state["stable_lon"] = float(df_points["lon"].mean())
-            st.session_state["stable_zoom"] = 8
-        else:
-            st.session_state["stable_lat"] = 42.7339
-            st.session_state["stable_lon"] = 25.4858
-            st.session_state["stable_zoom"] = 6
+    # Картата вече е на началния екран като обща карта с всички запазени места.
 
-    m = folium.Map(
-        location=[st.session_state["stable_lat"], st.session_state["stable_lon"]], 
-        zoom_start=st.session_state["stable_zoom"]
-    )
-    m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
-    folium.LatLngPopup().add_to(m)
-    
-    for _, pt in df_points.iterrows(): 
-        folium.Marker(
-            location=[pt["lat"], pt["lon"]], 
-            popup=pt["title"], 
-            icon=folium.Icon(color=pt["color"], icon="info-sign")
-        ).add_to(m)
-    
-    points_count = len(df_points)
-    click_state = "active" if "active_click" in st.session_state and st.session_state["active_click"] is not None else "idle"
-    dynamic_map_key = f"folium_map_{trip_id}_{points_count}_{click_state}"
-
-    map_data = st_folium(
-        m, 
-        width=700, 
-        height=400, 
-        key=dynamic_map_key, 
-        returned_objects=["last_clicked", "zoom"]
-    )
-
-    if map_data and map_data.get("last_clicked"):
-        new_click = map_data["last_clicked"]
-        if st.session_state.get("active_click") != new_click: 
-            st.session_state["stable_lat"] = new_click["lat"]
-            st.session_state["stable_lon"] = new_click["lng"]
-            if map_data.get("zoom") is not None:
-                st.session_state["stable_zoom"] = map_data["zoom"]
-            st.session_state["active_click"] = new_click
-            st.rerun()
-            
-    if "active_click" in st.session_state and st.session_state["active_click"] is not None and not trip_locked:
-        click_coords = st.session_state["active_click"]
-        st.markdown(f"📌 **Избрано място:** Ширина: `{click_coords['lat']:.4f}`, Дължина: `{click_coords['lng']:.4f}`")
-        c_m1, c_m2 = st.columns([0.7, 0.3])
-        with c_m1: 
-            title_in = st.text_input("Име на новата спирка:", placeholder="напр. Хотел...", key="map_title_click")
-        with c_m2: 
-            color_in = st.selectbox("Цвят:", ["blue", "green", "red", "purple", "orange"], key="map_color_click")
-        cb1, cb2 = st.columns([0.7, 0.3])
-        with cb1:
-            if st.button("💾 Запис", use_container_width=True, type="primary") and title_in:
-                if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in): 
-                    st.session_state["active_click"] = None
-                    st.rerun()
-        with cb2:
-            if st.button("❌ Отказ", use_container_width=True): 
-                st.session_state["active_click"] = None
-                st.rerun()
-    def _delete_map_point(idx):
-        try:
-            df_map = pd.read_csv(MAP_FILE, encoding="utf-8")
-            if idx in df_map.index:
-                df_map = df_map.drop(index=idx)
-                df_map.to_csv(MAP_FILE, index=False, encoding="utf-8")
-        except Exception:
-            pass
-
-    if not df_points.empty:
-        st.markdown("<div class='tm-section-title' style='margin-top:4px;margin-bottom:10px;'><span class='tm-section-number tm-n5'>5</span><span>Любими места от пътуването</span></div>", unsafe_allow_html=True)
-        st.markdown("---")
-        try:
-            df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
-            color_emojis = {"blue": "🔵", "green": "🟢", "red": "🔴", "purple": "🟣", "orange": "🟠"}
-            for idx in df_all_map[df_all_map["trip_id"] == trip_id].index.tolist():
-                pt_row = df_all_map.loc[idx]
-                col_p_txt, col_p_del = st.columns([0.85, 0.15])
-                with col_p_txt:
-                    st.markdown(f"{color_emojis.get(pt_row['color'], '🔵')} **{pt_row['title']}** <small>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small>", unsafe_allow_html=True)
-                with col_p_del:
-                    st.button(
-                        "❌",
-                        key=f"del_pin_{idx}",
-                        use_container_width=True,
-                        disabled=trip_locked,
-                        on_click=_delete_map_point,
-                        args=(idx,)
-                    )
-        except Exception:
-            pass
-            
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
         confirm_delete_trip_dialog()
