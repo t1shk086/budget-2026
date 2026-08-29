@@ -11,7 +11,7 @@ import io
 import html
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide", initial_sidebar_state="collapsed")
 
 # =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
@@ -925,13 +925,19 @@ def _trip_budget_snapshot(tid):
     return {"df":df,"settings":settings,"budget":budget,"spent":spent,"remaining":remaining,"pct":pct,"mode":mode,"deposits":deposits,"expenses":expenses,"cat_budgets":cat_budgets}
 
 def _all_trip_ids():
+    # Само реално създадени пътувания. Празни/None стойности никога не се
+    # показват като дестинация на началния екран.
     ids=[]
+    invalid={"", "none", "nan", "null", "nat"}
     for fn in [SETTINGS_FILE, CATEGORY_BUDGETS_FILE, DATA_FILE]:
         if os.path.exists(fn):
             try:
                 d=pd.read_csv(fn, encoding="utf-8")
                 if "trip_id" in d.columns:
-                    ids.extend([str(x).strip() for x in d["trip_id"].dropna().unique() if str(x).strip()])
+                    for x in d["trip_id"].dropna().unique():
+                        value=str(x).strip()
+                        if value and value.lower() not in invalid:
+                            ids.append(value)
             except Exception:
                 pass
     return list(dict.fromkeys(ids))
@@ -1242,17 +1248,20 @@ else:
             for _,r in plan.tail(4).iterrows(): notes.append(f"<div class='px-note'><span style='color:{'#52df78' if bool(r.get('done',False)) else '#ffd13f'}'>▌</span> {html.escape(str(r.get('title','')))}</div>")
         st.markdown("<div class='px-panel'><div class='px-panel-title'>БЕЛЕЖКИ / ПЛАН</div>" + (''.join(notes) if notes else "<div class='px-muted'>Няма добавени задачи.</div>") + "</div>", unsafe_allow_html=True)
 
-    # Quick actions — real Streamlit buttons.
+    # Quick actions — само реалните действия от новия дизайн.
+    # "План" не е отделен quick-action бутон: задачите/бележките вече
+    # се виждат в собствения панел и така не се повтаря информация.
     st.markdown("<div class='px-panel-title' style='margin-top:14px'>БЪРЗИ ДЕЙСТВИЯ</div>",unsafe_allow_html=True)
-    q1,q2,q3,q4=st.columns(4)
+    q1,q2,q3=st.columns(3)
     with q1:
         if st.button("＋ Нов разход",key="new_ui_expense",use_container_width=True): _close_other_dialogs("trip_add_expense_new"); st.session_state["trip_add_expense_new"]=True; st.rerun()
     with q2:
-        if st.button("✓ План",key="new_ui_plan",use_container_width=True): _close_other_dialogs("trip_plan_new"); st.session_state["trip_plan_new"]=True; st.rerun()
-    with q3:
         if st.button("⛽ Гориво",key="new_ui_fuel",use_container_width=True): _close_other_dialogs("trip_fuel_new"); st.session_state["trip_fuel_new"]=True; st.rerun()
-    with q4:
+    with q3:
         if st.button("🚗 Автомобил",key="new_ui_car",use_container_width=True): _close_other_dialogs("trip_car_new"); st.session_state["trip_car_new"]=True; st.rerun()
+
+    # Стар флаг от предишна сесия не трябва да отваря План автоматично.
+    st.session_state["trip_plan_new"] = False
 
     # Expense dialog
     if st.session_state.get("trip_add_expense_new"):
