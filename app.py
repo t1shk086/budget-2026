@@ -10,7 +10,7 @@ import io
 import html
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 st.markdown("""
 <style>
@@ -62,173 +62,6 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 </style>
 """, unsafe_allow_html=True)
-
-# =========================================================
-# PIXEL APP — TRAVEL MANAGER REDESIGN V1
-# Visual layer only: existing data/logic is intentionally preserved.
-# =========================================================
-st.markdown(r"""
-<style>
-:root {
-  --tm-bg: #050a0f;
-  --tm-panel: #0b131b;
-  --tm-panel-2: #0e1822;
-  --tm-border: rgba(255,255,255,.075);
-  --tm-border-strong: rgba(255,255,255,.12);
-  --tm-text: #f4f7f9;
-  --tm-muted: #8e9aa7;
-  --tm-green: #35d06f;
-  --tm-green-soft: rgba(53,208,111,.14);
-  --tm-yellow: #ffb400;
-  --tm-blue: #2298e8;
-  --tm-purple: #8c54e8;
-  --tm-orange: #ff8b19;
-}
-
-html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
-  background: var(--tm-bg) !important;
-  color: var(--tm-text) !important;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-}
-[data-testid="stAppViewContainer"] {
-  background:
-    radial-gradient(circle at 20% -10%, rgba(53,208,111,.055), transparent 28%),
-    radial-gradient(circle at 90% 0%, rgba(34,152,232,.045), transparent 25%),
-    var(--tm-bg) !important;
-}
-[data-testid="stHeader"] { background: transparent !important; }
-[data-testid="stToolbar"] { visibility: hidden; height: 0 !important; }
-section.main > div { max-width: 1180px !important; padding-top: 18px !important; padding-left: 22px !important; padding-right: 22px !important; }
-
-/* Remove the old glossy/blue Streamlit feel. */
-[data-testid="stVerticalBlockBorderWrapper"],
-div[data-testid="stContainer"] {
-  background: linear-gradient(180deg, rgba(15,24,33,.94), rgba(8,15,22,.94)) !important;
-  border: 1px solid var(--tm-border) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 10px 30px rgba(0,0,0,.20) !important;
-}
-
-/* Buttons */
-button[data-testid="stBaseButton-secondary"],
-button[data-testid="stBaseButton-primary"],
-[data-testid="stFormSubmitButton"] button {
-  min-height: 42px !important;
-  border-radius: 11px !important;
-  border: 1px solid var(--tm-border) !important;
-  background: #0d1720 !important;
-  color: var(--tm-text) !important;
-  box-shadow: none !important;
-  font-weight: 650 !important;
-  letter-spacing: 0 !important;
-  transform: none !important;
-}
-button[data-testid="stBaseButton-primary"] {
-  background: linear-gradient(180deg, #3ad875, #2abb60) !important;
-  border-color: rgba(91,255,137,.35) !important;
-  color: #041009 !important;
-}
-button[data-testid="stBaseButton-secondary"]:hover,
-button[data-testid="stBaseButton-primary"]:hover {
-  transform: translateY(-1px) !important;
-  border-color: rgba(53,208,111,.45) !important;
-}
-
-/* Inputs */
-div[data-testid="stTextInput"],
-div[data-testid="stNumberInput"],
-div[data-testid="stSelectbox"],
-div[data-testid="stDateInput"],
-div[data-testid="stFileUploader"] {
-  margin-bottom: 8px !important;
-}
-[data-baseweb="input"], [data-baseweb="select"], [data-baseweb="textarea"] {
-  background: #091119 !important;
-  border-color: var(--tm-border-strong) !important;
-  border-radius: 10px !important;
-}
-[data-baseweb="input"] input, [data-baseweb="textarea"] textarea { color: var(--tm-text) !important; }
-
-/* Headings */
-h1, h2, h3, h4, h5, h6 {
-  color: var(--tm-text) !important;
-  letter-spacing: -.02em !important;
-}
-[data-testid="stMarkdownContainer"] p { color: #c8d0d8; }
-[data-testid="stCaptionContainer"] { color: var(--tm-muted) !important; }
-
-/* Native progress bars */
-div[data-testid="stProgress"] > div > div {
-  background: var(--tm-green) !important;
-  border-radius: 999px !important;
-}
-div[data-testid="stProgress"] > div {
-  background: #202b35 !important;
-  border-radius: 999px !important;
-  height: 9px !important;
-}
-
-/* Divider */nhr { border-color: rgba(255,255,255,.06) !important; }
-
-/* Home / trip title hierarchy */
-.tm-redesign-brand {
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding: 4px 0 22px; border-bottom:1px solid rgba(255,255,255,.055);
-}
-.tm-redesign-brand .pixel { font-size:28px; font-weight:850; letter-spacing:.2px; color:#f2f5f7; }
-.tm-redesign-brand .pixel span { color:var(--tm-yellow); }
-.tm-redesign-brand .travel { margin-top:-2px; font-size:14px; font-weight:650; color:var(--tm-yellow); }
-.tm-trip-header {
-  display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
-  margin: 8px 0 16px;
-}
-.tm-trip-header .eyebrow { color:var(--tm-muted); font-size:11px; font-weight:750; text-transform:uppercase; letter-spacing:.09em; }
-.tm-trip-header .destination { color:#fff; font-size:31px; font-weight:820; line-height:1.05; }
-.tm-trip-header .dates { color:#93a0ad; font-size:13px; margin-top:6px; }
-.tm-status { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border-radius:999px; background:var(--tm-green-soft); color:#52e985; font-size:11px; font-weight:800; }
-.tm-status-dot { width:7px; height:7px; border-radius:50%; background:var(--tm-green); box-shadow:0 0 10px rgba(53,208,111,.6); }
-
-/* Make metric rows look like the reference */
-[data-testid="stMetric"] {
-  background: linear-gradient(180deg, rgba(15,25,34,.96), rgba(9,16,23,.96)) !important;
-  border:1px solid var(--tm-border) !important;
-  border-radius:13px !important;
-  padding:13px 15px !important;
-  min-height:92px !important;
-}
-[data-testid="stMetricLabel"] p { color:#8996a3 !important; font-size:10px !important; text-transform:uppercase; letter-spacing:.05em; }
-[data-testid="stMetricValue"] { color:#f4f7f9 !important; font-size:23px !important; font-weight:780 !important; }
-
-/* Compact section title used by existing app */
-.tm-section-title { margin-top:18px !important; margin-bottom:10px !important; color:#f5f7f9 !important; }
-.tm-section-number { border-width:1px !important; background:#0d1720 !important; }
-
-/* Cards and recent rows */
-.premium-expense-card, .fuel-card, .tm-plan-card {
-  background: #0b141d !important;
-  border:1px solid var(--tm-border) !important;
-  border-radius:12px !important;
-  box-shadow:none !important;
-}
-
-/* Desktop two-column dashboard helpers */
-.tm-dashboard-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr); gap:14px; }
-.tm-panel { background:linear-gradient(180deg,#0d171f,#091119); border:1px solid var(--tm-border); border-radius:16px; padding:16px; }
-.tm-panel-title { font-size:13px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:#dbe2e7; margin-bottom:12px; }
-
-@media (max-width: 800px) {
-  section.main > div { max-width: 100% !important; padding: 10px 10px 84px !important; }
-  .tm-redesign-brand { padding-bottom:14px; }
-  .tm-redesign-brand .pixel { font-size:22px; }
-  .tm-trip-header { align-items:flex-start; }
-  .tm-trip-header .destination { font-size:25px; }
-  .tm-dashboard-grid { grid-template-columns:1fr; }
-  [data-testid="stMetric"] { min-height:78px !important; padding:10px 11px !important; }
-  [data-testid="stMetricValue"] { font-size:20px !important; }
-}
-</style>
-""", unsafe_allow_html=True)
-
 
 KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
@@ -1233,17 +1066,136 @@ else:
     except: 
         pass
 
-    date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-    st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {str(trip_id).replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
-    
+    # =========================================================
+    # PIXEL APP / TRAVEL MANAGER — НОВ TRIP DASHBOARD
+    # Визуален слой: логиката и файловете за данни остават непроменени.
+    # =========================================================
+    destination = str(trip_id).replace("_", " ")
+    display_start = st_date if st_date and st_date != "nan" else ""
+    display_end = en_date if en_date and en_date != "nan" else ""
+    spent_total = float(depozit_hotel + total_on_site)
+    trip_budget = float(global_budget) if global_budget > 0 else float(category_budget_total)
+    trip_pct = max(0.0, min(100.0, spent_total / trip_budget * 100.0)) if trip_budget > 0 else 0.0
+    remaining_total = trip_budget - spent_total if trip_budget > 0 else 0.0
+    days_left = 0
+    try:
+        d_end = datetime.datetime.strptime(display_end, "%d.%m.%Y").date()
+        days_left = max(0, (d_end - datetime.date.today()).days)
+    except Exception:
+        days_left = 0
+
+    st.markdown("""
+    <style>
+    :root { --px-bg:#071019; --px-panel:#0b151f; --px-panel2:#0e1a25; --px-line:rgba(255,255,255,.075); --px-text:#f4f7fa; --px-muted:#8f9aa6; --px-green:#35d06f; --px-yellow:#ffb400; --px-blue:#2d9cff; }
+    .px-shell { max-width:1180px; margin:0 auto; color:var(--px-text); font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .px-topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:6px 4px 18px; border-bottom:1px solid var(--px-line); margin-bottom:14px; }
+    .px-brand { display:flex; align-items:center; gap:10px; }
+    .px-brand-mark { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; background:linear-gradient(135deg,#ffb400,#ff8a00); color:#101010; font-size:18px; font-weight:900; }
+    .px-brand-title { font-size:16px; font-weight:900; letter-spacing:.2px; line-height:1.05; }
+    .px-brand-sub { color:var(--px-yellow); font-size:11px; font-weight:700; margin-top:3px; }
+    .px-back { color:#aeb8c2; font-size:12px; font-weight:700; }
+    .px-hero { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(310px,.9fr); gap:14px; align-items:stretch; }
+    .px-hero-photo { min-height:360px; position:relative; overflow:hidden; border-radius:18px; border:1px solid var(--px-line); background:radial-gradient(circle at 72% 28%,rgba(255,180,0,.42),transparent 18%), linear-gradient(145deg,#18384b 0%,#0b2430 38%,#061019 100%); }
+    .px-hero-photo:before { content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.02) 20%,rgba(0,0,0,.82) 100%); }
+    .px-sun { position:absolute; width:120px; height:120px; border-radius:50%; background:rgba(255,185,52,.18); filter:blur(8px); right:18%; top:16%; }
+    .px-horizon { position:absolute; left:0; right:0; bottom:26%; height:26%; background:linear-gradient(170deg,transparent 0 30%,rgba(7,27,36,.82) 31% 100%); clip-path:polygon(0 50%,10% 42%,20% 55%,34% 38%,47% 52%,62% 30%,75% 48%,88% 35%,100% 48%,100% 100%,0 100%); }
+    .px-hero-content { position:absolute; left:22px; right:22px; bottom:20px; z-index:2; }
+    .px-kicker { color:#d7e0e8; font-size:11px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; }
+    .px-destination { font-size:30px; font-weight:900; margin-top:5px; line-height:1.05; }
+    .px-dates { color:#c0c9d2; font-size:13px; margin-top:7px; }
+    .px-status { display:inline-flex; margin-top:10px; padding:6px 10px; border-radius:999px; background:rgba(31,201,102,.16); border:1px solid rgba(53,208,111,.28); color:#53dc83; font-size:11px; font-weight:900; }
+    .px-report { margin-top:16px; padding:14px 16px; border-radius:14px; background:rgba(4,11,17,.88); border:1px solid rgba(255,255,255,.09); backdrop-filter:blur(10px); }
+    .px-report-label { color:#c7d0d9; font-size:11px; font-weight:900; letter-spacing:.7px; }
+    .px-report-number { font-size:27px; font-weight:900; margin-top:4px; }
+    .px-report-number span { color:#dfe6ec; font-weight:500; }
+    .px-progress { height:8px; background:#27333e; border-radius:99px; overflow:hidden; margin-top:10px; }
+    .px-progress > i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#36d16f,#53df80); }
+    .px-report-meta { display:flex; justify-content:space-between; color:#b5bec8; font-size:11px; margin-top:7px; }
+    .px-side { display:grid; grid-template-rows:auto auto 1fr; gap:10px; }
+    .px-panel { background:linear-gradient(145deg,rgba(16,29,40,.92),rgba(7,16,24,.94)); border:1px solid var(--px-line); border-radius:16px; padding:16px; box-shadow:0 8px 25px rgba(0,0,0,.16); }
+    .px-panel-title { font-size:12px; font-weight:900; letter-spacing:.65px; color:#eef3f7; }
+    .px-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:11px; }
+    .px-stat { min-width:0; padding:12px; border-radius:12px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.055); }
+    .px-stat-label { color:#84909c; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.35px; }
+    .px-stat-value { color:#fff; font-size:18px; font-weight:900; margin-top:5px; }
+    .px-stat-value.green { color:#4bda7a; } .px-stat-value.yellow { color:#ffbd27; } .px-stat-value.blue { color:#52b3ff; }
+    .px-actions { display:grid; gap:7px; margin-top:10px; }
+    .px-action { padding:11px 12px; border-radius:11px; border:1px solid rgba(255,255,255,.06); background:rgba(255,255,255,.025); color:#e8edf2; font-size:12px; }
+    .px-action b { color:#fff; margin-left:7px; }
+    .px-tabs { display:flex; gap:5px; margin-top:14px; padding:5px; border-radius:12px; background:#0d1822; border:1px solid var(--px-line); }
+    .px-tab { flex:1; text-align:center; padding:9px 5px; border-radius:8px; color:#8d98a4; font-size:11px; font-weight:800; }
+    .px-tab.active { color:#54dc83; background:rgba(53,208,111,.12); }
+    .px-section-gap { height:14px; }
+    .px-expense-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:14px 0 8px; }
+    .px-expense-head h3 { margin:0; font-size:14px; font-weight:900; }
+    .px-expense-head span { color:#7f8a96; font-size:11px; }
+    @media(max-width:850px){ .px-hero{grid-template-columns:1fr;} .px-side{grid-template-columns:1fr 1fr; grid-template-rows:auto auto;} .px-side .px-panel:last-child{grid-column:1/-1;} }
+    @media(max-width:640px){ .px-topbar{padding-top:0;} .px-hero-photo{min-height:310px;} .px-destination{font-size:25px;} .px-side{grid-template-columns:1fr;} .px-side .px-panel:last-child{grid-column:auto;} .px-stat-value{font-size:17px;} .px-report-number{font-size:24px;} }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class='px-shell'>
+      <div class='px-topbar'>
+        <div class='px-brand'>
+          <div class='px-brand-mark'>✚</div>
+          <div><div class='px-brand-title'>PIXEL APP</div><div class='px-brand-sub'>Travel Manager</div></div>
+        </div>
+        <div class='px-back'>← Моите пътувания</div>
+      </div>
+      <div class='px-hero'>
+        <div class='px-hero-photo'>
+          <div class='px-sun'></div><div class='px-horizon'></div>
+          <div class='px-hero-content'>
+            <div class='px-kicker'>ДЕСТИНАЦИЯ</div>
+            <div class='px-destination'>🌴 {html.escape(destination)}</div>
+            <div class='px-dates'>📅 {html.escape(display_start)}{(' – ' + html.escape(display_end)) if display_end else ''}</div>
+            <div class='px-status'>● {'ПРИКЛЮЧЕНО' if is_trip_finished else 'В ПРОЦЕС'}</div>
+            <div class='px-report'>
+              <div class='px-report-label'>ОТЧЕТ ЗА ПЪТУВАНЕ</div>
+              <div class='px-report-number'>€{spent_total:,.2f} <span>/ €{trip_budget:,.2f}</span></div>
+              <div class='px-progress'><i style='width:{trip_pct:.1f}%'></i></div>
+              <div class='px-report-meta'><span>{remaining_total:,.2f} € оставащи</span><b>{trip_pct:.0f}%</b></div>
+            </div>
+          </div>
+        </div>
+        <div class='px-side'>
+          <div class='px-panel'>
+            <div class='px-panel-title'>ОБЗОР НА ПЪТУВАНЕТО</div>
+            <div class='px-stat-grid'>
+              <div class='px-stat'><div class='px-stat-label'>Общ бюджет</div><div class='px-stat-value yellow'>€{trip_budget:,.2f}</div></div>
+              <div class='px-stat'><div class='px-stat-label'>Похарчено</div><div class='px-stat-value blue'>€{spent_total:,.2f}</div></div>
+              <div class='px-stat'><div class='px-stat-label'>Остава</div><div class='px-stat-value green'>€{remaining_total:,.2f}</div></div>
+              <div class='px-stat'><div class='px-stat-label'>Дни</div><div class='px-stat-value'>{days_left if not is_trip_finished else 0}</div></div>
+            </div>
+          </div>
+          <div class='px-panel'>
+            <div class='px-panel-title'>БЪРЗИ ДЕЙСТВИЯ</div>
+            <div class='px-actions'>
+              <div class='px-action'>＋ <b>Нов разход</b></div>
+              <div class='px-action'>□ <b>Нова бележка</b></div>
+              <div class='px-action'>↥ <b>Качване на файл</b></div>
+              <div class='px-action'>▣ <b>Експорт на отчет</b></div>
+            </div>
+          </div>
+          <div class='px-panel'>
+            <div class='px-panel-title'>НАВИГАЦИЯ</div>
+            <div class='px-tabs'><div class='px-tab active'>Преглед</div><div class='px-tab'>Разходи</div><div class='px-tab'>Бележки</div><div class='px-tab'>План</div></div>
+            <div style='color:#77838f;font-size:11px;line-height:1.5;margin-top:11px;'>Всички съществуващи функции остават под този нов визуален слой.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div id='trip_top_anchor' style='scroll-margin-top:20px'></div>", unsafe_allow_html=True)
     ekran_za_kategorii = st.empty()
 
-    if st.button("🔙 НАЗАД КЪМ НАЧАЛЕН ЕКРАН", use_container_width=True): 
+    if st.button("← Към моите пътувания", use_container_width=True, key="px_back_trip"):
         st.session_state["current_trip"] = None
         st.rerun()
 
+    st.markdown("<div class='px-expense-head'><h3>НОВ РАЗХОД</h3><span>Бързо добавяне към текущото пътуване</span></div>", unsafe_allow_html=True)
     v_id = st.session_state["form_version"]
     st.markdown('<div id="target_sum_box" style="position: relative; scroll-margin-top: 30px;"></div>', unsafe_allow_html=True)
     
