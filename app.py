@@ -11,7 +11,7 @@ import io
 import html
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide", initial_sidebar_state="collapsed")
 
 # =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
@@ -1849,17 +1849,12 @@ if st.session_state["current_trip"] is None:
     except Exception:
         st.markdown("<div style='height:140px;display:flex;align-items:center;justify-content:center;color:#71808d;font-size:11px;'>Картата не може да бъде заредена в момента.</div></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='px-home-info-stack'>", unsafe_allow_html=True)
-    if _home_next:
-        _days=max(0,(_home_next_date-datetime.date.today()).days); _when="днес" if _days==0 else f"след {_days} дни"
-        st.markdown(f"<div class='px-panel'><div class='px-side-title'>✈️ СЛЕДВАЩО ПЪТУВАНЕ</div><div class='px-side-main'>{html.escape(_home_next)}</div><div class='px-side-sub'>{_home_next_date.strftime('%d.%m.%Y')} · {_when}</div></div>", unsafe_allow_html=True)
-    if _home_last:
-        st.markdown(f"<div class='px-panel'><div class='px-side-title'>🕐 ПОСЛЕДНА АКТИВНОСТ</div><div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>{html.escape(_home_last[0])} · {html.escape(_home_last[2])}</div><div class='px-activity-desc'>{html.escape(_home_last[3])}</div></div><div class='px-activity-amt'>€{_home_last[1]:,.2f}</div></div></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='px-panel'><div class='px-side-title'>📊 БЪРЗ ПОГЛЕД</div><div style='margin-top:12px'><div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>АКТИВНИ</div><div class='px-activity-desc'>Пътувания</div></div><div class='px-activity-amt' style='color:#45d878'>{_home_active_count}</div></div><div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>РАЗХОДИ</div><div class='px-activity-desc'>Общо записани</div></div><div class='px-activity-amt' style='color:#ffd24a'>€{_home_total_spent:,.0f}</div></div><div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>ПРОБЕГ</div><div class='px-activity-desc'>Изминати километри</div></div><div class='px-activity-amt' style='color:#39c7e8'>{_home_total_km:,.0f} км</div></div></div></div>", unsafe_allow_html=True)
+    # Допълнителните обобщаващи панели са премахнати, защото дублираха
+    # информацията от KPI реда, картите на пътуванията и последните разходи.
+    # Началният екран остава чист: карта + глобален анализ + последни разходи.
     if st.button("📈 Глобален анализ", use_container_width=True, key="home_global_analysis_btn"):
         st.session_state["stable_comparison_toggle"] = True
         st.rerun()
-    st.markdown("</div></div>", unsafe_allow_html=True)
 
     if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
 
