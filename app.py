@@ -870,7 +870,7 @@ if "open_quick_expense" not in st.session_state:
     st.session_state["open_quick_expense"] = False
 
 # Dialog flags are mutually exclusive: Streamlit permits only one open dialog per run.
-_DIALOG_FLAGS = ["open_create_trip", "open_quick_expense", "trip_add_expense_new", "trip_plan_new", "trip_fuel_new", "trip_car_new", "open_delete_trip_new", "open_cat_analysis_new", "open_trip_settings_new"]
+_DIALOG_FLAGS = ["open_create_trip", "open_quick_expense", "trip_add_expense_new", "trip_fuel_new", "trip_car_new", "open_delete_trip_new", "open_cat_analysis_new", "open_trip_settings_new"]
 for _flag in _DIALOG_FLAGS:
     if _flag not in st.session_state:
         st.session_state[_flag] = False
@@ -1240,14 +1240,6 @@ else:
             html_rows.append(f"<div class='px-list-item'><div class='px-icon'>{get_emoji(r.get('category',''))}</div><div><div style='font-weight:800;font-size:12px'>{html.escape(str(r.get('description','Без описание')))}</div><div class='px-muted' style='font-size:10px'>{html.escape(str(r.get('date','')))} · {html.escape(get_display_category(r.get('category','')))}</div></div><div style='font-weight:900'>{_money(r.get('amount',0))}</div></div>")
         st.markdown("<div class='px-panel'><div class='px-panel-title'>ПОСЛЕДНИ РАЗХОДИ</div><div class='px-list'>"+("".join(html_rows) if html_rows else "<div class='px-muted'>Няма разходи.</div>")+"</div></div>",unsafe_allow_html=True)
 
-    with cB:
-        plan=get_trip_plan(tid)
-        notes=[]
-        # Existing app has plan items; use them visually as notes/tasks.
-        if not plan.empty:
-            for _,r in plan.tail(4).iterrows(): notes.append(f"<div class='px-note'><span style='color:{'#52df78' if bool(r.get('done',False)) else '#ffd13f'}'>▌</span> {html.escape(str(r.get('title','')))}</div>")
-        st.markdown("<div class='px-panel'><div class='px-panel-title'>БЕЛЕЖКИ / ПЛАН</div>" + (''.join(notes) if notes else "<div class='px-muted'>Няма добавени задачи.</div>") + "</div>", unsafe_allow_html=True)
-
     # Quick actions — само реалните действия от новия дизайн.
     # "План" не е отделен quick-action бутон: задачите/бележките вече
     # се виждат в собствения панел и така не се повтаря информация.
@@ -1261,9 +1253,7 @@ else:
         if st.button("🚗 Автомобил",key="new_ui_car",use_container_width=True): _close_other_dialogs("trip_car_new"); st.session_state["trip_car_new"]=True; st.rerun()
 
     # Стар флаг от предишна сесия не трябва да отваря План автоматично.
-    st.session_state["trip_plan_new"] = False
-
-    # Expense dialog
+        # Expense dialog
     if st.session_state.get("trip_add_expense_new"):
         @st.dialog("Нов разход",width="small")
         def _trip_expense_dialog():
@@ -1280,22 +1270,6 @@ else:
                 if amount and desc.strip() and add_expense(tid,float(amount),cat,desc.strip(),cat=="Депозит/Резервация",float(liters),float(km)):
                     st.session_state["trip_add_expense_new"]=False; st.rerun()
         _trip_expense_dialog()
-
-    # Plan dialog
-    elif st.session_state.get("trip_plan_new"):
-        @st.dialog("План на пътуването",width="small")
-        def _plan_dialog():
-            items=get_trip_plan(tid)
-            for _,r in items.iterrows():
-                c1,c2=st.columns([.82,.18])
-                with c1: st.write(("✅ " if bool(r.get('done',False)) else "□ ")+str(r.get('title','')))
-                with c2:
-                    if st.button("✓" if not bool(r.get('done',False)) else "↺",key=f"pl_toggle_{r.get('item_id')}"):
-                        _toggle_plan_item(str(r.get('item_id'))); st.rerun()
-            title=st.text_input("Нова задача",key="new_plan_title")
-            if st.button("＋ Добави",use_container_width=True) and title.strip():
-                add_trip_plan_item(tid,title.strip()); st.rerun()
-        _plan_dialog()
 
     # Fuel dialog — uses same expense storage fields.
     elif st.session_state.get("trip_fuel_new"):
