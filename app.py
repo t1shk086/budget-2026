@@ -3556,15 +3556,15 @@ else:
                     _rich_budget_total = 0.0
                     _rich_budget_spent = float(depozit_hotel + total_on_site)
                     _rich_budget_label = "Без бюджет"
-                _rich_budget_remaining = _rich_budget_total - _rich_budget_spent
+                _rich_budget_remaining = float(_rich_budget_total - _rich_budget_spent)
                 _rich_budget_pct = (max(0.0, min(100.0, _rich_budget_spent / _rich_budget_total * 100.0))
                                     if _rich_budget_total > 0 else 0.0)
                 _dash_status_color = health_color
                 _dash_status_text = health_title
                 _dash_remaining_label = (
-                    f"Остават {_rich_budget_remaining:.2f} EUR"
-                    if _rich_budget_remaining >= 0
-                    else f"Над бюджета с {abs(_rich_budget_remaining):.2f} EUR"
+                    f"Остават {active_budget_remaining:.2f} EUR"
+                    if active_budget_remaining >= 0
+                    else f"Над бюджета с {abs(active_budget_remaining):.2f} EUR"
                 )
 
                 _daily_chart_html = ""
