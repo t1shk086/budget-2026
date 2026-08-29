@@ -3386,295 +3386,404 @@ else:
                 """, unsafe_allow_html=True)
 
     # =========================================================
-    # ДНЕВЕН БЮДЖЕТ + ТЕМП НА ХАРЧЕНЕ
-    # Хотелът и депозитът НЕ участват в тези два показателя.
-    # Общият бюджет и общата прогрес лента продължават да включват всичко.
     # =========================================================
+    # ДНЕВЕН БЮДЖЕТ + ТЕМП НА ХАРЧЕНЕ
+    # =========================================================
+    # Вместо трите стари карти показваме едно общо информативно поле.
+    # Данните използват същата логика за общ бюджет / бюджети по категории.
     if active_budget_mode != "none" and active_budget_total > 0:
+        # --- Дати ---
         try:
-            start_date_obj = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else None
-            end_date_obj = datetime.datetime.strptime(en_date, "%d.%m.%Y").date() if en_date and en_date != "nan" else None
-            today_obj = datetime.date.today()
+            start_date_obj = (
+                datetime.datetime.strptime(st_date, "%d.%m.%Y").date()
+                if st_date and st_date != "nan" else None
+            )
+            end_date_obj = (
+                datetime.datetime.strptime(en_date, "%d.%m.%Y").date()
+                if en_date and en_date != "nan" else None
+            )
+        except Exception:
+            start_date_obj, end_date_obj = None, None
 
-            if start_date_obj and end_date_obj:
-                total_days = max(1, (end_date_obj - start_date_obj).days + 1)
-                elapsed_days = max(1, min(total_days, (today_obj - start_date_obj).days + 1))
-                days_remaining = max(0, total_days - elapsed_days)
+        today_obj = datetime.date.today()
+        if start_date_obj and end_date_obj:
+            total_days = max(1, (end_date_obj - start_date_obj).days + 1)
+            elapsed_days = max(
+                1,
+                min(total_days, (today_obj - start_date_obj).days + 1)
+            )
+            days_remaining = max(0, total_days - elapsed_days)
+        else:
+            total_days = 1
+            elapsed_days = 1
+            days_remaining = 0
 
-                # Хотел + депозит се отделят от ежедневното харчене.
-                hotel_spent_for_pace = float(df_expenses[df_expenses["category"] == "Нощувки/Хотел"]["amount"].sum())
-                deposit_spent_for_pace = float(depozit_hotel)
+        # --- Дневен пул ---
+        # Хотелът и депозитът остават извън дневния лимит/темпо,
+        # както е в оригиналната логика.
+        try:
+            hotel_spent_for_pace = float(
+                df_expenses[df_expenses["category"] == "Нощувки/Хотел"]["amount"].sum()
+            )
+        except Exception:
+            hotel_spent_for_pace = 0.0
 
-                # Разходи на място без хотел. Депозитите не са в total_on_site,
-                # но ги изваждаме отделно от бюджетния пул за яснота.
-                daily_spent_total = max(0.0, float(total_on_site) - hotel_spent_for_pace)
+        deposit_spent_for_pace = float(depozit_hotel or 0.0)
+        daily_spent_total = max(
+            0.0,
+            float(total_on_site or 0.0) - hotel_spent_for_pace
+        )
 
-                if active_budget_mode == "category":
-                    # При категориален бюджет махаме бюджета на хотелската категория.
-                    hotel_budget_for_pace = float(category_budgets.get("Нощувки/Хотел", 0.0) or 0.0)
-                    daily_budget_total = max(0.0, float(active_budget_total) - hotel_budget_for_pace)
-                else:
-                    # При общ бюджет махаме вече платения хотел + депозит от дневния пул.
-                    daily_budget_total = max(0.0, float(active_budget_total) - hotel_spent_for_pace - deposit_spent_for_pace)
-
-                daily_budget_remaining = daily_budget_total - daily_spent_total
-                daily_target = daily_budget_total / total_days
-                avg_daily_spend = daily_spent_total / elapsed_days
-                projected_total = avg_daily_spend * total_days
-                forecast_delta = daily_budget_total - projected_total
-
-                daily_remaining_budget = daily_budget_remaining / days_remaining if days_remaining > 0 else daily_budget_remaining
-                daily_status = (
-                    f"€{daily_remaining_budget:.2f} / ден" if days_remaining > 0 and daily_budget_remaining >= 0
-                    else "Бюджетът е изчерпан" if daily_budget_remaining < 0
-                    else "Пътуването приключва днес"
+        if active_budget_mode == "category":
+            try:
+                hotel_budget_for_pace = float(
+                    category_budgets.get("Нощувки/Хотел", 0.0) or 0.0
                 )
+            except Exception:
+                hotel_budget_for_pace = 0.0
 
-                forecast_color = "#8bd5ff" if forecast_delta >= 0 else "#ff4b4b"
-                forecast_text = (
-                    f"Очакван остатък: €{forecast_delta:.2f}" if forecast_delta >= 0
-                    else f"Очаквано надхвърляне: €{abs(forecast_delta):.2f}"
+            daily_budget_total = max(
+                0.0,
+                float(active_budget_total) - hotel_budget_for_pace
+            )
+            rich_label = "Бюджет по категории"
+        else:
+            daily_budget_total = max(
+                0.0,
+                float(active_budget_total)
+                - hotel_spent_for_pace
+                - deposit_spent_for_pace
+            )
+            rich_label = "Общ бюджет"
+
+        daily_budget_remaining = daily_budget_total - daily_spent_total
+        daily_target = daily_budget_total / total_days if total_days > 0 else 0.0
+        avg_daily_spend = daily_spent_total / elapsed_days if elapsed_days > 0 else 0.0
+        projected_total = avg_daily_spend * total_days
+        forecast_delta = daily_budget_total - projected_total
+
+        pace_ratio = (
+            avg_daily_spend / daily_target
+            if daily_target > 0 else 0.0
+        )
+
+        if pace_ratio <= 0.80:
+            health_icon = "🟢"
+            health_title = "БЮДЖЕТЪТ ВЪРВИ ДОБРЕ"
+            health_color = "#35d06a"
+        elif pace_ratio <= 1.00:
+            health_icon = "🟡"
+            health_title = "ХАРЧИШ БЛИЗО ДО ПЛАНА"
+            health_color = "#ffd03c"
+        else:
+            health_icon = "🔴"
+            health_title = "ХАРЧИШ ПРЕКАЛЕНО БЪРЗО"
+            health_color = "#ff4b4b"
+
+        pace_difference = avg_daily_spend - daily_target
+        if pace_difference < 0:
+            health_text = f"Под плана си с €{abs(pace_difference):.2f}/ден"
+        elif pace_difference > 0:
+            health_text = f"Над плана си с €{pace_difference:.2f}/ден"
+        else:
+            health_text = "Точно по плана си"
+
+        # --- Последните 7 дни ---
+        chart_days = []
+        chart_values = []
+        try:
+            chart_df = df_expenses.copy()
+            if not chart_df.empty and "date" in chart_df.columns:
+                chart_df["_tm_date"] = pd.to_datetime(
+                    chart_df["date"].astype(str),
+                    dayfirst=True,
+                    errors="coerce"
                 )
+                chart_df = chart_df[chart_df["_tm_date"].notna()].copy()
+                if not chart_df.empty:
+                    chart_df["_tm_day"] = chart_df["_tm_date"].dt.date
+                    grouped = chart_df.groupby("_tm_day")["amount"].sum().tail(7)
+                    chart_days = [d.strftime("%d.%m") for d in grouped.index]
+                    chart_values = [float(v or 0.0) for v in grouped.values]
+        except Exception:
+            chart_days, chart_values = [], []
 
-                daily_card = f"""
-                <div class='tm-budget-card-inner tm-budget-accent-daily' style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:16px;height:100%;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,.3);'>
-                    <div style='font-size:12px;color:#8b929e;font-weight:700;letter-spacing:.3px;'>📅 ДНЕВЕН ЛИМИТ</div>
-                    <div style='font-size:26px;color:#ffffff;font-weight:900;margin-top:6px;'>€{daily_target:.2f}</div>
-                    <div style='font-size:11px;color:#7e8494;margin-top:2px;'>По план</div>
-                    <div style='margin-top:12px;font-size:12px;color:#aeb5c0;'>Остават <b style='color:#ffffff;'>{days_remaining}</b> дни</div>
-                    <div style='margin-top:4px;font-size:12px;color:#aeb5c0;'>Препоръчително оттук: <b style='color:#8bd5ff;'>{daily_status}</b></div>
-                </div>
-                """
-
-                pace_card = f"""
-                <div class='tm-budget-card-inner tm-budget-accent-pace' style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:16px;height:100%;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,.3);'>
-                    <div style='font-size:12px;color:#8b929e;font-weight:700;letter-spacing:.3px;'>📈 ТЕМП НА ХАРЧЕНЕ</div>
-                    <div style='font-size:26px;color:#ffffff;font-weight:900;margin-top:6px;'>€{avg_daily_spend:.2f}</div>
-                    <div style='font-size:11px;color:#7e8494;margin-top:2px;'>Изхарчени средно</div>
-                    <div style='margin-top:12px;font-size:12px;color:#aeb5c0;'>Прогноза до края: <b style='color:#ffffff;'>€{projected_total:.2f}</b></div>
-                    <div style='margin-top:4px;font-size:12px;color:{forecast_color};font-weight:800;'>{forecast_text}</div>
-                </div>
-                """
-
-                # =========================================================
-                # СТАТУС НА ТРЕТАТА КАРТА
-                # Сравняваме реалното средно харчене на ден
-                # директно с дневния лимит.
-                # =========================================================
-                pace_difference = avg_daily_spend - daily_target
-                pace_ratio = (avg_daily_spend / daily_target) if daily_target > 0 else 0.0
-
-                # Статусът на третата карта:
-                # до 80% от дневния лимит -> зелено
-                # над 80% до 100% -> жълто
-                # над 100% -> червено
-                if pace_ratio <= 0.80:
-                    health_icon = "🟢"
-                    health_title = "БЮДЖЕТЪТ ВЪРВИ ДОБРЕ"
-                    health_color = "#2ebd59"
-                elif pace_ratio <= 1.00:
-                    health_icon = "🟡"
-                    health_title = "ХАРЧИШ ПО-БЪРЗО ОТ ПЛАНА"
-                    health_color = "#ffaa00"
-                else:
-                    health_icon = "🔴"
-                    health_title = "ХАРЧИШ ПРЕКАЛЕНО БЪРЗО"
-                    health_color = "#ff3b30"
-
-                if pace_difference < 0:
-                    health_text = f"Под плана си с €{abs(pace_difference):.2f}/ден"
-                elif pace_difference > 0:
-                    health_text = f"Над плана си с €{pace_difference:.2f}/ден"
-                else:
-                    health_text = "Точно по плана си"
-
-                # Запазваме стария вътрешен блок валиден, въпреки че не се визуализира.
-                planned_to_date = daily_budget_total * elapsed_days / total_days
-
-                health_card = f"""
-                <div style='background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.09);padding:15px 16px;border-radius:16px;margin-top:12px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
-                    <div style='font-size:12px;color:{health_color};font-weight:800;letter-spacing:.3px;'>{health_icon} {health_title}</div>
-                    <div style='font-size:12px;color:#aeb5c0;margin-top:9px;'>Реално до момента: <b style='color:#ffffff;'>€{daily_spent_total:.2f}</b> · План до момента: <b style='color:#ffffff;'>€{planned_to_date:.2f}</b></div>
-                    <div style='margin-top:5px;font-size:12px;color:{health_color};font-weight:800;'>{health_text}</div>
-                    <div style='margin-top:4px;font-size:11px;color:#7e8494;'>Прогноза: <b style='color:#ffffff;'>€{projected_total:.2f}</b> от бюджет €{daily_budget_total:.2f}</div>
-                </div>
-                """
-
-                # =========================================================
-                # НОВО ВИЗУАЛНО ПОЛЕ: заменя само старите 3 карти.
-                # Всички стойности идват от вече съществуващите изчисления по-горе.
-                # Никакви имена на бутони/полета/логика не се променят.
-                # =========================================================
-                _chart_days = []
-                _chart_values = []
-                try:
-                    _chart_df = df_expenses.copy()
-                    if not _chart_df.empty and "date" in _chart_df.columns:
-                        _chart_df["_dt"] = pd.to_datetime(
-                            _chart_df["date"].astype(str),
-                            dayfirst=True,
-                            errors="coerce"
-                        )
-                        _chart_df = _chart_df[_chart_df["_dt"].notna()].copy()
-                        if not _chart_df.empty:
-                            _chart_df["_day"] = _chart_df["_dt"].dt.date
-                            _chart_group = (
-                                _chart_df.groupby("_day")["amount"]
-                                .sum()
-                                .tail(7)
-                            )
-                            _chart_days = [d.strftime("%d.%m") for d in _chart_group.index]
-                            _chart_values = [float(v or 0.0) for v in _chart_group.values]
-                except Exception:
-                    _chart_days, _chart_values = [], []
-
-                _chart_max = max(_chart_values) if _chart_values else 1.0
-                _category_items = []
-                try:
-                    _cat_total = sum(float(v or 0.0) for v in categories_totals.values())
-                    for _cat_name, _cat_value in categories_totals.items():
-                        _cat_value = float(_cat_value or 0.0)
-                        _cat_pct = (_cat_value / _cat_total * 100.0) if _cat_total > 0 else 0.0
-                        _category_items.append((_cat_name, _cat_value, _cat_pct))
-                    _category_items.sort(key=lambda x: x[1], reverse=True)
-                except Exception:
-                    _category_items = []
-
-                # Надежни стойности за новото поле — изчисляват се директно от активния режим.
-                # Така полето работи еднакво при ОБЩ БЮДЖЕТ и при БЮДЖЕТ ПО КАТЕГОРИИ.
-                _rich_budget_mode = active_budget_mode
-                if _rich_budget_mode == "global":
-                    _rich_budget_total = float(global_budget or 0.0)
-                    _rich_budget_spent = float(depozit_hotel + total_on_site)
-                    _rich_budget_label = "Общ бюджет"
-                elif _rich_budget_mode == "category":
-                    _rich_budget_total = float(category_budget_total or 0.0)
-                    _budgeted_for_rich = {str(c) for c, v in category_budgets.items() if float(v or 0.0) > 0}
-                    _rich_budget_spent = float(sum(float(categories_totals.get(c, 0.0) or 0.0) for c in _budgeted_for_rich))
-                    _rich_budget_label = "Общо по категории"
-                else:
-                    _rich_budget_total = 0.0
-                    _rich_budget_spent = float(depozit_hotel + total_on_site)
-                    _rich_budget_label = "Без бюджет"
-                _rich_budget_remaining = _rich_budget_total - _rich_budget_spent
-                _rich_budget_pct = (max(0.0, min(100.0, _rich_budget_spent / _rich_budget_total * 100.0))
-                                    if _rich_budget_total > 0 else 0.0)
-                _dash_status_color = health_color
-                _dash_status_text = health_title
-                _dash_remaining_label = (
-                    f"Остават {_rich_budget_remaining:.2f} EUR"
-                    if _rich_budget_remaining >= 0
-                    else f"Над бюджета с {abs(_rich_budget_remaining):.2f} EUR"
-                )
-
-                _daily_chart_html = ""
-                if _chart_values:
-                    _bars = []
-                    for _d, _v in zip(_chart_days, _chart_values):
-                        _h = max(8.0, (_v / _chart_max) * 100.0)
-                        _bars.append(
-                            f"""
-                            <div style='flex:1;min-width:30px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;height:112px;'>
-                                <div style='font-size:9px;color:#aeb5c0;font-weight:800;'>€{_v:.0f}</div>
-                                <div style='width:100%;max-width:34px;height:{_h:.1f}%;min-height:8px;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,#00f2fe,#4facfe);box-shadow:0 3px 9px rgba(0,242,254,.16);'></div>
-                                <div style='font-size:9px;color:#6f7a86;'>{html.escape(_d)}</div>
-                            </div>
-                            """
-                        )
-                    _daily_chart_html = "<div style='display:flex;align-items:flex-end;gap:8px;height:135px;margin-top:8px;'>" + "".join(_bars) + "</div>"
-                else:
-                    _daily_chart_html = "<div style='height:135px;display:flex;align-items:center;justify-content:center;color:#77828c;font-size:11px;'>Няма достатъчно данни за дневна графика.</div>"
-
-                _category_html = ""
-                _cat_colors = ["#35d06a", "#35a8ff", "#965cff", "#ff7d22", "#ffd03c", "#63d391"]
-                for _idx, (_cat_name, _cat_value, _cat_pct) in enumerate(_category_items):
-                    _cc = _cat_colors[_idx % len(_cat_colors)]
-                    _category_html += f"""
-                    <div style='margin-bottom:10px;'>
-                        <div style='display:flex;justify-content:space-between;gap:8px;font-size:10px;'>
-                            <span style='color:#dce1e8;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>{html.escape(get_display_category(_cat_name))}</span>
-                            <span style='color:#fff;font-weight:800;white-space:nowrap;'>€{_cat_value:.2f}</span>
-                        </div>
-                        <div style='height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:5px;'>
-                            <div style='height:100%;width:{min(100.0,_cat_pct):.1f}%;background:{_cc};border-radius:99px;'></div>
-                        </div>
+        chart_max = max(chart_values) if chart_values else 1.0
+        if chart_values:
+            chart_bars = []
+            for day_label, value in zip(chart_days, chart_values):
+                bar_height = max(8.0, (value / chart_max) * 100.0)
+                chart_bars.append(
+                    f"""
+                    <div style="flex:1;min-width:30px;display:flex;flex-direction:column;
+                                align-items:center;justify-content:flex-end;gap:5px;height:118px;">
+                        <div style="font-size:9px;color:#aeb5c0;font-weight:800;">€{value:.0f}</div>
+                        <div style="width:100%;max-width:34px;height:{bar_height:.1f}%;
+                                    min-height:8px;border-radius:7px 7px 3px 3px;
+                                    background:linear-gradient(180deg,#00f2fe,#4facfe);
+                                    box-shadow:0 3px 9px rgba(0,242,254,.16);"></div>
+                        <div style="font-size:9px;color:#6f7a86;">{html.escape(day_label)}</div>
                     </div>
                     """
+                )
+            daily_chart_html = (
+                "<div style='display:flex;align-items:flex-end;gap:8px;"
+                "height:140px;margin-top:4px;'>"
+                + "".join(chart_bars)
+                + "</div>"
+            )
+        else:
+            daily_chart_html = (
+                "<div style='height:140px;display:flex;align-items:center;"
+                "justify-content:center;color:#77828c;font-size:11px;'>"
+                "Няма достатъчно данни за дневна графика."
+                "</div>"
+            )
 
-                rich_budget_dashboard = f"""
-                <style>
-                    .tm-rich-budget {{
-                        margin:0 0 14px 0;
-                        padding:16px;
-                        border-radius:16px;
-                        border:1px solid rgba(255,255,255,.08);
-                        background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
-                        box-shadow:4px 4px 14px rgba(0,0,0,.26);
-                    }}
-                    .tm-rich-top {{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:10px;align-items:stretch;}}
-                    .tm-rich-kpi {{padding:12px 13px;border-radius:12px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.06);}}
-                    .tm-rich-label {{font-size:9px;color:#8f98a3;font-weight:900;letter-spacing:.45px;}}
-                    .tm-rich-value {{font-size:22px;color:#fff;font-weight:900;margin-top:5px;line-height:1.05;}}
-                    .tm-rich-sub {{font-size:10px;color:#7e8792;margin-top:4px;}}
-                    .tm-rich-main {{display:grid;grid-template-columns:1.15fr 1fr .9fr;gap:10px;margin-top:10px;}}
-                    .tm-rich-panel {{padding:12px 13px;border-radius:12px;background:rgba(0,0,0,.13);border:1px solid rgba(255,255,255,.05);min-width:0;}}
-                    .tm-rich-title {{font-size:10px;color:#a8b0ba;font-weight:900;letter-spacing:.35px;margin-bottom:7px;}}
-                    .tm-rich-budget-track {{height:11px;border-radius:99px;background:rgba(0,0,0,.42);padding:2px;overflow:hidden;box-shadow:inset 1px 1px 3px rgba(0,0,0,.45);}}
-                    .tm-rich-budget-fill {{height:100%;border-radius:99px;background:{'#ff4b4b' if active_budget_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};width:{_rich_budget_pct:.1f}%;}}
-                    .tm-rich-status {{margin-top:8px;padding:8px 9px;border-radius:10px;background:rgba(255,255,255,.025);font-size:10px;color:{_dash_status_color};font-weight:900;}}
-                    @media(max-width:900px){{.tm-rich-top,.tm-rich-main{{grid-template-columns:1fr 1fr;}}.tm-rich-main .tm-rich-panel:last-child{{grid-column:1/-1;}}}}
-                    @media(max-width:640px){{.tm-rich-top,.tm-rich-main{{grid-template-columns:1fr;}}.tm-rich-main .tm-rich-panel:last-child{{grid-column:auto;}}.tm-rich-value{{font-size:20px;}}}}
-                </style>
-                <div class='tm-rich-budget'>
-                    <div class='tm-rich-top'>
-                        <div class='tm-rich-kpi'>
-                            <div class='tm-rich-label'>ОБЩ БЮДЖЕТ</div>
-                            <div class='tm-rich-value' style='color:#49dc72;'>{_rich_budget_total:.2f} EUR</div>
-                            <div class='tm-rich-sub'>{_rich_budget_label}</div>
-                        </div>
-                        <div class='tm-rich-kpi'>
-                            <div class='tm-rich-label'>ПОХАРЧЕНО ДО СЕГА</div>
-                            <div class='tm-rich-value' style='color:#39b6ff;'>{_rich_budget_spent:.2f} EUR</div>
-                            <div class='tm-rich-sub'>{_rich_budget_pct:.1f}% от бюджета</div>
-                        </div>
-                        <div class='tm-rich-kpi'>
-                            <div class='tm-rich-label'>ОСТАВАЩО</div>
-                            <div class='tm-rich-value' style='color:{remaining_color};'>{active_budget_remaining:.2f} EUR</div>
-                            <div class='tm-rich-sub'>{_dash_remaining_label}</div>
-                        </div>
+        # --- Категории ---
+        category_items = []
+        try:
+            for cat_name, cat_value in categories_totals.items():
+                value = float(cat_value or 0.0)
+                if value > 0:
+                    category_items.append((cat_name, value))
+            category_items.sort(key=lambda x: x[1], reverse=True)
+        except Exception:
+            category_items = []
+
+        category_total_spent = sum(v for _, v in category_items)
+        category_colors = ["#35d06a", "#35a8ff", "#965cff", "#ff7d22", "#ffd03c", "#63d391"]
+
+        category_html = ""
+        for idx, (cat_name, cat_value) in enumerate(category_items[:6]):
+            cat_pct = (
+                cat_value / category_total_spent * 100.0
+                if category_total_spent > 0 else 0.0
+            )
+            cat_color = category_colors[idx % len(category_colors)]
+            category_html += f"""
+            <div style="margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;gap:8px;
+                            font-size:10px;line-height:1.2;">
+                    <span style="color:#dce1e8;font-weight:700;white-space:nowrap;
+                                 overflow:hidden;text-overflow:ellipsis;">
+                        {html.escape(get_display_category(cat_name))}
+                    </span>
+                    <span style="color:#fff;font-weight:800;white-space:nowrap;">
+                        €{cat_value:.2f}
+                    </span>
+                </div>
+                <div style="height:6px;border-radius:99px;background:rgba(255,255,255,.07);
+                            overflow:hidden;margin-top:5px;">
+                    <div style="height:100%;width:{min(100.0, cat_pct):.1f}%;
+                                background:{cat_color};border-radius:99px;"></div>
+                </div>
+            </div>
+            """
+
+        if not category_html:
+            category_html = (
+                "<div style='color:#77828c;font-size:11px;padding-top:18px;'>"
+                "Няма записани разходи по категории."
+                "</div>"
+            )
+
+        # --- KPI стойности ---
+        remaining_value = float(active_budget_remaining or 0.0)
+        remaining_display = (
+            f"€{remaining_value:.2f}"
+            if remaining_value >= 0
+            else f"-€{abs(remaining_value):.2f}"
+        )
+        remaining_color = "#8bd5ff" if remaining_value >= 0 else "#ff4b4b"
+
+        overall_pct = (
+            max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
+            if active_budget_total > 0 else 0.0
+        )
+        forecast_color = "#35d06a" if forecast_delta >= 0 else "#ff4b4b"
+        forecast_text = (
+            f"Остават €{forecast_delta:.2f}"
+            if forecast_delta >= 0
+            else f"Надхвърляне €{abs(forecast_delta):.2f}"
+        )
+
+        st.markdown(
+            """
+            <style>
+            .tm-rich-budget-v4{
+                margin:14px 0 16px 0;
+                padding:16px;
+                border-radius:16px;
+                border:1px solid rgba(255,255,255,.09);
+                background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+                box-shadow:4px 4px 14px rgba(0,0,0,.26);
+                font-family:inherit;
+            }
+            .tm-rich-budget-v4-grid{
+                display:grid;
+                grid-template-columns:repeat(4,minmax(0,1fr));
+                gap:10px;
+            }
+            .tm-rich-budget-v4-kpi{
+                padding:12px 13px;
+                border-radius:12px;
+                background:rgba(0,0,0,.16);
+                border:1px solid rgba(255,255,255,.06);
+            }
+            .tm-rich-budget-v4-label{
+                font-size:9px;color:#8f98a3;font-weight:900;
+                letter-spacing:.45px;
+            }
+            .tm-rich-budget-v4-value{
+                font-size:21px;color:#fff;font-weight:900;
+                margin-top:5px;line-height:1.05;
+            }
+            .tm-rich-budget-v4-sub{
+                font-size:10px;color:#7e8792;margin-top:4px;
+            }
+            .tm-rich-budget-v4-body{
+                display:grid;
+                grid-template-columns:1.2fr 1fr .85fr;
+                gap:10px;
+                margin-top:10px;
+            }
+            .tm-rich-budget-v4-panel{
+                padding:12px 13px;
+                border-radius:12px;
+                background:rgba(0,0,0,.13);
+                border:1px solid rgba(255,255,255,.05);
+                min-width:0;
+            }
+            .tm-rich-budget-v4-title{
+                font-size:10px;color:#a8b0ba;font-weight:900;
+                letter-spacing:.35px;margin-bottom:7px;
+            }
+            .tm-rich-budget-v4-track{
+                height:10px;border-radius:99px;background:rgba(0,0,0,.42);
+                padding:2px;overflow:hidden;
+            }
+            .tm-rich-budget-v4-track > div{
+                height:100%;border-radius:99px;
+            }
+            .tm-rich-budget-v4-status{
+                margin-top:10px;padding:9px;border-radius:10px;
+                background:rgba(255,255,255,.025);
+                font-size:10px;font-weight:900;
+            }
+            @media(max-width:900px){
+                .tm-rich-budget-v4-grid{grid-template-columns:repeat(2,1fr);}
+                .tm-rich-budget-v4-body{grid-template-columns:1fr 1fr;}
+                .tm-rich-budget-v4-body > .tm-rich-budget-v4-panel:last-child{
+                    grid-column:1/-1;
+                }
+            }
+            @media(max-width:640px){
+                .tm-rich-budget-v4-grid{grid-template-columns:1fr 1fr;}
+                .tm-rich-budget-v4-body{grid-template-columns:1fr;}
+                .tm-rich-budget-v4-body > .tm-rich-budget-v4-panel:last-child{
+                    grid-column:auto;
+                }
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        rich_budget_html = f"""
+        <div class="tm-rich-budget-v4">
+            <div class="tm-rich-budget-v4-grid">
+                <div class="tm-rich-budget-v4-kpi">
+                    <div class="tm-rich-budget-v4-label">ОБЩ БЮДЖЕТ</div>
+                    <div class="tm-rich-budget-v4-value" style="color:#49dc72;">
+                        €{active_budget_total:.2f}
+                    </div>
+                    <div class="tm-rich-budget-v4-sub">{html.escape(rich_label)}</div>
+                </div>
+
+                <div class="tm-rich-budget-v4-kpi">
+                    <div class="tm-rich-budget-v4-label">ПОХАРЧЕНО</div>
+                    <div class="tm-rich-budget-v4-value" style="color:#39b6ff;">
+                        €{active_budget_spent:.2f}
+                    </div>
+                    <div class="tm-rich-budget-v4-sub">{overall_pct:.1f}% от бюджета</div>
+                </div>
+
+                <div class="tm-rich-budget-v4-kpi">
+                    <div class="tm-rich-budget-v4-label">ОСТАВАЩО</div>
+                    <div class="tm-rich-budget-v4-value" style="color:{remaining_color};">
+                        {remaining_display}
+                    </div>
+                    <div class="tm-rich-budget-v4-sub">
+                        {"В бюджета" if remaining_value >= 0 else "Над бюджета"}
+                    </div>
+                </div>
+
+                <div class="tm-rich-budget-v4-kpi">
+                    <div class="tm-rich-budget-v4-label">ОСТАВАЩИ ДНИ</div>
+                    <div class="tm-rich-budget-v4-value" style="color:#ff9a34;">
+                        {days_remaining}
+                    </div>
+                    <div class="tm-rich-budget-v4-sub">от {total_days} дни</div>
+                </div>
+            </div>
+
+            <div style="margin-top:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;
+                            font-size:10px;color:#8e98a3;margin-bottom:5px;">
+                    <span>БЮДЖЕТЕН ПРОГРЕС</span>
+                    <b style="color:#e9edf1;">{overall_pct:.1f}%</b>
+                </div>
+                <div class="tm-rich-budget-v4-track">
+                    <div style="width:{overall_pct:.1f}%;
+                                background:{'#ff4b4b' if remaining_value < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};">
+                    </div>
+                </div>
+            </div>
+
+            <div class="tm-rich-budget-v4-body">
+                <div class="tm-rich-budget-v4-panel">
+                    <div class="tm-rich-budget-v4-title">📈 РАЗХОДИ ПО ДНИ</div>
+                    {daily_chart_html}
+                </div>
+
+                <div class="tm-rich-budget-v4-panel">
+                    <div class="tm-rich-budget-v4-title">📊 ПО КАТЕГОРИЯ</div>
+                    {category_html}
+                </div>
+
+                <div class="tm-rich-budget-v4-panel">
+                    <div class="tm-rich-budget-v4-title">📅 ДНЕВЕН ТЕМП</div>
+                    <div class="tm-rich-budget-v4-value" style="font-size:21px;">
+                        €{daily_target:.2f}
+                    </div>
+                    <div class="tm-rich-budget-v4-sub">планирано на ден</div>
+
+                    <div style="margin-top:10px;font-size:11px;color:#b7bec9;">
+                        Реално:
+                        <b style="color:#fff;">€{avg_daily_spend:.2f}/ден</b>
                     </div>
 
-                    <div style='margin-top:10px;'>
-                        <div style='display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#8e98a3;margin-bottom:5px;'>
-                            <span>БЮДЖЕТЕН ПРОГРЕС</span><b style='color:#e9edf1;'>{_rich_budget_pct:.1f}%</b>
-                        </div>
-                        <div class='tm-rich-budget-track'><div class='tm-rich-budget-fill'></div></div>
+                    <div style="margin-top:4px;font-size:11px;color:#b7bec9;">
+                        Прогноза:
+                        <b style="color:#fff;">€{projected_total:.2f}</b>
                     </div>
 
-                    <div class='tm-rich-main'>
-                        <div class='tm-rich-panel'>
-                            <div class='tm-rich-title'>📈 РАЗХОДИ ПО ДНИ</div>
-                            {_daily_chart_html}
+                    <div class="tm-rich-budget-v4-status" style="color:{health_color};">
+                        {health_icon} {health_title}
+                        <div style="font-size:10px;margin-top:3px;font-weight:700;">
+                            {health_text}
                         </div>
-                        <div class='tm-rich-panel'>
-                            <div class='tm-rich-title'>📊 ПО КАТЕГОРИИ</div>
-                            {_category_html if _category_html else "<div style='color:#77828c;font-size:11px;'>Няма разходи.</div>"}
-                        </div>
-                        <div class='tm-rich-panel'>
-                            <div class='tm-rich-title'>📅 ДНЕВЕН ТЕМП</div>
-                            <div class='tm-rich-value' style='font-size:21px;'>{daily_target:.2f} EUR</div>
-                            <div class='tm-rich-sub'>планирано на ден</div>
-                            <div style='margin-top:10px;font-size:11px;color:#b7bec9;'>Реално: <b style='color:#fff;'>{avg_daily_spend:.2f} EUR/ден</b></div>
-                            <div style='margin-top:4px;font-size:11px;color:#b7bec9;'>Прогноза: <b style='color:#fff;'>{projected_total:.2f} EUR</b></div>
-                            <div class='tm-rich-status'>{health_icon} {_dash_status_text}<div style='font-size:10px;margin-top:3px;color:{_dash_status_color};'>{health_text}</div></div>
+                        <div style="font-size:10px;margin-top:4px;color:{forecast_color};">
+                            {forecast_text}
                         </div>
                     </div>
                 </div>
-                """
-                st.markdown(rich_budget_dashboard, unsafe_allow_html=True)
-        except Exception:
-            pass
+            </div>
+        </div>
+        """
 
+        st.markdown(rich_budget_html, unsafe_allow_html=True)
     @st.dialog("📊 Разходи по Категории", width="large")
     def разходи_по_категории_dialog():
         st.markdown("<p style='color: #888; margin-bottom: 20px;'>Преглед на направените разходи, групирани по категории:</p>", unsafe_allow_html=True)
