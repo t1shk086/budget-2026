@@ -2044,6 +2044,51 @@ if st.session_state["current_trip"] is None:
         st.session_state["open_quick_expense"] = False
         quick_expense_modal()
 
+    # =========================================================
+    # МОИТЕ МЕСТА — обща карта на всички запазени точки
+    # =========================================================
+    st.markdown("<div class='tm-home-trips-title'>МОИТЕ МЕСТА</div>", unsafe_allow_html=True)
+    _home_map_points = []
+    try:
+        if os.path.exists(MAP_FILE):
+            _home_map_df = pd.read_csv(MAP_FILE, encoding="utf-8")
+            if not _home_map_df.empty:
+                for _, _mp in _home_map_df.iterrows():
+                    try:
+                        _home_map_points.append((
+                            float(_mp.get("lat")),
+                            float(_mp.get("lon")),
+                            str(_mp.get("title", "Място")),
+                            str(_mp.get("trip_id", ""))
+                        ))
+                    except Exception:
+                        pass
+    except Exception:
+        _home_map_points = []
+
+    if _home_map_points:
+        _home_map_center = (
+            sum(x[0] for x in _home_map_points) / len(_home_map_points),
+            sum(x[1] for x in _home_map_points) / len(_home_map_points)
+        )
+        _home_map = folium.Map(
+            location=_home_map_center,
+            zoom_start=5 if len(_home_map_points) > 1 else 9,
+            tiles="CartoDB dark_matter",
+            control_scale=True
+        )
+        for _lat, _lon, _title, _tid_map in _home_map_points:
+            _trip_label = get_trip_display_name(_tid_map) if _tid_map else "Място"
+            folium.Marker(
+                [_lat, _lon],
+                tooltip=_trip_label,
+                popup=f"<b>{html.escape(_title)}</b><br>{html.escape(_trip_label)}",
+                icon=folium.Icon(color="green", icon="map-marker", prefix="fa")
+            ).add_to(_home_map)
+        st_folium(_home_map, use_container_width=True, height=300, key="home_my_places_map")
+    else:
+        st.markdown("<div class='tm-home-extra' style='color:#8b929e;'>Все още няма запазени места. Те ще се появяват тук автоматично.</div>", unsafe_allow_html=True)
+
     if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
             @st.dialog("➖ Последни разходи", width="large")
             def recent_expenses_modal():
@@ -3525,7 +3570,60 @@ else:
                 </div>
                 <div style='height:14px'></div>
                 """
-                st.markdown(three_budget_cards, unsafe_allow_html=True)
+                # НОВА ВИЗУАЛИЗАЦИЯ — заменя само трите визуални карти.
+                # Всички изчисления и логика по-горе остават непроменени.
+                _remaining_display = max(0.0, active_budget_total - (total_on_site + depozit_hotel)) if active_budget_total > 0 else 0.0
+                _budget_display = f"€{active_budget_total:,.2f}" if active_budget_total > 0 else "—"
+                _spent_display = f"€{float(total_on_site + depozit_hotel):,.2f}"
+                _remaining_text = f"€{_remaining_display:,.2f}" if active_budget_total > 0 else "—"
+
+                st.markdown("""
+                <div class="px-trip-kpis">
+                    <div class="px-kpi-card px-kpi-budget">
+                        <div class="px-kpi-label">ОБЩ БЮДЖЕТ</div>
+                        <div class="px-kpi-number">__BUDGET__</div>
+                        <div class="px-kpi-sub">Зададен бюджет</div>
+                    </div>
+                    <div class="px-kpi-card px-kpi-spent">
+                        <div class="px-kpi-label">ПОХАРЧЕНО ДО СЕГА</div>
+                        <div class="px-kpi-number">__SPENT__</div>
+                        <div class="px-kpi-sub">Всички реални разходи</div>
+                    </div>
+                    <div class="px-kpi-card px-kpi-left">
+                        <div class="px-kpi-label">ОСТАВАЩ БЮДЖЕТ</div>
+                        <div class="px-kpi-number">__REMAINING__</div>
+                        <div class="px-kpi-sub">След отчетените разходи</div>
+                    </div>
+                    <div class="px-kpi-card px-kpi-days">
+                        <div class="px-kpi-label">ОСТАВАЩИ ДНИ</div>
+                        <div class="px-kpi-number">__DAYS__</div>
+                        <div class="px-kpi-sub">до края на пътуването</div>
+                    </div>
+                    <div class="px-kpi-card px-kpi-avg">
+                        <div class="px-kpi-label">СРЕДНО НА ДЕН</div>
+                        <div class="px-kpi-number">__AVG__</div>
+                        <div class="px-kpi-sub">реално средно</div>
+                    </div>
+                </div>
+                <style>
+                    .px-trip-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 14px 0;}
+                    .px-kpi-card{min-width:0;padding:14px 14px 13px;border-radius:15px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));box-shadow:0 8px 22px rgba(0,0,0,.16);}
+                    .px-kpi-label{font-size:10px;line-height:1.25;font-weight:800;letter-spacing:.45px;color:#98a3ae;}
+                    .px-kpi-number{margin-top:7px;font-size:20px;line-height:1.05;font-weight:900;letter-spacing:-.3px;white-space:nowrap;}
+                    .px-kpi-sub{margin-top:6px;font-size:9px;line-height:1.3;color:#73808b;}
+                    .px-kpi-budget{border-color:rgba(67,221,113,.26);}.px-kpi-budget .px-kpi-number{color:#4be378;}
+                    .px-kpi-spent{border-color:rgba(54,168,255,.25);}.px-kpi-spent .px-kpi-number{color:#44b1ff;}
+                    .px-kpi-left{border-color:rgba(157,110,255,.25);}.px-kpi-left .px-kpi-number{color:#aa7cff;}
+                    .px-kpi-days{border-color:rgba(255,154,52,.25);}.px-kpi-days .px-kpi-number{color:#ff9d3c;}
+                    .px-kpi-avg{border-color:rgba(255,208,74,.25);}.px-kpi-avg .px-kpi-number{color:#ffd25a;}
+                    @media(max-width:1050px){.px-trip-kpis{grid-template-columns:repeat(3,minmax(0,1fr));}}
+                    @media(max-width:640px){.px-trip-kpis{grid-template-columns:1fr 1fr;gap:7px}.px-kpi-card{padding:12px}.px-kpi-number{font-size:17px}.px-kpi-card:last-child{grid-column:1/-1}}
+                </style>
+                """.replace("__BUDGET__", _budget_display)
+                  .replace("__SPENT__", _spent_display)
+                  .replace("__REMAINING__", _remaining_text)
+                  .replace("__DAYS__", str(days_remaining))
+                  .replace("__AVG__", f"€{avg_daily_spend:,.2f}"), unsafe_allow_html=True)
         except Exception:
             pass
 
