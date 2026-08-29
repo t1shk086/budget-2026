@@ -9,6 +9,7 @@ from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 import io
 import html
+import textwrap
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
@@ -3783,7 +3784,7 @@ else:
         </div>
         """
 
-        st.markdown(rich_budget_html, unsafe_allow_html=True)
+        st.markdown(textwrap.dedent(rich_budget_html).strip(), unsafe_allow_html=True)
     @st.dialog("📊 Разходи по Категории", width="large")
     def разходи_по_категории_dialog():
         st.markdown("<p style='color: #888; margin-bottom: 20px;'>Преглед на направените разходи, групирани по категории:</p>", unsafe_allow_html=True)
