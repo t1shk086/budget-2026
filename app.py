@@ -2044,51 +2044,6 @@ if st.session_state["current_trip"] is None:
         st.session_state["open_quick_expense"] = False
         quick_expense_modal()
 
-    # =========================================================
-    # МОИТЕ МЕСТА — обща карта на всички запазени точки
-    # =========================================================
-    st.markdown("<div class='tm-home-trips-title'>МОИТЕ МЕСТА</div>", unsafe_allow_html=True)
-    _home_map_points = []
-    try:
-        if os.path.exists(MAP_FILE):
-            _home_map_df = pd.read_csv(MAP_FILE, encoding="utf-8")
-            if not _home_map_df.empty:
-                for _, _mp in _home_map_df.iterrows():
-                    try:
-                        _home_map_points.append((
-                            float(_mp.get("lat")),
-                            float(_mp.get("lon")),
-                            str(_mp.get("title", "Място")),
-                            str(_mp.get("trip_id", ""))
-                        ))
-                    except Exception:
-                        pass
-    except Exception:
-        _home_map_points = []
-
-    if _home_map_points:
-        _home_map_center = (
-            sum(x[0] for x in _home_map_points) / len(_home_map_points),
-            sum(x[1] for x in _home_map_points) / len(_home_map_points)
-        )
-        _home_map = folium.Map(
-            location=_home_map_center,
-            zoom_start=5 if len(_home_map_points) > 1 else 9,
-            tiles="CartoDB dark_matter",
-            control_scale=True
-        )
-        for _lat, _lon, _title, _tid_map in _home_map_points:
-            _trip_label = get_trip_display_name(_tid_map) if _tid_map else "Място"
-            folium.Marker(
-                [_lat, _lon],
-                tooltip=_trip_label,
-                popup=f"<b>{html.escape(_title)}</b><br>{html.escape(_trip_label)}",
-                icon=folium.Icon(color="green", icon="map-marker", prefix="fa")
-            ).add_to(_home_map)
-        st_folium(_home_map, use_container_width=True, height=300, key="home_my_places_map")
-    else:
-        st.markdown("<div class='tm-home-extra' style='color:#8b929e;'>Все още няма запазени места. Те ще се появяват тук автоматично.</div>", unsafe_allow_html=True)
-
     if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
             @st.dialog("➖ Последни разходи", width="large")
             def recent_expenses_modal():
@@ -3384,9 +3339,9 @@ else:
                 """, unsafe_allow_html=True)
 
     # =========================================================
-    # =========================================================
-    # ДНЕВЕН БЮДЖЕТ / ТЕМПО — РИЧЪК DASHBOARD ПАНЕЛ
-    # Същите изчисления и логика, нова визуализация.
+    # ДНЕВЕН БЮДЖЕТ + ТЕМП НА ХАРЧЕНЕ
+    # Хотелът и депозитът НЕ участват в тези два показателя.
+    # Общият бюджет и общата прогрес лента продължават да включват всичко.
     # =========================================================
     if active_budget_mode != "none" and active_budget_total > 0:
         try:
@@ -3399,14 +3354,20 @@ else:
                 elapsed_days = max(1, min(total_days, (today_obj - start_date_obj).days + 1))
                 days_remaining = max(0, total_days - elapsed_days)
 
+                # Хотел + депозит се отделят от ежедневното харчене.
                 hotel_spent_for_pace = float(df_expenses[df_expenses["category"] == "Нощувки/Хотел"]["amount"].sum())
                 deposit_spent_for_pace = float(depozit_hotel)
+
+                # Разходи на място без хотел. Депозитите не са в total_on_site,
+                # но ги изваждаме отделно от бюджетния пул за яснота.
                 daily_spent_total = max(0.0, float(total_on_site) - hotel_spent_for_pace)
 
                 if active_budget_mode == "category":
+                    # При категориален бюджет махаме бюджета на хотелската категория.
                     hotel_budget_for_pace = float(category_budgets.get("Нощувки/Хотел", 0.0) or 0.0)
                     daily_budget_total = max(0.0, float(active_budget_total) - hotel_budget_for_pace)
                 else:
+                    # При общ бюджет махаме вече платения хотел + депозит от дневния пул.
                     daily_budget_total = max(0.0, float(active_budget_total) - hotel_spent_for_pace - deposit_spent_for_pace)
 
                 daily_budget_remaining = daily_budget_total - daily_spent_total
@@ -3422,151 +3383,149 @@ else:
                     else "Пътуването приключва днес"
                 )
 
+                forecast_color = "#8bd5ff" if forecast_delta >= 0 else "#ff4b4b"
+                forecast_text = (
+                    f"Очакван остатък: €{forecast_delta:.2f}" if forecast_delta >= 0
+                    else f"Очаквано надхвърляне: €{abs(forecast_delta):.2f}"
+                )
+
+                daily_card = f"""
+                <div class='tm-budget-card-inner tm-budget-accent-daily' style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:16px;height:100%;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,.3);'>
+                    <div style='font-size:12px;color:#8b929e;font-weight:700;letter-spacing:.3px;'>📅 ДНЕВЕН ЛИМИТ</div>
+                    <div style='font-size:26px;color:#ffffff;font-weight:900;margin-top:6px;'>€{daily_target:.2f}</div>
+                    <div style='font-size:11px;color:#7e8494;margin-top:2px;'>По план</div>
+                    <div style='margin-top:12px;font-size:12px;color:#aeb5c0;'>Остават <b style='color:#ffffff;'>{days_remaining}</b> дни</div>
+                    <div style='margin-top:4px;font-size:12px;color:#aeb5c0;'>Препоръчително оттук: <b style='color:#8bd5ff;'>{daily_status}</b></div>
+                </div>
+                """
+
+                pace_card = f"""
+                <div class='tm-budget-card-inner tm-budget-accent-pace' style='background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);padding:20px;border-radius:16px;height:100%;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,.3);'>
+                    <div style='font-size:12px;color:#8b929e;font-weight:700;letter-spacing:.3px;'>📈 ТЕМП НА ХАРЧЕНЕ</div>
+                    <div style='font-size:26px;color:#ffffff;font-weight:900;margin-top:6px;'>€{avg_daily_spend:.2f}</div>
+                    <div style='font-size:11px;color:#7e8494;margin-top:2px;'>Изхарчени средно</div>
+                    <div style='margin-top:12px;font-size:12px;color:#aeb5c0;'>Прогноза до края: <b style='color:#ffffff;'>€{projected_total:.2f}</b></div>
+                    <div style='margin-top:4px;font-size:12px;color:{forecast_color};font-weight:800;'>{forecast_text}</div>
+                </div>
+                """
+
+                # =========================================================
+                # СТАТУС НА ТРЕТАТА КАРТА
+                # Сравняваме реалното средно харчене на ден
+                # директно с дневния лимит.
+                # =========================================================
                 pace_difference = avg_daily_spend - daily_target
                 pace_ratio = (avg_daily_spend / daily_target) if daily_target > 0 else 0.0
+
+                # Статусът на третата карта:
+                # до 80% от дневния лимит -> зелено
+                # над 80% до 100% -> жълто
+                # над 100% -> червено
                 if pace_ratio <= 0.80:
                     health_icon = "🟢"
-                    health_title = "ВЪРВИШ ПОД ПЛАН"
-                    health_color = "#43dd75"
+                    health_title = "БЮДЖЕТЪТ ВЪРВИ ДОБРЕ"
+                    health_color = "#2ebd59"
                 elif pace_ratio <= 1.00:
                     health_icon = "🟡"
-                    health_title = "БЛИЗО ДО ЛИМИТА"
-                    health_color = "#ffd04d"
+                    health_title = "ХАРЧИШ ПО-БЪРЗО ОТ ПЛАНА"
+                    health_color = "#ffaa00"
                 else:
                     health_icon = "🔴"
-                    health_title = "НАД ПЛАНА СИ"
-                    health_color = "#ff5b52"
+                    health_title = "ХАРЧИШ ПРЕКАЛЕНО БЪРЗО"
+                    health_color = "#ff3b30"
 
                 if pace_difference < 0:
-                    health_text = f"Под дневния план с €{abs(pace_difference):.2f}"
+                    health_text = f"Под плана си с €{abs(pace_difference):.2f}/ден"
                 elif pace_difference > 0:
-                    health_text = f"Над дневния план с €{pace_difference:.2f}"
+                    health_text = f"Над плана си с €{pace_difference:.2f}/ден"
                 else:
-                    health_text = "Точно по дневния план"
+                    health_text = "Точно по плана си"
 
+                # Запазваме стария вътрешен блок валиден, въпреки че не се визуализира.
                 planned_to_date = daily_budget_total * elapsed_days / total_days
-                budget_pct = max(0.0, min(100.0, (active_budget_spent / active_budget_total) * 100.0))
 
-                # Малка графика на реалните дневни разходи — само за визуализация.
-                chart_html = ""
-                try:
-                    _daily_df = df_expenses.copy()
-                    if not _daily_df.empty:
-                        _daily_df = _daily_df[_daily_df["type"].astype(str).str.lower() == "expense"].copy()
-                    if not _daily_df.empty:
-                        _daily_df["_day"] = _daily_df["date"].astype(str).str[:5]
-                        _series = _daily_df.groupby("_day")["amount"].sum().tail(7)
-                        _max_day = max(float(_series.max()), 0.01)
-                        _bars = []
-                        for _day, _val in _series.items():
-                            _h = max(8, min(74, float(_val) / _max_day * 74))
-                            _bars.append(
-                                f"<div class='tm-rich-bar-col'><div class='tm-rich-bar-value'>€{float(_val):.0f}</div><div class='tm-rich-bar' style='height:{_h:.0f}px'></div><div class='tm-rich-bar-label'>{html.escape(str(_day))}</div></div>"
-                            )
-                        chart_html = "".join(_bars)
-                except Exception:
-                    chart_html = ""
+                health_card = f"""
+                <div style='background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.09);padding:15px 16px;border-radius:16px;margin-top:12px;font-family:inherit;box-shadow:0 6px 18px rgba(0,0,0,.16);'>
+                    <div style='font-size:12px;color:{health_color};font-weight:800;letter-spacing:.3px;'>{health_icon} {health_title}</div>
+                    <div style='font-size:12px;color:#aeb5c0;margin-top:9px;'>Реално до момента: <b style='color:#ffffff;'>€{daily_spent_total:.2f}</b> · План до момента: <b style='color:#ffffff;'>€{planned_to_date:.2f}</b></div>
+                    <div style='margin-top:5px;font-size:12px;color:{health_color};font-weight:800;'>{health_text}</div>
+                    <div style='margin-top:4px;font-size:11px;color:#7e8494;'>Прогноза: <b style='color:#ffffff;'>€{projected_total:.2f}</b> от бюджет €{daily_budget_total:.2f}</div>
+                </div>
+                """
 
-                # Категориите използват съществуващите totals — никаква нова логика за бюджета.
-                _category_rows = []
-                try:
-                    _cat_values = [(str(cat), max(0.0, float(categories_totals.get(cat, 0.0) or 0.0))) for cat in KATEGORII if cat != "Депозит/Резервация"]
-                    _cat_values = [(c,v) for c,v in _cat_values if v > 0]
-                    _cat_values.sort(key=lambda x:x[1], reverse=True)
-                    _cat_total = sum(v for _,v in _cat_values) or 1.0
-                    _cat_colors = ["#42dd74","#38aef7","#9a6bff","#ff922f","#ffd24f","#738291"]
-                    for _i, (_cat, _val) in enumerate(_cat_values[:5]):
-                        _pct_cat = _val / _cat_total * 100.0
-                        _category_rows.append(
-                            f"<div class='tm-rich-cat'><span class='tm-rich-dot' style='background:{_cat_colors[_i % len(_cat_colors)]}'></span><span class='tm-rich-cat-name'>{html.escape(get_display_category(_cat))}</span><span class='tm-rich-cat-value'>€{_val:.0f}</span><span class='tm-rich-cat-pct'>{_pct_cat:.0f}%</span></div>"
-                        )
-                except Exception:
-                    pass
-
-                if not _category_rows:
-                    _category_rows = ["<div class='tm-rich-muted'>Няма разходи по категории.</div>"]
-
-                st.markdown(f"""
+                # Трите показателя са компактни 3D карти – удобни и на телефон.
+                cards_css = """
                 <style>
-                    .tm-rich-dashboard{{
-                        background:linear-gradient(145deg,#081118 0%,#0a141c 55%,#081018 100%);
-                        border:1px solid #1b2b35;border-radius:18px;padding:16px;margin:4px 0 16px;
-                        box-shadow:0 14px 34px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.025);
+                .tm-budget-mini-card {
+                    position:relative; overflow:hidden; min-height:146px;
+                    margin-bottom:1px !important;
+                    padding:20px; border-radius:16px;
+                    font-family:inherit;
+                    background:linear-gradient(135deg,rgba(255,255,255,.03),rgba(255,255,255,.01));
+                    border:1px solid rgba(255,255,255,.08);
+                    box-shadow:4px 4px 12px rgba(0,0,0,.3);
+                }
+                .tm-budget-mini-card:after {
+                    content:""; position:absolute; left:-30px; top:-45px; width:110px; height:110px;
+                    border-radius:50%; background:rgba(255,255,255,.035); filter:blur(2px); pointer-events:none;
+                }
+                .tm-budget-accent-daily { border-color:rgba(0,242,254,.36) !important; box-shadow:4px 4px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(0,242,254,.10) !important; }
+                .tm-budget-accent-pace { border-color:rgba(155,124,255,.36) !important; box-shadow:4px 4px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(155,124,255,.10) !important; }
+                .tm-budget-accent-health { border-color:rgba(255,212,59,.42) !important; box-shadow:4px 4px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,212,59,.12) !important; }
+                .tm-budget-mini-label { font-size:11px; font-weight:800; letter-spacing:.35px; color:#9aa1ad; }
+                .tm-budget-mini-value { font-size:24px; font-weight:900; color:#fff; margin-top:5px; line-height:1.05; }
+                .tm-budget-mini-sub { font-size:10px; color:#7e8494; margin-top:4px; }
+                .tm-budget-mini-line { font-size:11px; color:#b7bec9; margin-top:10px; }
+                </style>
+                """
+                st.markdown(cards_css, unsafe_allow_html=True)
+
+                health_card_compact = f"""
+                <div class='tm-budget-mini-card tm-budget-card-inner tm-budget-accent-health'>
+                    <div class='tm-budget-mini-label'>
+                        <span style='color:{health_color};font-size:10px;'>●</span>
+                        <span style='color:#9aa1ad;'> БЮДЖЕТ - Дневен Лимит</span>
+                    </div>
+                    <div class='tm-budget-mini-value' style='font-size:15px;line-height:1.2;color:{health_color};margin-top:9px;'>{health_title}</div>
+                    <div class='tm-budget-mini-line'>Реално: <b style='color:#fff;'>€{avg_daily_spend:.2f}/ден</b></div>
+                    <div class='tm-budget-mini-line' style='margin-top:4px;'>План: <b style='color:#fff;'>€{daily_target:.2f}/ден</b></div>
+                    <div style='margin-top:7px;font-size:9px;color:#7e8494;font-weight:700;letter-spacing:.1px;'>ℹ️ Нощувки и хотел не са включени</div>
+                    <div class='tm-budget-mini-sub' style='margin-top:5px;color:{health_color};font-size:12px;line-height:1.25;font-weight:800;'>{health_text}</div>
+                </div>
+                """
+                daily_compact = daily_card
+                pace_compact = pace_card
+
+                # Един собствен HTML контейнер за трите карти.
+                # Така spacing-ът работи надеждно и при мобилното подреждане,
+                # без да разчитаме на поведението на st.columns.
+                three_budget_cards = f"""
+                <style>
+                    .tm-budget-three-cards {{
+                        display:grid;
+                        grid-template-columns:repeat(3,minmax(0,1fr));
+                        gap:6px;
+                        width:100%;
+                        align-items:stretch;
                     }}
-                    .tm-rich-head{{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}}
-                    .tm-rich-kicker{{font-size:10px;color:#7f8b96;font-weight:900;letter-spacing:1px}}
-                    .tm-rich-title{{font-size:18px;color:#fff;font-weight:900;margin-top:3px}}
-                    .tm-rich-status{{font-size:10px;font-weight:900;color:{health_color};padding:6px 9px;border-radius:999px;background:{health_color}18;border:1px solid {health_color}44;white-space:nowrap}}
-                    .tm-rich-kpis{{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}}
-                    .tm-rich-kpi{{background:#09131a;border:1px solid #182832;border-radius:13px;padding:11px 12px;min-width:0}}
-                    .tm-rich-label{{font-size:9px;color:#7f8b95;font-weight:900;letter-spacing:.45px}}
-                    .tm-rich-value{{font-size:19px;color:#f5f7f9;font-weight:900;margin-top:4px;line-height:1.1}}
-                    .tm-rich-green{{color:#49dc75!important}}.tm-rich-blue{{color:#3db8ff!important}}.tm-rich-yellow{{color:#ffd253!important}}.tm-rich-purple{{color:#a478ff!important}}.tm-rich-orange{{color:#ff9b42!important}}
-                    .tm-rich-progress{{margin-top:11px;height:10px;border-radius:99px;background:#16232b;overflow:hidden}}
-                    .tm-rich-progress>span{{display:block;height:100%;width:{budget_pct:.1f}%;background:linear-gradient(90deg,#39aaff,#43df75);border-radius:99px}}
-                    .tm-rich-meta{{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:9px;color:#7f8b96}}
-                    .tm-rich-grid{{display:grid;grid-template-columns:1.15fr .85fr;gap:10px;margin-top:10px}}
-                    .tm-rich-panel{{background:#081118;border:1px solid #182832;border-radius:14px;padding:12px}}
-                    .tm-rich-panel-head{{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}}
-                    .tm-rich-panel-title{{font-size:10px;color:#dfe5ea;font-weight:900;letter-spacing:.55px}}
-                    .tm-rich-panel-sub{{font-size:9px;color:#727f8a}}
-                    .tm-rich-chart{{display:flex;align-items:flex-end;gap:8px;height:108px;padding-top:8px}}
-                    .tm-rich-bar-col{{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column;justify-content:flex-end;height:100%}}
-                    .tm-rich-bar-value{{font-size:8px;color:#8995a0;height:14px}}
-                    .tm-rich-bar{{width:100%;max-width:34px;margin:0 auto;background:linear-gradient(180deg,#35b0ff,#3bdd76);border-radius:7px 7px 3px 3px;box-shadow:0 4px 14px rgba(45,182,255,.12)}}
-                    .tm-rich-bar-label{{font-size:8px;color:#707c86;margin-top:5px;white-space:nowrap}}
-                    .tm-rich-cat-list{{display:flex;flex-direction:column;gap:8px}}
-                    .tm-rich-cat{{display:grid;grid-template-columns:10px 1fr auto auto;gap:7px;align-items:center;font-size:10px}}
-                    .tm-rich-dot{{width:8px;height:8px;border-radius:50%}}
-                    .tm-rich-cat-name{{color:#c6cdd4;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
-                    .tm-rich-cat-value{{font-weight:900;color:#f2f5f7}}
-                    .tm-rich-cat-pct{{color:#74818c;font-size:9px;width:28px;text-align:right}}
-                    .tm-rich-footer{{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}}
-                    .tm-rich-note{{font-size:10px;color:#9aa5af;line-height:1.5}}
-                    .tm-rich-note b{{color:#fff}}
-                    .tm-rich-muted{{font-size:10px;color:#737f89}}
-                    @media(max-width:850px){{
-                        .tm-rich-kpis{{grid-template-columns:repeat(3,minmax(0,1fr))}}
-                        .tm-rich-grid{{grid-template-columns:1fr}}
+                    .tm-budget-three-cards > .tm-budget-slot {{
+                        min-width:0;
                     }}
-                    @media(max-width:560px){{
-                        .tm-rich-dashboard{{padding:12px;border-radius:15px}}
-                        .tm-rich-kpis{{grid-template-columns:1fr 1fr}}
-                        .tm-rich-kpi:last-child{{grid-column:1/-1}}
-                        .tm-rich-footer{{grid-template-columns:1fr}}
-                        .tm-rich-title{{font-size:16px}}
+                    @media (max-width: 640px) {{
+                        .tm-budget-three-cards {{
+                            grid-template-columns:1fr;
+                            gap:6px;
+                        }}
                     }}
                 </style>
-                <div class='tm-rich-dashboard'>
-                    <div class='tm-rich-head'>
-                        <div><div class='tm-rich-kicker'>БЮДЖЕТ И ТЕМПО</div><div class='tm-rich-title'>Финансово състояние на пътуването</div></div>
-                        <div class='tm-rich-status'>{health_icon} {health_title}</div>
-                    </div>
-                    <div class='tm-rich-kpis'>
-                        <div class='tm-rich-kpi'><div class='tm-rich-label'>ОБЩ БЮДЖЕТ</div><div class='tm-rich-value tm-rich-green'>€{active_budget_total:.0f}</div></div>
-                        <div class='tm-rich-kpi'><div class='tm-rich-label'>ПОХАРЧЕНО</div><div class='tm-rich-value tm-rich-blue'>€{active_budget_spent:.0f}</div></div>
-                        <div class='tm-rich-kpi'><div class='tm-rich-label'>ОСТАВА</div><div class='tm-rich-value tm-rich-purple'>€{max(0.0, active_budget_remaining):.0f}</div></div>
-                        <div class='tm-rich-kpi'><div class='tm-rich-label'>ДНЕВЕН ЛИМИТ</div><div class='tm-rich-value tm-rich-yellow'>€{daily_target:.0f}</div></div>
-                        <div class='tm-rich-kpi'><div class='tm-rich-label'>СРЕДНО / ДЕН</div><div class='tm-rich-value tm-rich-orange'>€{avg_daily_spend:.0f}</div></div>
-                    </div>
-                    <div class='tm-rich-progress'><span></span></div>
-                    <div class='tm-rich-meta'><span>€{active_budget_spent:.2f} от €{active_budget_total:.2f}</span><span>{budget_pct:.0f}% използвано</span></div>
-                    <div class='tm-rich-grid'>
-                        <div class='tm-rich-panel'>
-                            <div class='tm-rich-panel-head'><div class='tm-rich-panel-title'>РАЗХОДИ ПО ДНИ</div><div class='tm-rich-panel-sub'>последните дни</div></div>
-                            <div class='tm-rich-chart'>{chart_html or "<div class='tm-rich-muted'>Няма достатъчно данни за графика.</div>"}</div>
-                        </div>
-                        <div class='tm-rich-panel'>
-                            <div class='tm-rich-panel-head'><div class='tm-rich-panel-title'>КАТЕГОРИИ</div><div class='tm-rich-panel-sub'>реално</div></div>
-                            <div class='tm-rich-cat-list'>{''.join(_category_rows)}</div>
-                        </div>
-                    </div>
-                    <div class='tm-rich-footer'>
-                        <div class='tm-rich-panel'><div class='tm-rich-panel-title'>ТЕМПО</div><div class='tm-rich-note' style='margin-top:6px'>{health_text}. Реално <b>€{daily_spent_total:.2f}/ден</b> при план <b>€{daily_target:.2f}/ден</b>.</div></div>
-                        <div class='tm-rich-panel'><div class='tm-rich-panel-title'>ПРОГНОЗА</div><div class='tm-rich-note' style='margin-top:6px'>До края: <b>€{projected_total:.2f}</b>. {"Очаква се остатък €"+f"{forecast_delta:.2f}" if forecast_delta >= 0 else "Очаква се надхвърляне €"+f"{abs(forecast_delta):.2f}"} · остават <b>{days_remaining}</b> дни.</div></div>
-                    </div>
+                <div class='tm-budget-three-cards'>
+                    <div class='tm-budget-slot'>{daily_compact}</div>
+                    <div class='tm-budget-slot'>{pace_compact}</div>
+                    <div class='tm-budget-slot'>{health_card_compact}</div>
                 </div>
-                """, unsafe_allow_html=True)
+                <div style='height:14px'></div>
+                """
+                st.markdown(three_budget_cards, unsafe_allow_html=True)
         except Exception:
             pass
 
@@ -4747,36 +4706,3 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 st.rerun()
             else:
                 st.error("❌ Неуспешно запазване на имената на категориите.")
-
-st.markdown("""
-<style>
-:root{--px-bg:#071018;--px-panel:#0b141c;--px-border:rgba(255,255,255,.085);--px-text:#f3f6f8;--px-muted:#8f9aa5;--px-green:#45dc73;--px-yellow:#ffd04a;}
-html,body,[data-testid="stAppViewContainer"],[data-testid="stApp"]{background:radial-gradient(1000px 500px at 70% 0%,rgba(48,91,105,.16),transparent 60%),linear-gradient(180deg,#060b10,#08121a 55%,#05090d)!important;color:var(--px-text)!important;font-family:Inter,"Segoe UI",Roboto,sans-serif!important}
-[data-testid="stHeader"]{background:transparent!important}
-.block-container{padding-top:1.5rem!important;padding-bottom:2rem!important}
-[data-testid="stMarkdownContainer"] h1,[data-testid="stMarkdownContainer"] h2,[data-testid="stMarkdownContainer"] h3{color:#f5f7f9!important;font-weight:850!important;letter-spacing:-.3px!important}
-[data-testid="stMarkdownContainer"] h1{font-size:2rem!important}
-[data-testid="stMarkdownContainer"] h2{font-size:1.35rem!important}
-[data-testid="stMarkdownContainer"] h3{font-size:1.05rem!important}
-hr{border-color:rgba(255,255,255,.08)!important}
-button[data-testid="stBaseButton-primary"],button[data-testid="stBaseButton-secondary"]{min-height:42px!important;border-radius:13px!important;border:1px solid rgba(255,255,255,.09)!important;background:linear-gradient(180deg,#12202a,#0b151d)!important;color:#f4f7f9!important;box-shadow:0 8px 22px rgba(0,0,0,.22)!important;font-weight:750!important;transition:.18s ease!important}
-button[data-testid="stBaseButton-primary"]{background:linear-gradient(180deg,#45df77,#2fbe60)!important;border-color:#59e886!important;color:#061108!important}
-button[data-testid="stBaseButton-primary"]:hover,button[data-testid="stBaseButton-secondary"]:hover{transform:translateY(-1px)!important;border-color:rgba(255,255,255,.18)!important;box-shadow:0 10px 28px rgba(0,0,0,.28)!important}
-div[data-baseweb="input"]>div,div[data-baseweb="select"]>div,textarea{background:#0b151d!important;border-color:#20303b!important;border-radius:11px!important}
-input,textarea{color:#eef3f6!important}
-label{color:#aab4be!important;font-weight:650!important}
-[data-testid="stMetric"]{background:linear-gradient(180deg,#0d1922,#09131b)!important;border:1px solid var(--px-border)!important;border-radius:15px!important;padding:14px 15px!important;box-shadow:0 8px 24px rgba(0,0,0,.18)!important}
-[data-testid="stMetricLabel"]{color:#9ba6b1!important;font-size:.72rem!important;font-weight:800!important}
-[data-testid="stMetricValue"]{color:#f7f9fa!important;font-weight:900!important;letter-spacing:-.5px!important}
-div[data-testid="stExpander"]{background:linear-gradient(180deg,#0b151d,#08121a)!important;border:1px solid var(--px-border)!important;border-radius:15px!important;box-shadow:0 10px 28px rgba(0,0,0,.18)!important}
-div[data-testid="stExpander"] details summary{color:#edf2f5!important;font-weight:800!important}
-div[data-testid="stDataFrame"]{border:1px solid var(--px-border)!important;border-radius:14px!important;overflow:hidden!important}
-div[data-testid="stAlert"]{border-radius:13px!important;border:1px solid var(--px-border)!important}
-div[data-testid="stProgress"]{height:8px!important}
-div[data-testid="stProgress"]>div{background:#17242d!important;border-radius:99px!important}
-div[data-testid="stProgress"]>div>div{background:linear-gradient(90deg,#39c969,#59e07d)!important;border-radius:99px!important}
-div[role="dialog"]{background:#08121a!important;border:1px solid #20313c!important;border-radius:18px!important;box-shadow:0 25px 70px rgba(0,0,0,.48)!important}
-section[data-testid="stSidebar"]{background:linear-gradient(180deg,#071017,#08131b)!important;border-right:1px solid rgba(255,255,255,.06)!important}
-@media(max-width:700px){.block-container{padding:.65rem .55rem 1.75rem!important}[data-testid="stMarkdownContainer"] h1{font-size:1.55rem!important}[data-testid="stMarkdownContainer"] h2{font-size:1.2rem!important}[data-testid="stMetric"]{padding:12px!important;border-radius:13px!important}}
-</style>
-""",unsafe_allow_html=True)
