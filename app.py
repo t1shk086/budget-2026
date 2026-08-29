@@ -10,6 +10,9 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="PixelFinance", page_icon="💰", layout="centered")
 
+# =========================================================
+# FULLSCREEN BUTTON - PIXELAPP STYLE
+# =========================================================
 components.html(
     """
     <style>
@@ -46,6 +49,9 @@ components.html(
     """, height=48,
 )
 
+# =========================================================
+# ИДЕНТИЧЕН СТИЛ И ДИЗАЙН (ГРАДИЕНТИ, КАРТИ, БУТОНИ)
+# =========================================================
 st.markdown("""
 <style>
     html, body, [data-testid="stAppViewContainer"] {
@@ -82,7 +88,6 @@ st.markdown("""
         color:#9aa1ad; font-size:11px; font-weight:800; text-transform: uppercase;
         margin:18px 0 9px 2px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.08);
     }
-    
     div[class*="st-key-month_card_"] button {
         min-height: 122px !important; padding: 16px 18px 30px 18px !important; border-radius: 18px !important;
         border: 1px solid rgba(255,255,255,.10) !important;
@@ -100,6 +105,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Константи, Категории и логика на Локалните Файлове
 KATEGORII = ["Храна и сметки", "Транспорт и количка", "Вкъщи и бира", "Развлечения", "Дрехи и пазаруване", "Спестявания"]
 DATA_FILE = "finance_data_2026.csv"
 SETTINGS_FILE = "finance_months_2026.csv"
@@ -110,7 +116,6 @@ for f, cols in [(DATA_FILE, ["month_id", "date", "amount", "category", "descript
                 (BUDGETS_FILE, ["month_id", "category", "budget"])]:
     if not os.path.exists(f): 
         pd.DataFrame(columns=cols).to_csv(f, index=False, encoding="utf-8")
-
 def get_emoji(cat):
     m = {"Храна и сметки": "🛒", "Транспорт и количка": "🚗", "Вкъщи и бира": "🏠", "Развлечения": "🎉", "Дрехи и пазаруване": "👕", "Спестявания": "🐷"}
     return m.get(cat, "💳")
@@ -156,15 +161,17 @@ def save_category_budgets(m_id, budgets):
 if "current_month" not in st.session_state: st.session_state["current_month"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
+# =========================================================
+# ЕКРАН 1: НАЧАЛЕН ЕКРАН (ИЗБОР НА МЕСЕЦ)
+# =========================================================
 if st.session_state["current_month"] is None:
-    st.markdown("<div style='text-align: center;'><h1 style='font-family: "Segoe UI"; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>💰 PixelFinance</h1><p style='font-family: "Segoe UI"; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Budget Manager</p></div>", unsafe_allow_html=True)
+    st.markdown("""<div style='text-align: center;'><h1 style='font-family: "Segoe UI"; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>💰 PixelFinance</h1><p style='font-family: "Segoe UI"; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Budget Manager</p></div>""", unsafe_allow_html=True)
 
     @st.dialog("Създаване на нов месечен бюджет")
     def create_month_modal():
         m_name = st.selectbox("Избери Месец:", ["Януари", "Февруари", "Март", "Април", "Май", "Юни", "Юли", "Август", "Септември", "Октомври", "Ноември", "Декември"])
-        m_year = st.selectbox("Година:", ["2026", "2027", "2028"])
+        m_year = st.selectbox("Година:", ["2026", "2027"])
         target_id = f"{m_name}_{m_year}"
-        
         income = st.number_input("Очакван общ доход / Заплата (EUR):", min_value=0.0, step=100.0)
         if st.button("✔️ Създай и Отвори", use_container_width=True, type="primary"):
             save_month_settings(target_id, datetime.datetime.now().strftime("%d.%m.%Y"), "Не", income)
@@ -189,26 +196,15 @@ if st.session_state["current_month"] is None:
             _stg = get_month_settings(_m_id)
             _df_m = get_month_data(_m_id)
             _finished = _stg.get("month_finished") == "Да"
-            
             _status_dot = "🔴 Приключен" if _finished else "🟢 Активен отчетен период"
             _income = float(_stg.get("income_budget", 0.0))
             _spent = float(_df_m[_df_m["type"] == "expense"]["amount"].sum())
-            
             _pct = max(0.0, min(100.0, (_spent / _income) * 100.0)) if _income > 0 else 0.0
             _bar_gradient = f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_pct:.1f}%, rgba(255,255,255,0.12) {_pct:.1f}%, rgba(255,255,255,0.12) 100%)"
-            
             _safe_key = hashlib.sha256(_m_id.encode("utf-8")).hexdigest()[:16]
             _button_key = f"month_card_{_safe_key}"
             
-            st.markdown(f"""
-                <style>
-                .st-key-{_button_key} button {{
-                    background: {_bar_gradient} bottom / 100% 12px no-repeat, linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
-                    width: 100% !important; height: auto !important; display: block !important; text-align: left !important;
-                }}
-                </style>
-            """, unsafe_allow_html=True)
-            
+            st.markdown(f"<style>.st-key-{_button_key} button {{ background: {_bar_gradient} bottom / 100% 12px no-repeat, linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important; width: 100% !important; height: auto !important; display: block !important; text-align: left !important; }}</style>", unsafe_allow_html=True)
             _label = f"📅 **{_m_id.replace('_', ' ')}**\n{_status_dot}\nРазходи: €{_spent:,.2f} / Очакван доход: €{_income:,.2f}"
             if st.button(_label, key=_button_key, use_container_width=True):
                 st.session_state["current_month"] = _m_id
@@ -220,7 +216,6 @@ else:
     income_budget = float(c_s.get("income_budget", 0.0))
 
     st.markdown(f"<div style='text-align: center; margin-bottom: 20px;'><h2 style='color: #00f2fe;'>📊 Отчетен период: {month_id.replace('_', ' ')}</h2></div>", unsafe_allow_html=True)
-    
     if st.button("🔙 НАЗАД КЪМ ИЗБОР НА МЕСЕЦ", use_container_width=True):
         st.session_state["current_month"] = None
         st.rerun()
@@ -232,7 +227,6 @@ else:
     with col2: o_input = st.text_input("Описание / Основание", placeholder="Напишете детайли...", key=f"op_{v_id}")
 
     ekran_za_kategorii = st.empty()
-
     if o_input.strip() and s_input and s_input > 0:
         with ekran_za_kategorii.container():
             st.markdown("<div style='text-align: center;'><h3 style='color: #00f2fe;'>🎯 РАЗПРЕДЕЛЕТЕ В КАТЕГОРИЯ</h3></div>", unsafe_allow_html=True)
@@ -243,7 +237,6 @@ else:
                         add_transaction(month_id, s_input, kat, o_input.strip(), "expense")
                         st.session_state["form_version"] += 1
                         st.rerun()
-            
             if st.button("❌ ОТКАЗ", use_container_width=True):
                 st.session_state["form_version"] += 1
                 st.rerun()
@@ -274,52 +267,20 @@ else:
 
     st.markdown("---")
     st.markdown("### 📈 Анализ на Бюджета и Разпределенията")
-    
     df_m = get_month_data(month_id)
     total_expenses = float(df_m[df_m["type"] == "expense"]["amount"].sum())
     remaining_salary = income_budget - total_expenses
     
-    st.markdown(f"""
-    <div style='display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px;'>
-        <div style='background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 12px; text-align: center;'>
-            <div style='font-size: 10px; color: #8f98a3;'>💰 ОБЩ ДОХОД</div>
-            <div style='font-size: 20px; color: #49dc72; font-weight: 900; margin-top: 5px;'>€{income_budget:.2f}</div>
-        </div>
-        <div style='background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 12px; text-align: center;'>
-            <div style='font-size: 10px; color: #8f98a3;'>📉 ОБЩО ИЗХАРЧЕНО</div>
-            <div style='font-size: 20px; color: #ff4b4b; font-weight: 900; margin-top: 5px;'>€{total_expenses:.2f}</div>
-        </div>
-        <div style='background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 12px; text-align: center;'>
-            <div style='font-size: 10px; color: #8f98a3;'>💳 ОСТАТЪК ЗА СПЕСТЯВАНЕ</div>
-            <div style='font-size: 20px; color: #39b6ff; font-weight: 900; margin-top: 5px;'>€{remaining_salary:.2f}</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"<div style='display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px;'><div style='background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 12px; text-align: center;'><div style='font-size: 10px; color: #8f98a3;'>💰 ОБЩ ДОХОД</div><div style='font-size: 20px; color: #49dc72; font-weight: 900; margin-top: 5px;'>€{income_budget:.2f}</div></div><div style='background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 12px; text-align: center;'><div style='font-size: 10px; color: #8f98a3;'>📉 ОБЩО ИЗХАРЧЕНО</div><div style='font-size: 20px; color: #ff4b4b; font-weight: 900; margin-top: 5px;'>€{total_expenses:.2f}</div></div><div style='background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 12px; text-align: center;'><div style='font-size: 10px; color: #8f98a3;'>💳 ОСТАТЪК ЗА СПЕСТЯВАНЕ</div><div style='font-size: 20px; color: #39b6ff; font-weight: 900; margin-top: 5px;'>€{remaining_salary:.2f}</div></div></div>", unsafe_allow_html=True)
 
     category_budgets = get_category_budgets(month_id)
     stat_grid = st.columns(2)
-    
     for idx, kat in enumerate(KATEGORII):
         with stat_grid[idx % 2]:
             cat_spent = float(df_m[df_m["category"] == kat]["amount"].sum())
             limit = category_budgets.get(kat, 0.0)
             pct_of_income = (cat_spent / income_budget * 100) if income_budget > 0 else 0.0
-            
-            st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-weight: bold; font-size: 14px;">{get_emoji(kat)} {kat}</span>
-                    <span style="font-weight: bold; color: #ff4b4b; font-size: 14px;">€{cat_spent:.2f}</span>
-                </div>
-                <div style="background: rgba(0, 0, 0, 0.4); height: 12px; border-radius: 20px; padding: 2px; position: relative; overflow: hidden; margin-top: 4px;">
-                    <div style="width: {min(100.0, pct_of_income)}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px;"></div>
-                </div>
-                <div style="font-size: 10px; color: #888; margin-top: 4px; display: flex; justify-content: space-between;">
-                    <span>Дял от дохода: {pct_of_income:.1f}%</span>
-                    <span>Заложен лимит: {f'€{limit:.2f}' if limit > 0 else 'Няма'}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f'<div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;"><span style="font-weight: bold; font-size: 14px;">{get_emoji(kat)} {kat}</span><span style="font-weight: bold; color: #ff4b4b; font-size: 14px;">€{cat_spent:.2f}</span></div><div style="background: rgba(0, 0, 0, 0.4); height: 12px; border-radius: 20px; padding: 2px; position: relative; overflow: hidden; margin-top: 4px;"><div style="width: {min(100.0, pct_of_income)}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px;"></div></div><div style="font-size: 10px; color: #888; margin-top: 4px; display: flex; justify-content: space-between;"><span>Дял от дохода: {pct_of_income:.1f}%</span><span>Заложен лимит: {f"€{limit:.2f}" if limit > 0 else "Няма"}</span></div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📜 Хронология на месечните записи")
@@ -328,15 +289,7 @@ else:
             r = df_m.loc[idx]
             col_rec, col_del = st.columns([0.88, 0.12])
             with col_rec:
-                st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <span style="font-weight:bold;">{get_emoji(r['category'])} {r['category']}</span><br>
-                        <small style="color: #666;">📅 {r['date']} — {r['description']}</small>
-                    </div>
-                    <div style="color: #ff4b4b; font-weight: bold; font-size: 16px;">-€{r['amount']:.2f}</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f'<div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;"><div><span style="font-weight:bold;">{get_emoji(r["category"])} {r["category"]}</span><br><small style="color: #666;">📅 {r["date"]} — {r["description"]}</small></div><div style="color: #ff4b4b; font-weight: bold; font-size: 16px;">-€{r["amount"]:.2f}</div></div>', unsafe_allow_html=True)
             with col_del:
                 if st.button("🗑️", key=f"del_{idx}", disabled=is_month_finished, use_container_width=True):
                     df_fresh = pd.read_csv(DATA_FILE, encoding="utf-8").drop(idx)
