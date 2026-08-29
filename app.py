@@ -869,6 +869,18 @@ def _add_plan_item_and_clear(t_id, widget_key):
 if "open_quick_expense" not in st.session_state:
     st.session_state["open_quick_expense"] = False
 
+# Dialog flags are mutually exclusive: Streamlit permits only one open dialog per run.
+_DIALOG_FLAGS = ["open_create_trip", "open_quick_expense", "trip_add_expense_new", "trip_plan_new", "trip_fuel_new", "trip_car_new", "open_delete_trip_new", "open_cat_analysis_new", "open_trip_settings_new"]
+for _flag in _DIALOG_FLAGS:
+    if _flag not in st.session_state:
+        st.session_state[_flag] = False
+
+def _close_other_dialogs(active_flag):
+    for _flag in _DIALOG_FLAGS:
+        if _flag != active_flag:
+            st.session_state[_flag] = False
+
+
 
 # =========================================================
 # PIXEL APP — NEW PRESENTATION LAYER
@@ -1000,10 +1012,12 @@ if st.session_state["current_trip"] is None:
     c1,c2 = st.columns(2)
     with c1:
         if st.button("＋  Бърз разход", key="new_ui_quick_expense", type="primary", use_container_width=True):
+            _close_other_dialogs("open_quick_expense")
             st.session_state["open_quick_expense"] = True
             st.rerun()
     with c2:
         if st.button("＋  Ново пътуване", key="new_ui_create_trip", use_container_width=True):
+            _close_other_dialogs("open_create_trip")
             st.session_state["open_create_trip"] = True
             st.rerun()
 
@@ -1140,9 +1154,9 @@ else:
         if st.button("← Назад към пътуванията",key="new_ui_back",use_container_width=True):
             st.session_state["current_trip"]=None; st.session_state["edit_unlocked_trip"]=None; st.rerun()
     with b2:
-        if st.button("✎ Редакция",key="new_ui_edit",use_container_width=True): st.session_state["open_trip_settings_new"]=True; st.rerun()
+        if st.button("✎ Редакция",key="new_ui_edit",use_container_width=True): _close_other_dialogs("open_trip_settings_new"); st.session_state["open_trip_settings_new"]=True; st.rerun()
     with b3:
-        if st.button("🗑 Изтрий пътуване",key="new_ui_delete_trip",use_container_width=True): st.session_state["open_delete_trip_new"]=True; st.rerun()
+        if st.button("🗑 Изтрий пътуване",key="new_ui_delete_trip",use_container_width=True): _close_other_dialogs("open_delete_trip_new"); st.session_state["open_delete_trip_new"]=True; st.rerun()
 
     # Hero
     st.markdown(f"""
@@ -1190,7 +1204,7 @@ else:
     left,mid,right=st.columns([1.1,1.0,.95],gap="small")
     with left:
         st.markdown("<div class='px-panel'><div class='px-panel-title'>▸ РАЗПРЕДЕЛЕНИЕ ПО КАТЕГОРИИ</div><div style='display:grid;grid-template-columns:145px 1fr;gap:12px;align-items:center'><div style='width:138px;height:138px;border-radius:50%;background:"+donut+";position:relative'><div style='position:absolute;inset:29px;background:#081118;border-radius:50%;display:grid;place-items:center;text-align:center'><b style='font-size:20px'>"+_money(total)+"</b><span class='px-muted' style='font-size:9px'>общо</span></div></div><div class='px-cat-list'>"+"".join([f"<div class='px-cat'><div class='px-dot' style='background:{palette[i%len(palette)]}'></div><div><div>{html.escape(get_display_category(k))}</div><div class='px-bar'><span style='width:{v/total*100:.1f}%;background:{palette[i%len(palette)]}'></span></div></div><b>{_money(v)}</b><span class='px-muted'>{v/total*100:.1f}%</span></div>" for i,(k,v) in enumerate(cats.items())])+"</div></div></div>",unsafe_allow_html=True)
-        if st.button("▥ Детайлен анализ",key="new_ui_cat_detail",use_container_width=True): st.session_state["open_cat_analysis_new"]=True; st.rerun()
+        if st.button("▥ Детайлен анализ",key="new_ui_cat_detail",use_container_width=True): _close_other_dialogs("open_cat_analysis_new"); st.session_state["open_cat_analysis_new"]=True; st.rerun()
 
     with mid:
         # Daily spending bars, using existing dates/data.
@@ -1232,13 +1246,13 @@ else:
     st.markdown("<div class='px-panel-title' style='margin-top:14px'>БЪРЗИ ДЕЙСТВИЯ</div>",unsafe_allow_html=True)
     q1,q2,q3,q4=st.columns(4)
     with q1:
-        if st.button("＋ Нов разход",key="new_ui_expense",use_container_width=True): st.session_state["trip_add_expense_new"]=True; st.rerun()
+        if st.button("＋ Нов разход",key="new_ui_expense",use_container_width=True): _close_other_dialogs("trip_add_expense_new"); st.session_state["trip_add_expense_new"]=True; st.rerun()
     with q2:
-        if st.button("✓ План",key="new_ui_plan",use_container_width=True): st.session_state["trip_plan_new"]=True; st.rerun()
+        if st.button("✓ План",key="new_ui_plan",use_container_width=True): _close_other_dialogs("trip_plan_new"); st.session_state["trip_plan_new"]=True; st.rerun()
     with q3:
-        if st.button("⛽ Гориво",key="new_ui_fuel",use_container_width=True): st.session_state["trip_fuel_new"]=True; st.rerun()
+        if st.button("⛽ Гориво",key="new_ui_fuel",use_container_width=True): _close_other_dialogs("trip_fuel_new"); st.session_state["trip_fuel_new"]=True; st.rerun()
     with q4:
-        if st.button("🚗 Автомобил",key="new_ui_car",use_container_width=True): st.session_state["trip_car_new"]=True; st.rerun()
+        if st.button("🚗 Автомобил",key="new_ui_car",use_container_width=True): _close_other_dialogs("trip_car_new"); st.session_state["trip_car_new"]=True; st.rerun()
 
     # Expense dialog
     if st.session_state.get("trip_add_expense_new"):
@@ -1259,7 +1273,7 @@ else:
         _trip_expense_dialog()
 
     # Plan dialog
-    if st.session_state.get("trip_plan_new"):
+    elif st.session_state.get("trip_plan_new"):
         @st.dialog("План на пътуването",width="small")
         def _plan_dialog():
             items=get_trip_plan(tid)
@@ -1275,7 +1289,7 @@ else:
         _plan_dialog()
 
     # Fuel dialog — uses same expense storage fields.
-    if st.session_state.get("trip_fuel_new"):
+    elif st.session_state.get("trip_fuel_new"):
         @st.dialog("⛽ Гориво",width="small")
         def _fuel_dialog():
             amount=st.number_input("Сума (EUR)",min_value=0.01,value=None,placeholder="0.00")
@@ -1289,7 +1303,7 @@ else:
         _fuel_dialog()
 
     # Car dialog
-    if st.session_state.get("trip_car_new"):
+    elif st.session_state.get("trip_car_new"):
         @st.dialog("🚗 Автомобил",width="small")
         def _car_dialog():
             car=st.radio("Автомобил",["Не","Да"],index=1 if car_trip=="Да" else 0,horizontal=True)
@@ -1301,7 +1315,7 @@ else:
                 st.session_state["trip_car_new"]=False; st.rerun()
         _car_dialog()
 
-    if st.session_state.get("open_delete_trip_new"):
+    elif st.session_state.get("open_delete_trip_new"):
         @st.dialog("Изтриване на пътуването",width="small")
         def _del_trip_dialog():
             st.error(f"Сигурен ли си, че искаш да изтриеш „{name}“?")
@@ -1313,7 +1327,7 @@ else:
                 if st.button("Отказ",use_container_width=True): st.session_state["open_delete_trip_new"]=False; st.rerun()
         _del_trip_dialog()
 
-    if st.session_state.get("open_cat_analysis_new"):
+    elif st.session_state.get("open_cat_analysis_new"):
         @st.dialog("Разходи по категории",width="large")
         def _cat_dialog():
             for cat,v in cats.items():
@@ -1323,7 +1337,7 @@ else:
                 for _,r in subset.iterrows(): st.markdown(f"<div style='padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px'>{html.escape(str(r.get('description','')))} <span style='float:right'>{_money(r.get('amount',0))}</span></div>",unsafe_allow_html=True)
         _cat_dialog()
 
-    if st.session_state.get("open_trip_settings_new"):
+    elif st.session_state.get("open_trip_settings_new"):
         @st.dialog("Редакция",width="small")
         def _edit_trip_dialog():
             new_name=st.text_input("Име на дестинацията",value=name)
