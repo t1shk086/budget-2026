@@ -2075,7 +2075,7 @@ if st.session_state["current_trip"] is None:
         _home_map = folium.Map(
             location=_map_center,
             zoom_start=6,
-            tiles="CartoDB dark_matter",
+            tiles="OpenStreetMap",
             control_scale=True,
         )
         for _lat, _lon, _title, _mtid in _home_map_points:
