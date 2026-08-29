@@ -1,4 +1,3 @@
-
 # Изтеглете файла от линка по-горе или копирайте целия код отдолу:
 import streamlit as st
 import pandas as pd
@@ -3804,6 +3803,31 @@ else:
                 background:rgba(255,255,255,.025);
                 font-size:10px;font-weight:900;
             }
+            .tm-rich-budget-v4::before{
+                content:""; display:block; height:3px; border-radius:99px;
+                background:linear-gradient(90deg,#00f2fe,#4facfe,#965cff);
+                margin:-4px 0 14px 0; opacity:.8;
+            }
+            .tm-rich-budget-v4-kpi{
+                transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+                box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+            }
+            .tm-rich-budget-v4-kpi:hover{
+                transform:translateY(-1px); border-color:rgba(0,242,254,.16);
+                box-shadow:0 8px 20px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.04);
+            }
+            .tm-rich-budget-v4-body{align-items:stretch;}
+            .tm-rich-budget-v4-panel{
+                min-height:205px; box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+            }
+            .tm-rich-budget-v4-title{display:flex;align-items:center;gap:7px;}
+            .tm-rich-budget-v4-status{border:1px solid rgba(255,255,255,.06);}
+            .tm-rich-budget-v4-panel + .tm-rich-budget-v4-panel{position:relative;}
+            .tm-rich-budget-v4-panel + .tm-rich-budget-v4-panel:before{
+                content:""; position:absolute; left:-6px; top:12px; bottom:12px; width:1px;
+                background:rgba(255,255,255,.045);
+            }
+            @media(max-width:640px){.tm-rich-budget-v4-panel + .tm-rich-budget-v4-panel:before{display:none;}}
             @media(max-width:900px){
                 .tm-rich-budget-v4-grid{grid-template-columns:repeat(2,1fr);}
                 .tm-rich-budget-v4-body{grid-template-columns:1fr 1fr;}
@@ -4662,30 +4686,38 @@ else:
 
     if not df_points.empty:
         st.markdown("<div class='tm-section-title' style='margin-top:4px;margin-bottom:10px;'><span class='tm-section-number tm-n5'>5</span><span>Любими места от пътуването</span></div>", unsafe_allow_html=True)
-        st.markdown("---")
         try:
             df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
+            _fav_df = df_all_map[df_all_map["trip_id"] == trip_id].copy()
             color_emojis = {"blue": "🔵", "green": "🟢", "red": "🔴", "purple": "🟣", "orange": "🟠"}
-            _fav_html = ["<div class='tm-fav-grid'>"]
-            for idx in df_all_map[df_all_map["trip_id"] == trip_id].index.tolist():
-                pt_row = df_all_map.loc[idx]
-                _fav_html.append(
-                    f"<div class='tm-fav-card'><div class='tm-fav-pin'>{color_emojis.get(pt_row['color'], '📍')}</div><div style='min-width:0;flex:1'><div class='tm-fav-name'>{html.escape(str(pt_row['title']))}</div><div class='tm-fav-coords'>{float(pt_row['lat']):.4f}, {float(pt_row['lon']):.4f}</div></div></div>"
-                )
-            _fav_html.append("</div>")
-            st.markdown("".join(_fav_html), unsafe_allow_html=True)
-            for idx in df_all_map[df_all_map["trip_id"] == trip_id].index.tolist():
-                pt_row = df_all_map.loc[idx]
-                _, col_p_del = st.columns([0.9, 0.1])
-                with col_p_del:
-                    st.button(
-                        "❌",
-                        key=f"del_pin_{idx}",
-                        use_container_width=True,
-                        disabled=trip_locked,
-                        on_click=_delete_map_point,
-                        args=(idx,)
-                    )
+
+            st.markdown(f"""
+            <div class='tm-fav-table-shell'>
+                <div class='tm-fav-table-head'>
+                    <div class='tm-fav-table-title'>📍 Запазени места</div>
+                    <div class='tm-fav-table-count'>{len(_fav_df)} {'място' if len(_fav_df)==1 else 'места'}</div>
+                </div>
+                <div class='tm-fav-table-row tm-fav-table-labels'>
+                    <div></div><div>МЯСТО / ОПИСАНИЕ</div><div>КООРДИНАТИ</div><div></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            for idx, pt_row in _fav_df.iterrows():
+                title = html.escape(str(pt_row.get("title", "Място")))
+                color = color_emojis.get(str(pt_row.get("color", "")), "📍")
+                coords = f"{float(pt_row.get('lat',0)):.4f}, {float(pt_row.get('lon',0)):.4f}"
+                c1, c2, c3, c4 = st.columns([0.07, 0.53, 0.30, 0.10], gap="small")
+                with c1:
+                    st.markdown(f"<div class='tm-fav-pin-table'>{color}</div>", unsafe_allow_html=True)
+                with c2:
+                    st.markdown(f"<div class='tm-fav-place-name'>{title}</div><div class='tm-fav-place-desc'>Запазено място от това пътуване</div>", unsafe_allow_html=True)
+                with c3:
+                    st.markdown(f"<div class='tm-fav-coords-table'>{coords}</div>", unsafe_allow_html=True)
+                with c4:
+                    st.button("🗑️", key=f"del_pin_{idx}", use_container_width=True, disabled=trip_locked, on_click=_delete_map_point, args=(idx,))
+
+                st.markdown("<div class='tm-fav-row-sep'></div>", unsafe_allow_html=True)
         except Exception:
             pass
             
