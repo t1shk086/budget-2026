@@ -1104,128 +1104,6 @@ if st.session_state["current_trip"] is None:
         </div>
     """, unsafe_allow_html=True)
 
-    # =========================================================
-    # PIXEL APP — СВЕТОВНА КАРТА НА ПОСЕТЕНИТЕ МЕСТА
-    # Всички запазени точки от MAP_FILE се показват на началния екран
-    # като обща карта. Картата в отделното пътуване е премахната.
-    # =========================================================
-    st.markdown("""
-        <style>
-            .px-world-map {
-                margin: 4px 0 14px;
-                padding: 14px;
-                border: 1px solid #202b34;
-                background: #091117;
-                border-radius: 14px;
-            }
-            .px-world-map-head {
-                display:flex;
-                justify-content:space-between;
-                align-items:flex-end;
-                gap:12px;
-                margin-bottom:10px;
-            }
-            .px-world-map-title {
-                font-size:12px;
-                font-weight:900;
-                letter-spacing:.45px;
-                color:#f4f7fa;
-            }
-            .px-world-map-sub {
-                margin-top:4px;
-                color:#7f8a95;
-                font-size:10px;
-            }
-            .px-world-map-count {
-                color:#45d878;
-                font-size:11px;
-                font-weight:900;
-                white-space:nowrap;
-            }
-            .px-world-map-legend {
-                margin-top:8px;
-                color:#71808d;
-                font-size:9px;
-            }
-            @media(max-width:640px){
-                .px-world-map { padding:10px; border-radius:12px; }
-                .px-world-map-head { align-items:flex-start; }
-                .px-world-map-count { font-size:10px; }
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-    try:
-        _world_points = pd.read_csv(MAP_FILE, encoding="utf-8") if os.path.exists(MAP_FILE) else pd.DataFrame()
-        if not _world_points.empty and {"lat", "lon"}.issubset(_world_points.columns):
-            _world_points = _world_points.copy()
-            _world_points["lat"] = pd.to_numeric(_world_points["lat"], errors="coerce")
-            _world_points["lon"] = pd.to_numeric(_world_points["lon"], errors="coerce")
-            _world_points = _world_points.dropna(subset=["lat", "lon"])
-        else:
-            _world_points = pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
-
-        _world_count = len(_world_points)
-        st.markdown(
-            f"""
-            <div class='px-world-map'>
-                <div class='px-world-map-head'>
-                    <div>
-                        <div class='px-world-map-title'>🌍 МОИТЕ МЕСТА</div>
-                        <div class='px-world-map-sub'>Всички дестинации и запазени места от пътуванията ти на една карта.</div>
-                    </div>
-                    <div class='px-world-map-count'>{_world_count} {'мяста' if _world_count != 1 else 'място'}</div>
-                </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        if _world_count > 0:
-            _world_lat = float(_world_points["lat"].mean())
-            _world_lon = float(_world_points["lon"].mean())
-            if _world_count == 1:
-                _world_zoom = 7
-            elif _world_count <= 4:
-                _world_zoom = 6
-            else:
-                _world_zoom = 4
-
-            _world_map = folium.Map(
-                location=[_world_lat, _world_lon],
-                zoom_start=_world_zoom,
-                control_scale=True,
-                tiles="CartoDB dark_matter",
-            )
-            _world_map.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
-
-            for _, _pt in _world_points.iterrows():
-                _pt_trip = get_trip_display_name(str(_pt.get("trip_id", "")))
-                _pt_title = str(_pt.get("title", "Запазено място") or "Запазено място")
-                _pt_color = str(_pt.get("color", "green") or "green")
-                _popup_html = (
-                    f"<div style='min-width:170px;font-family:Segoe UI,Arial,sans-serif;'>"
-                    f"<div style='font-weight:800;font-size:13px;margin-bottom:5px;'>{html.escape(_pt_title)}</div>"
-                    f"<div style='color:#66717c;font-size:11px;'>✈️ {html.escape(_pt_trip)}</div>"
-                    f"<div style='color:#66717c;font-size:10px;margin-top:4px;'>{float(_pt['lat']):.4f}, {float(_pt['lon']):.4f}</div>"
-                    f"</div>"
-                )
-                folium.Marker(
-                    location=[float(_pt["lat"]), float(_pt["lon"])],
-                    popup=folium.Popup(_popup_html, max_width=260),
-                    tooltip=_pt_title,
-                    icon=folium.Icon(color=_pt_color if _pt_color in {"blue","green","red","purple","orange"} else "green", icon="map-marker"),
-                ).add_to(_world_map)
-
-            _world_map_key = f"home_world_map_{_world_count}_{hashlib.sha256(_world_points.to_csv(index=False).encode('utf-8')).hexdigest()[:10]}"
-            st_folium(_world_map, width=None, height=360, key=_world_map_key, returned_objects=[])
-            st.markdown("<div class='px-world-map-legend'>Кликни върху маркер, за да видиш мястото и пътуването, към което принадлежи.</div>", unsafe_allow_html=True)
-        else:
-            st.markdown("<div style='height:140px;border:1px dashed #26323c;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#71808d;font-size:11px;'>Все още няма запазени места за показване на картата.</div>", unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
-    except Exception as _home_map_error:
-        st.markdown("<div class='px-empty'>Картата не може да бъде заредена в момента.</div>", unsafe_allow_html=True)
-
     # Диалог за създаване на ново пътуване.
     @st.dialog("Създаване на ново приключение")
     def create_trip_modal():
@@ -1282,61 +1160,59 @@ if st.session_state["current_trip"] is None:
     if not _trip_cards:
         st.markdown("<div class='px-empty'>Все още нямаш създадени пътувания.<br><span style='font-size:11px'>Създай първото си приключение от бутона „Ново пътуване“.</span></div>", unsafe_allow_html=True)
     else:
-        _left, _right = st.columns([2.15, .95], gap="medium")
-        with _left:
-            st.markdown("<div class='px-panel'><div class='px-trip-grid'>", unsafe_allow_html=True)
-            for i, _card in enumerate(_trip_cards):
-                with st.container():
-                    _status_class = "done" if _card["finished"] else "active"
-                    _status_text = "ПРИКЛЮЧЕНО" if _card["finished"] else "В ПРОЦЕС"
-                    _budget_text = f"€{_card['spent']:,.2f} / €{_card['budget']:,.2f}" if _card["budget"] > 0 else "Без зададен бюджет"
-                    _remaining_text = (f"Остават <strong>€{_card['remaining']:,.2f}</strong>" if _card["remaining"] is not None and _card["remaining"] >= 0 else (f"Над бюджета <strong>€{abs(_card['remaining']):,.2f}</strong>" if _card["remaining"] is not None else "Бюджетът не е зададен"))
-                    st.markdown(f"""
-                        <div class='px-trip-card'>
-                            <div class='px-trip-top'>
-                                <div><div class='px-trip-name'>{html.escape(_card['name'])}</div><div class='px-trip-date'>{html.escape(_card['date'])}</div></div>
-                                <div class='px-status {_status_class}'>{_status_text}</div>
-                            </div>
-                            <div class='px-trip-budget'>
-                                <div class='px-trip-budget-line'><span>{_budget_text}</span><span>{_card['pct']:.0f}%</span></div>
-                                <div class='px-trip-track'><div class='px-trip-fill' style='width:{_card['pct']:.1f}%'></div></div>
-                            </div>
-                            <div class='px-trip-bottom'><div class='px-trip-remaining'>{_remaining_text}</div><div style='color:#596470;font-size:15px'>→</div></div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    if st.button("Отвори", key=f"open_trip_home_{i}_{hashlib.sha256(_card['id'].encode('utf-8')).hexdigest()[:10]}", use_container_width=True):
-                        st.session_state["current_trip"] = _card["id"]
-                        st.rerun()
-            st.markdown("</div></div>", unsafe_allow_html=True)
-
-        with _right:
-            st.markdown("<div class='px-side-stack'>", unsafe_allow_html=True)
-            if _home_next:
-                _days = max(0, (_home_next_date - datetime.date.today()).days)
-                _when = "днес" if _days == 0 else f"след {_days} дни"
-                st.markdown(f"""
-                    <div class='px-panel'><div class='px-side-title'>✈️ СЛЕДВАЩО ПЪТУВАНЕ</div><div class='px-side-main'>{html.escape(_home_next)}</div><div class='px-side-sub'>{_home_next_date.strftime('%d.%m.%Y')} · {_when}</div></div>
-                """, unsafe_allow_html=True)
-
-            if _home_last:
-                st.markdown(f"""
-                    <div class='px-panel'><div class='px-side-title'>🕐 ПОСЛЕДНА АКТИВНОСТ</div><div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>{html.escape(_home_last[0])} · {html.escape(_home_last[2])}</div><div class='px-activity-desc'>{html.escape(_home_last[3])}</div></div><div class='px-activity-amt'>€{_home_last[1]:,.2f}</div></div></div>
-                """, unsafe_allow_html=True)
-
+        st.markdown("<div class='px-panel'><div class='px-trip-grid'>", unsafe_allow_html=True)
+        for i, _card in enumerate(_trip_cards):
+            _status_text = "ПРИКЛЮЧЕНО" if _card["finished"] else "В ПРОЦЕС"
+            _status_dot = "🔴" if _card["finished"] else "🟢"
+            _budget_text = f"€{_card['spent']:,.2f} / €{_card['budget']:,.2f}" if _card["budget"] > 0 else "Без зададен бюджет"
+            if _card["remaining"] is not None and _card["remaining"] >= 0:
+                _remaining_text = f"Остават €{_card['remaining']:,.2f}"
+            elif _card["remaining"] is not None:
+                _remaining_text = f"Над бюджета €{abs(_card['remaining']):,.2f}"
+            else:
+                _remaining_text = "Бюджетът не е зададен"
+            _safe = hashlib.sha256(str(_card['id']).encode('utf-8')).hexdigest()[:12]
+            _btn_key = f"open_trip_home_{i}_{_safe}"
+            _selector = f".st-key-{_btn_key}"
+            _pct = float(_card.get('pct', 0.0) or 0.0)
+            _pct = max(0.0, min(100.0, _pct))
+            _bar = (
+                f"linear-gradient(90deg,#4facfe 0%,#00f2fe {_pct:.1f}%,rgba(255,255,255,.10) {_pct:.1f}%,rgba(255,255,255,.10) 100%)"
+            ) if _card["budget"] > 0 else "rgba(255,255,255,.08)"
             st.markdown(f"""
-                <div class='px-panel'>
-                    <div class='px-side-title'>📊 БЪРЗ ПОГЛЕД</div>
-                    <div style='margin-top:12px'>
-                        <div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>АКТИВНИ</div><div class='px-activity-desc'>Пътувания</div></div><div class='px-activity-amt' style='color:#45d878'>{_home_active_count}</div></div>
-                        <div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>РАЗХОДИ</div><div class='px-activity-desc'>Общо записани</div></div><div class='px-activity-amt' style='color:#ffd24a'>€{_home_total_spent:,.0f}</div></div>
-                        <div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>ПРОБЕГ</div><div class='px-activity-desc'>Изминати километри</div></div><div class='px-activity-amt' style='color:#39c7e8'>{_home_total_km:,.0f} км</div></div>
-                    </div>
-                </div>
+            <style>
+                {_selector} {{ margin-bottom:8px; }}
+                {_selector} button {{
+                    min-height:124px !important; width:100% !important; box-sizing:border-box !important;
+                    padding:15px 16px 25px !important; border-radius:18px !important;
+                    border:1px solid rgba(255,255,255,.09) !important;
+                    background:linear-gradient(90deg, transparent 0%, transparent 100%) bottom / 100% 9px no-repeat,
+                               linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.012)) !important;
+                    box-shadow:0 8px 22px rgba(0,0,0,.20) !important;
+                    color:#fff !important; text-align:left !important; justify-content:flex-start !important;
+                    align-items:flex-start !important; white-space:pre-wrap !important;
+                    font-family:inherit !important; line-height:1.45 !important; transition:all .2s ease !important;
+                    position:relative !important; overflow:hidden !important;
+                }}
+                {_selector} button::after {{
+                    content:""; position:absolute; left:0; right:0; bottom:0; height:9px;
+                    background:linear-gradient(90deg,#4facfe 0%,#00f2fe {_pct:.1f}%,rgba(255,255,255,.10) {_pct:.1f}%,rgba(255,255,255,.10) 100%);
+                }}
+                {_selector} button:hover {{ border-color:rgba(69,216,120,.36) !important; transform:translateY(-1px) !important; box-shadow:0 10px 26px rgba(0,0,0,.28),0 0 18px rgba(69,216,120,.05) !important; }}
+                {_selector} button p {{ width:100% !important; margin:0 !important; padding:0 !important; text-align:left !important; font-size:14px !important; line-height:1.48 !important; }}
+            </style>
             """, unsafe_allow_html=True)
-            if st.button("📈 Глобален анализ", use_container_width=True, key="home_global_analysis_btn"):
-                st.session_state["stable_comparison_toggle"] = True
+            _label = (
+                f"🚙  {_card['name']}    →\n"
+                f"{_status_dot}  {_status_text}"
+                f"{(' · ' + _card['date']) if _card['date'] else ''}\n"
+                f"{_budget_text}  ·  {_pct:.0f}%\n"
+                f"{_remaining_text}"
+            )
+            if st.button(_label, use_container_width=True, key=_btn_key):
+                st.session_state["current_trip"] = _card["id"]
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div></div>", unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1928,7 +1804,70 @@ if st.session_state["current_trip"] is None:
         st.session_state["open_quick_expense"] = False
         quick_expense_modal()
 
+    # =========================================================
+    # ДОПЪЛНИТЕЛЕН НАЧАЛЕН DASHBOARD
+    # Картата и информационните панели стоят между ПЪТУВАНИЯТА и ПОСЛЕДНИТЕ РАЗХОДИ.
+    # =========================================================
+    st.markdown("<div class='px-section-head'><div class='px-section-title'>Твоят свят</div><div class='px-section-note'>карта и бърз преглед</div></div>", unsafe_allow_html=True)
+
+    st.markdown("""
+        <style>
+            .px-home-additions { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(280px,.8fr); gap:14px; align-items:stretch; }
+            .px-world-map { margin:0; padding:14px; border:1px solid #202b34; background:#091117; border-radius:14px; }
+            .px-world-map-head {display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:10px;}
+            .px-world-map-title{font-size:12px;font-weight:900;letter-spacing:.45px;color:#f4f7fa;}
+            .px-world-map-sub{margin-top:4px;color:#7f8a95;font-size:10px;}
+            .px-world-map-count{color:#45d878;font-size:11px;font-weight:900;white-space:nowrap;}
+            .px-world-map-legend{margin-top:8px;color:#71808d;font-size:9px;}
+            .px-home-info-stack{display:grid;grid-template-columns:1fr;gap:14px;}
+            @media(max-width:900px){.px-home-additions{grid-template-columns:1fr;}.px-home-info-stack{grid-template-columns:1fr 1fr;}}
+            @media(max-width:640px){.px-home-info-stack{grid-template-columns:1fr;}.px-world-map{padding:10px;border-radius:12px;}}
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div class='px-home-additions'>", unsafe_allow_html=True)
+    st.markdown("<div>", unsafe_allow_html=True)
+    try:
+        _world_points = pd.read_csv(MAP_FILE, encoding="utf-8") if os.path.exists(MAP_FILE) else pd.DataFrame()
+        if not _world_points.empty and {"lat","lon"}.issubset(_world_points.columns):
+            _world_points = _world_points.copy()
+            _world_points["lat"] = pd.to_numeric(_world_points["lat"], errors="coerce")
+            _world_points["lon"] = pd.to_numeric(_world_points["lon"], errors="coerce")
+            _world_points = _world_points.dropna(subset=["lat","lon"])
+        else:
+            _world_points = pd.DataFrame(columns=["trip_id","lat","lon","title","color"])
+        _world_count = len(_world_points)
+        st.markdown(f"<div class='px-world-map'><div class='px-world-map-head'><div><div class='px-world-map-title'>🌍 МОИТЕ МЕСТА</div><div class='px-world-map-sub'>Всички дестинации и запазени места от пътуванията ти.</div></div><div class='px-world-map-count'>{_world_count} {'места' if _world_count != 1 else 'място'}</div></div>", unsafe_allow_html=True)
+        if _world_count:
+            _world_map = folium.Map(location=[float(_world_points["lat"].mean()),float(_world_points["lon"].mean())], zoom_start=(7 if _world_count==1 else 5 if _world_count<=4 else 4), control_scale=True, tiles="CartoDB dark_matter")
+            for _, _pt in _world_points.iterrows():
+                _trip_name = get_trip_display_name(str(_pt.get("trip_id","")))
+                _title = str(_pt.get("title","Запазено място") or "Запазено място")
+                _color = str(_pt.get("color","green") or "green")
+                _popup = f"<div style='min-width:170px;font-family:Segoe UI,Arial,sans-serif'><b>{html.escape(_title)}</b><div style='margin-top:5px;color:#66717c;font-size:11px'>✈️ {html.escape(_trip_name)}</div></div>"
+                folium.Marker(location=[float(_pt["lat"]),float(_pt["lon"])], popup=folium.Popup(_popup,max_width=260), tooltip=_title, icon=folium.Icon(color=_color if _color in {"blue","green","red","purple","orange"} else "green", icon="map-marker")).add_to(_world_map)
+            _world_map_key = f"home_world_map_{_world_count}_{hashlib.sha256(_world_points.to_csv(index=False).encode('utf-8')).hexdigest()[:10]}"
+            st_folium(_world_map,width=None,height=330,key=_world_map_key,returned_objects=[])
+            st.markdown("<div class='px-world-map-legend'>Кликни върху маркер, за да видиш мястото и пътуването.</div></div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='height:140px;border:1px dashed #26323c;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#71808d;font-size:11px;'>Все още няма запазени места за показване.</div></div>", unsafe_allow_html=True)
+    except Exception:
+        st.markdown("<div style='height:140px;display:flex;align-items:center;justify-content:center;color:#71808d;font-size:11px;'>Картата не може да бъде заредена в момента.</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='px-home-info-stack'>", unsafe_allow_html=True)
+    if _home_next:
+        _days=max(0,(_home_next_date-datetime.date.today()).days); _when="днес" if _days==0 else f"след {_days} дни"
+        st.markdown(f"<div class='px-panel'><div class='px-side-title'>✈️ СЛЕДВАЩО ПЪТУВАНЕ</div><div class='px-side-main'>{html.escape(_home_next)}</div><div class='px-side-sub'>{_home_next_date.strftime('%d.%m.%Y')} · {_when}</div></div>", unsafe_allow_html=True)
+    if _home_last:
+        st.markdown(f"<div class='px-panel'><div class='px-side-title'>🕐 ПОСЛЕДНА АКТИВНОСТ</div><div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>{html.escape(_home_last[0])} · {html.escape(_home_last[2])}</div><div class='px-activity-desc'>{html.escape(_home_last[3])}</div></div><div class='px-activity-amt'>€{_home_last[1]:,.2f}</div></div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='px-panel'><div class='px-side-title'>📊 БЪРЗ ПОГЛЕД</div><div style='margin-top:12px'><div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>АКТИВНИ</div><div class='px-activity-desc'>Пътувания</div></div><div class='px-activity-amt' style='color:#45d878'>{_home_active_count}</div></div><div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>РАЗХОДИ</div><div class='px-activity-desc'>Общо записани</div></div><div class='px-activity-amt' style='color:#ffd24a'>€{_home_total_spent:,.0f}</div></div><div class='px-activity'><div class='px-activity-left'><div class='px-activity-trip'>ПРОБЕГ</div><div class='px-activity-desc'>Изминати километри</div></div><div class='px-activity-amt' style='color:#39c7e8'>{_home_total_km:,.0f} км</div></div></div></div>", unsafe_allow_html=True)
+    if st.button("📈 Глобален анализ", use_container_width=True, key="home_global_analysis_btn"):
+        st.session_state["stable_comparison_toggle"] = True
+        st.rerun()
+    st.markdown("</div></div>", unsafe_allow_html=True)
+
     if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
+
             @st.dialog("➖ Последни разходи", width="large")
             def recent_expenses_modal():
                 st.markdown("""
