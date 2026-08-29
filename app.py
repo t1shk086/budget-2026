@@ -3784,7 +3784,7 @@ else:
         </div>
         """
 
-        st.markdown(textwrap.dedent(rich_budget_html).strip(), unsafe_allow_html=True)
+        st.html(textwrap.dedent(rich_budget_html).strip())
     @st.dialog("📊 Разходи по Категории", width="large")
     def разходи_по_категории_dialog():
         st.markdown("<p style='color: #888; margin-bottom: 20px;'>Преглед на направените разходи, групирани по категории:</p>", unsafe_allow_html=True)
