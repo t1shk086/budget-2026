@@ -3306,7 +3306,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-    if active_budget_mode != "none" and global_budget <= 0:
+    if active_budget_mode != "none":
         total_pct_budget = max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
         remaining_text = f"Остават {active_budget_remaining:.2f} EUR" if active_budget_remaining >= 0 else f"Над бюджета с {abs(active_budget_remaining):.2f} EUR"
         remaining_color = "#8bd5ff" if active_budget_remaining >= 0 else "#ff4b4b"
@@ -3391,31 +3391,6 @@ else:
     # Общият бюджет и общата прогрес лента продължават да включват всичко.
     # =========================================================
     if active_budget_mode != "none" and active_budget_total > 0:
-        # Безопасни стойности по подразбиране, за да се визуализира новото поле
-        # дори когато датите/дневният лимит още не могат да се изчислят.
-        start_date_obj = None
-        end_date_obj = None
-        today_obj = datetime.date.today()
-        total_days = 1
-        elapsed_days = 1
-        days_remaining = 0
-        hotel_spent_for_pace = 0.0
-        deposit_spent_for_pace = float(depozit_hotel or 0.0)
-        daily_spent_total = max(0.0, float(total_on_site or 0.0))
-        daily_budget_total = max(0.0, float(active_budget_total or 0.0))
-        daily_budget_remaining = daily_budget_total - daily_spent_total
-        daily_target = daily_budget_total
-        avg_daily_spend = daily_spent_total
-        projected_total = daily_spent_total
-        forecast_delta = daily_budget_total - projected_total
-        daily_remaining_budget = daily_budget_remaining
-        daily_status = f"€{daily_remaining_budget:.2f}" if daily_budget_remaining >= 0 else "Бюджетът е изчерпан"
-        forecast_color = "#8bd5ff" if forecast_delta >= 0 else "#ff4b4b"
-        forecast_text = (
-            f"Очакван остатък: €{forecast_delta:.2f}" if forecast_delta >= 0
-            else f"Очаквано надхвърляне: €{abs(forecast_delta):.2f}"
-        )
-
         try:
             start_date_obj = datetime.datetime.strptime(st_date, "%d.%m.%Y").date() if st_date and st_date != "nan" else None
             end_date_obj = datetime.datetime.strptime(en_date, "%d.%m.%Y").date() if en_date and en_date != "nan" else None
@@ -3581,7 +3556,7 @@ else:
                     _rich_budget_total = 0.0
                     _rich_budget_spent = float(depozit_hotel + total_on_site)
                     _rich_budget_label = "Без бюджет"
-                _rich_budget_remaining = float(_rich_budget_total - _rich_budget_spent)
+                _rich_budget_remaining = _rich_budget_total - _rich_budget_spent
                 _rich_budget_pct = (max(0.0, min(100.0, _rich_budget_spent / _rich_budget_total * 100.0))
                                     if _rich_budget_total > 0 else 0.0)
                 _dash_status_color = health_color
@@ -3645,7 +3620,7 @@ else:
                     .tm-rich-panel {{padding:12px 13px;border-radius:12px;background:rgba(0,0,0,.13);border:1px solid rgba(255,255,255,.05);min-width:0;}}
                     .tm-rich-title {{font-size:10px;color:#a8b0ba;font-weight:900;letter-spacing:.35px;margin-bottom:7px;}}
                     .tm-rich-budget-track {{height:11px;border-radius:99px;background:rgba(0,0,0,.42);padding:2px;overflow:hidden;box-shadow:inset 1px 1px 3px rgba(0,0,0,.45);}}
-                    .tm-rich-budget-fill {{height:100%;border-radius:99px;background:{'#ff4b4b' if _rich_budget_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};width:{_rich_budget_pct:.1f}%;}}
+                    .tm-rich-budget-fill {{height:100%;border-radius:99px;background:{'#ff4b4b' if active_budget_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};width:{_rich_budget_pct:.1f}%;}}
                     .tm-rich-status {{margin-top:8px;padding:8px 9px;border-radius:10px;background:rgba(255,255,255,.025);font-size:10px;color:{_dash_status_color};font-weight:900;}}
                     @media(max-width:900px){{.tm-rich-top,.tm-rich-main{{grid-template-columns:1fr 1fr;}}.tm-rich-main .tm-rich-panel:last-child{{grid-column:1/-1;}}}}
                     @media(max-width:640px){{.tm-rich-top,.tm-rich-main{{grid-template-columns:1fr;}}.tm-rich-main .tm-rich-panel:last-child{{grid-column:auto;}}.tm-rich-value{{font-size:20px;}}}}
@@ -3664,7 +3639,7 @@ else:
                         </div>
                         <div class='tm-rich-kpi'>
                             <div class='tm-rich-label'>ОСТАВАЩО</div>
-                            <div class='tm-rich-value' style='color:{'#8bd5ff' if _rich_budget_remaining >= 0 else '#ff4b4b'};'>{_rich_budget_remaining:.2f} EUR</div>
+                            <div class='tm-rich-value' style='color:{remaining_color};'>{active_budget_remaining:.2f} EUR</div>
                             <div class='tm-rich-sub'>{_dash_remaining_label}</div>
                         </div>
                     </div>
@@ -3698,8 +3673,6 @@ else:
                 """
                 st.markdown(rich_budget_dashboard, unsafe_allow_html=True)
         except Exception:
-            # Не скривай целия dashboard при проблем в отделна дневна метрика.
-            # Богатото бюджетно поле използва безопасните стойности по подразбиране.
             pass
 
     @st.dialog("📊 Разходи по Категории", width="large")
