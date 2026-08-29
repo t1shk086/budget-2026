@@ -2054,12 +2054,25 @@ if st.session_state["current_trip"] is None:
     try:
         if os.path.exists(MAP_FILE):
             _mp_home = pd.read_csv(MAP_FILE, encoding="utf-8")
+            _valid_home_trip_ids = set()
+            if os.path.exists(SETTINGS_FILE):
+                try:
+                    _settings_home = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                    if "trip_id" in _settings_home.columns:
+                        _valid_home_trip_ids = {
+                            str(x).strip() for x in _settings_home["trip_id"].dropna().tolist()
+                            if str(x).strip() and str(x).strip().lower() not in {"none", "nan", "null"}
+                        }
+                except Exception:
+                    _valid_home_trip_ids = set()
             for _, _mpr in _mp_home.iterrows():
                 try:
                     _mtid = str(_mpr.get("trip_id", "")).strip()
                     _lat = float(_mpr.get("lat"))
                     _lon = float(_mpr.get("lon"))
                     if not _mtid or _mtid.lower() in {"none", "nan", "null"}:
+                        continue
+                    if _valid_home_trip_ids and _mtid not in _valid_home_trip_ids:
                         continue
                     _home_map_points.append((_lat, _lon, str(_mpr.get("title", "Място")), _mtid))
                 except Exception:
@@ -2601,6 +2614,12 @@ else:
                         df_budget_delete[df_budget_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
                             CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8"
                         )
+                    if os.path.exists(MAP_FILE):
+                        df_map_delete = pd.read_csv(MAP_FILE, encoding="utf-8")
+                        if "trip_id" in df_map_delete.columns:
+                            df_map_delete[df_map_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
+                                MAP_FILE, index=False, encoding="utf-8"
+                            )
                 except: 
                     pass
                 st.session_state["current_trip"] = None
