@@ -1355,11 +1355,31 @@ if st.session_state["current_trip"] is None:
                     unsafe_allow_html=True
                 )
 
+                    # По-богата карта, но все още един и същ реален бутон.
+                _today = datetime.date.today()
+                _days_total = 0
+                _days_left_display = 0
+                try:
+                    if _trip_start_date and _trip_end_date and _trip_start_date.lower() != "nan" and _trip_end_date.lower() != "nan":
+                        _sd = datetime.datetime.strptime(_trip_start_date, "%d.%m.%Y").date()
+                        _ed = datetime.datetime.strptime(_trip_end_date, "%d.%m.%Y").date()
+                        _days_total = max(1, (_ed - _sd).days + 1)
+                        _days_left_display = max(0, (_ed - _today).days)
+                except Exception:
+                    pass
+                _remaining_display = max(0.0, _budget - _spent) if _budget > 0 else 0.0
+                _daily_hint = (_remaining_display / max(1, _days_left_display)) if (_budget > 0 and _days_left_display > 0) else 0.0
+                if _budget > 0:
+                    _line3 = f"€{_spent:,.0f} похарчено  ·  €{_remaining_display:,.0f} остават"
+                    _line4 = f"▰ {_pct:.0f}%  ·  {_days_left_display} дни" if not _finished else f"▰ {_pct:.0f}%  ·  {_days_total} дни"
+                else:
+                    _line3 = "Без зададен бюджет"
+                    _line4 = f"{_days_left_display} дни оставащи" if not _finished and _days_total else (f"{_days_total} дни" if _days_total else "")
                 _label = (
-                    f"🚙  **{_trip_name}**    →\n"
-                    f"{_status_dot}  {_status_text}"
-                    f"{f' · {_trip_dates_line}' if _trip_dates_line else ''}\n"
-                    f"{_budget_line}"
+                    f"🚙  {_trip_name}  →\n"
+                    f"{_status_dot}  {_status_text}" + (f" · {_trip_dates_line}" if _trip_dates_line else "") + "\n"
+                    f"{_line3}\n"
+                    f"{_line4}"
                 )
 
                 if st.button(
@@ -3803,31 +3823,6 @@ else:
                 background:rgba(255,255,255,.025);
                 font-size:10px;font-weight:900;
             }
-            .tm-rich-budget-v4::before{
-                content:""; display:block; height:3px; border-radius:99px;
-                background:linear-gradient(90deg,#00f2fe,#4facfe,#965cff);
-                margin:-4px 0 14px 0; opacity:.8;
-            }
-            .tm-rich-budget-v4-kpi{
-                transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
-                box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
-            }
-            .tm-rich-budget-v4-kpi:hover{
-                transform:translateY(-1px); border-color:rgba(0,242,254,.16);
-                box-shadow:0 8px 20px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.04);
-            }
-            .tm-rich-budget-v4-body{align-items:stretch;}
-            .tm-rich-budget-v4-panel{
-                min-height:205px; box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
-            }
-            .tm-rich-budget-v4-title{display:flex;align-items:center;gap:7px;}
-            .tm-rich-budget-v4-status{border:1px solid rgba(255,255,255,.06);}
-            .tm-rich-budget-v4-panel + .tm-rich-budget-v4-panel{position:relative;}
-            .tm-rich-budget-v4-panel + .tm-rich-budget-v4-panel:before{
-                content:""; position:absolute; left:-6px; top:12px; bottom:12px; width:1px;
-                background:rgba(255,255,255,.045);
-            }
-            @media(max-width:640px){.tm-rich-budget-v4-panel + .tm-rich-budget-v4-panel:before{display:none;}}
             @media(max-width:900px){
                 .tm-rich-budget-v4-grid{grid-template-columns:repeat(2,1fr);}
                 .tm-rich-budget-v4-body{grid-template-columns:1fr 1fr;}
@@ -4551,7 +4546,33 @@ else:
         @media (max-width:640px) {
             .tm-plan-title { font-size:14px; }
         }
-    </style>
+    
+/* ===== V11 richer trip cards + true favorite-place table ===== */
+div[class*="st-key-open_trip_card_"] button {
+    min-height: 142px !important;
+    padding: 16px 18px 20px !important;
+    border-radius: 18px !important;
+    background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.012)) !important;
+    border: 1px solid rgba(255,255,255,.095) !important;
+    box-shadow: 0 10px 26px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.025) !important;
+}
+div[class*="st-key-open_trip_card_"] button:hover {
+    transform: translateY(-2px) !important;
+    border-color: rgba(0,242,254,.30) !important;
+    box-shadow: 0 14px 30px rgba(0,0,0,.28), 0 0 18px rgba(0,242,254,.08) !important;
+}
+.tm-fav-th { color:#7e8893; font-size:9px; font-weight:900; letter-spacing:.7px; padding:0 6px 7px; }
+.tm-fav-cell { color:#dfe4ea; font-size:11px; line-height:1.45; padding:9px 6px; min-height:30px; display:flex; align-items:center; }
+.tm-fav-place { color:#fff; }
+.tm-fav-coord { font-variant-numeric:tabular-nums; color:#9ea8b2; }
+.tm-fav-divider,.tm-fav-row-divider { height:1px; background:rgba(255,255,255,.07); }
+@media(max-width:640px){
+  div[class*="st-key-open_trip_card_"] button { min-height:128px !important; padding:14px 14px 18px !important; }
+  .tm-fav-th { font-size:8px; }
+  .tm-fav-cell { font-size:10px; padding:8px 3px; }
+}
+/* ===== END V11 ===== */
+</style>
     """, unsafe_allow_html=True)
 
     st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n3'>3</span><span>ПЛАН НА ПЪТУВАНЕТО</span></div>", unsafe_allow_html=True)
@@ -4688,449 +4709,31 @@ else:
         st.markdown("<div class='tm-section-title' style='margin-top:4px;margin-bottom:10px;'><span class='tm-section-number tm-n5'>5</span><span>Любими места от пътуването</span></div>", unsafe_allow_html=True)
         try:
             df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
-            _fav_df = df_all_map[df_all_map["trip_id"] == trip_id].copy()
-            color_emojis = {"blue": "🔵", "green": "🟢", "red": "🔴", "purple": "🟣", "orange": "🟠"}
+            df_fav = df_all_map[df_all_map["trip_id"].astype(str) == str(trip_id)].copy()
+            if not df_fav.empty:
+                # Header
+                h1,h2,h3,h4 = st.columns([2.0, 3.0, 2.2, 0.7])
+                with h1: st.markdown("<div class='tm-fav-th'>📍 МЯСТО</div>", unsafe_allow_html=True)
+                with h2: st.markdown("<div class='tm-fav-th'>ОПИСАНИЕ</div>", unsafe_allow_html=True)
+                with h3: st.markdown("<div class='tm-fav-th'>КООРДИНАТИ</div>", unsafe_allow_html=True)
+                with h4: st.markdown("<div class='tm-fav-th'> </div>", unsafe_allow_html=True)
+                st.markdown("<div class='tm-fav-divider'></div>", unsafe_allow_html=True)
+                color_emojis = {"blue":"🔵","green":"🟢","red":"🔴","purple":"🟣","orange":"🟠"}
 
-            st.markdown(f"""
-            <div class='tm-fav-table-shell'>
-                <div class='tm-fav-table-head'>
-                    <div class='tm-fav-table-title'>📍 Запазени места</div>
-                    <div class='tm-fav-table-count'>{len(_fav_df)} {'място' if len(_fav_df)==1 else 'места'}</div>
-                </div>
-                <div class='tm-fav-table-row tm-fav-table-labels'>
-                    <div></div><div>МЯСТО / ОПИСАНИЕ</div><div>КООРДИНАТИ</div><div></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            for idx, pt_row in _fav_df.iterrows():
-                title = html.escape(str(pt_row.get("title", "Място")))
-                color = color_emojis.get(str(pt_row.get("color", "")), "📍")
-                coords = f"{float(pt_row.get('lat',0)):.4f}, {float(pt_row.get('lon',0)):.4f}"
-                c1, c2, c3, c4 = st.columns([0.07, 0.53, 0.30, 0.10], gap="small")
-                with c1:
-                    st.markdown(f"<div class='tm-fav-pin-table'>{color}</div>", unsafe_allow_html=True)
-                with c2:
-                    st.markdown(f"<div class='tm-fav-place-name'>{title}</div><div class='tm-fav-place-desc'>Запазено място от това пътуване</div>", unsafe_allow_html=True)
-                with c3:
-                    st.markdown(f"<div class='tm-fav-coords-table'>{coords}</div>", unsafe_allow_html=True)
-                with c4:
-                    st.button("🗑️", key=f"del_pin_{idx}", use_container_width=True, disabled=trip_locked, on_click=_delete_map_point, args=(idx,))
-
-                st.markdown("<div class='tm-fav-row-sep'></div>", unsafe_allow_html=True)
+                for idx, pt_row in df_fav.iterrows():
+                    c1,c2,c3,c4 = st.columns([2.0, 3.0, 2.2, 0.7])
+                    title = str(pt_row.get('title','Място'))
+                    coord = f"{float(pt_row.get('lat',0)):.4f}, {float(pt_row.get('lon',0)):.4f}"
+                    emoji = color_emojis.get(str(pt_row.get('color','blue')), '📍')
+                    # Описанието е вече наличният title; показваме го компактно и четимо.
+                    desc = title.replace('🏁 Център:', 'Начална точка ·').strip()
+                    with c1: st.markdown(f"<div class='tm-fav-cell tm-fav-place'>{emoji} <b>{html.escape(title)}</b></div>", unsafe_allow_html=True)
+                    with c2: st.markdown(f"<div class='tm-fav-cell'>{html.escape(desc)}</div>", unsafe_allow_html=True)
+                    with c3: st.markdown(f"<div class='tm-fav-cell tm-fav-coord'>{coord}</div>", unsafe_allow_html=True)
+                    with c4:
+                        st.button("🗑️", key=f"del_pin_{idx}", use_container_width=True, disabled=trip_locked, on_click=_delete_map_point, args=(idx,))
+                    st.markdown("<div class='tm-fav-row-divider'></div>", unsafe_allow_html=True)
+            else:
+                st.markdown("<div style='color:#7e8494;font-size:12px;'>Няма запазени места.</div>", unsafe_allow_html=True)
         except Exception:
-            pass
-            
-    st.markdown("---")
-    if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
-        confirm_delete_trip_dialog()
-
-    st.markdown("""
-        <style>
-            html { scroll-behavior: smooth !important; }
-            .twin-premium-3d-btn {
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                width: 100% !important;
-                min-height: 38.4px !important;
-                box-sizing: border-box !important;
-                background: linear-gradient(135deg, #252932, #16191f) !important;
-                color: #ffffff !important;
-                border: 1px solid rgba(255, 255, 255, 0.05) !important;
-                border-radius: 12px !important;
-                padding: 0.25rem 0.75rem !important;
-                font-weight: 600 !important;
-                font-size: 14px !important;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-                letter-spacing: 0.5px !important;
-                cursor: pointer !important;
-                user-select: none !important;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
-                transition: all 0.25s ease !important;
-            }
-            .twin-premium-3d-btn:hover {
-                background: linear-gradient(135deg, #2e343f, #1c2028) !important;
-                transform: translateY(-1px) !important;
-                box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15) !important;
-                border-color: rgba(0, 242, 254, 0.2) !important;
-            }
-            .twin-premium-3d-btn:active {
-                transform: translateY(0) !important;
-                box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important;
-            }
-            .twin-grid-wrapper a {
-                text-decoration: none !important;
-                width: 100% !important;
-                display: block !important;
-            }
-        
-/* ===== V11 SAFE CARD BUTTONS ===== */
-div[class*="st-key-trip_card_"] div[data-testid="stButton"] {
-    position: relative !important;
-    z-index: 3 !important;
-    margin-top: 6px !important;
-}
-div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
-    width: 100% !important;
-    min-height: 42px !important;
-    text-align: left !important;
-    justify-content: flex-start !important;
-}
-/* ===== END V11 SAFE CARD BUTTONS ===== */
-</style>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    bottom_cols = st.columns(2)
-    
-    with bottom_cols[0]:
-        if st.button("🔙 КЪМ ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
-            st.session_state["current_trip"] = None
-            st.rerun()
-            
-    with bottom_cols[1]:
-        st.markdown("""
-            <div class="twin-grid-wrapper">
-                <a href="#trip_top_anchor" target="_self">
-                    <button class="twin-premium-3d-btn">🔝КЪМ РАЗХОДИТЕ</button>
-                </a>
-            </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("---")
-    
-    if "show_admin_panel" not in st.session_state:
-        st.session_state["show_admin_panel"] = False
-
-    if st.button("🛠️ Административни Инструменти", use_container_width=True, key="toggle_admin_panel_btn"):
-        st.session_state["show_admin_panel"] = not st.session_state["show_admin_panel"]
-        st.rerun()
-
-    if st.session_state["show_admin_panel"]:
-        st.markdown("""
-            <div style="background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.15); padding: 15px; border-radius: 12px; margin-top: 10px;">
-                <h4 style="margin-top:0; color:#00f2fe;">📦 Архивиране и Възстановяване на данни</h4>
-                <p style="color: #aaa; font-size: 13px; margin-bottom: 15px;">Използвайте тази секция, за да свалите вашите данни локално или да ги качите обратно, ако сървърът се рестартира.</p>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        col_backup1, col_backup2 = st.columns(2)
-        
-   
-        with col_backup1:
-            st.markdown("##### 📥 Сваляне на архив")
-
-            try:
-                import zipfile
-                import io
-                import smtplib
-                from email.message import EmailMessage
-
-                # =====================================================
-                # СЪЗДАВАНЕ НА ZIP АРХИВ
-                # =====================================================
-                zip_buffer = io.BytesIO()
-
-                with zipfile.ZipFile(
-                    zip_buffer,
-                    "w",
-                    zipfile.ZIP_DEFLATED
-                ) as zip_file:
-
-                    for file_name in [
-                        DATA_FILE,
-                        SETTINGS_FILE,
-                        MAP_FILE,
-                        LABELS_FILE,
-                        CATEGORY_BUDGETS_FILE
-                    ]:
-                        if os.path.exists(file_name):
-                            zip_file.write(
-                                file_name,
-                                arcname=file_name
-                            )
-
-                zip_data = zip_buffer.getvalue()
-
-                # =====================================================
-                # ЛОКАЛНО СВАЛЯНЕ
-                # =====================================================
-                st.download_button(
-                    label="📥 Свали всички CSV логове (.ZIP)",
-                    data=zip_data,
-                    file_name="PixelApp_Data_Backup.zip",
-                    mime="application/zip",
-                    use_container_width=True,
-                    key="download_all_csv_backup_btn"
-                )
-
-                # =====================================================
-                # ИЗПРАЩАНЕ ПО ИМЕЙЛ
-                # =====================================================
-                st.markdown("##### 📧 Изпращане на архив по e-mail")
-
-                email_to = st.text_input(
-                    "Получател",
-                    placeholder="name@example.com",
-                    key="backup_email_to"
-                )
-
-                if st.button(
-                    "📧 Изпрати архива",
-                    use_container_width=True,
-                    key="send_backup_email_btn"
-                ):
-
-                    if not email_to.strip():
-
-                        st.warning(
-                            "⚠️ Моля, въведи имейл адрес."
-                        )
-
-                    else:
-
-                        # =================================================
-                        # GMAIL НАСТРОЙКИ
-                        # =================================================
-                        SMTP_SERVER = "smtp.gmail.com"
-                        SMTP_PORT = 465
-
-                        # Тези две стойности се вземат от Streamlit Secrets
-                        SMTP_USERNAME = st.secrets["gmail"]["username"]
-                        SMTP_PASSWORD = st.secrets["gmail"]["app_password"]
-
-                        # =================================================
-                        # СЪЗДАВЯНЕ НА ИМЕЙЛА
-                        # =================================================
-                        msg = EmailMessage()
-
-                        msg["Subject"] = "PixelApp – архив на данните"
-                        msg["From"] = SMTP_USERNAME
-                        msg["To"] = email_to.strip()
-
-                        msg.set_content(
-                            "Здравей,\n\n"
-                            "Прикачен е архив с данните от PixelApp.\n\n"
-                            "Файл: PixelApp_Data_Backup.zip\n\n"
-                            "Поздрави,\n"
-                            "PixelApp"
-                        )
-
-                        # =================================================
-                        # ПРИКАЧВАНЕ НА ZIP АРХИВА
-                        # =================================================
-                        msg.add_attachment(
-                            zip_data,
-                            maintype="application",
-                            subtype="zip",
-                            filename="PixelApp_Data_Backup.zip"
-                        )
-
-                        # =================================================
-                        # GMAIL SMTP - SSL / PORT 465
-                                                # =================================================
-                        with smtplib.SMTP_SSL(
-                            SMTP_SERVER,
-                            SMTP_PORT,
-                            timeout=30
-                        ) as server:
-                            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-                            server.send_message(msg)
-
-
-
-                        st.success(
-                            f"✅ Архивът беше изпратен успешно до "
-                            f"{email_to.strip()}."
-                        )
-
-            except Exception as e:
-
-                st.error(
-                    f"❌ Грешка при създаване или изпращане на архива: {e}"
-                )
-
-                
-        with col_backup2:
-            st.markdown("##### 📤 Качване на архив")
-            uploaded_zip = st.file_uploader(
-                "Качете сваления по-горе .ZIP файл тук:", 
-                type=["zip"], 
-                key="restore_all_csv_backup_uploader",
-                label_visibility="collapsed"
-            )
-            if uploaded_zip is not None:
-                if st.button("🔄 ВЪЗСТАНОВИ ДАННИТЕ СЕГА", use_container_width=True, type="primary", key="trigger_restore_data_btn"):
-                    success_extract = False
-                    try:
-                        import zipfile
-                        with zipfile.ZipFile(uploaded_zip) as zip_file:
-                            namelist = zip_file.namelist()
-                            restored_count = 0
-                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE]:
-                                if f_name in namelist:
-                                    with open(f_name, "wb") as f_out:
-                                        f_out.write(zip_file.read(f_name))
-                                    restored_count += 1
-                            if restored_count > 0:
-                                success_extract = True
-                            else:
-                                st.error("В ZIP архива не бяха открити валидни бази данни на PixelApp.")
-                    except:
-                        st.error("Конфликт при разархивирането. Уверете се, че качвате правилния файл.")
-                    
-                    if success_extract:
-                        st.success("🎉 Данните са възстановени успешно!")
-                        st.session_state["show_admin_panel"] = False
-                        st.session_state["current_trip"] = None
-                        st.rerun()
-
-        st.markdown("---")
-        st.markdown("##### 🔓 Редакция на приключено пътуване")
-        st.caption("Отключването е временно. Крайните километри и статусът „Приключено“ се запазват. След редакцията натисни „🔒 Заключи редакцията“.")
-
-        finished_trips_admin = get_finished_trip_ids()
-        if finished_trips_admin:
-            finished_trip_labels = {tid: tid.replace("_", " ") for tid in finished_trips_admin}
-            current_unlocked_admin = st.session_state.get("edit_unlocked_trip")
-
-            if current_unlocked_admin in finished_trips_admin:
-                st.success(f"✏️ В момента е отключено: **{finished_trip_labels[current_unlocked_admin]}**")
-                if st.button("🔒 ЗАКЛЮЧИ РЕДАКЦИЯТА", use_container_width=True, type="primary", key="admin_relock_finished_trip_btn"):
-                    lock_trip_editing(current_unlocked_admin)
-                    st.rerun()
-            else:
-                admin_finished_choice = st.selectbox(
-                    "Избери приключено пътуване:",
-                    finished_trips_admin,
-                    format_func=lambda tid: f"🔴 {finished_trip_labels.get(tid, tid.replace('_', ' '))}",
-                    key="admin_finished_trip_select"
-                )
-                if st.button("🔓 ОТКЛЮЧИ ЗА РЕДАКЦИЯ", use_container_width=True, type="primary", key="admin_unlock_finished_trip_btn"):
-                    st.session_state["edit_unlocked_trip"] = str(admin_finished_choice)
-                    st.session_state["current_trip"] = str(admin_finished_choice)
-                    st.session_state["show_admin_panel"] = False
-                    st.rerun()
-        else:
-            st.info("Няма приключени пътувания за отключване.")
-
-        st.markdown("---")
-        st.markdown("##### ✏️ Преименуване на съществуващо пътуване")
-        st.caption("Преименуването променя само името на пътуването. Разходи, бюджети, километри, маршрут и дати се запазват.")
-
-        # Само реално създадените пътувания от SETTINGS_FILE.
-        _admin_trip_ids = []
-        if os.path.exists(SETTINGS_FILE):
-            try:
-                _admin_settings_df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-                if "trip_id" in _admin_settings_df.columns:
-                    _admin_trip_ids = list(dict.fromkeys(
-                        str(x).strip()
-                        for x in _admin_settings_df["trip_id"].dropna().unique()
-                        if str(x).strip()
-                    ))
-            except Exception:
-                _admin_trip_ids = []
-
-        if _admin_trip_ids:
-            def _rename_trip_label(tid):
-                display_name = get_trip_display_name(tid)
-                settings = get_trip_settings(tid)
-                sd = str(settings.get("start_date", "") or "").strip()
-                ed = str(settings.get("end_date", "") or "").strip()
-
-                if sd and sd.lower() != "nan":
-                    date_part = f"{sd} → {ed}" if ed and ed.lower() != "nan" and ed != sd else sd
-                    return f"🚙 {display_name} · {date_part}"
-                return f"🚙 {display_name}"
-
-            admin_rename_choice = st.selectbox(
-                "Избери пътуване:",
-                _admin_trip_ids,
-                format_func=_rename_trip_label,
-                key="admin_rename_trip_select"
-            )
-
-            admin_new_trip_name = st.text_input(
-                "Ново име на дестинацията:",
-                value="",
-                key="admin_rename_trip_name",
-                placeholder="Например: Бургас"
-            ).strip()
-
-            if st.button(
-                "✏️ ПРЕИМЕНУВАЙ ПЪТУВАНЕТО",
-                use_container_width=True,
-                type="primary",
-                key="admin_rename_trip_btn"
-            ):
-                if not admin_new_trip_name:
-                    st.warning("⚠️ Въведи ново име.")
-                elif admin_new_trip_name == get_trip_display_name(admin_rename_choice):
-                    st.info("ℹ️ Новото име е същото като текущото.")
-                else:
-                    ok_rename, rename_result = rename_trip(admin_rename_choice, admin_new_trip_name)
-                    if ok_rename:
-                        st.success(f"✅ Пътуването е преименувано на „{get_trip_display_name(rename_result)}“.")
-                        st.session_state["show_admin_panel"] = False
-                        st.rerun()
-                    else:
-                        st.error(f"❌ Преименуването не успя: {rename_result}")
-        else:
-            st.info("Няма налични пътувания за преименуване.")
-
-        st.markdown("---")
-        st.markdown("##### 🏷️ Имена на категориите")
-        st.caption("Тези настройки променят само текста на бутоните. Записаните разходи и статистиката остават непроменени.")
-
-        pet_options = ["Куче", "Котка", "Домашен любимец"]
-        accommodation_options = ["Нощувки/Хотел + Депозит/Резервация", "Хотелски такси + Депозит за резервация"]
-
-        current_pet = UI_LABELS["pet"] if UI_LABELS["pet"] in pet_options else "Куче"
-        current_accommodation = (
-            "Хотелски такси + Депозит за резервация"
-            if UI_LABELS["hotel"] == "Хотелски такси" and UI_LABELS["deposit"] == "Депозит за резервация"
-            else "Нощувки/Хотел + Депозит/Резервация"
-        )
-
-        admin_col1, admin_col2 = st.columns(2)
-        with admin_col1:
-            new_pet_label = st.selectbox(
-                "🐾 Име на бутона за домашен любимец:",
-                pet_options,
-                index=pet_options.index(current_pet),
-                key="admin_pet_label"
-            )
-        with admin_col2:
-            new_accommodation_labels = st.selectbox(
-                "🏨 Имена на хотелските категории:",
-                accommodation_options,
-                index=accommodation_options.index(current_accommodation),
-                key="admin_accommodation_labels"
-            )
-
-        current_fuel_threshold = float(UI_LABELS.get("fuel_red_threshold", 1.80) or 1.80)
-        new_fuel_threshold = st.number_input(
-            "⛽ Гориво — индикатор за висока цена (EUR/л):",
-            min_value=0.01,
-            value=current_fuel_threshold,
-            step=0.05,
-            format="%.2f",
-            help="Цената за литър ще се визуализира в червено, когато е над тази стойност. До прага остава зелена."
-        )
-
-        if st.button("💾 Запази настройките", use_container_width=True, type="primary", key="save_category_labels_btn"):
-            if new_accommodation_labels == "Хотелски такси + Депозит за резервация":
-                hotel_label = "Хотелски такси"
-                deposit_label = "Депозит за резервация"
-            else:
-                hotel_label = "Нощувки/Хотел"
-                deposit_label = "Депозит/Резервация"
-
-            if save_ui_labels(new_pet_label, hotel_label, deposit_label, new_fuel_threshold):
-                st.success("✅ Настройките са запазени.")
-                st.rerun()
-            else:
-                st.error("❌ Неуспешно запазване на имената на категориите.")
+            st.markdown("<div style='color:#7e8494;font-size:12px;'>Неуспешно зареждане на местата.</div>", unsafe_allow_html=True)
