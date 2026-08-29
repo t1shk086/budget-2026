@@ -3783,7 +3783,7 @@ else:
                 margin-top:10px;
             }
             .tm-rich-budget-v4-panel{
-                padding:12px 13px;
+                padding:13px 14px;
                 border-radius:12px;
                 background:rgba(0,0,0,.13);
                 border:1px solid rgba(255,255,255,.05);
@@ -4686,7 +4686,173 @@ else:
         except Exception:
             pass
 
-    st.markdown("<style>"+'.tm-fav-th { color:#7e8893; font-size:9px; font-weight:900; letter-spacing:.7px; padding:0 6px 7px; }\n.tm-fav-cell { color:#dfe4ea; font-size:11px; line-height:1.45; padding:9px 6px; min-height:30px; display:flex; align-items:center; }\n.tm-fav-place { color:#fff; }\n.tm-fav-coord { font-variant-numeric:tabular-nums; color:#9ea8b2; }\n.tm-fav-divider,.tm-fav-row-divider { height:1px; background:rgba(255,255,255,.07); }\n@media(max-width:640px){\n  div[class*="st-key-open_trip_card_"] button { min-height:128px !important; padding:14px 14px 18px !important; }\n  .tm-fav-th { font-size:8px; }\n  .tm-fav-cell { font-size:10px; padding:8px 3px; }\n}\n/* ===== END V11 ===== */\n'+"</style>", unsafe_allow_html=True)
+    # =========================================================
+    # ❤️ ЛЮБИМИ МЕСТА — реална таблична визуализация
+    # =========================================================
+    st.markdown("""
+    <style>
+        .tm-fav-headline {
+            margin-top:18px;
+            margin-bottom:9px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+        }
+        .tm-fav-title {
+            color:#ffffff;
+            font-size:13px;
+            font-weight:900;
+            letter-spacing:.25px;
+        }
+        .tm-fav-count {
+            color:#aeb7c1;
+            font-size:10px;
+            padding:5px 8px;
+            border-radius:999px;
+            background:rgba(255,255,255,.035);
+            border:1px solid rgba(255,255,255,.07);
+        }
+        .tm-fav-head-row,
+        .tm-fav-data-row {
+            display:grid;
+            grid-template-columns:minmax(170px,1.35fr) minmax(180px,1.15fr) minmax(170px,1fr) 52px;
+            gap:0;
+            align-items:center;
+        }
+        .tm-fav-table {
+            overflow:hidden;
+            border:1px solid rgba(255,255,255,.07);
+            border-radius:16px;
+            background:linear-gradient(180deg,rgba(12,19,25,.96),rgba(7,12,17,.96));
+            box-shadow:0 10px 26px rgba(0,0,0,.20);
+        }
+        .tm-fav-head-row {
+            min-height:34px;
+            background:rgba(255,255,255,.025);
+            border-bottom:1px solid rgba(255,255,255,.07);
+        }
+        .tm-fav-th {
+            color:#737e89;
+            font-size:9px;
+            font-weight:900;
+            letter-spacing:.65px;
+            padding:0 10px;
+            text-transform:uppercase;
+        }
+        .tm-fav-data-row {
+            min-height:54px;
+            border-bottom:1px solid rgba(255,255,255,.055);
+        }
+        .tm-fav-data-row:last-child { border-bottom:0; }
+        .tm-fav-cell {
+            color:#dfe4ea;
+            font-size:11px;
+            line-height:1.35;
+            padding:9px 10px;
+            min-width:0;
+        }
+        .tm-fav-place {
+            color:#fff;
+            font-weight:800;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .tm-fav-description {
+            color:#aab3bd;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .tm-fav-coord {
+            color:#8d98a4;
+            font-variant-numeric:tabular-nums;
+            font-size:10px;
+        }
+        .tm-fav-dot {
+            display:inline-block;
+            width:7px;
+            height:7px;
+            border-radius:50%;
+            margin-right:7px;
+            vertical-align:1px;
+        }
+        @media(max-width:760px){
+            .tm-fav-head-row,
+            .tm-fav-data-row { grid-template-columns:minmax(120px,1.1fr) minmax(130px,1fr) 94px 44px; }
+            .tm-fav-th,.tm-fav-cell { padding-left:8px; padding-right:8px; }
+            .tm-fav-cell { font-size:10px; }
+        }
+        @media(max-width:560px){
+            .tm-fav-head-row { display:none; }
+            .tm-fav-data-row {
+                grid-template-columns:minmax(0,1fr) 44px;
+                grid-template-areas:"place action" "description action" "coord action";
+                padding:8px 0;
+            }
+            .tm-fav-data-row .fav-place-cell { grid-area:place; }
+            .tm-fav-data-row .fav-desc-cell { grid-area:description; }
+            .tm-fav-data-row .fav-coord-cell { grid-area:coord; }
+            .tm-fav-data-row .fav-action-cell { grid-area:action; }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    df_points = get_map_points(trip_id)
+    st.markdown(
+        f"<div class='tm-fav-headline'><div class='tm-fav-title'>❤️ ЛЮБИМИ МЕСТА</div><div class='tm-fav-count'>{len(df_points)} {'място' if len(df_points)==1 else 'места'}</div></div>",
+        unsafe_allow_html=True,
+    )
+
+    if df_points.empty:
+        st.markdown(
+            "<div class='tm-fav-table' style='padding:18px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            "<div class='tm-fav-table'><div class='tm-fav-head-row'>"
+            "<div class='tm-fav-th'>МЯСТО</div><div class='tm-fav-th'>ОПИСАНИЕ</div>"
+            "<div class='tm-fav-th'>КООРДИНАТИ</div><div class='tm-fav-th'></div></div>",
+            unsafe_allow_html=True,
+        )
+        for _fav_i, (_fav_idx, _fav_row) in enumerate(df_points.iterrows()):
+            _fav_title = str(_fav_row.get('title','Място') or 'Място').strip()
+            _fav_lat = float(_fav_row.get('lat',0) or 0)
+            _fav_lon = float(_fav_row.get('lon',0) or 0)
+            _fav_color = str(_fav_row.get('color','blue') or 'blue').strip().lower()
+            _fav_color_map = {
+                'red':'#ff5b63','green':'#42d96f','blue':'#4facfe','purple':'#9a6cff','orange':'#ff9b3d'
+            }
+            _fav_dot_color = _fav_color_map.get(_fav_color, '#4facfe')
+            _fav_desc = 'Запазено място'
+            if ':' in _fav_title:
+                _fav_left, _fav_right = _fav_title.split(':',1)
+                if _fav_right.strip():
+                    _fav_desc = _fav_left.strip().replace('🏁','').strip()
+                    _fav_title = _fav_right.strip()
+            st.markdown(
+                f"<div class='tm-fav-data-row'>"
+                f"<div class='tm-fav-cell fav-place-cell'><div class='tm-fav-place'><span class='tm-fav-dot' style='background:{_fav_dot_color}'></span>{html.escape(_fav_title)}</div></div>"
+                f"<div class='tm-fav-cell fav-desc-cell'><div class='tm-fav-description'>{html.escape(_fav_desc)}</div></div>"
+                f"<div class='tm-fav-cell fav-coord-cell'><div class='tm-fav-coord'>{_fav_lat:.5f}, {_fav_lon:.5f}</div></div>"
+                f"<div class='tm-fav-cell fav-action-cell'></div>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+            _fav_action_cols = st.columns([1, 12])
+            with _fav_action_cols[1]:
+                if st.button('🗑️', key=f'fav_delete_{trip_id}_{_fav_idx}', help=f'Изтрий {_fav_title}'):
+                    try:
+                        df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
+                        if _fav_idx in df_map.index:
+                            df_map = df_map.drop(index=_fav_idx)
+                            df_map.to_csv(MAP_FILE, index=False, encoding='utf-8')
+                            st.rerun()
+                    except Exception:
+                        pass
+        st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
