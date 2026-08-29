@@ -2444,7 +2444,7 @@ else:
       .px-progress {{ height:10px; border-radius:99px; background:#26323d; overflow:hidden; flex:1; }} .px-progress>i {{ display:block; height:100%; border-radius:99px; background:#38c96a; width:{_budget_pct_now:.1f}%; }} .px-progress-row {{ display:flex; align-items:center; gap:10px; }} .px-progress-pct {{ font-size:11px; font-weight:900; }}
       .px-weather {{ align-self:flex-end; min-width:180px; background:rgba(5,11,16,.78); border:1px solid rgba(255,255,255,.10); border-radius:12px; padding:16px; }} .px-weather-temp {{ font-size:24px; font-weight:900; }} .px-weather-place {{ color:#aeb8c2; font-size:12px; margin-top:7px; }}
       .px-kpis {{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:12px 0; }} .px-kpi {{ border:1px solid #202b34; background:#0b1218; border-radius:12px; padding:15px; min-height:82px; }} .px-kpi-label {{ color:#8e9aa5; font-size:10px; font-weight:800; letter-spacing:.4px; }} .px-kpi-value {{ font-size:20px; font-weight:900; margin-top:7px; }}
-      .px-grid {{ display:grid; grid-template-columns:1.05fr .85fr 1.45fr; gap:10px; align-items:stretch; }} .px-panel {{ border:1px solid #202b34; background:#091117; border-radius:14px; padding:14px; min-width:0; }} .px-panel-title {{ font-size:12px; font-weight:900; letter-spacing:.45px; margin-bottom:12px; }}
+      .px-grid {{ display:grid; grid-template-columns:1.05fr .85fr 1.45fr; grid-template-areas:'cats daily map' 'recent quick active'; gap:10px; align-items:stretch; }} .px-cat-panel {{ grid-area:cats; }} .px-daily-panel {{ grid-area:daily; }} .map-panel {{ grid-area:map; }} .px-recent-panel {{ grid-area:recent; }} .px-quick-panel {{ grid-area:quick; }} .px-panel:nth-child(6) {{ grid-area:active; }} .px-panel {{ border:1px solid #202b34; background:#091117; border-radius:14px; padding:14px; min-width:0; }} .px-panel-title {{ font-size:12px; font-weight:900; letter-spacing:.45px; margin-bottom:12px; }}
       .px-cat-layout {{ display:grid; grid-template-columns:150px 1fr; gap:12px; align-items:center; }} .px-donut {{ width:138px; height:138px; border-radius:50%; background:conic-gradient({_donut_bg}); position:relative; margin:auto; }} .px-donut:after {{ content:''; position:absolute; inset:35px; background:#091117; border-radius:50%; }} .px-donut-center {{ position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:2; font-weight:900; font-size:20px; }} .px-donut-center span {{ font-size:10px; color:#87929c; font-weight:600; }}
       .px-cat-row {{ display:grid; grid-template-columns:10px minmax(0,1fr) auto auto; gap:7px; align-items:center; font-size:11px; margin:7px 0; }} .px-cat-dot {{ width:9px; height:9px; border-radius:50%; }} .px-cat-name {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }} .px-cat-amt {{ color:#dfe6eb; }} .px-cat-pct {{ color:#37ca70; width:40px; text-align:right; }}
       .px-bars {{ height:145px; display:flex; align-items:flex-end; justify-content:space-around; gap:9px; border-bottom:1px solid #26313a; padding:5px 5px 0; }} .px-bar-col {{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; min-width:0; }} .px-bar {{ width:min(34px,70%); background:linear-gradient(180deg,#46cf73,#25a85a); border-radius:5px 5px 1px 1px; min-height:8px; }} .px-bar-value {{ font-size:9px; color:#d9e1e6; margin-bottom:3px; }} .px-bar-label {{ font-size:9px; color:#7e8994; margin-top:6px; }}
@@ -2453,25 +2453,42 @@ else:
       .px-quick {{ display:grid; gap:7px; }} .px-quick div {{ border:1px solid #202b34; background:#0c141b; border-radius:9px; padding:10px; font-size:12px; }} .px-empty {{ color:#77848f; font-size:11px; padding:15px 0; text-align:center; }}
       .px-detail-title {{ margin:18px 0 10px; color:#7f8b96; font-size:11px; font-weight:900; letter-spacing:1px; border-top:1px solid #1e2932; padding-top:14px; }}
       @media(max-width:1050px) {{ .px-kpis {{ grid-template-columns:repeat(3,1fr); }} .px-grid {{ grid-template-columns:1fr 1fr; }} .px-panel.map-panel {{ grid-column:1/-1; }} }}
-      @media(max-width:700px) {{ .px-top {{ align-items:flex-start; }} .px-actions {{ display:none; }} .px-title {{ font-size:23px; }} .px-hero {{ min-height:300px; }} .px-hero-inner {{ min-height:300px; padding:14px; align-items:flex-end; }} .px-report {{ width:100%; }} .px-weather {{ position:absolute; right:14px; top:14px; min-width:145px; padding:11px; }} .px-weather-temp {{ font-size:19px; }} .px-kpis {{ grid-template-columns:1fr 1fr; gap:7px; }} .px-kpi:last-child {{ grid-column:1/-1; }} .px-grid {{ grid-template-columns:1fr; }} .px-cat-layout {{ grid-template-columns:125px 1fr; }} .px-donut {{ width:116px; height:116px; }} .px-donut:after {{ inset:30px; }} }}
+      @media(max-width:700px) {{ .px-top {{ align-items:flex-start; }} .px-actions {{ display:none; }} .px-title {{ font-size:23px; }} .px-hero {{ min-height:300px; }} .px-hero-inner {{ min-height:300px; padding:14px; align-items:flex-end; }} .px-report {{ width:100%; }} .px-weather {{ position:absolute; right:14px; top:14px; min-width:145px; padding:11px; }} .px-weather-temp {{ font-size:19px; }} .px-kpis {{ grid-template-columns:1fr 1fr; gap:7px; }} .px-kpi:last-child {{ grid-column:1/-1; }} .px-grid {{ grid-template-columns:1fr; grid-template-areas:'map' 'cats' 'daily' 'recent' 'quick' 'active'; }} .px-cat-layout {{ grid-template-columns:125px 1fr; }} .px-donut {{ width:116px; height:116px; }} .px-donut:after {{ inset:30px; }} }}
     </style>
     <div class='px-shell'>
-      <div class='px-top'><div class='px-brand'><div class='px-logo'>✦</div><div><div class='px-brand-name'>PIXEL APP</div><div class='px-brand-sub'>Travel Manager</div></div></div><div class='px-actions'><div class='px-action'>← Назад към пътуванията</div><div class='px-action'>✎ Редакция</div><div class='px-action danger'>♲ Изтрий пътуване</div></div></div>
+      <div class='px-top'><div class='px-brand'><div class='px-logo'>✦</div><div><div class='px-brand-name'>PIXEL APP</div><div class='px-brand-sub'>Travel Manager</div></div></div></div>
       <div class='px-heading'><div><h1 class='px-title'>🌴 Дестинация: {html.escape(trip_title)} <span class='px-status {_status_class}'>{_status_now}</span></h1><div class='px-subtitle'>▣ {html.escape(st_date)} – {html.escape(en_date)}</div></div></div>
       <div class='px-hero'><div class='px-hero-inner'><div class='px-report'><div class='px-report-label'>ОТЧЕТ ЗА ПЪТУВАНЕ</div><div class='px-report-value'><b>€{_budget_spent_now:,.0f}</b> / €{_active_budget_now:,.0f}</div><div class='px-progress-row'><div class='px-progress'><i></i></div><div class='px-progress-pct'>{_budget_pct_now:.0f}%</div></div></div><div class='px-weather'><div class='px-weather-temp'>☀️ 28°C</div><div class='px-weather-place'>📍 {html.escape(trip_title)}, България</div></div></div></div>
       <div class='px-kpis'><div class='px-kpi'><div class='px-kpi-label'>ОБЩ БЮДЖЕТ</div><div class='px-kpi-value'>€{_active_budget_now:,.2f}</div></div><div class='px-kpi'><div class='px-kpi-label'>ПОХАРЧЕНО ДО СЕГА</div><div class='px-kpi-value'>€{_budget_spent_now:,.2f}</div></div><div class='px-kpi'><div class='px-kpi-label'>ОСТАВАЩ БЮДЖЕТ</div><div class='px-kpi-value'>€{_budget_left_now:,.2f}</div></div><div class='px-kpi'><div class='px-kpi-label'>ОСТАВАЩИ ДНИ</div><div class='px-kpi-value'>{_days_left if _days_left is not None else '—'}</div></div><div class='px-kpi'><div class='px-kpi-label'>СРЕДНО НА ДЕН</div><div class='px-kpi-value'>€{_avg_day:.2f}</div></div></div>
       <div class='px-grid'>
-        <div class='px-panel'><div class='px-panel-title'>▣ РАЗПРЕДЕЛЕНИЕ ПО КАТЕГОРИЯ</div><div class='px-cat-layout'><div class='px-donut'><div class='px-donut-center'>€{grand_total:,.0f}<span>общо</span></div></div><div>{''.join(_legend)}</div></div></div>
-        <div class='px-panel'><div class='px-panel-title'>ДНЕВЕН ПРОГРЕС</div><div class='px-bars'>{_daily_html}</div><div style='font-size:9px;color:#7e8994;margin-top:8px;'>Реални разходи по последните активни дни</div></div>
+        <div class='px-panel px-cat-panel'><div class='px-panel-title'>▣ РАЗПРЕДЕЛЕНИЕ ПО КАТЕГОРИЯ</div><div class='px-cat-layout'><div class='px-donut'><div class='px-donut-center'>€{grand_total:,.0f}<span>общо</span></div></div><div>{''.join(_legend)}</div></div></div>
+        <div class='px-panel px-daily-panel'><div class='px-panel-title'>ДНЕВЕН ПРОГРЕС</div><div class='px-bars'>{_daily_html}</div><div style='font-size:9px;color:#7e8994;margin-top:8px;'>Реални разходи по последните активни дни</div></div>
         <div class='px-panel map-panel'><div class='px-panel-title'>📍 КАРТА НА ПЪТУВАНЕТО</div><div style='min-height:310px;border-radius:11px;border:1px solid #24313b;background:radial-gradient(circle at 55% 42%,rgba(55,192,113,.22),transparent 20%),linear-gradient(145deg,#172c22,#10242d 45%,#09222b);display:flex;align-items:center;justify-content:center;color:#71808d;font-size:12px;'>Интерактивната карта е в подробния модул по-долу.</div></div>
-        <div class='px-panel'><div class='px-panel-title'>ПОСЛЕДНИ РАЗХОДИ</div>{_recent_block}<div style='text-align:center;color:#8d99a4;font-size:10px;margin-top:8px;'>Виж всички разходи →</div></div>
-        <div class='px-panel'><div class='px-panel-title'>БЪРЗИ ДЕЙСТВИЯ</div><div class='px-quick'><div>＋ &nbsp; Нов разход</div><div>□ &nbsp; Нова бележка</div><div>⇧ &nbsp; Качване на файл</div><div>▣ &nbsp; Експорт на отчет</div></div></div>
+        <div class='px-panel px-recent-panel'><div class='px-panel-title'>ПОСЛЕДНИ РАЗХОДИ</div>{_recent_block}<div style='text-align:center;color:#8d99a4;font-size:10px;margin-top:8px;'>Виж всички разходи →</div></div>
+        <div class='px-panel px-quick-panel'><div class='px-panel-title'>БЪРЗИ ДЕЙСТВИЯ</div><div class='px-empty'>Действията са активни в бутоните точно под таблото.</div></div>
         <div class='px-panel'><div class='px-panel-title'>АКТИВНО ПЪТУВАНЕ</div><div class='px-trip-mini'><div class='px-trip-thumb'></div><div><div class='px-mini-title'>{html.escape(trip_title)}</div><div class='px-mini-sub'>{html.escape(st_date)} – {html.escape(en_date)}</div><div class='px-mini-sub px-green'>● {_status_now}</div></div></div></div>
       </div>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("<div id='trip_top_anchor' style='scroll-margin-top:20px;'></div>", unsafe_allow_html=True)
+    # =========================================================
+    # РЕАЛНИ БУТОНИ НА НОВИЯ DASHBOARD
+    # =========================================================
+    st.markdown("<div class='px-detail-title' style='margin-top:4px;'>БЪРЗИ ДЕЙСТВИЯ</div>", unsafe_allow_html=True)
+    _qa1, _qa2, _qa3 = st.columns(3)
+    with _qa1:
+        if st.button("＋ Нов разход", use_container_width=True, key=f"pixel_quick_expense_{trip_id}"):
+            st.session_state["open_quick_expense"] = True
+            st.rerun()
+    with _qa2:
+        if st.button("📊 Разходи по категории", use_container_width=True, key=f"pixel_category_view_{trip_id}"):
+            st.session_state[f"pixel_open_categories_{trip_id}"] = True
+            st.rerun()
+    with _qa3:
+        if st.button("🗑️ Изтрий пътуване", use_container_width=True, key=f"pixel_delete_trip_{trip_id}"):
+            confirm_delete_trip_dialog()
+
     st.markdown("<div class='px-detail-title'>ПОДРОБНИ ИНСТРУМЕНТИ И АНАЛИЗ</div>", unsafe_allow_html=True)
     ekran_za_kategorii = st.empty()
 
@@ -3468,6 +3485,10 @@ else:
             st.rerun()
 
     if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
+        разходи_по_категории_dialog()
+    if st.session_state.pop(f"pixel_open_categories_{trip_id}", False):
+        разходи_по_категории_dialog()
+    if st.session_state.pop(f"pixel_open_categories_{trip_id}", False):
         разходи_по_категории_dialog()
     st.markdown("---")
     col_st1, col_st2 = st.columns(2)
