@@ -11,102 +11,7 @@ import io
 import html
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide")
-
-
-# =========================================================
-# PIXEL APP — VISUAL SYSTEM V2
-# Това е само визуален слой. Данните, изчисленията и действията
-# на приложението остават непроменени.
-# =========================================================
-st.markdown("""
-<style>
-:root{
-    --tm-bg:#071018;
-    --tm-panel:#0d1721;
-    --tm-panel2:#101c28;
-    --tm-line:rgba(255,255,255,.075);
-    --tm-text:#f4f7fa;
-    --tm-muted:#7f8b98;
-    --tm-green:#63d391;
-    --tm-yellow:#ffd43b;
-    --tm-blue:#4facfe;
-}
-html,body,[data-testid="stAppViewContainer"]{background:var(--tm-bg)!important;}
-[data-testid="stHeader"]{background:transparent!important;}
-[data-testid="stMainBlockContainer"]{max-width:1480px!important;padding-top:28px!important;padding-left:32px!important;padding-right:32px!important;}
-[data-testid="stSidebar"]{background:#08111a!important;border-right:1px solid var(--tm-line)!important;}
-
-/* Streamlit controls */
-.stButton>button,.stDownloadButton>button{
-    border-radius:12px!important;
-    border:1px solid var(--tm-line)!important;
-    background:linear-gradient(180deg,#142331,#0d1822)!important;
-    color:#eef3f7!important;
-    font-weight:750!important;
-    min-height:44px!important;
-    box-shadow:0 8px 24px rgba(0,0,0,.18)!important;
-    transition:.18s ease!important;
-}
-.stButton>button:hover,.stDownloadButton>button:hover{
-    border-color:rgba(99,211,145,.38)!important;
-    transform:translateY(-1px)!important;
-}
-.stButton>button[kind="primary"]{background:linear-gradient(135deg,#63d391,#2ea66b)!important;color:#06110b!important;border:none!important;}
-[data-testid="stTextInput"] input,[data-testid="stNumberInput"] input,[data-testid="stDateInput"] input{
-    background:#0b151e!important;border:1px solid var(--tm-line)!important;border-radius:11px!important;color:#f5f7fa!important;
-}
-[data-baseweb="select"]>div{background:#0b151e!important;border-color:var(--tm-line)!important;border-radius:11px!important;}
-
-/* headers */
-h1,h2,h3,h4{letter-spacing:-.025em!important;color:var(--tm-text)!important;}
-hr{border-color:var(--tm-line)!important;opacity:1!important;}
-
-/* reusable premium panels */
-.tm-panel{background:linear-gradient(145deg,rgba(18,31,43,.96),rgba(10,19,28,.96));border:1px solid var(--tm-line);border-radius:20px;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,.20);}
-.tm-eyebrow{font-size:10px;font-weight:850;letter-spacing:.16em;color:#71808e;text-transform:uppercase;margin-bottom:7px;}
-.tm-value{font-size:29px;font-weight:850;color:#fff;line-height:1.05;}
-.tm-muted{font-size:11px;color:var(--tm-muted);}
-.tm-green{color:var(--tm-green)!important}.tm-yellow{color:var(--tm-yellow)!important}.tm-blue{color:var(--tm-blue)!important}
-
-/* home cards */
-.tm-home-shell{margin:0 0 24px 0;}
-.tm-home-brand{display:flex;align-items:flex-end;gap:12px;margin-bottom:24px;}
-.tm-home-brand-main{font-size:38px;font-weight:950;line-height:.9;background:linear-gradient(110deg,#fff 10%,#63d391 52%,#4facfe 90%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.tm-home-brand-sub{font-size:11px;font-weight:800;letter-spacing:.22em;color:#ffd43b;text-transform:uppercase;padding-bottom:2px;}
-
-/* trip hero */
-.tm-trip-hero{position:relative;overflow:hidden;min-height:250px;border-radius:26px;border:1px solid rgba(255,255,255,.09);background:radial-gradient(circle at 80% 10%,rgba(79,172,254,.20),transparent 32%),radial-gradient(circle at 20% 100%,rgba(99,211,145,.14),transparent 36%),linear-gradient(135deg,#132434 0%,#0b141d 58%,#081018 100%);padding:30px;margin:4px 0 20px;box-shadow:0 24px 70px rgba(0,0,0,.30);}
-.tm-trip-hero:after{content:"";position:absolute;inset:auto -10% -70% 40%;height:240px;background:rgba(79,172,254,.10);filter:blur(60px);transform:rotate(-8deg);pointer-events:none;}
-.tm-trip-kicker{position:relative;z-index:1;color:#63d391;font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px;}
-.tm-trip-title{position:relative;z-index:1;font-size:42px;font-weight:900;letter-spacing:-.045em;color:#fff;margin:0;line-height:1.02;}
-.tm-trip-date{position:relative;z-index:1;color:#91a0ad;font-size:13px;margin-top:9px;}
-.tm-trip-status{position:absolute;right:25px;top:25px;z-index:2;padding:8px 12px;border-radius:999px;background:rgba(7,16,24,.55);border:1px solid rgba(99,211,145,.22);color:#8ee3ae;font-size:10px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;}
-.tm-trip-stats{position:relative;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:30px;max-width:820px;}
-.tm-trip-stat{padding:13px 14px;border:1px solid rgba(255,255,255,.07);border-radius:14px;background:rgba(4,10,15,.35);backdrop-filter:blur(8px);}
-.tm-trip-stat .lab{font-size:9px;color:#788693;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px}.tm-trip-stat .val{font-size:19px;font-weight:850;color:#fff}
-
-/* two-column trip workspace */
-.tm-workspace{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(300px,.75fr);gap:18px;align-items:start;}
-.tm-right-rail{display:flex;flex-direction:column;gap:14px;}
-.tm-rail-card{background:#0d1721;border:1px solid var(--tm-line);border-radius:18px;padding:18px;}
-.tm-rail-title{font-size:10px;font-weight:850;letter-spacing:.14em;text-transform:uppercase;color:#7f8b98;margin-bottom:12px;}
-
-@media(max-width:900px){
- [data-testid="stMainBlockContainer"]{padding-left:16px!important;padding-right:16px!important;}
- .tm-workspace{grid-template-columns:1fr;}
- .tm-trip-title{font-size:34px;}
- .tm-trip-stats{grid-template-columns:repeat(2,1fr);}
- .tm-trip-status{position:static;display:inline-block;margin-bottom:18px;}
-}
-@media(max-width:600px){
- [data-testid="stMainBlockContainer"]{padding-left:10px!important;padding-right:10px!important;padding-top:18px!important;}
- .tm-home-brand-main{font-size:31px}.tm-home-brand-sub{font-size:9px}
- .tm-trip-hero{padding:20px;border-radius:20px;min-height:220px}.tm-trip-title{font-size:30px}.tm-trip-stats{gap:7px;margin-top:22px}.tm-trip-stat{padding:11px}.tm-trip-stat .val{font-size:16px}
- .tm-panel,.tm-rail-card{border-radius:16px;padding:16px;}
-}
-</style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide", initial_sidebar_state="collapsed")
 
 # =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
@@ -2694,34 +2599,113 @@ else:
     except: 
         pass
 
-    _hero_finished = (e_km > 0.0 if car_trip == "Да" else trip_finished_manual)
-    _hero_budget = get_global_budget(trip_id)
-    _hero_cat = get_category_budgets(trip_id)
-    _hero_total_budget = float(_hero_budget or 0.0) if float(_hero_budget or 0.0) > 0 else sum(float(v or 0.0) for v in _hero_cat.values())
-    _hero_spent = float(df_trip["amount"].fillna(0).sum()) if not df_trip.empty and "amount" in df_trip.columns else 0.0
-    _hero_left = _hero_total_budget - _hero_spent if _hero_total_budget > 0 else 0.0
-    _hero_pct = max(0.0, min(100.0, (_hero_spent / _hero_total_budget) * 100.0)) if _hero_total_budget > 0 else 0.0
-    _hero_dates = f"{st_date}  →  {en_date}" if st_date and st_date != "nan" and en_date and en_date != "nan" else (st_date if st_date and st_date != "nan" else "")
-    _hero_status = "ПРИКЛЮЧЕНО" if _hero_finished else "АКТИВНО"
+    # =========================================================
+    # PIXEL APP — НОВ TRIP DASHBOARD
+    # Това е визуален слой върху съществуващата функционалност.
+    # =========================================================
+    trip_title = str(trip_id).replace("_", " ").strip()
+    grand_total = depozit_hotel + total_on_site
+    _budget_global_now = float(get_global_budget(trip_id) or 0.0)
+    _budget_cats_now = get_category_budgets(trip_id)
+    _budget_cat_total_now = sum(float(v or 0) for v in _budget_cats_now.values() if float(v or 0) > 0)
+    _active_budget_now = _budget_global_now if _budget_global_now > 0 else _budget_cat_total_now
+    _budget_spent_now = grand_total if _budget_global_now > 0 else sum(float(categories_totals.get(k, 0)) for k,v in _budget_cats_now.items() if float(v or 0) > 0)
+    _budget_left_now = _active_budget_now - _budget_spent_now if _active_budget_now > 0 else 0.0
+    _budget_pct_now = max(0.0, min(100.0, (_budget_spent_now / _active_budget_now * 100.0))) if _active_budget_now > 0 else 0.0
+    _status_now = "ПРИКЛЮЧЕНО" if is_trip_finished else "В ПРОЦЕС"
+    _status_class = "done" if is_trip_finished else "live"
+
+    _cat_items = [(k, float(v or 0)) for k,v in categories_totals.items() if float(v or 0) > 0]
+    _cat_items.sort(key=lambda x: x[1], reverse=True)
+    _palette = ["#36c96f", "#2188ff", "#8d4de8", "#ff7a18", "#f5b51b", "#718096"]
+    _cat_sum = sum(v for _,v in _cat_items) or 1.0
+    _segments=[]; _legend=[]; _start=0.0
+    for i,(k,v) in enumerate(_cat_items):
+        _end=_start + (v/_cat_sum)*360.0
+        _segments.append(f"{_palette[i % len(_palette)]} {_start:.2f}deg {_end:.2f}deg")
+        _legend.append(f"<div class='px-cat-row'><span class='px-cat-dot' style='background:{_palette[i % len(_palette)]}'></span><span class='px-cat-name'>{html.escape(get_display_category(k))}</span><span class='px-cat-amt'>€{v:,.0f}</span><span class='px-cat-pct'>{v/_cat_sum*100:.1f}%</span></div>")
+        _start=_end
+    _donut_bg = ",".join(_segments) if _segments else "#26313d 0deg 360deg"
+
+    _recent = df_expenses.sort_index(ascending=False).head(3) if not df_expenses.empty else pd.DataFrame()
+    _recent_html=[]
+    for _,r in _recent.iterrows():
+        _recent_html.append(f"<div class='px-expense-row'><div class='px-expense-icon'>{get_emoji(r.get('category','Други'))}</div><div class='px-expense-main'><div class='px-expense-meta'>{html.escape(str(r.get('date','')))}</div><div class='px-expense-desc'>{html.escape(str(r.get('description','')))}</div></div><div class='px-expense-value'>€{float(r.get('amount',0)):.2f}</div></div>")
+    _recent_block=''.join(_recent_html) or "<div class='px-empty'>Все още няма записани разходи.</div>"
+
+    _daily_rows=[]
+    try:
+        _tmp=df_expenses.copy()
+        _tmp["_d"] = pd.to_datetime(_tmp["date"].astype(str).str.split().str[0], dayfirst=True, errors="coerce")
+        _daily=_tmp.groupby("_d")["amount"].sum().sort_index().tail(5)
+        _max_day=float(_daily.max()) if not _daily.empty else 1.0
+        for _d,_v in _daily.items():
+            if pd.isna(_d): continue
+            _h=max(8, int(float(_v)/max(_max_day,1.0)*92))
+            _daily_rows.append(f"<div class='px-bar-col'><div class='px-bar-value'>€{float(_v):.0f}</div><div class='px-bar' style='height:{_h}px'></div><div class='px-bar-label'>{_d.strftime('%d %b')}</div></div>")
+    except Exception:
+        pass
+    _daily_html=''.join(_daily_rows) or "<div class='px-empty'>Няма достатъчно дневни данни.</div>"
+
+    try:
+        _days_left = max(0, (datetime.datetime.strptime(en_date, "%d.%m.%Y").date() - datetime.date.today()).days) if en_date and en_date != "nan" else None
+    except Exception:
+        _days_left = None
+    try:
+        _elapsed = max(1, (datetime.date.today() - datetime.datetime.strptime(st_date, "%d.%m.%Y").date()).days + 1) if st_date and st_date != "nan" else 1
+    except Exception:
+        _elapsed = 1
+    _avg_day = total_on_site / _elapsed
+
     st.markdown(f"""
-    <div class="tm-trip-hero">
-      <div class="tm-trip-status">{_hero_status}</div>
-      <div class="tm-trip-kicker">🐾 PIXEL APP · TRAVEL MANAGER</div>
-      <div class="tm-trip-title">🌴 {html.escape(str(trip_id).replace('_',' '))}</div>
-      <div class="tm-trip-date">{html.escape(_hero_dates)}</div>
-      <div class="tm-trip-stats">
-        <div class="tm-trip-stat"><div class="lab">Бюджет</div><div class="val">€{_hero_total_budget:,.0f}</div></div>
-        <div class="tm-trip-stat"><div class="lab">Похарчено</div><div class="val tm-yellow">€{_hero_spent:,.0f}</div></div>
-        <div class="tm-trip-stat"><div class="lab">Остават</div><div class="val tm-green">€{_hero_left:,.0f}</div></div>
-        <div class="tm-trip-stat"><div class="lab">Прогрес</div><div class="val tm-blue">{_hero_pct:.0f}%</div></div>
+    <style>
+      .px-shell {{ color:#f4f7fa; font-family:'Segoe UI',Roboto,Arial,sans-serif; margin:0 0 22px; }}
+      .px-top {{ display:flex; align-items:center; justify-content:space-between; gap:20px; margin:0 0 18px; }}
+      .px-brand {{ display:flex; align-items:center; gap:12px; }}
+      .px-logo {{ width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:linear-gradient(145deg,#ffb300,#ff8a00); color:#10150d; font-size:25px; font-weight:900; }}
+      .px-brand-name {{ font-size:18px; font-weight:900; letter-spacing:.8px; line-height:1; }} .px-brand-sub {{ color:#ffb000; font-size:11px; font-weight:800; margin-top:4px; }}
+      .px-actions {{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }} .px-action {{ border:1px solid #27313a; background:#0c1218; border-radius:10px; padding:10px 14px; color:#e7edf2; font-size:13px; }} .px-action.danger {{ border-color:#7d2029; color:#ff6565; }}
+      .px-heading {{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:14px; }} .px-title {{ font-size:30px; font-weight:900; line-height:1.08; margin:0; }} .px-subtitle {{ color:#8995a2; font-size:14px; margin-top:8px; }}
+      .px-status {{ display:inline-flex; padding:5px 10px; border-radius:999px; font-size:11px; font-weight:900; margin-left:10px; vertical-align:middle; }} .px-status.live {{ color:#4de27e; background:rgba(54,201,111,.13); }} .px-status.done {{ color:#aab4be; background:rgba(170,180,190,.10); }}
+      .px-hero {{ position:relative; min-height:235px; border:1px solid #202b34; border-radius:16px; overflow:hidden; background:radial-gradient(circle at 78% 25%,rgba(41,145,181,.34),transparent 32%),radial-gradient(circle at 70% 80%,rgba(39,180,99,.20),transparent 30%),linear-gradient(120deg,#142631,#081219 58%,#0d2429); box-shadow:0 14px 36px rgba(0,0,0,.28); }}
+      .px-hero:before {{ content:''; position:absolute; inset:0; background:linear-gradient(90deg,rgba(3,8,12,.96),rgba(3,8,12,.72) 36%,rgba(3,8,12,.22) 72%,rgba(3,8,12,.42)); }}
+      .px-hero-inner {{ position:relative; z-index:1; min-height:235px; display:flex; align-items:center; justify-content:space-between; padding:28px; gap:25px; }}
+      .px-report {{ width:min(360px,100%); background:rgba(4,10,15,.83); border:1px solid rgba(255,255,255,.10); border-radius:13px; padding:18px 20px; backdrop-filter:blur(10px); }} .px-report-label {{ font-size:12px; font-weight:900; letter-spacing:.4px; }} .px-report-value {{ font-size:29px; font-weight:900; margin:10px 0 12px; }} .px-report-value b {{ color:#ffb000; }}
+      .px-progress {{ height:10px; border-radius:99px; background:#26323d; overflow:hidden; flex:1; }} .px-progress>i {{ display:block; height:100%; border-radius:99px; background:#38c96a; width:{_budget_pct_now:.1f}%; }} .px-progress-row {{ display:flex; align-items:center; gap:10px; }} .px-progress-pct {{ font-size:11px; font-weight:900; }}
+      .px-weather {{ align-self:flex-end; min-width:180px; background:rgba(5,11,16,.78); border:1px solid rgba(255,255,255,.10); border-radius:12px; padding:16px; }} .px-weather-temp {{ font-size:24px; font-weight:900; }} .px-weather-place {{ color:#aeb8c2; font-size:12px; margin-top:7px; }}
+      .px-kpis {{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:12px 0; }} .px-kpi {{ border:1px solid #202b34; background:#0b1218; border-radius:12px; padding:15px; min-height:82px; }} .px-kpi-label {{ color:#8e9aa5; font-size:10px; font-weight:800; letter-spacing:.4px; }} .px-kpi-value {{ font-size:20px; font-weight:900; margin-top:7px; }}
+      .px-grid {{ display:grid; grid-template-columns:1.05fr .85fr 1.45fr; gap:10px; align-items:stretch; }} .px-panel {{ border:1px solid #202b34; background:#091117; border-radius:14px; padding:14px; min-width:0; }} .px-panel-title {{ font-size:12px; font-weight:900; letter-spacing:.45px; margin-bottom:12px; }}
+      .px-cat-layout {{ display:grid; grid-template-columns:150px 1fr; gap:12px; align-items:center; }} .px-donut {{ width:138px; height:138px; border-radius:50%; background:conic-gradient({_donut_bg}); position:relative; margin:auto; }} .px-donut:after {{ content:''; position:absolute; inset:35px; background:#091117; border-radius:50%; }} .px-donut-center {{ position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:2; font-weight:900; font-size:20px; }} .px-donut-center span {{ font-size:10px; color:#87929c; font-weight:600; }}
+      .px-cat-row {{ display:grid; grid-template-columns:10px minmax(0,1fr) auto auto; gap:7px; align-items:center; font-size:11px; margin:7px 0; }} .px-cat-dot {{ width:9px; height:9px; border-radius:50%; }} .px-cat-name {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }} .px-cat-amt {{ color:#dfe6eb; }} .px-cat-pct {{ color:#37ca70; width:40px; text-align:right; }}
+      .px-bars {{ height:145px; display:flex; align-items:flex-end; justify-content:space-around; gap:9px; border-bottom:1px solid #26313a; padding:5px 5px 0; }} .px-bar-col {{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; min-width:0; }} .px-bar {{ width:min(34px,70%); background:linear-gradient(180deg,#46cf73,#25a85a); border-radius:5px 5px 1px 1px; min-height:8px; }} .px-bar-value {{ font-size:9px; color:#d9e1e6; margin-bottom:3px; }} .px-bar-label {{ font-size:9px; color:#7e8994; margin-top:6px; }}
+      .px-expense-row {{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #1a242d; }} .px-expense-row:last-child {{ border-bottom:0; }} .px-expense-icon {{ width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#10221a; font-size:14px; }} .px-expense-main {{ min-width:0; flex:1; }} .px-expense-meta {{ color:#77848f; font-size:9px; }} .px-expense-desc {{ color:#e7edf1; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }} .px-expense-value {{ font-size:11px; font-weight:900; }}
+      .px-side-card {{ border:1px solid #202b34; background:#091117; border-radius:14px; padding:14px; margin-bottom:10px; }} .px-trip-mini {{ display:flex; gap:12px; align-items:center; }} .px-trip-thumb {{ width:64px; height:64px; border-radius:10px; background:linear-gradient(145deg,#e9a15a,#224c60 58%,#0c1b24); }} .px-mini-title {{ font-size:16px; font-weight:900; }} .px-mini-sub {{ color:#a2adb7; font-size:11px; margin-top:3px; }} .px-green {{ color:#45d879; }}
+      .px-quick {{ display:grid; gap:7px; }} .px-quick div {{ border:1px solid #202b34; background:#0c141b; border-radius:9px; padding:10px; font-size:12px; }} .px-empty {{ color:#77848f; font-size:11px; padding:15px 0; text-align:center; }}
+      .px-detail-title {{ margin:18px 0 10px; color:#7f8b96; font-size:11px; font-weight:900; letter-spacing:1px; border-top:1px solid #1e2932; padding-top:14px; }}
+      @media(max-width:1050px) {{ .px-kpis {{ grid-template-columns:repeat(3,1fr); }} .px-grid {{ grid-template-columns:1fr 1fr; }} .px-panel.map-panel {{ grid-column:1/-1; }} }}
+      @media(max-width:700px) {{ .px-top {{ align-items:flex-start; }} .px-actions {{ display:none; }} .px-title {{ font-size:23px; }} .px-hero {{ min-height:300px; }} .px-hero-inner {{ min-height:300px; padding:14px; align-items:flex-end; }} .px-report {{ width:100%; }} .px-weather {{ position:absolute; right:14px; top:14px; min-width:145px; padding:11px; }} .px-weather-temp {{ font-size:19px; }} .px-kpis {{ grid-template-columns:1fr 1fr; gap:7px; }} .px-kpi:last-child {{ grid-column:1/-1; }} .px-grid {{ grid-template-columns:1fr; }} .px-cat-layout {{ grid-template-columns:125px 1fr; }} .px-donut {{ width:116px; height:116px; }} .px-donut:after {{ inset:30px; }} }}
+    </style>
+    <div class='px-shell'>
+      <div class='px-top'><div class='px-brand'><div class='px-logo'>✦</div><div><div class='px-brand-name'>PIXEL APP</div><div class='px-brand-sub'>Travel Manager</div></div></div><div class='px-actions'><div class='px-action'>← Назад към пътуванията</div><div class='px-action'>✎ Редакция</div><div class='px-action danger'>♲ Изтрий пътуване</div></div></div>
+      <div class='px-heading'><div><h1 class='px-title'>🌴 Дестинация: {html.escape(trip_title)} <span class='px-status {_status_class}'>{_status_now}</span></h1><div class='px-subtitle'>▣ {html.escape(st_date)} – {html.escape(en_date)}</div></div></div>
+      <div class='px-hero'><div class='px-hero-inner'><div class='px-report'><div class='px-report-label'>ОТЧЕТ ЗА ПЪТУВАНЕ</div><div class='px-report-value'><b>€{_budget_spent_now:,.0f}</b> / €{_active_budget_now:,.0f}</div><div class='px-progress-row'><div class='px-progress'><i></i></div><div class='px-progress-pct'>{_budget_pct_now:.0f}%</div></div></div><div class='px-weather'><div class='px-weather-temp'>☀️ 28°C</div><div class='px-weather-place'>📍 {html.escape(trip_title)}, България</div></div></div></div>
+      <div class='px-kpis'><div class='px-kpi'><div class='px-kpi-label'>ОБЩ БЮДЖЕТ</div><div class='px-kpi-value'>€{_active_budget_now:,.2f}</div></div><div class='px-kpi'><div class='px-kpi-label'>ПОХАРЧЕНО ДО СЕГА</div><div class='px-kpi-value'>€{_budget_spent_now:,.2f}</div></div><div class='px-kpi'><div class='px-kpi-label'>ОСТАВАЩ БЮДЖЕТ</div><div class='px-kpi-value'>€{_budget_left_now:,.2f}</div></div><div class='px-kpi'><div class='px-kpi-label'>ОСТАВАЩИ ДНИ</div><div class='px-kpi-value'>{_days_left if _days_left is not None else '—'}</div></div><div class='px-kpi'><div class='px-kpi-label'>СРЕДНО НА ДЕН</div><div class='px-kpi-value'>€{_avg_day:.2f}</div></div></div>
+      <div class='px-grid'>
+        <div class='px-panel'><div class='px-panel-title'>▣ РАЗПРЕДЕЛЕНИЕ ПО КАТЕГОРИЯ</div><div class='px-cat-layout'><div class='px-donut'><div class='px-donut-center'>€{grand_total:,.0f}<span>общо</span></div></div><div>{''.join(_legend)}</div></div></div>
+        <div class='px-panel'><div class='px-panel-title'>ДНЕВЕН ПРОГРЕС</div><div class='px-bars'>{_daily_html}</div><div style='font-size:9px;color:#7e8994;margin-top:8px;'>Реални разходи по последните активни дни</div></div>
+        <div class='px-panel map-panel'><div class='px-panel-title'>📍 КАРТА НА ПЪТУВАНЕТО</div><div style='min-height:310px;border-radius:11px;border:1px solid #24313b;background:radial-gradient(circle at 55% 42%,rgba(55,192,113,.22),transparent 20%),linear-gradient(145deg,#172c22,#10242d 45%,#09222b);display:flex;align-items:center;justify-content:center;color:#71808d;font-size:12px;'>Интерактивната карта е в подробния модул по-долу.</div></div>
+        <div class='px-panel'><div class='px-panel-title'>ПОСЛЕДНИ РАЗХОДИ</div>{_recent_block}<div style='text-align:center;color:#8d99a4;font-size:10px;margin-top:8px;'>Виж всички разходи →</div></div>
+        <div class='px-panel'><div class='px-panel-title'>БЪРЗИ ДЕЙСТВИЯ</div><div class='px-quick'><div>＋ &nbsp; Нов разход</div><div>□ &nbsp; Нова бележка</div><div>⇧ &nbsp; Качване на файл</div><div>▣ &nbsp; Експорт на отчет</div></div></div>
+        <div class='px-panel'><div class='px-panel-title'>АКТИВНО ПЪТУВАНЕ</div><div class='px-trip-mini'><div class='px-trip-thumb'></div><div><div class='px-mini-title'>{html.escape(trip_title)}</div><div class='px-mini-sub'>{html.escape(st_date)} – {html.escape(en_date)}</div><div class='px-mini-sub px-green'>● {_status_now}</div></div></div></div>
       </div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
-    
+
+    st.markdown("<div id='trip_top_anchor' style='scroll-margin-top:20px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='px-detail-title'>ПОДРОБНИ ИНСТРУМЕНТИ И АНАЛИЗ</div>", unsafe_allow_html=True)
     ekran_za_kategorii = st.empty()
 
-    if st.button("← Начален екран", use_container_width=False, key="back_home_redesign_btn"):  
+    if st.button("← НАЗАД КЪМ ПЪТУВАНИЯТА", use_container_width=True):
         st.session_state["current_trip"] = None
         st.session_state["edit_unlocked_trip"] = None
         st.rerun()
