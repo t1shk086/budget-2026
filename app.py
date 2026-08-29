@@ -1036,6 +1036,26 @@ if st.session_state["current_trip"] is None:
     if st.button("  Ново Пътуване", use_container_width=True, key="new_trip_home_btn"):
         create_trip_modal()
 
+    # Sort trips: active/upcoming first by start date, completed last by most recent start date.
+    def _trip_sort_key(tid):
+        stg = get_trip_settings(str(tid))
+        start = str(stg.get("start_date", "") or "").strip()
+        finished = (
+            float(stg.get("end_km", 0.0) or 0.0) > 0.0
+            if str(stg.get("car_trip", "Не")) == "Да"
+            else str(stg.get("trip_finished", "Не")).strip().lower() in ["да", "yes", "true", "1"]
+        )
+        try:
+            d = datetime.datetime.strptime(start, "%d.%m.%Y").date()
+        except Exception:
+            d = datetime.date.max
+        today = datetime.date.today()
+        if not finished:
+            return (0, 0 if d >= today else 1, d)
+        return (1, 0, -d.toordinal() if d != datetime.date.max else 0)
+
+    existing = sorted(existing, key=_trip_sort_key)
+
     if existing:
         st.markdown("<div class='tm-home-trips-title'>Избери Дестинация</div>", unsafe_allow_html=True)
 
