@@ -1170,11 +1170,33 @@ if st.session_state["current_trip"] is None:
                 else str(_settings.get("trip_finished", "Не")).strip().lower() in ["да", "yes", "true", "1"]
             )
 
-            # Статус: активно = зелена точка, приключено = червена точка.
-            _status_dot = "🟢" if not _finished else "🔴"
-            _status_text = "Активно" if not _finished else "Приключено"
+            # ПАРСВАНЕ НА ДАТИТЕ ЗА ПРОВЕРКА НА СТАТУСА
+            today = datetime.date.today()
+            start_d = None
+            end_d = None
+            
+            try:
+                if _trip_start_date and _trip_start_date.lower() != "nan":
+                    start_d = datetime.datetime.strptime(_trip_start_date, "%d.%m.%Y").date()
+                if _trip_end_date and _trip_end_date.lower() != "nan":
+                    end_d = datetime.datetime.strptime(_trip_end_date, "%d.%m.%Y").date()
+            except Exception:
+                pass
 
+            # ОПРЕДЕЛЯНЕ НА ЦВЕТА НА ТОЧКАТА И ТЕКСТА
+            if _finished or (end_d and today > end_d):
+                _status_dot = "🔴"
+                _status_text = "Приключено"
+            elif start_d and today < start_d:
+                _status_dot = "🟡"
+                _status_text = "Предстоящо"
+            else:
+                _status_dot = "🟢"
+                _status_text = "Активно"
+
+            # Продължение на твоя код...
             _df_home_trip = get_trip_data(_trip_id)
+
 
             # ============================================================
             # НАЧАЛНА КАРТА — БЮДЖЕТ
