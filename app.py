@@ -3308,7 +3308,7 @@ else:
 
     if active_budget_mode != "none" and global_budget <= 0:
         total_pct_budget = max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
-        remaining_text = f"Остават {_rich_budget_remaining:.2f} EUR" if active_budget_remaining >= 0 else f"Над бюджета с {abs(active_budget_remaining):.2f} EUR"
+        remaining_text = f"Остават {active_budget_remaining:.2f} EUR" if active_budget_remaining >= 0 else f"Над бюджета с {abs(active_budget_remaining):.2f} EUR"
         remaining_color = "#8bd5ff" if active_budget_remaining >= 0 else "#ff4b4b"
         budget_label = "Общ бюджет" if active_budget_mode == "global" else "Общо по Категории"
         st.markdown(f"""
