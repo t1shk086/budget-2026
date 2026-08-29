@@ -1,3 +1,4 @@
+
 # Изтеглете файла от линка по-горе или копирайте целия код отдолу:
 import streamlit as st
 import pandas as pd
@@ -950,6 +951,98 @@ if st.session_state["current_trip"] is None:
                 padding:13px 14px !important;
             }
         }
+
+        /* ===== V9 VISUAL REFRESH — NO LOGIC CHANGES ===== */
+        div[class*="st-key-trip_card_"] {
+            margin-bottom: 10px !important;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,.18));
+        }
+        div[class*="st-key-trip_card_"] button {
+            min-height: 122px !important;
+            padding: 16px 18px 30px 18px !important;
+            border-radius: 18px !important;
+            border: 1px solid rgba(255,255,255,.10) !important;
+            background:
+                linear-gradient(180deg, rgba(19,29,37,.96), rgba(8,15,21,.96)) !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.04),
+                0 8px 22px rgba(0,0,0,.24) !important;
+            backdrop-filter: blur(8px) !important;
+            transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease !important;
+        }
+        div[class*="st-key-trip_card_"] button:hover {
+            transform: translateY(-2px) !important;
+            border-color: rgba(75,210,255,.30) !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.05),
+                0 14px 28px rgba(0,0,0,.30),
+                0 0 0 1px rgba(75,210,255,.04) !important;
+        }
+        div[class*="st-key-trip_card_"] button p {
+            font-size: 15px !important;
+            line-height: 1.55 !important;
+            letter-spacing: .1px !important;
+        }
+        div[class*="st-key-trip_card_"] button::after {
+            content: "";
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            bottom: 11px;
+            height: 5px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #43b9ff, #6fe7ff);
+            opacity: .85;
+            pointer-events: none;
+        }
+        /* Modern map section */
+        .tm-modern-map-shell {
+            margin-top: 8px !important;
+            padding: 12px !important;
+            border-radius: 20px !important;
+            border: 1px solid rgba(255,255,255,.08) !important;
+            background: linear-gradient(180deg, rgba(12,20,27,.92), rgba(7,12,17,.92)) !important;
+            box-shadow: 0 12px 28px rgba(0,0,0,.22) !important;
+        }
+        .tm-map-meta-row {
+            display:flex; justify-content:space-between; align-items:center; gap:12px;
+            margin: 0 2px 10px 2px;
+            color:#aeb6c0; font-size:11px;
+        }
+        .tm-map-count {
+            display:inline-flex; align-items:center; gap:6px;
+            padding:6px 9px; border-radius:999px;
+            background:rgba(69,203,255,.08);
+            border:1px solid rgba(69,203,255,.14);
+            color:#b9e8ff; font-weight:800;
+        }
+        .tm-fav-grid {
+            display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:10px;
+        }
+        .tm-fav-card {
+            display:flex; align-items:center; gap:9px; min-width:0;
+            padding:10px 11px; border-radius:13px;
+            background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.018));
+            border:1px solid rgba(255,255,255,.07);
+        }
+        .tm-fav-pin {
+            width:30px; height:30px; flex:0 0 30px; display:grid; place-items:center;
+            border-radius:10px; background:rgba(75,210,255,.08); border:1px solid rgba(75,210,255,.12);
+            font-size:15px;
+        }
+        .tm-fav-name {
+            min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+            color:#eef3f7; font-size:11px; font-weight:800;
+        }
+        .tm-fav-coords {
+            color:#7f8b96; font-size:9px; margin-top:2px;
+        }
+        @media(max-width:640px){
+            div[class*="st-key-trip_card_"] button { min-height: 112px !important; padding: 14px 14px 28px 14px !important; }
+            div[class*="st-key-trip_card_"] button::after { left:14px; right:14px; bottom:10px; }
+            .tm-fav-grid { grid-template-columns:1fr; }
+        }
+        /* ===== END V9 VISUAL REFRESH ===== */
 
         /* FINAL LEFT ALIGNMENT — override Streamlit's internal flex centering. */
         div[class*="st-key-trip_card_"] div[data-testid="stButton"] > div {
@@ -4490,6 +4583,7 @@ else:
     st.markdown("---")
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
     df_points = get_map_points(trip_id)
+    st.markdown(f"<div class='tm-modern-map-shell'><div class='tm-map-meta-row'><span>📍 Запазени места от това пътуване</span><span class='tm-map-count'>{len(df_points)} {'място' if len(df_points)==1 else 'места'}</span></div>", unsafe_allow_html=True)
     
     if "map_current_trip_id" not in st.session_state or st.session_state["map_current_trip_id"] != trip_id:
         st.session_state["map_current_trip_id"] = trip_id
@@ -4527,6 +4621,7 @@ else:
         key=dynamic_map_key, 
         returned_objects=["last_clicked", "zoom"]
     )
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if map_data and map_data.get("last_clicked"):
         new_click = map_data["last_clicked"]
@@ -4571,11 +4666,17 @@ else:
         try:
             df_all_map = pd.read_csv(MAP_FILE, encoding="utf-8")
             color_emojis = {"blue": "🔵", "green": "🟢", "red": "🔴", "purple": "🟣", "orange": "🟠"}
+            _fav_html = ["<div class='tm-fav-grid'>"]
             for idx in df_all_map[df_all_map["trip_id"] == trip_id].index.tolist():
                 pt_row = df_all_map.loc[idx]
-                col_p_txt, col_p_del = st.columns([0.85, 0.15])
-                with col_p_txt:
-                    st.markdown(f"{color_emojis.get(pt_row['color'], '🔵')} **{pt_row['title']}** <small>({pt_row['lat']:.4f}, {pt_row['lon']:.4f})</small>", unsafe_allow_html=True)
+                _fav_html.append(
+                    f"<div class='tm-fav-card'><div class='tm-fav-pin'>{color_emojis.get(pt_row['color'], '📍')}</div><div style='min-width:0;flex:1'><div class='tm-fav-name'>{html.escape(str(pt_row['title']))}</div><div class='tm-fav-coords'>{float(pt_row['lat']):.4f}, {float(pt_row['lon']):.4f}</div></div></div>"
+                )
+            _fav_html.append("</div>")
+            st.markdown("".join(_fav_html), unsafe_allow_html=True)
+            for idx in df_all_map[df_all_map["trip_id"] == trip_id].index.tolist():
+                pt_row = df_all_map.loc[idx]
+                _, col_p_del = st.columns([0.9, 0.1])
                 with col_p_del:
                     st.button(
                         "❌",
