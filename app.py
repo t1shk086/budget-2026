@@ -11,7 +11,7 @@ import io
 import html
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="wide", initial_sidebar_state="collapsed")
 
 # =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
@@ -1799,11 +1799,6 @@ if st.session_state["current_trip"] is None:
         st.session_state["open_quick_expense"] = False
         quick_expense_modal()
 
-
-    if st.session_state.get("open_quick_expense", False):
-        st.session_state["open_quick_expense"] = False
-        quick_expense_modal()
-
     # =========================================================
     # ДОПЪЛНИТЕЛЕН НАЧАЛЕН DASHBOARD
     # Картата и информационните панели стоят между ПЪТУВАНИЯТА и ПОСЛЕДНИТЕ РАЗХОДИ.
@@ -2512,6 +2507,10 @@ else:
       .px-expense-row {{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #1a242d; }} .px-expense-row:last-child {{ border-bottom:0; }} .px-expense-icon {{ width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#10221a; font-size:14px; }} .px-expense-main {{ min-width:0; flex:1; }} .px-expense-meta {{ color:#77848f; font-size:9px; }} .px-expense-desc {{ color:#e7edf1; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }} .px-expense-value {{ font-size:11px; font-weight:900; }}
       .px-side-card {{ border:1px solid #202b34; background:#091117; border-radius:14px; padding:14px; margin-bottom:10px; }} .px-trip-mini {{ display:flex; gap:12px; align-items:center; }} .px-trip-thumb {{ width:64px; height:64px; border-radius:10px; background:linear-gradient(145deg,#e9a15a,#224c60 58%,#0c1b24); }} .px-mini-title {{ font-size:16px; font-weight:900; }} .px-mini-sub {{ color:#a2adb7; font-size:11px; margin-top:3px; }} .px-green {{ color:#45d879; }}
       .px-quick {{ display:grid; gap:7px; }} .px-quick div {{ border:1px solid #202b34; background:#0c141b; border-radius:9px; padding:10px; font-size:12px; }} .px-empty {{ color:#77848f; font-size:11px; padding:15px 0; text-align:center; }}
+      .px-real-actions {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:0 0 14px; }}
+      .px-real-actions button {{ background:#0c141b !important; border:1px solid #202b34 !important; color:#e8eef2 !important; border-radius:9px !important; min-height:42px !important; font-size:12px !important; font-weight:800 !important; box-shadow:none !important; }}
+      .px-real-actions button:hover {{ border-color:#36c96f !important; background:#101b17 !important; transform:translateY(-1px) !important; }}
+      @media(max-width:700px){{ .px-real-actions{{ grid-template-columns:1fr; }} }}
       .px-detail-title {{ margin:18px 0 10px; color:#7f8b96; font-size:11px; font-weight:900; letter-spacing:1px; border-top:1px solid #1e2932; padding-top:14px; }}
       @media(max-width:1050px) {{ .px-kpis {{ grid-template-columns:repeat(3,1fr); }} .px-grid {{ grid-template-columns:1fr 1fr; }} .px-panel.map-panel {{ grid-column:1/-1; }} }}
       @media(max-width:700px) {{ .px-top {{ align-items:flex-start; }} .px-actions {{ display:none; }} .px-title {{ font-size:23px; }} .px-hero {{ min-height:300px; }} .px-hero-inner {{ min-height:300px; padding:14px; align-items:flex-end; }} .px-report {{ width:100%; }} .px-weather {{ position:absolute; right:14px; top:14px; min-width:145px; padding:11px; }} .px-weather-temp {{ font-size:19px; }} .px-kpis {{ grid-template-columns:1fr 1fr; gap:7px; }} .px-kpi:last-child {{ grid-column:1/-1; }} .px-grid {{ grid-template-columns:1fr; grid-template-areas:'map' 'cats' 'daily' 'recent' 'quick' 'active'; }} .px-cat-layout {{ grid-template-columns:125px 1fr; }} .px-donut {{ width:116px; height:116px; }} .px-donut:after {{ inset:30px; }} }}
@@ -2526,7 +2525,7 @@ else:
         <div class='px-panel px-daily-panel'><div class='px-panel-title'>ДНЕВЕН ПРОГРЕС</div><div class='px-bars'>{_daily_html}</div><div style='font-size:9px;color:#7e8994;margin-top:8px;'>Реални разходи по последните активни дни</div></div>
         <div class='px-panel map-panel'><div class='px-panel-title'>📍 КАРТА НА ПЪТУВАНЕТО</div><div style='min-height:310px;border-radius:11px;border:1px solid #24313b;background:radial-gradient(circle at 55% 42%,rgba(55,192,113,.22),transparent 20%),linear-gradient(145deg,#172c22,#10242d 45%,#09222b);display:flex;align-items:center;justify-content:center;color:#71808d;font-size:12px;'>Интерактивната карта е в подробния модул по-долу.</div></div>
         <div class='px-panel px-recent-panel'><div class='px-panel-title'>ПОСЛЕДНИ РАЗХОДИ</div>{_recent_block}<div style='text-align:center;color:#8d99a4;font-size:10px;margin-top:8px;'>Виж всички разходи →</div></div>
-        <div class='px-panel px-quick-panel'><div class='px-panel-title'>БЪРЗИ ДЕЙСТВИЯ</div><div class='px-empty'>Действията са активни в бутоните точно под таблото.</div></div>
+        <div class='px-panel px-quick-panel'><div class='px-panel-title'>БЪРЗИ ДЕЙСТВИЯ</div><div class='px-empty'>Избери действие от активните бутони непосредствено под таблото.</div></div>
         <div class='px-panel'><div class='px-panel-title'>АКТИВНО ПЪТУВАНЕ</div><div class='px-trip-mini'><div class='px-trip-thumb'></div><div><div class='px-mini-title'>{html.escape(trip_title)}</div><div class='px-mini-sub'>{html.escape(st_date)} – {html.escape(en_date)}</div><div class='px-mini-sub px-green'>● {_status_now}</div></div></div></div>
       </div>
     </div>
@@ -2537,6 +2536,7 @@ else:
     # РЕАЛНИ БУТОНИ НА НОВИЯ DASHBOARD
     # =========================================================
     st.markdown("<div class='px-detail-title' style='margin-top:4px;'>БЪРЗИ ДЕЙСТВИЯ</div>", unsafe_allow_html=True)
+    st.markdown("<div class='px-real-actions'>", unsafe_allow_html=True)
     _qa1, _qa2, _qa3 = st.columns(3)
     with _qa1:
         if st.button("＋ Нов разход", use_container_width=True, key=f"pixel_quick_expense_{trip_id}"):
@@ -2549,6 +2549,7 @@ else:
     with _qa3:
         if st.button("🗑️ Изтрий пътуване", use_container_width=True, key=f"pixel_delete_trip_{trip_id}"):
             confirm_delete_trip_dialog()
+    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='px-detail-title'>ПОДРОБНИ ИНСТРУМЕНТИ И АНАЛИЗ</div>", unsafe_allow_html=True)
     ekran_za_kategorii = st.empty()
@@ -3546,8 +3547,6 @@ else:
             st.rerun()
 
     if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
-        разходи_по_категории_dialog()
-    if st.session_state.pop(f"pixel_open_categories_{trip_id}", False):
         разходи_по_категории_dialog()
     if st.session_state.pop(f"pixel_open_categories_{trip_id}", False):
         разходи_по_категории_dialog()
