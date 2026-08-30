@@ -1492,25 +1492,25 @@ if st.session_state["current_trip"] is None:
                     margin-top:12px;
                     padding:13px 14px;
                     border-radius:16px;
-                    border:1px solid rgba(255,214,92,.13);
+                    border:1px solid rgba(255,157,122,.13);
                     background:
-                        radial-gradient(circle at 100% 0%, rgba(255,214,92,.065), transparent 42%),
-                        linear-gradient(135deg, rgba(42,39,28,.72), rgba(12,16,24,.92));
+                        radial-gradient(circle at 100% 0%, rgba(255,157,122,.055), transparent 42%),
+                        linear-gradient(135deg, rgba(42,31,30,.72), rgba(12,16,24,.92));
                     box-shadow:
                         inset 0 1px 0 rgba(255,255,255,.025),
                         0 8px 20px rgba(0,0,0,.18);
                 }
 
                 .tm-home-extra:hover {
-                    border-color:rgba(255,214,92,.24);
+                    border-color:rgba(255,157,122,.22);
                     box-shadow:
                         inset 0 1px 0 rgba(255,255,255,.035),
                         0 10px 24px rgba(0,0,0,.24),
-                        0 0 16px rgba(255,214,92,.045);
+                        0 0 16px rgba(255,157,122,.04);
                 }
 
                 .tm-home-extra-title {
-                    color:#f0d77a;
+                    color:#f2ad91;
                     font-size:11px;
                     font-weight:900;
                     letter-spacing:.7px;
@@ -1566,7 +1566,7 @@ if st.session_state["current_trip"] is None:
                 }
 
                 .tm-home-stat-spent {
-                    color:#ffd36a;
+                    color:#ffb58f;
                 }
 
                 .tm-home-stat-km {
@@ -1584,7 +1584,7 @@ if st.session_state["current_trip"] is None:
 
                 /* Същият вторичен визуален език и за секцията с местата */
                 .tm-home-extra-title[style*="margin-top:18px"] {
-                    color:#f0d77a !important;
+                    color:#f2ad91 !important;
                 }
 
                 @media(max-width:640px){
