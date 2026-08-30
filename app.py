@@ -1484,78 +1484,113 @@ if st.session_state["current_trip"] is None:
         st.markdown("""
             <style>
                 .st-key-recent_expenses_home_btn {
-            margin-top:12px !important;
-        }
-        .tm-home-extra {
-                    margin-top:12px;
-                    padding:12px 14px;
-                    border-radius:14px;
-                    border:1px solid rgba(255,255,255,.07);
-                    background:rgba(255,255,255,.018);
+                    margin-top:12px !important;
                 }
+
+                /* ===== SECONDARY HOME CARDS — същата форма, нова цветова линия ===== */
+                .tm-home-extra {
+                    margin-top:12px;
+                    padding:13px 14px;
+                    border-radius:16px;
+                    border:1px solid rgba(148,120,255,.16);
+                    background:
+                        radial-gradient(circle at 100% 0%, rgba(132,92,246,.10), transparent 42%),
+                        linear-gradient(135deg, rgba(28,25,48,.72), rgba(12,16,24,.92));
+                    box-shadow:
+                        inset 0 1px 0 rgba(255,255,255,.025),
+                        0 8px 20px rgba(0,0,0,.18);
+                }
+
+                .tm-home-extra:hover {
+                    border-color:rgba(153,126,255,.26);
+                    box-shadow:
+                        inset 0 1px 0 rgba(255,255,255,.035),
+                        0 10px 24px rgba(0,0,0,.24),
+                        0 0 16px rgba(133,92,246,.045);
+                }
+
                 .tm-home-extra-title {
-                    color:#9aa1ad;
-                    font-size:13px;
-                    font-weight:800;
-                    letter-spacing:0;
+                    color:#bcaeff;
+                    font-size:11px;
+                    font-weight:900;
+                    letter-spacing:.7px;
                     margin-bottom:8px;
                     font-family:inherit;
                 }
+
                 .tm-home-extra-main {
                     color:#ffffff;
                     font-size:15px;
-                    font-weight:800;
+                    font-weight:850;
                     line-height:1.3;
                     font-family:inherit;
                 }
+
                 .tm-home-extra-sub {
-                    color:#8f97a3;
+                    color:#9694a7;
                     font-size:11px;
                     font-weight:400;
-                    margin-top:3px;
+                    margin-top:4px;
                     line-height:1.35;
                     font-family:inherit;
                 }
+
+                /* Малки полета вътре в "Бърз поглед" */
                 .tm-home-stats {
                     display:flex;
                     gap:7px;
                     margin-top:12px;
                 }
+
                 .tm-home-stat {
                     flex:1;
                     min-width:0;
-                    padding:10px 8px;
-                    border-radius:12px;
-                    border:1px solid rgba(255,255,255,.06);
-                    background:rgba(255,255,255,.018);
+                    padding:11px 8px;
+                    border-radius:13px;
+                    border:1px solid rgba(255,255,255,.07);
+                    background:rgba(255,255,255,.022);
                     text-align:center;
+                    box-shadow:inset 0 1px 0 rgba(255,255,255,.02);
                 }
+
                 .tm-home-stat-value {
                     color:#fff;
                     font-size:15px;
-                    font-weight:800;
+                    font-weight:850;
                     line-height:1.2;
                     font-family:inherit;
                 }
+
                 .tm-home-stat-trips {
-                    color:#00f2fe;
+                    color:#78d9ff;
                 }
+
                 .tm-home-stat-spent {
-                    color:#ffd43b;
+                    color:#ffd36a;
                 }
+
                 .tm-home-stat-km {
-                    color:#63d391;
+                    color:#73dfa8;
                 }
+
                 .tm-home-stat-label {
-                    color:#858d99;
+                    color:#7f8592;
                     font-size:9px;
                     margin-top:4px;
                     white-space:nowrap;
+                    font-weight:700;
+                    letter-spacing:.3px;
                 }
+
+                /* Същият вторичен визуален език и за секцията с местата */
+                .tm-home-extra-title[style*="margin-top:18px"] {
+                    color:#bcaeff !important;
+                }
+
                 @media(max-width:640px){
-                    .tm-home-extra { padding:11px 12px; }
+                    .tm-home-extra { padding:12px 12px; border-radius:15px; }
                     .tm-home-stats { gap:5px; }
-                    .tm-home-stat { padding:9px 5px; }
+                    .tm-home-stat { padding:9px 5px; border-radius:12px; }
                     .tm-home-stat-value { font-size:13px; }
                     .tm-home-stat-label { font-size:8px; }
                 }
