@@ -1318,33 +1318,44 @@ if st.session_state["current_trip"] is None:
                 st.markdown(
                     f"""
                     <style>
+                    /* MODERN TRIP CARD — само визуална промяна */
                     {_card_selector} button {{
-                        min-height:108px !important;
+                        min-height:148px !important;
                         height:auto !important;
                         width:100% !important;
                         box-sizing:border-box !important;
-                        padding:14px 0 24px 8px !important;
-                        border-radius:16px !important;
-                        border:1px solid rgba(255,255,255,.08) !important;
+                        padding:16px 18px 28px 18px !important;
+                        border-radius:20px !important;
+                        border:1px solid rgba(255,255,255,.085) !important;
+                        border-left:3px solid rgba(0,242,254,.42) !important;
                         background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
-                        box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
+                            {_bar_gradient} bottom / 100% 7px no-repeat,
+                            radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%),
+                            linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014)) !important;
+                        box-shadow:0 8px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.025) !important;
                         color:#fff !important;
                         text-align:left !important;
                         justify-content:flex-start !important;
                         align-items:flex-start !important;
                         white-space:pre-wrap !important;
                         font-family:inherit !important;
-                        line-height:1.45 !important;
+                        font-size:15px !important;
+                        font-weight:500 !important;
+                        line-height:1.52 !important;
+                        transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease !important;
                     }}
                     {_card_selector} button:hover {{
-                        border-color:rgba(0,242,254,.22) !important;
+                        border-color:rgba(0,242,254,.24) !important;
+                        border-left-color:rgba(0,242,254,.82) !important;
                         background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
-                        box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
-                        transform:translateY(-1px) !important;
+                            {_bar_gradient} bottom / 100% 7px no-repeat,
+                            radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%),
+                            linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022)) !important;
+                        box-shadow:0 12px 30px rgba(0,0,0,.30), 0 0 18px rgba(0,242,254,.055) !important;
+                        transform:translateY(-2px) !important;
+                    }}
+                    {_card_selector} button:active {{
+                        transform:translateY(0) !important;
                     }}
                     {_card_selector} button > div {{
                         width:100% !important;
@@ -1368,8 +1379,10 @@ if st.session_state["current_trip"] is None:
                     }}
                     @media(max-width:640px) {{
                         {_card_selector} button {{
-                            min-height:102px !important;
-                            padding:12px 0 23px 6px !important;
+                            min-height:140px !important;
+                            padding:14px 14px 27px 14px !important;
+                            border-radius:18px !important;
+                            font-size:14px !important;
                         }}
                     }}
                     </style>
@@ -1378,13 +1391,21 @@ if st.session_state["current_trip"] is None:
                 )
 
                 _remaining_card = max(0.0, _budget - _spent) if _budget > 0 else 0.0
-                _label = (
-                    f"🚙  **{_trip_name}**    →\n"
-                    f"{_status_dot}  {_status_text}"
-                    f"{f' · {_trip_dates_line}' if _trip_dates_line else ''}\n"
-                    f"{_budget_line}"
-                    f"{f'\n💳 Остават: €{_remaining_card:,.0f}' if _budget > 0 else ''}"
-                )
+                if _budget > 0:
+                    _label = (
+                        f"🚙  **{_trip_name}**\n"
+                        f"{_status_dot}  {_status_text}"
+                        f"{f' · {_trip_dates_line}' if _trip_dates_line else ''}\n\n"
+                        f"**€{_spent:,.2f}** / €{_budget:,.2f}    **{_pct:.0f}%**\n"
+                        f"💳 Остават **€{_remaining_card:,.0f}**"
+                    )
+                else:
+                    _label = (
+                        f"🚙  **{_trip_name}**\n"
+                        f"{_status_dot}  {_status_text}"
+                        f"{f' · {_trip_dates_line}' if _trip_dates_line else ''}\n\n"
+                        f"Без зададен бюджет"
+                    )
 
                 if st.button(
                     _label,
