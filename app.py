@@ -1492,25 +1492,25 @@ if st.session_state["current_trip"] is None:
                     margin-top:12px;
                     padding:13px 14px;
                     border-radius:16px;
-                    border:1px solid rgba(148,120,255,.16);
+                    border:1px solid rgba(255,214,92,.13);
                     background:
-                        radial-gradient(circle at 100% 0%, rgba(132,92,246,.10), transparent 42%),
-                        linear-gradient(135deg, rgba(28,25,48,.72), rgba(12,16,24,.92));
+                        radial-gradient(circle at 100% 0%, rgba(255,214,92,.065), transparent 42%),
+                        linear-gradient(135deg, rgba(42,39,28,.72), rgba(12,16,24,.92));
                     box-shadow:
                         inset 0 1px 0 rgba(255,255,255,.025),
                         0 8px 20px rgba(0,0,0,.18);
                 }
 
                 .tm-home-extra:hover {
-                    border-color:rgba(153,126,255,.26);
+                    border-color:rgba(255,214,92,.24);
                     box-shadow:
                         inset 0 1px 0 rgba(255,255,255,.035),
                         0 10px 24px rgba(0,0,0,.24),
-                        0 0 16px rgba(133,92,246,.045);
+                        0 0 16px rgba(255,214,92,.045);
                 }
 
                 .tm-home-extra-title {
-                    color:#bcaeff;
+                    color:#f0d77a;
                     font-size:11px;
                     font-weight:900;
                     letter-spacing:.7px;
@@ -1584,7 +1584,7 @@ if st.session_state["current_trip"] is None:
 
                 /* Същият вторичен визуален език и за секцията с местата */
                 .tm-home-extra-title[style*="margin-top:18px"] {
-                    color:#bcaeff !important;
+                    color:#f0d77a !important;
                 }
 
                 @media(max-width:640px){
