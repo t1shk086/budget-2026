@@ -76,7 +76,30 @@ components.html(
         #fullscreenBtn.exit:active {
             transform: rotate(180deg) scale(0.94);
         }
-    </style>
+    
+/* V6 — lower dashboard cards: graphite-blue, same visual language as trips */
+.tm-lower-card,
+.dashboard-lower-card,
+.lower-dashboard-card {
+    background: linear-gradient(145deg, #101c27 0%, #172632 100%) !important;
+    border: 1px solid rgba(93, 126, 148, 0.24) !important;
+    border-radius: 16px !important;
+    box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.025) !important;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease !important;
+}
+.tm-lower-card:hover,
+.dashboard-lower-card:hover,
+.lower-dashboard-card:hover {
+    transform: translateY(-2px) !important;
+    border-color: rgba(93, 126, 148, 0.38) !important;
+    box-shadow:
+        0 14px 32px rgba(0, 0, 0, 0.30),
+        inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+</style>
 
     <button id="fullscreenBtn" title="Fullscreen">⛶</button>
 
@@ -872,7 +895,7 @@ if "open_quick_expense" not in st.session_state:
 
 if st.session_state["current_trip"] is None:
     st.session_state["edit_unlocked_trip"] = None
-    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #243544); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
 
     # Пътуване се счита за съществуващо и без разход:
     # пазим го в SETTINGS_FILE още при създаването, а бюджетът е отделно в CATEGORY_BUDGETS_FILE.
@@ -2772,7 +2795,7 @@ else:
                 df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
                 r = df_all.loc[idx]
                 display_category = get_display_category(r['category'])
-                st.markdown(f"**{get_emoji(r['category'])} {display_category}** — <span style='color:#ff4b4b; font-weight:bold;'>{r['amount']:.2f} EUR</span><br><small>{r['description']}</small>", unsafe_allow_html=True)
+                st.markdown(f"**{get_emoji(r['category'])} {display_category}** — <span style='color:#243544; font-weight:bold;'>{r['amount']:.2f} EUR</span><br><small>{r['description']}</small>", unsafe_allow_html=True)
             except: 
                 pass
             c_del1, c_del2 = st.columns(2)
@@ -2859,7 +2882,7 @@ else:
         pass
 
     date_html = f"<p style='font-size: 14px; color: #888; font-weight: 500; margin-top: 5px; margin-bottom: 0;'>{st_date} - {en_date}</p>" if st_date and st_date != "nan" else ""
-    st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {str(trip_id).replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; margin-top: -10px; margin-bottom: 10px; width: 100%;'><h2 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 500; font-size: 26px; background: linear-gradient(135deg, #00f2fe, #4facfe, #243544); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; padding: 0;'>🌴 Дестинация: {str(trip_id).replace('_', ' ')}</h2>{date_html}</div>", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("<div id='trip_top_anchor' style='scroll-margin-top: 20px;'></div>", unsafe_allow_html=True)
     
@@ -2980,7 +3003,7 @@ else:
         # === 1. Изчисляване на прогреса за визуализацията на автомобила ===
         is_final_status = True if e_km > s_km else False
         km_progress_pct = 100 if is_final_status else min(100, max(0, (dist / 1000 * 100))) if dist > 0 else 0
-        finish_icon_html = f"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #ff4b4b; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; left: calc({km_progress_pct}% - 10px); top: -12px; font-size: 16px;'>🚗</div>"
+        finish_icon_html = f"<div style='position: absolute; right: 0; top: -8px; background: #1c1c1c; border: 2px solid #243544; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>F</div>" if is_trip_finished else f"<div style='position: absolute; left: calc({km_progress_pct}% - 10px); top: -12px; font-size: 16px;'>🚗</div>"
 
         # === 2. ИЗЧИСЛЯВАНЕ НА ДВАТА ВИДА РАЗХОД ===
         val_real = 0.0      # Реалният разход (до горе)
@@ -3008,15 +3031,15 @@ else:
             val_average = 0.0
 
         # Цветове за двата уреда
-        color_gauge_real = "#00f2fe" if val_real < 6.0 else ("#ffa500" if val_real < 8.5 else "#ff4b4b")
-        color_gauge_avg = "#00f2fe" if val_average < 6.0 else ("#ffa500" if val_average < 8.5 else "#ff4b4b")
+        color_gauge_real = "#00f2fe" if val_real < 6.0 else ("#ffa500" if val_real < 8.5 else "#243544")
+        color_gauge_avg = "#00f2fe" if val_average < 6.0 else ("#ffa500" if val_average < 8.5 else "#243544")
         
         transport_liters = float(df_expenses[df_expenses['category'] == 'Транспорт']['liters'].sum()) + m_fuel
 
 
 
         st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n1'>1</span><span>Данни за разход и пробег</span></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 ПРОБЕГ</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 ПРОБЕГ</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#243544; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
         # Разделяме екрана на две основни колони: за уредите и за статистика на разходите
         box_col1, box_col2 = st.columns(2)
         
@@ -3163,7 +3186,7 @@ else:
 
                 # Цената е зелена до зададения праг и червена над него.
                 fuel_red_threshold = float(UI_LABELS.get("fuel_red_threshold", 1.80) or 1.80)
-                price_color_h = "#ff4b4b" if ppl_h > fuel_red_threshold else ("#63d391" if ppl_h > 0 else "#7e8494")
+                price_color_h = "#243544" if ppl_h > fuel_red_threshold else ("#63d391" if ppl_h > 0 else "#7e8494")
 
                 st.markdown(f"""
                 <div style='background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;margin-top:2px;margin-bottom:20px;font-family:inherit;box-shadow:4px 4px 12px rgba(0,0,0,0.3);'>
@@ -3499,7 +3522,7 @@ else:
             if global_remaining >= 0
             else f"Над бюджета с {abs(global_remaining):.2f} EUR"
         )
-        remaining_color = "#8bd5ff" if global_remaining >= 0 else "#ff4b4b"
+        remaining_color = "#8bd5ff" if global_remaining >= 0 else "#243544"
 
         st.markdown(f"""
         <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 15px;border-radius:14px;margin-bottom:15px;font-family:inherit;">
@@ -3508,7 +3531,7 @@ else:
                 <span style="font-weight:800;font-family:inherit;">{global_spent:.2f} / {global_budget:.2f} EUR</span>
             </div>
             <div style="height:16px;background:rgba(0,0,0,.45);border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.5), inset -1px -1px 2px rgba(255,255,255,.05);position:relative;display:flex;align-items:center;overflow:hidden;">
-                <div style="width:{global_pct:.2f}%;height:100%;background:{'#ff4b4b' if global_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.35),inset 0 2px 2px rgba(255,255,255,.3);transition:width .5s ease-in-out;"></div>
+                <div style="width:{global_pct:.2f}%;height:100%;background:{'#243544' if global_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.35),inset 0 2px 2px rgba(255,255,255,.3);transition:width .5s ease-in-out;"></div>
                 <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,.85);text-shadow:1px 1px 2px rgba(0,0,0,.8);font-family:inherit;">{global_pct:.1f}%</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;font-family:inherit;">
@@ -3521,7 +3544,7 @@ else:
     if active_budget_mode != "none":
         total_pct_budget = max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
         remaining_text = f"Остават {active_budget_remaining:.2f} EUR" if active_budget_remaining >= 0 else f"Над бюджета с {abs(active_budget_remaining):.2f} EUR"
-        remaining_color = "#8bd5ff" if active_budget_remaining >= 0 else "#ff4b4b"
+        remaining_color = "#8bd5ff" if active_budget_remaining >= 0 else "#243544"
         budget_label = "Общ бюджет" if active_budget_mode == "global" else "Общо по Категории"
         st.markdown(f"""
         <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);padding:12px 15px;border-radius:14px;margin-bottom:15px;font-family:inherit;">
@@ -3530,7 +3553,7 @@ else:
                 <span style="font-weight:800;font-family:inherit;">{active_budget_spent:.2f} / {active_budget_total:.2f} EUR</span>
             </div>
             <div style="height:16px;background:rgba(0,0,0,.45);border-radius:20px;padding:2px;box-shadow:inset 2px 2px 5px rgba(0,0,0,.5), inset -1px -1px 2px rgba(255,255,255,.05);position:relative;display:flex;align-items:center;overflow:hidden;">
-                <div style="width:{total_pct_budget:.2f}%;height:100%;background:{'#ff4b4b' if active_budget_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.35),inset 0 2px 2px rgba(255,255,255,.3);transition:width .5s ease-in-out;"></div>
+                <div style="width:{total_pct_budget:.2f}%;height:100%;background:{'#243544' if active_budget_remaining < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};border-radius:20px;box-shadow:2px 2px 5px rgba(0,242,254,.35),inset 0 2px 2px rgba(255,255,255,.3);transition:width .5s ease-in-out;"></div>
                 <span style="position:absolute;right:8px;font-size:10px;font-weight:900;color:rgba(255,255,255,.85);text-shadow:1px 1px 2px rgba(0,0,0,.8);font-family:inherit;">{total_pct_budget:.1f}%</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-top:6px;font-family:inherit;">
@@ -3555,7 +3578,7 @@ else:
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <span style="font-weight: 500; font-size: 15px; font-family: inherit;">{get_emoji(kat)} {display_kat}</span>
-                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
+                        <span style="font-weight: bold; color: #243544; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
                     </div>
                     <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
                         <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
@@ -3569,9 +3592,9 @@ else:
                 fill_pct = min(100.0, max(0.0, ratio * 100.0))
                 over = s_value > budget
                 remaining = budget - s_value
-                fill_gradient = "#ff4b4b" if over else "linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)"
+                fill_gradient = "#243544" if over else "linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)"
                 status_html = (
-                    f"<span style='color:#ff4b4b;font-weight:800;font-family:inherit;'>Над бюджета с {abs(remaining):.2f} EUR</span>"
+                    f"<span style='color:#243544;font-weight:800;font-family:inherit;'>Над бюджета с {abs(remaining):.2f} EUR</span>"
                     if over else
                     f"<span style='color:#8bd5ff;font-weight:800;font-family:inherit;'>Остават {remaining:.2f} EUR</span>"
                 )
@@ -3579,7 +3602,7 @@ else:
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 14px; border-radius: 14px; margin-bottom: 12px; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: space-between; font-family: inherit;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <span style="font-weight: 500; font-size: 15px; font-family: inherit;">{get_emoji(kat)} {display_kat}</span>
-                        <span style="font-weight: bold; color: #ff4b4b; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
+                        <span style="font-weight: bold; color: #243544; font-size: 15px; font-family: inherit;">{s_value:.2f} EUR</span>
                     </div>
                     <div style="background: rgba(0, 0, 0, 0.4); height: 16px; border-radius: 20px; padding: 2px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -1px -1px 2px rgba(255,255,255,0.05); position: relative; display: flex; align-items: center; overflow: hidden; margin-top: 4px;">
                         <div style="width: {pct}%; height: 100%; background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%); border-radius: 20px; box-shadow: 2px 2px 5px rgba(0, 242, 254, 0.4), inset 0 2px 2px rgba(255,255,255,0.3); transition: width 0.5s ease-in-out;"></div>
@@ -3690,7 +3713,7 @@ else:
         else:
             health_icon = "🔴"
             health_title = "ХАРЧИШ ПРЕКАЛЕНО БЪРЗО"
-            health_color = "#ff4b4b"
+            health_color = "#243544"
 
         pace_difference = avg_daily_spend - daily_target
         if pace_difference < 0:
@@ -3807,13 +3830,13 @@ else:
             if remaining_value >= 0
             else f"-€{abs(remaining_value):.2f}"
         )
-        remaining_color = "#8bd5ff" if remaining_value >= 0 else "#ff4b4b"
+        remaining_color = "#8bd5ff" if remaining_value >= 0 else "#243544"
 
         overall_pct = (
             max(0.0, min(100.0, active_budget_spent / active_budget_total * 100.0))
             if active_budget_total > 0 else 0.0
         )
-        forecast_color = "#35d06a" if forecast_delta >= 0 else "#ff4b4b"
+        forecast_color = "#35d06a" if forecast_delta >= 0 else "#243544"
         forecast_text = (
             f"Остават €{forecast_delta:.2f}"
             if forecast_delta >= 0
@@ -3973,7 +3996,7 @@ else:
                 </div>
                 <div class="tm-rich-budget-v4-track">
                     <div style="width:{overall_pct:.1f}%;
-                                background:{'#ff4b4b' if remaining_value < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};">
+                                background:{'#243544' if remaining_value < 0 else 'linear-gradient(90deg,#4facfe 0%,#00f2fe 100%)'};">
                     </div>
                 </div>
             </div>
@@ -4046,7 +4069,7 @@ else:
                     text-align: right !important;
                     font-size: 16px !important;
                     font-weight: bold !important;
-                    color: #ff4b4b !important;
+                    color: #243544 !important;
                 }
             </style>
         """, unsafe_allow_html=True)
@@ -4101,7 +4124,7 @@ else:
     st.markdown("---")
     col_st1, col_st2 = st.columns(2)
     with col_st1:
-        st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#ff4b4b; margin:5px 0;'>{depozit_hotel:.2f} <span style='font-size: 14px; font-weight: 500; color: #7e8494;'>EUR</span></h2></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center; margin-bottom: 12px;'><small style='color:#aaa; font-weight:bold;'>🏨 ДЕПОЗИТ</small><h2 style='color:#243544; margin:5px 0;'>{depozit_hotel:.2f} <span style='font-size: 14px; font-weight: 500; color: #7e8494;'>EUR</span></h2></div>", unsafe_allow_html=True)
     with col_st2:
         st.markdown(f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:15px; border-radius:12px; text-align:center;'><small style='color:#aaa; font-weight:bold;'>💰 НА МЯСТО</small><h2 style='color:#00f2fe; margin:5px 0;'>{total_on_site:.2f} <span style='font-size: 14px; font-weight: 500; color: #7e8494;'>EUR</span></h2></div>", unsafe_allow_html=True)
 
@@ -4147,7 +4170,7 @@ else:
                                     <div style="font-size: 16px; font-weight: 600; color: #fafafa;">
                                         <span>{get_emoji(r["category"])}</span> {display_category}
                                     </div>
-                                    <div style="font-size: 16px; font-weight: 700; color: #ff4b4b; letter-spacing: 0.5px;">
+                                    <div style="font-size: 16px; font-weight: 700; color: #243544; letter-spacing: 0.5px;">
                                         -{r["amount"]:.2f} EUR
                                     </div>
                                 </div>
