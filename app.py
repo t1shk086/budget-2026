@@ -1016,7 +1016,7 @@ def _tm_receipt_ocr(image):
         }
 
 
-def get_ui_labels():
+
 
 
 
