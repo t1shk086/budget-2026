@@ -440,6 +440,9 @@ def _tm_receipt_ocr(image):
             lang="bul+eng",
             config="--oem 3 --psm 4"
         )
+        print("========== OCR DEBUG ==========")
+        print(raw_text)
+        print("================================")
 
     except Exception as exc:
         return {
@@ -450,9 +453,9 @@ def _tm_receipt_ocr(image):
 
     if not raw_text.strip():
         return {
-            "ok": False,
+            "ok": True,
             "error": "OCR не върна текст.",
-            "text": ""
+            "text": "[OCR НЕ ВЪРНА ТЕКСТ]"
         }
 
     # ---------------------------------------------------------
