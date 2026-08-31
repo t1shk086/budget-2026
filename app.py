@@ -1108,14 +1108,36 @@ if st.session_state["current_trip"] is None:
             width:100% !important;
             text-align:left !important;
             white-space:pre-wrap !important;
-            font-size:14px !important;
-            line-height:1.42 !important;
+            font-size:15px !important;
+            line-height:1.38 !important;
             font-weight:800 !important;
             color:#f4f8fb !important;
         }
         div[class*="st-key-quick_expense_top_btn"] button p::first-line,
         div[class*="st-key-new_trip_home_btn"] button p::first-line {
             font-size:15px !important;
+            font-weight:800 !important;
+        }
+        /* Explanatory second line: smaller, lighter, not bold */
+        div[class*="st-key-quick_expense_top_btn"] button p,
+        div[class*="st-key-new_trip_home_btn"] button p {
+            white-space:pre-line !important;
+        }
+        div[class*="st-key-quick_expense_top_btn"] button p::after,
+        div[class*="st-key-new_trip_home_btn"] button p::after {
+            font-weight:400 !important;
+        }
+
+
+        div[class*="st-key-quick_expense_top_btn"] button p,
+        div[class*="st-key-new_trip_home_btn"] button p {
+            color:#f4f8fb !important;
+            font-weight:400 !important;
+        }
+        div[class*="st-key-quick_expense_top_btn"] button p::first-line,
+        div[class*="st-key-new_trip_home_btn"] button p::first-line {
+            color:#f4f8fb !important;
+            font-weight:800 !important;
         }
 
         /* Trips heading */
