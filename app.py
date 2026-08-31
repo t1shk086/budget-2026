@@ -560,6 +560,16 @@ def _tm_receipt_ocr(image):
 
     # ---------------------------------------------------------
     # ОБЩА СУМА ЕВРО
+    #
+    # ВАЖНО:
+    # Не вземаме първата стойност около "ЕВРО".
+    # OCR може да слее:
+    #
+    # ОБЩА СУМА ЛВ 1778.16
+    # ОБЩА СУМА ЕВРО
+    # 909.16
+    #
+    # Затова търсим EUR стойността след самия надпис.
     # ---------------------------------------------------------
 
     total_eur = None
@@ -577,23 +587,108 @@ def _tm_receipt_ocr(image):
             )
         ):
 
-            block = " ".join(
-                lines[i:i + 3]
+            # Първо проверяваме САМИЯ ред.
+            values_here = extract_money(line)
+
+            # Ако има повече от една стойност,
+            # вземаме последната.
+            if values_here:
+
+                candidates = [
+                    value
+                    for value in values_here
+                    if value >= 10
+                ]
+
+                if candidates:
+                    total_eur = candidates[-1]
+
+            # -------------------------------------------------
+            # Следващите редове са още по-важни.
+            # Търсим първата разумна стойност след
+            # "ОБЩА СУМА ЕВРО".
+            # -------------------------------------------------
+
+            if total_eur is None:
+
+                for next_line in lines[i + 1:i + 4]:
+
+                    values_next = extract_money(
+                        next_line
+                    )
+
+                    candidates = [
+                        value
+                        for value in values_next
+                        if (
+                            value >= 10
+                            and (
+                                total_bgn is None
+                                or value < total_bgn
+                            )
+                        )
+                    ]
+
+                    if candidates:
+
+                        total_eur = candidates[0]
+
+                        break
+
+            break
+
+    # ---------------------------------------------------------
+    # СПЕЦИАЛЕН FALLBACK ЗА НАШАТА СТРУКТУРА
+    #
+    # Ако OCR е слепил двата реда или ги е разместил,
+    # използваме курса от бележката само за избор между
+    # вече разчетените числа.
+    # НЕ изчисляваме EUR стойността.
+    # ---------------------------------------------------------
+
+    if (
+        total_bgn is not None
+        and (
+            total_eur is None
+            or abs(total_eur - total_bgn) < 0.01
+        )
+    ):
+
+        expected_eur = total_bgn / 1.95583
+
+        possible_eur = []
+
+        for value in all_values:
+
+            if (
+                value >= 10
+                and value < total_bgn
+            ):
+
+                difference = abs(
+                    value - expected_eur
+                )
+
+                relative_difference = (
+                    difference / expected_eur
+                )
+
+                if relative_difference <= 0.08:
+
+                    possible_eur.append(
+                        (
+                            relative_difference,
+                            value
+                        )
+                    )
+
+        if possible_eur:
+
+            possible_eur.sort(
+                key=lambda item: item[0]
             )
 
-            values = extract_money(block)
-
-            # Избягваме курса:
-            # 1.95583
-            values = [
-                value
-                for value in values
-                if value >= 10
-            ]
-
-            if values:
-                total_eur = values[-1]
-                break
+            total_eur = possible_eur[0][1]
 
     # ---------------------------------------------------------
     # FALLBACK
