@@ -656,6 +656,18 @@ def _tm_receipt_ocr(image):
 
         expected_eur = total_bgn / 1.95583
 
+        # Събираме всички парични стойности,
+        # които OCR е разчел от бележката.
+        all_values = []
+
+        for _line in lines:
+            try:
+                all_values.extend(
+                    extract_money(_line)
+                )
+            except Exception:
+                pass
+
         possible_eur = []
 
         for value in all_values:
