@@ -395,15 +395,26 @@ def _tm_receipt_targeted_ocr(image):
 
 def _tm_receipt_ocr(image):
     """
-    OCR V14
+    V15 — OCR за касови бележки.
 
-    Извлича:
+    Извлича само:
         - EUR сума
         - дата
         - час
 
-    НЕ използва BGN като fallback.
-    Суровият OCR текст винаги се връща.
+    BGN НЕ се използва като източник на сумата.
+
+    OCR стратегия:
+        1. EXIF orientation
+        2. Оригинална снимка
+        3. Долна част на снимката
+        4. Увеличена долна част
+        5. OCR на няколко подходящи режима
+        6. Обединяване на OCR текста
+
+    Цел:
+        Да не изпускаме "ОБЩА СУМА ЕВРО"
+        само защото целият касов бон е дълъг.
     """
 
     if not _PYTESSERACT_AVAILABLE:
@@ -420,404 +431,551 @@ def _tm_receipt_ocr(image):
         }
 
     try:
-        from PIL import ImageOps
+        from PIL import (
+            ImageOps,
+            ImageEnhance,
+            ImageFilter,
+        )
 
-        # -----------------------------------------------------
-        # 1. Ориентация от телефона
-        # -----------------------------------------------------
+        # =====================================================
+        # 1. ORIENTATION
+        # =====================================================
 
         try:
             image = ImageOps.exif_transpose(image)
         except Exception:
             pass
 
-        # -----------------------------------------------------
-        # 2. НЕ ПИПАМЕ СНИМКАТА
+        image = image.copy()
+
+        # =====================================================
+        # 2. RGB
+        # =====================================================
+
+        try:
+            if image.mode not in ("RGB", "L"):
+                image = image.convert("RGB")
+        except Exception:
+            pass
+
+        # =====================================================
+        # 3. РАЗМЕР
         #
-        # Това е нарочно.
-        # Предишната обработка можеше да развали OCR.
+        # Не намаляваме голяма снимка.
+        # Само увеличаваме малка.
+        # =====================================================
+
+        try:
+            width, height = image.size
+
+            longest = max(width, height)
+
+            if longest < 1800:
+
+                scale = 1800.0 / float(longest)
+
+                image = image.resize(
+                    (
+                        max(1, int(width * scale)),
+                        max(1, int(height * scale)),
+                    )
+                )
+
+        except Exception:
+            pass
+
+        # =====================================================
+        # 4. СЪЗДАВАМЕ OCR ВАРИАНТИ
+        # =====================================================
+
+        ocr_images = []
+
+        # -----------------------------------------------------
+        # A. Оригинал
         # -----------------------------------------------------
 
-        # =====================================================
-        # OCR — ПЪРВИ БЪРЗ PASS
-        # =====================================================
-
-        raw_text = pytesseract.image_to_string(
-            image,
-            lang="bul+eng",
-            config="--oem 3 --psm 4",
+        ocr_images.append(
+            ("original", image)
         )
 
-        # =====================================================
-        # OCR — ВТОРИ PASS САМО АКО НЯМА EUR
+        # -----------------------------------------------------
+        # B. Долна част
         #
-        # Първият OCR вече работи добре като скорост.
-        # Вторият се пуска само когато първият не е успял
-        # да прочете EUR секцията.
+        # Крайната сума обикновено е в долната част.
+        # Започваме от 45%.
+        # -----------------------------------------------------
+
+        try:
+
+            width, height = image.size
+
+            lower_start = int(
+                height * 0.45
+            )
+
+            lower = image.crop(
+                (
+                    0,
+                    lower_start,
+                    width,
+                    height,
+                )
+            )
+
+            ocr_images.append(
+                ("lower", lower)
+            )
+
+        except Exception:
+            pass
+
+        # -----------------------------------------------------
+        # C. Долна 60%
+        #
+        # Допълнителен вариант за по-дълги бележки.
+        # -----------------------------------------------------
+
+        try:
+
+            width, height = image.size
+
+            lower_start = int(
+                height * 0.40
+            )
+
+            lower60 = image.crop(
+                (
+                    0,
+                    lower_start,
+                    width,
+                    height,
+                )
+            )
+
+            ocr_images.append(
+                ("lower60", lower60)
+            )
+
+        except Exception:
+            pass
+
+        # =====================================================
+        # 5. OCR
+        #
+        # Пускаме няколко малки OCR pass-а.
+        # Не правим огромен брой варианти.
         # =====================================================
 
-        raw_upper = (raw_text or "").upper()
+        ocr_results = []
 
-        if not re.search(
-            r"(?:ЕВРО|EUR|€)",
-            raw_upper,
-        ):
+        for name, img in ocr_images:
+
+            # -------------------------------------------------
+            # Основен OCR
+            # -------------------------------------------------
 
             try:
 
-                second_text = pytesseract.image_to_string(
-                    image,
+                result = pytesseract.image_to_string(
+                    img,
                     lang="bul+eng",
-                    config="--oem 3 --psm 11",
+                    config="--oem 3 --psm 6",
                 )
 
-                if second_text and second_text.strip():
+                if result and result.strip():
 
-                    second_upper = second_text.upper()
-
-                    # Ако вторият OCR е видял EUR,
-                    # него използваме за parser-а.
-                    if re.search(
-                        r"(?:ЕВРО|EUR|€)",
-                        second_upper,
-                    ):
-                        raw_text = second_text
+                    ocr_results.append(
+                        (
+                            name + "_psm6",
+                            result,
+                        )
+                    )
 
             except Exception:
                 pass
 
-    except Exception as exc:
+            # -------------------------------------------------
+            # Втори режим само за долните части
+            #
+            # PSM 11 често намира отделни редове.
+            # -------------------------------------------------
 
-        return {
-            "ok": False,
-            "error": f"OCR грешка: {exc}",
-            "text": "",
-            "total_bgn": None,
-            "total_eur": None,
-            "date": None,
-            "date_ocr": None,
-            "date_corrected": False,
-            "time": None,
-        }
+            if name != "original":
 
-    # ---------------------------------------------------------
-    # 3. ВИНАГИ запазваме суровия текст
-    # ---------------------------------------------------------
+                try:
 
-    if not raw_text or not raw_text.strip():
+                    result = pytesseract.image_to_string(
+                        img,
+                        lang="bul+eng",
+                        config="--oem 3 --psm 11",
+                    )
 
-        return {
-            "ok": True,
-            "error": "OCR не върна текст.",
-            "text": "[OCR НЕ ВЪРНА ТЕКСТ]",
-            "total_bgn": None,
-            "total_eur": None,
-            "date": None,
-            "date_ocr": None,
-            "date_corrected": False,
-            "time": None,
-        }
+                    if result and result.strip():
 
-    text = raw_text.replace("\r", "\n")
+                        ocr_results.append(
+                            (
+                                name + "_psm11",
+                                result,
+                            )
+                        )
 
-    # ---------------------------------------------------------
-    # 4. OCR НОРМАЛИЗАЦИЯ
-    #
-    # 79-00 -> 79.00
-    # 79,00 -> 79.00
-    # 79. 00 -> 79.00
-    # ---------------------------------------------------------
+                except Exception:
+                    pass
 
-    normalized = text
+        # =====================================================
+        # 6. АКО НЯМА OCR
+        # =====================================================
 
-    normalized = re.sub(
-        r"(\d{1,7})\s*[-,]\s*(\d{2})",
-        r"\1.\2",
-        normalized,
-    )
+        if not ocr_results:
 
-    normalized = re.sub(
-        r"(\d{1,7})\s*\.\s*(\d{2})",
-        r"\1.\2",
-        normalized,
-    )
+            return {
+                "ok": True,
+                "error": "OCR не върна текст.",
+                "text": "[OCR НЕ ВЪРНА ТЕКСТ]",
+                "total_bgn": None,
+                "total_eur": None,
+                "date": None,
+                "date_ocr": None,
+                "date_corrected": False,
+                "time": None,
+            }
 
-    # =========================================================
-    # 5. EUR СУМА
-    #
-    # ВАЖНО:
-    # Никога не вземаме произволна цена от бележката.
-    #
-    # Търсим число, което е свързано с маркера:
-    #
-    #   ОБЩА СУМА ЕВРО
-    #   СУМА ЕВРО
-    #   СУМА: 549.00 EUR
-    #
-    # BGN / ЛВ / ЛЕВА НЕ участват.
-    # =========================================================
+        # =====================================================
+        # 7. КОМБИНИРАН OCR ТЕКСТ
+        #
+        # Запазваме ВСИЧКИ резултати.
+        # Това е важно за диагностика.
+        # =====================================================
 
-    total_eur = None
+        raw_parts = []
 
-    # Работим върху нормализирано копие.
-    eur_text = text
+        for name, result in ocr_results:
 
-    # ---------------------------------------------------------
-    # OCR поправки:
-    #
-    # 79-00  -> 79.00
-    # 79,00  -> 79.00
-    # 79. 00 -> 79.00
-    # ---------------------------------------------------------
+            raw_parts.append(
+                f"[{name}]\n{result.strip()}"
+            )
 
-    eur_text = re.sub(
-        r"(\d{1,7})\s*[-,]\s*(\d{2})",
-        r"\1.\2",
-        eur_text,
-    )
-
-    eur_text = re.sub(
-        r"(\d{1,7})\s*\.\s*(\d{2})",
-        r"\1.\2",
-        eur_text,
-    )
-
-    # ---------------------------------------------------------
-    # Правим и вариант без пунктуация между думите,
-    # за да можем да търсим по-лесно.
-    # ---------------------------------------------------------
-
-    eur_lines = [
-        line.strip()
-        for line in eur_text.splitlines()
-        if line.strip()
-    ]
-
-    # ---------------------------------------------------------
-    # 1. НАЙ-СИЛЕН ВАРИАНТ
-    #
-    # ОБЩА СУМА ЕВРО 549.00
-    # ОБЩА СУМА. ЕВРО 909.16
-    # СУМА ЕВРО 79.00
-    #
-    # Позволяваме и OCR да е сложил други символи.
-    # ---------------------------------------------------------
-
-    strong_patterns = [
-
-        r"ОБЩА\s*СУМА.{0,15}?ЕВРО.{0,20}?(\d{1,7}\.\d{2})",
-
-        r"СУМА.{0,15}?ЕВРО.{0,20}?(\d{1,7}\.\d{2})",
-    ]
-
-    for pattern in strong_patterns:
-
-        match = re.search(
-            pattern,
-            eur_text,
-            flags=re.IGNORECASE | re.DOTALL,
+        raw_text = "\n\n".join(
+            raw_parts
         )
 
-        if match:
+        # =====================================================
+        # 8. НОРМАЛИЗИРАНЕ
+        # =====================================================
 
-            try:
-                total_eur = float(
-                    match.group(1)
-                )
-            except Exception:
-                total_eur = None
+        text = raw_text.replace(
+            "\r",
+            "\n"
+        )
 
-            if total_eur is not None:
-                break
+        # -----------------------------------------------------
+        # 549-00 -> 549.00
+        # 549,00 -> 549.00
+        # 549. 00 -> 549.00
+        # -----------------------------------------------------
 
-    # ---------------------------------------------------------
-    # 2. EUR НА СЪЩИЯ РЕД
-    #
-    # Например:
-    #
-    # СУМА: 549.00 EUR
-    # 549.00 EUR
-    # 549.00 ЕВРО
-    # ---------------------------------------------------------
+        normalized = re.sub(
+            r"(\d{1,7})\s*[-,]\s*(\d{2})",
+            r"\1.\2",
+            text,
+        )
 
-    if total_eur is None:
+        normalized = re.sub(
+            r"(\d{1,7})\s*\.\s*(\d{2})",
+            r"\1.\2",
+            normalized,
+        )
 
-        same_line_patterns = [
+        # =====================================================
+        # 9. LINES
+        # =====================================================
 
-            r"СУМА.{0,15}?(\d{1,7}\.\d{2})\s*(?:EUR|ЕВРО|€)",
-
-            r"(\d{1,7}\.\d{2})\s*(?:EUR|ЕВРО|€)",
+        lines = [
+            line.strip()
+            for line in normalized.splitlines()
+            if line.strip()
         ]
 
-        for pattern in same_line_patterns:
+        # =====================================================
+        # 10. EUR SUM
+        # =====================================================
+
+        total_eur = None
+
+        # -----------------------------------------------------
+        # Първо търсим най-силния маркер:
+        #
+        # ОБЩА СУМА ЕВРО 549.00
+        #
+        # или OCR:
+        #
+        # ОБЩА СУМА ЕВРО
+        # 549.00
+        # -----------------------------------------------------
+
+        strong_patterns = [
+
+            r"ОБЩА\s*СУМА.{0,30}?ЕВРО"
+            r".{0,30}?(\d{1,7}\.\d{2})",
+
+            r"СУМА.{0,20}?ЕВРО"
+            r".{0,30}?(\d{1,7}\.\d{2})",
+        ]
+
+        for pattern in strong_patterns:
 
             match = re.search(
                 pattern,
-                eur_text,
-                flags=re.IGNORECASE,
+                normalized,
+                flags=re.IGNORECASE | re.DOTALL,
             )
 
             if match:
 
                 try:
-                    total_eur = float(
+
+                    value = float(
                         match.group(1)
                     )
+
+                    # Реалистична EUR стойност.
+                    if 0 < value < 1000000:
+
+                        total_eur = value
+
                 except Exception:
                     total_eur = None
 
                 if total_eur is not None:
                     break
 
-    # ---------------------------------------------------------
-    # 3. EUR МАРКЕР НА ЕДИН РЕД + СУМА НА СЛЕДВАЩИЯ
-    #
-    # Например:
-    #
-    # ОБЩА СУМА ЕВРО
-    # 549.00
-    #
-    # Това е точно структурата на снимката от Technopolis.
-    # ---------------------------------------------------------
+        # =====================================================
+        # 11. "СУМА: 549.00 EUR"
+        # =====================================================
 
-    if total_eur is None:
+        if total_eur is None:
 
-        for i, line in enumerate(eur_lines):
+            patterns = [
 
-            upper = line.upper()
+                r"СУМА.{0,20}?"
+                r"(\d{1,7}\.\d{2})"
+                r"\s*(?:EUR|ЕВРО|€)",
 
-            if (
-                "ЕВРО" not in upper
-                and "EUR" not in upper
-                and "€" not in upper
-            ):
-                continue
+                r"(\d{1,7}\.\d{2})"
+                r"\s*(?:EUR|ЕВРО|€)",
+            ]
 
-            # -------------------------------------------------
-            # Първо търсим число на същия ред.
-            # -------------------------------------------------
+            for pattern in patterns:
 
-            candidates = re.findall(
-                r"\b\d{1,7}\.\d{2}\b",
-                line,
-            )
-
-            if candidates:
-
-                try:
-                    total_eur = float(
-                        candidates[-1]
-                    )
-                except Exception:
-                    total_eur = None
-
-                if total_eur is not None:
-                    break
-
-            # -------------------------------------------------
-            # След това гледаме следващите 2 реда.
-            # -------------------------------------------------
-
-            for next_line in eur_lines[i + 1:i + 3]:
-
-                candidates = re.findall(
-                    r"\b\d{1,7}\.\d{2}\b",
-                    next_line,
+                match = re.search(
+                    pattern,
+                    normalized,
+                    flags=re.IGNORECASE,
                 )
 
-                if candidates:
+                if match:
 
                     try:
-                        total_eur = float(
-                            candidates[0]
+
+                        value = float(
+                            match.group(1)
                         )
+
+                        if 0 < value < 1000000:
+
+                            total_eur = value
+
                     except Exception:
                         total_eur = None
 
                     if total_eur is not None:
                         break
 
-            if total_eur is not None:
+        # =====================================================
+        # 12. LINE-BY-LINE EUR
+        #
+        # Например:
+        #
+        # ОБЩА СУМА ЕВРО
+        # 549.00
+        #
+        # или:
+        #
+        # СУМА ЕВРО
+        # 79.00
+        # =====================================================
+
+        if total_eur is None:
+
+            for i, line in enumerate(lines):
+
+                upper = line.upper()
+
+                if (
+                    "ЕВРО" not in upper
+                    and "EUR" not in upper
+                    and "€" not in upper
+                ):
+                    continue
+
+                # -------------------------------------------------
+                # Число на същия ред
+                # -------------------------------------------------
+
+                candidates = re.findall(
+                    r"\b\d{1,7}\.\d{2}\b",
+                    line,
+                )
+
+                if candidates:
+
+                    for candidate_text in candidates:
+
+                        try:
+
+                            value = float(
+                                candidate_text
+                            )
+
+                        except Exception:
+                            continue
+
+                        # Ако има BGN маркер на реда,
+                        # не го приемаме.
+                        if re.search(
+                            r"\b(?:BGN|ЛВ|ЛЕВ|ЛЕВА)\b",
+                            upper,
+                            flags=re.IGNORECASE,
+                        ):
+                            continue
+
+                        if 0 < value < 1000000:
+
+                            total_eur = value
+                            break
+
+                if total_eur is not None:
+                    break
+
+                # -------------------------------------------------
+                # Следващите 3 реда
+                # -------------------------------------------------
+
+                for next_line in lines[
+                    i + 1:i + 4
+                ]:
+
+                    next_upper = (
+                        next_line.upper()
+                    )
+
+                    # Ако следващият ред е BGN,
+                    # не го използваме.
+                    if re.search(
+                        r"\b(?:BGN|ЛВ|ЛЕВ|ЛЕВА)\b",
+                        next_upper,
+                        flags=re.IGNORECASE,
+                    ):
+                        continue
+
+                    candidates = re.findall(
+                        r"\b\d{1,7}\.\d{2}\b",
+                        next_line,
+                    )
+
+                    if candidates:
+
+                        try:
+
+                            value = float(
+                                candidates[0]
+                            )
+
+                        except Exception:
+                            continue
+
+                        if 0 < value < 1000000:
+
+                            total_eur = value
+                            break
+
+                if total_eur is not None:
+                    break
+
+        # =====================================================
+        # 13. ДАТА
+        # =====================================================
+
+        date_value = None
+
+        date_patterns = [
+
+            r"\b(\d{2}[./-]\d{2}[./-]\d{4})\b",
+
+            r"\b(\d{4}[./-]\d{2}[./-]\d{2})\b",
+        ]
+
+        for pattern in date_patterns:
+
+            match = re.search(
+                pattern,
+                normalized,
+            )
+
+            if match:
+
+                date_value = (
+                    match.group(1)
+                    .replace("/", ".")
+                    .replace("-", ".")
+                )
+
                 break
 
-    # ---------------------------------------------------------
-    # 4. НЕ ТЪРСИМ ПОВЕЧЕ
-    #
-    # Няма fallback към:
-    # - най-голямото число
-    # - BGN
-    # - ЛВ
-    # - обменен курс
-    # - цена на артикул
-    #
-    # Ако EUR не е открит надеждно -> None.
-    # ---------------------------------------------------------
+        # =====================================================
+        # 14. ЧАС
+        # =====================================================
 
-    # =========================================================
-    # 6. ДАТА + ЧАС
-    # =========================================================
+        time_value = None
 
-    # ---------------------------------------------------------
-    # 7. ДАТА
-    # ---------------------------------------------------------
-
-    date_value = None
-
-    date_match = re.search(
-        r"\b(\d{2}[./-]\d{2}[./-]\d{4})\b",
-        normalized,
-    )
-
-    if date_match:
-
-        date_value = (
-            date_match.group(1)
-            .replace("/", ".")
-            .replace("-", ".")
+        time_match = re.search(
+            r"\b(\d{2}:\d{2}(?::\d{2})?)\b",
+            normalized,
         )
 
-    # ---------------------------------------------------------
-    # 8. ЧАС
-    # ---------------------------------------------------------
+        if time_match:
 
-    time_value = None
+            time_value = (
+                time_match.group(1)
+            )
 
-    time_match = re.search(
-        r"\b(\d{2}:\d{2}:\d{2})\b",
-        normalized,
-    )
+        # =====================================================
+        # 15. FINAL
+        # =====================================================
 
-    if time_match:
-        time_value = time_match.group(1)
+        return {
+            "ok": True,
+            "error": "",
 
-    # ---------------------------------------------------------
-    # 9. ФИНАЛ
-    # ---------------------------------------------------------
+            # Пълният OCR за диагностика.
+            "text": raw_text,
 
-    return {
-        "ok": True,
-        "error": "",
+            "targeted_text": "",
 
-        # КРИТИЧНО:
-        # връщаме истинския OCR текст.
-        "text": raw_text,
+            # BGN официално не използваме.
+            "total_bgn": None,
 
-        "targeted_text": "",
+            # Само EUR.
+            "total_eur": total_eur,
 
-        # BGN НЕ СЕ ИЗПОЛЗВА.
-        "total_bgn": None,
+            "date": date_value,
+            "date_ocr": date_value,
+            "date_corrected": False,
 
-        # Само EUR.
-        "total_eur": total_eur,
+            "time": time_value,
 
-        "date": date_value,
-        "date_ocr": date_value,
-        "date_corrected": False,
-
-        "time": time_value,
-
-        "lang": "bul+eng",
-    }
+            "lang": "bul+eng",
+        }
 def get_ui_labels():
     labels = DEFAULT_UI_LABELS.copy()
     try:
