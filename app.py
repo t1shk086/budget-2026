@@ -976,6 +976,37 @@ def _tm_receipt_ocr(image):
 
             "lang": "bul+eng",
         }
+        return {
+            "ok": True,
+            "error": "",
+            "text": raw_text,
+            "targeted_text": "",
+            "total_bgn": None,
+            "total_eur": total_eur,
+            "date": date_value,
+            "date_ocr": date_value,
+            "date_corrected": False,
+            "time": time_value,
+            "lang": "bul+eng",
+        }
+
+    except Exception as exc:
+
+        return {
+            "ok": False,
+            "error": f"OCR грешка: {exc}",
+            "text": "",
+            "targeted_text": "",
+            "total_bgn": None,
+            "total_eur": None,
+            "date": None,
+            "date_ocr": None,
+            "date_corrected": False,
+            "time": None,
+        }
+
+
+
 def get_ui_labels():
     labels = DEFAULT_UI_LABELS.copy()
     try:
