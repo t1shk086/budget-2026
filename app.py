@@ -1626,81 +1626,81 @@ if st.session_state["current_trip"] is None:
     # Inline panel вместо dialog: uploader-ът не се затваря при rerun.
     # Нищо не се записва в разходите.
     # ---------------------------------------------------------
-def _tm_receipt_preprocess(image):
-    """Оптимизирана подготовка на изображението за Tesseract OCR."""
-    img = image.convert("RGB")
-    # Мащабиране за подобро разчитане на дребни шрифтове
-    img = img.resize(
-        (max(1, int(img.width * 2.0)), max(1, int(img.height * 2.0))),
-        Image.Resampling.LANCZOS,
-    )
-    gray = ImageOps.grayscale(img)
-    # По-плавно регулиране на контраста без унищожаване на детайлите
-    gray = ImageOps.autocontrast(gray, cutoff=0.5)
-    return gray
-
-
-def _tm_receipt_ocr(image):
-    """Подобрен OCR за касови бележки."""
-    if not _PYTESSERACT_AVAILABLE:
-        return {"ok": False, "error": "pytesseract не е инсталиран.", "text": ""}
-
-    try:
-        prepared = _tm_receipt_preprocess(image)
-        # Fallback опит: първо с bul+eng, после само eng
-        try:
-            raw_text = pytesseract.image_to_string(prepared, lang="bul+eng", config="--oem 3 --psm 6")
-        except Exception:
-            raw_text = pytesseract.image_to_string(prepared, lang="eng", config="--oem 3 --psm 6")
-
-    except Exception as exc:
-        return {"ok": False, "error": f"OCR грешка: {exc}", "text": ""}
-
-    if not raw_text.strip():
-        return {"ok": False, "error": "OCR не върна текст.", "text": ""}
-
-    normalized = _tm_receipt_normalize_text(raw_text)
-    lines = [ln.strip() for ln in normalized.splitlines() if ln.strip()]
+    def _tm_receipt_preprocess(image):
+        """Оптимизирана подготовка на изображението за Tesseract OCR."""
+        img = image.convert("RGB")
+        # Мащабиране за подобро разчитане на дребни шрифтове
+        img = img.resize(
+            (max(1, int(img.width * 2.0)), max(1, int(img.height * 2.0))),
+            Image.Resampling.LANCZOS,
+        )
+        gray = ImageOps.grayscale(img)
+        # По-плавно регулиране на контраста без унищожаване на детайлите
+        gray = ImageOps.autocontrast(gray, cutoff=0.5)
+        return gray
     
-    total_bgn = None
-    total_eur = None
-
-    # По-широк списък от думи за търсене на крайна сума
-    total_keywords = ["ОБЩА", "ОБЩО", "СУМА", "TOTAL", "TOT", "В СКУПНО", "БРОЙКА"]
-
-    for i, line in enumerate(lines):
-        upper = line.upper()
-        if any(kw in upper for kw in total_keywords):
-            # Вземаме същия ред и следващите 2 реда
-            window = " ".join(lines[i:min(i + 3, len(lines))])
-            nums = [v for v, _ in _tm_receipt_number_candidates(window)]
-            
-            # Премахнахме ограничението >= 100!
-            valid_nums = [v for v in nums if v > 0]
-            if valid_nums:
-                total_bgn = max(valid_nums)
-
-            smaller = [v for v in valid_nums if total_bgn and 0 < v < total_bgn]
-            if ("ЕВРО" in upper or "EUR" in upper) and smaller:
-                total_eur = min(smaller)
-
-    # Дати и час
-    dates = re.findall(r"\b(\d{2}[\.\/-]\d{2}[\.\/-]\d{2,4})\b", normalized)
-    times = re.findall(r"\b(\d{2}:\d{2}(?::\d{2})?)\b", normalized)
-
-    return {
-        "ok": True,
-        "error": "",
-        "text": raw_text,
-        "targeted_text": "",
-        "total_bgn": total_bgn,
-        "total_eur": total_eur,
-        "date": dates[-1] if dates else None,
-        "date_ocr": dates[-1] if dates else None,
-        "date_corrected": False,
-        "time": times[-1] if times else None,
-        "lang": "bul+eng",
-    }
+    
+    def _tm_receipt_ocr(image):
+        """Подобрен OCR за касови бележки."""
+        if not _PYTESSERACT_AVAILABLE:
+            return {"ok": False, "error": "pytesseract не е инсталиран.", "text": ""}
+    
+        try:
+            prepared = _tm_receipt_preprocess(image)
+            # Fallback опит: първо с bul+eng, после само eng
+            try:
+                raw_text = pytesseract.image_to_string(prepared, lang="bul+eng", config="--oem 3 --psm 6")
+            except Exception:
+                raw_text = pytesseract.image_to_string(prepared, lang="eng", config="--oem 3 --psm 6")
+    
+        except Exception as exc:
+            return {"ok": False, "error": f"OCR грешка: {exc}", "text": ""}
+    
+        if not raw_text.strip():
+            return {"ok": False, "error": "OCR не върна текст.", "text": ""}
+    
+        normalized = _tm_receipt_normalize_text(raw_text)
+        lines = [ln.strip() for ln in normalized.splitlines() if ln.strip()]
+        
+        total_bgn = None
+        total_eur = None
+    
+        # По-широк списък от думи за търсене на крайна сума
+        total_keywords = ["ОБЩА", "ОБЩО", "СУМА", "TOTAL", "TOT", "В СКУПНО", "БРОЙКА"]
+    
+        for i, line in enumerate(lines):
+            upper = line.upper()
+            if any(kw in upper for kw in total_keywords):
+                # Вземаме същия ред и следващите 2 реда
+                window = " ".join(lines[i:min(i + 3, len(lines))])
+                nums = [v for v, _ in _tm_receipt_number_candidates(window)]
+                
+                # Премахнахме ограничението >= 100!
+                valid_nums = [v for v in nums if v > 0]
+                if valid_nums:
+                    total_bgn = max(valid_nums)
+    
+                smaller = [v for v in valid_nums if total_bgn and 0 < v < total_bgn]
+                if ("ЕВРО" in upper or "EUR" in upper) and smaller:
+                    total_eur = min(smaller)
+    
+        # Дати и час
+        dates = re.findall(r"\b(\d{2}[\.\/-]\d{2}[\.\/-]\d{2,4})\b", normalized)
+        times = re.findall(r"\b(\d{2}:\d{2}(?::\d{2})?)\b", normalized)
+    
+        return {
+            "ok": True,
+            "error": "",
+            "text": raw_text,
+            "targeted_text": "",
+            "total_bgn": total_bgn,
+            "total_eur": total_eur,
+            "date": dates[-1] if dates else None,
+            "date_ocr": dates[-1] if dates else None,
+            "date_corrected": False,
+            "time": times[-1] if times else None,
+            "lang": "bul+eng",
+        }
 
     # Диалогът за ново пътуване е дефиниран преди бутона, за да няма нова страница.
     @st.dialog("Създаване на ново приключение")
