@@ -438,11 +438,53 @@ def _tm_receipt_ocr(image):
         # Предишната обработка можеше да развали OCR.
         # -----------------------------------------------------
 
+        # =====================================================
+        # OCR — ПЪРВИ БЪРЗ PASS
+        # =====================================================
+
         raw_text = pytesseract.image_to_string(
             image,
             lang="bul+eng",
-            config="--oem 3 --psm 6",
+            config="--oem 3 --psm 4",
         )
+
+        # =====================================================
+        # OCR — ВТОРИ PASS САМО АКО НЯМА EUR
+        #
+        # Първият OCR вече работи добре като скорост.
+        # Вторият се пуска само когато първият не е успял
+        # да прочете EUR секцията.
+        # =====================================================
+
+        raw_upper = (raw_text or "").upper()
+
+        if not re.search(
+            r"(?:ЕВРО|EUR|€)",
+            raw_upper,
+        ):
+
+            try:
+
+                second_text = pytesseract.image_to_string(
+                    image,
+                    lang="bul+eng",
+                    config="--oem 3 --psm 11",
+                )
+
+                if second_text and second_text.strip():
+
+                    second_upper = second_text.upper()
+
+                    # Ако вторият OCR е видял EUR,
+                    # него използваме за parser-а.
+                    if re.search(
+                        r"(?:ЕВРО|EUR|€)",
+                        second_upper,
+                    ):
+                        raw_text = second_text
+
+            except Exception:
+                pass
 
     except Exception as exc:
 
