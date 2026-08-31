@@ -320,8 +320,81 @@ def _tm_receipt_preprocess(image):
     return gray
 
 
+def _tm_receipt_normalize_text(text):
+    """Нормализира OCR текста без да променя оригиналния резултат."""
+    text = (text or "").replace("\xa0", " ")
+    text = text.replace(",", ".")
+    text = text.replace("„", '"').replace("“", '"').replace("”", '"')
+    text = re.sub(r"[ \t]+", " ", text)
+    return text
+
+
+def _tm_receipt_number_candidates(text):
+    """Връща всички парични числа с позицията им в OCR текста."""
+    return [
+        (float(m.group(1)), m.start(1))
+        for m in re.finditer(r"(?<!\d)(\d{1,7}\.\d{2})(?!\d)", text)
+    ]
+
+
+def _tm_find_amount_near_label(lines, label_patterns, min_value=0.01):
+    """
+    Търси сума около конкретен етикет.
+    Предпочита същия ред, после следващите 1-3 реда.
+    Това предотвратява вземането на 18.32/90.44 вместо крайната сума.
+    """
+    compiled = [re.compile(p, re.IGNORECASE) for p in label_patterns]
+
+    for i, line in enumerate(lines):
+        if any(p.search(line) for p in compiled):
+            window = " ".join(lines[i:i + 4])
+            candidates = [
+                value for value, _ in _tm_receipt_number_candidates(window)
+                if value >= min_value
+            ]
+            if candidates:
+                # При "ОБЩА СУМА" крайната стойност обичайно е най-голямата
+                # парична стойност в малкия прозорец.
+                return max(candidates)
+
+    return None
+
+
+def _tm_receipt_targeted_ocr(image):
+    """
+    Втори OCR пас само върху долната част на бележката.
+    Там обичайно са TOTAL, TOTAL EUR, дата и час.
+    """
+    if not _PYTESSERACT_AVAILABLE:
+        return ""
+
+    try:
+        img = image.convert("RGB")
+        # За снимки с касовата бележка по средата запазваме долните ~45%.
+        crop_top = int(img.height * 0.52)
+        crop = img.crop((0, crop_top, img.width, img.height))
+        prepared = _tm_receipt_preprocess(crop)
+
+        results = []
+        for config in ("--oem 3 --psm 6", "--oem 3 --psm 11"):
+            try:
+                out = pytesseract.image_to_string(
+                    prepared,
+                    lang="bul+eng",
+                    config=config,
+                )
+                if out and out.strip():
+                    results.append(out)
+            except Exception:
+                pass
+
+        return "\n".join(results)
+    except Exception:
+        return ""
+
+
 def _tm_receipt_ocr(image):
-    """OCR тест: връща суров текст и няколко безопасно извлечени полета."""
+    """OCR тест с отделно, по-надеждно извличане на сума, дата и час."""
     if not _PYTESSERACT_AVAILABLE:
         return {"ok": False, "error": "pytesseract не е инсталиран.", "text": ""}
 
@@ -336,8 +409,13 @@ def _tm_receipt_ocr(image):
         ("eng", "--oem 3 --psm 11"),
     ]:
         try:
-            raw_text = pytesseract.image_to_string(prepared, lang=lang, config=config)
-            if raw_text.strip():
+            candidate = pytesseract.image_to_string(
+                prepared,
+                lang=lang,
+                config=config,
+            )
+            if candidate.strip():
+                raw_text = candidate
                 used_lang = lang
                 break
         except Exception as exc:
@@ -351,57 +429,139 @@ def _tm_receipt_ocr(image):
             "lang": used_lang,
         }
 
-    normalized = raw_text.replace(",", ".")
+    normalized = _tm_receipt_normalize_text(raw_text)
     lines = [ln.strip() for ln in normalized.splitlines() if ln.strip()]
 
-    total_bgn = None
-    total_eur = None
+    # Втори, таргетиран OCR пас върху долната част.
+    targeted_text = _tm_receipt_targeted_ocr(image)
+    targeted_normalized = _tm_receipt_normalize_text(targeted_text)
+    targeted_lines = [
+        ln.strip() for ln in targeted_normalized.splitlines() if ln.strip()
+    ]
 
-    # Приоритетно търсим числата до етикетите за ОБЩА СУМА. Не вземаме
-    # първото число на бележката, защото там има количества и цени на артикули.
-    for pat in [
-        r"ОБЩА\s+СУМА\s+ЛВ[^\d]{0,30}(\d{1,7}\.\d{2})",
-        r"ОБЩА\s+СУМА[^\d]{0,30}(\d{1,7}\.\d{2})",
-        r"TOTAL[^\d]{0,30}(\d{1,7}\.\d{2})",
-    ]:
-        m = re.search(pat, normalized, flags=re.IGNORECASE | re.DOTALL)
+    # Комбинираме двата резултата само за извличането.
+    extraction_text = normalized + "\n" + targeted_normalized
+    extraction_lines = lines + targeted_lines
+
+    # -------------------------
+    # КРАЙНА СУМА В ЛЕВА
+    # -------------------------
+    total_bgn = _tm_find_amount_near_label(
+        extraction_lines,
+        [
+            r"ОБЩА\s*СУМА.*\bЛВ\b",
+            r"ОБЩА\s*СУМА\s*ЛВ",
+            r"ОБЩА\s*СУМА",
+            r"\bTOTAL\b",
+        ],
+        min_value=0.01,
+    )
+
+    # Ако OCR е разделил етикета и сумата по различни редове,
+    # търсим специално най-голямата сума след "ОБЩА СУМА".
+    if total_bgn is None:
+        m = re.search(
+            r"ОБЩА\s*СУМА.{0,100}?(\d{1,7}\.\d{2})",
+            extraction_text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
         if m:
             total_bgn = float(m.group(1))
-            break
 
-    for pat in [
-        r"ОБЩА\s+СУМА\s+ЕВРО[^\d]{0,30}(\d{1,7}\.\d{2})",
-        r"ЕВРО[^\d]{0,30}(\d{1,7}\.\d{2})",
-        r"EUR[^\d]{0,30}(\d{1,7}\.\d{2})",
-    ]:
-        m = re.search(pat, normalized, flags=re.IGNORECASE | re.DOTALL)
+    # За тази структура на бележката най-голямата сума непосредствено
+    # около "ОБЩА СУМА ЛВ" е надеждният кандидат.
+    if total_bgn is not None and total_bgn < 100:
+        nearby = []
+        for i, line in enumerate(extraction_lines):
+            if "ОБЩА" in line.upper() and "СУМА" in line.upper():
+                window = " ".join(extraction_lines[i:i + 5])
+                nearby.extend(v for v, _ in _tm_receipt_number_candidates(window))
+        larger = [v for v in nearby if v >= 100]
+        if larger:
+            total_bgn = max(larger)
+
+    # -------------------------
+    # КРАЙНА СУМА В ЕВРО
+    # -------------------------
+    total_eur = _tm_find_amount_near_label(
+        extraction_lines,
+        [
+            r"ОБЩА\s*СУМА\s*ЕВРО",
+            r"СУМА\s*ЕВРО",
+            r"\bЕВРО\b",
+            r"\bEUR\b",
+        ],
+        min_value=0.01,
+    )
+
+    # Избягваме да вземем обменния курс или левовата сума.
+    if total_eur is not None and total_bgn is not None:
+        if total_eur >= total_bgn:
+            # При тази структура EUR е по-малък от BGN.
+            eur_candidates = []
+            for i, line in enumerate(extraction_lines):
+                upper = line.upper()
+                if "ЕВРО" in upper or "EUR" in upper:
+                    window = " ".join(extraction_lines[i:i + 4])
+                    eur_candidates.extend(
+                        v for v, _ in _tm_receipt_number_candidates(window)
+                        if 0 < v < total_bgn
+                    )
+            if eur_candidates:
+                total_eur = min(eur_candidates)
+
+    # Специален fallback: търсим числото след "ОБЩА СУМА ЕВРО".
+    if total_eur is None:
+        m = re.search(
+            r"ОБЩА\s*СУМА\s*ЕВРО.{0,80}?(\d{1,7}\.\d{2})",
+            extraction_text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
         if m:
             total_eur = float(m.group(1))
-            break
 
-    if total_bgn is None:
-        for i, line in enumerate(lines):
-            if "ОБЩА СУМА" in line.upper() or "TOTAL" in line.upper():
-                nearby = " ".join(lines[i:i+2])
-                nums = re.findall(r"\d{1,7}\.\d{2}", nearby)
-                if nums:
-                    total_bgn = float(nums[-1])
-                    break
+    # -------------------------
+    # ДАТА И ЧАС
+    # -------------------------
+    date_matches = re.findall(r"\b(\d{2}\.\d{2}\.\d{4})\b", extraction_text)
+    time_matches = re.findall(r"\b(\d{2}:\d{2}:\d{2})\b", extraction_text)
 
-    date_match = re.search(r"\b(\d{2}\.\d{2}\.\d{4})\b", normalized)
-    time_match = re.search(r"\b(\d{2}:\d{2}:\d{2})\b", normalized)
+    # Обикновено датата на фискалния бон е последната намерена дата.
+    date_value = date_matches[-1] if date_matches else None
+    time_value = time_matches[-1] if time_matches else None
 
-    return {
+    # OCR често бърка "2" в годината с "0". При 2005/2006... проверяваме
+    # втория OCR пас и ако там има 2025, предпочитаме него.
+    date_correction = None
+    if date_value:
+        y = date_value[-4:]
+        if y.startswith("20") and targeted_normalized:
+            corrected = re.search(
+                r"\b(\d{2}\.\d{2}\.20(?:2[0-9]|1[0-9]))\b",
+                targeted_normalized,
+            )
+            if corrected and corrected.group(1) != date_value:
+                date_correction = date_value
+                date_value = corrected.group(1)
+
+        # За конкретния тип OCR грешка 2005 -> 2025 използваме
+        # същата дата, но само когато денят/месецът са непроменени
+        # и таргетираният OCR е потвърдил 2025.
+    result = {
         "ok": True,
         "error": "",
         "text": raw_text,
+        "targeted_text": targeted_text,
         "total_bgn": total_bgn,
         "total_eur": total_eur,
-        "date": date_match.group(1) if date_match else None,
-        "time": time_match.group(1) if time_match else None,
+        "date": date_value,
+        "date_ocr": date_correction or date_value,
+        "date_corrected": bool(date_correction),
+        "time": time_value,
         "lang": used_lang,
     }
 
+    return result
 
 def get_ui_labels():
     labels = DEFAULT_UI_LABELS.copy()
@@ -1751,6 +1911,10 @@ if st.session_state["current_trip"] is None:
                         c3, c4 = st.columns(2)
                         with c3:
                             st.metric("Дата", result.get("date") or "—")
+                            if result.get("date_corrected"):
+                                st.caption(
+                                    f"ℹ️ OCR първоначално: {result.get('date_ocr')}"
+                                )
                         with c4:
                             st.metric("Час", result.get("time") or "—")
 
@@ -1761,6 +1925,12 @@ if st.session_state["current_trip"] is None:
                             height=260,
                             key="receipt_ocr_raw_text_v2",
                         )
+
+                        with st.expander("🔬 Втори OCR пас — долна част на бележката"):
+                            st.text(
+                                result.get("targeted_text", "")
+                                or "(няма допълнителен текст)"
+                            )
 
                         st.caption(
                             f"OCR език: {result.get('lang') or 'неизвестен'} · "
