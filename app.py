@@ -648,36 +648,71 @@ def _tm_receipt_ocr(image):
     # Първо търсим най-силните маркери.
     # =========================================================
 
+    # =========================================================
+    # 12. EUR SUM — V13
+    #
+    # Приоритет:
+    #
+    # 1. ОБЩА СУМА ЕВРО 79.00
+    # 2. СУМА ЕВРО 79.00
+    # 3. 79,00 EUR / 79.00 EUR
+    #
+    # BGN / ЛВ / ЛЕВА стойности се игнорират.
+    # =========================================================
+
     total_eur = None
 
     # ---------------------------------------------------------
-    # A)
-    #
-    # ОБЩА СУМА ЕВРО 909.16
-    #
-    # ОБЩА СУМА. ЕВРО 909.16
+    # OCR поправки за EUR стойности
     # ---------------------------------------------------------
 
-    patterns = [
+    eur_text = text
+
+    # 79-00 -> 79.00
+    eur_text = re.sub(
+        r"(\d{1,7})\s*-\s*(\d{2})",
+        r"\1.\2",
+        eur_text,
+    )
+
+    # 79,00 -> 79.00
+    eur_text = re.sub(
+        r"(\d{1,7})\s*,\s*(\d{2})",
+        r"\1.\2",
+        eur_text,
+    )
+
+    # 79. 00 -> 79.00
+    eur_text = re.sub(
+        r"(\d{1,7})\s*\.\s*(\d{2})",
+        r"\1.\2",
+        eur_text,
+    )
+
+    # ---------------------------------------------------------
+    # 1. НАЙ-СИЛЕН МАРКЕР
+    #
+    # ОБЩА СУМА ЕВРО 79.00
+    # ОБЩА СУМА ЕВРО 79-00
+    # ОБЩА СУМА. ЕВРО 79.00
+    # ---------------------------------------------------------
+
+    strong_patterns = [
 
         r"ОБЩА\s*СУМА\.?\s*ЕВРО"
         r"\s*[:\-]?\s*"
-        r"(\d{1,7}[.,]\d{2})",
+        r"(\d{1,7}\.\d{2})",
 
-        r"ОБЩА\s*СУМА\.?\s*EUR"
+        r"СУМА\.?\s*ЕВРО"
         r"\s*[:\-]?\s*"
-        r"(\d{1,7}[.,]\d{2})",
-
-        r"ОБЩА\s*СУМА\.?\s*€"
-        r"\s*[:\-]?\s*"
-        r"(\d{1,7}[.,]\d{2})",
+        r"(\d{1,7}\.\d{2})",
     ]
 
-    for pattern in patterns:
+    for pattern in strong_patterns:
 
         match = re.search(
             pattern,
-            text,
+            eur_text,
             flags=re.IGNORECASE,
         )
 
@@ -686,7 +721,6 @@ def _tm_receipt_ocr(image):
             try:
                 total_eur = float(
                     match.group(1)
-                    .replace(",", ".")
                 )
             except Exception:
                 total_eur = None
@@ -694,133 +728,57 @@ def _tm_receipt_ocr(image):
             if total_eur is not None:
                 break
 
-    # =========================================================
-    # 13. EUR — OCR MOЖЕ ДА Е С РАЗДЕЛЕН ЕТИКЕТ
+    # ---------------------------------------------------------
+    # 2. EUR НА СЪЩИЯ РЕД
     #
-    # ОБЩА СУМА ЕВРО
-    # 909.16
-    # =========================================================
+    # Например:
+    #
+    # СУМА: 79,00 EUR
+    # 79,00 EUR
+    # 79.00 €
+    # ---------------------------------------------------------
 
     if total_eur is None:
 
-        for i, line in enumerate(lines):
-
-            upper = line.upper()
-
-            if (
-                "ОБЩА" in upper
-                and "СУМА" in upper
-                and (
-                    "ЕВРО" in upper
-                    or "EUR" in upper
-                    or "€" in upper
-                )
-            ):
-
-                # Първо проверяваме самия ред
-                candidates = re.findall(
-                    r"\d{1,7}[.,]\d{2}",
-                    line,
-                )
-
-                if candidates:
-
-                    try:
-                        total_eur = float(
-                            candidates[-1]
-                            .replace(",", ".")
-                        )
-                    except Exception:
-                        total_eur = None
-
-                # Ако няма число на този ред,
-                # проверяваме следващите 2 реда.
-                if total_eur is None:
-
-                    for next_line in lines[
-                        i + 1:i + 3
-                    ]:
-
-                        candidates = re.findall(
-                            r"\d{1,7}[.,]\d{2}",
-                            next_line,
-                        )
-
-                        if candidates:
-
-                            try:
-                                total_eur = float(
-                                    candidates[0]
-                                    .replace(",", ".")
-                                )
-                            except Exception:
-                                total_eur = None
-
-                            if total_eur is not None:
-                                break
-
-                if total_eur is not None:
-                    break
-
-    # =========================================================
-    # 14. EUR — "СУМА: 79.00 EUR"
-    # =========================================================
-
-    if total_eur is None:
-
-        patterns = [
+        eur_patterns = [
 
             r"СУМА\s*[:\-]?\s*"
-            r"(\d{1,7}[.,]\d{2})"
-            r"\s*EUR",
+            r"(\d{1,7}\.\d{2})"
+            r"\s*(?:EUR|ЕВРО|€)",
 
-            r"TOTAL\s*[:\-]?\s*"
-            r"(\d{1,7}[.,]\d{2})"
-            r"\s*EUR",
-
-            r"(\d{1,7}[.,]\d{2})"
-            r"\s*EUR",
-
-            r"(\d{1,7}[.,]\d{2})"
-            r"\s*€",
+            r"(\d{1,7}\.\d{2})"
+            r"\s*(?:EUR|ЕВРО|€)",
         ]
 
-        for pattern in patterns:
+        for pattern in eur_patterns:
 
             match = re.search(
                 pattern,
-                text,
+                eur_text,
                 flags=re.IGNORECASE,
             )
 
             if match:
 
                 try:
-                    candidate = float(
+                    total_eur = float(
                         match.group(1)
-                        .replace(",", ".")
                     )
                 except Exception:
-                    continue
+                    total_eur = None
 
-                if candidate >= 0:
-                    total_eur = candidate
+                if total_eur is not None:
                     break
 
-    # =========================================================
-    # 15. ДОПЪЛНИТЕЛЕН EUR FALLBACK
+    # ---------------------------------------------------------
+    # 3. ТЪРСЕНЕ ПО РЕДОВЕ
     #
-    # Ако OCR е прочел:
+    # Ако OCR е написал:
     #
-    # ОБЩА СУМА ЕВРО
+    # СУМА ЕВРО
+    # 79.00
     #
-    # ...и по-надолу има число.
-    #
-    # Търсим само около този етикет.
-    #
-    # НЕ използваме BGN.
-    # НЕ използваме обменния курс.
-    # =========================================================
+    # ---------------------------------------------------------
 
     if total_eur is None:
 
@@ -834,14 +792,11 @@ def _tm_receipt_ocr(image):
                 or "€" in upper
             ):
 
-                nearby = " ".join(
-                    lines[max(0, i - 1):i + 3]
-                )
-
-                # Числа с точно две десетични позиции.
+                # Търсим само числа с точно 2 знака
+                # след десетичната точка.
                 candidates = re.findall(
-                    r"\b\d{1,7}[.,]\d{2}\b",
-                    nearby,
+                    r"\b\d{1,7}\.\d{2}\b",
+                    line,
                 )
 
                 for candidate_text in candidates:
@@ -849,20 +804,70 @@ def _tm_receipt_ocr(image):
                     try:
                         candidate = float(
                             candidate_text
-                            .replace(",", ".")
                         )
                     except Exception:
                         continue
 
-                    # Курсът 1.95583 няма да попадне тук,
-                    # защото е с 5 знака след десетичната.
-                    if candidate >= 0:
-                        total_eur = candidate
-                        break
+                    # Ако на реда има BGN маркер,
+                    # тази стойност не е EUR.
+                    if re.search(
+                        r"\b(?:BGN|ЛВ|ЛЕВА|ЛЕВ)\b",
+                        upper,
+                        re.IGNORECASE,
+                    ):
+                        continue
+
+                    total_eur = candidate
+                    break
+
+                # Следващите два реда
+                if total_eur is None:
+
+                    for next_line in lines[
+                        i + 1:i + 3
+                    ]:
+
+                        upper_next = next_line.upper()
+
+                        # BGN редове не участват.
+                        if re.search(
+                            r"\b(?:BGN|ЛВ|ЛЕВА|ЛЕВ)\b",
+                            upper_next,
+                            re.IGNORECASE,
+                        ):
+                            continue
+
+                        candidates = re.findall(
+                            r"\b\d{1,7}\.\d{2}\b",
+                            next_line,
+                        )
+
+                        if candidates:
+
+                            try:
+                                total_eur = float(
+                                    candidates[0]
+                                )
+                            except Exception:
+                                total_eur = None
+
+                            if total_eur is not None:
+                                break
 
                 if total_eur is not None:
                     break
 
+    # ---------------------------------------------------------
+    # 4. ВАЖНО:
+    #
+    # НЕ правим fallback:
+    #
+    # BGN / 1.95583
+    #
+    # и НЕ вземаме просто най-голямото число.
+    #
+    # Ако няма надежден EUR маркер → оставяме None.
+    # ---------------------------------------------------------
     # =========================================================
     # 16. ДАТА + ЧАС
     # =========================================================
