@@ -241,6 +241,71 @@ DEFAULT_UI_LABELS = {
     "fuel_red_threshold": 1.80
 }
 
+
+def _tm_tesseract_diagnostics():
+    """Check both pytesseract and the real Tesseract executable."""
+    import os
+    import shutil
+    import subprocess
+
+    result = {
+        "pytesseract": bool(_PYTESSERACT_AVAILABLE),
+        "module_version": None,
+        "executable": None,
+        "path": os.environ.get("PATH", ""),
+        "version": None,
+        "error": None,
+    }
+
+    if _PYTESSERACT_AVAILABLE:
+        try:
+            result["module_version"] = getattr(pytesseract, "__version__", "unknown")
+        except Exception:
+            result["module_version"] = "unknown"
+
+    candidates = []
+    try:
+        found = shutil.which("tesseract")
+        if found:
+            candidates.append(found)
+    except Exception:
+        pass
+
+    for candidate in (
+        "/usr/bin/tesseract",
+        "/usr/local/bin/tesseract",
+        "/bin/tesseract",
+        "/opt/bin/tesseract",
+    ):
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            candidates.append(candidate)
+
+    candidates = list(dict.fromkeys(candidates))
+
+    if candidates:
+        result["executable"] = candidates[0]
+        try:
+            proc = subprocess.run(
+                [candidates[0], "--version"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            first_line = (proc.stdout or proc.stderr).strip().splitlines()
+            result["version"] = first_line[0] if first_line else "unknown"
+            if proc.returncode != 0:
+                result["error"] = (proc.stderr or proc.stdout).strip()
+        except Exception as exc:
+            result["error"] = str(exc)
+    else:
+        result["error"] = (
+            "Tesseract executable не е намерен в PATH "
+            "или стандартните Linux пътища."
+        )
+
+    return result
+
+
 def _tm_receipt_preprocess(image):
     """Подготовка на снимката за OCR, без да променя оригинала."""
     img = image.convert("RGB")
@@ -1303,6 +1368,35 @@ if st.session_state["current_trip"] is None:
             color:#f4f8fb !important;
         }
 
+
+        /* Receipt OCR test button */
+        div[class*="st-key-receipt_ocr_test_btn"] button {
+            min-height:62px !important;
+            padding:11px 15px !important;
+            border-radius:16px !important;
+            text-align:left !important;
+            justify-content:flex-start !important;
+            align-items:flex-start !important;
+            white-space:pre-wrap !important;
+            background:linear-gradient(145deg,rgba(20,32,42,.94),rgba(9,17,24,.98)) !important;
+            border:1px solid rgba(93,126,148,.18) !important;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 8px 20px rgba(0,0,0,.20) !important;
+        }
+        div[class*="st-key-receipt_ocr_test_btn"] button p {
+            width:100% !important;
+            white-space:pre-line !important;
+            text-align:left !important;
+            font-size:13px !important;
+            line-height:1.32 !important;
+            font-weight:400 !important;
+            color:#9aa8b3 !important;
+        }
+        div[class*="st-key-receipt_ocr_test_btn"] button p::first-line {
+            font-size:14px !important;
+            font-weight:800 !important;
+            color:#f4f8fb !important;
+        }
+
         /* Trips heading */
         .tm-home-trips-title {
             display:flex;
@@ -1492,37 +1586,118 @@ if st.session_state["current_trip"] is None:
 
     # ---------------------------------------------------------
     # ТЕСТОВ МОДУЛ — СНИМКА НА КАСОВА БЕЛЕЖКА
-    # Само OCR тест. Не записва разход.
+    # Inline panel вместо dialog: uploader-ът не се затваря при rerun.
+    # Нищо не се записва в разходите.
     # ---------------------------------------------------------
+    if "show_receipt_ocr_test" not in st.session_state:
+        st.session_state["show_receipt_ocr_test"] = False
+
     if st.button(
         "📸  Тест: Касова бележка\nСнимай бележка и виж какво разпознава",
         use_container_width=True,
         key="receipt_ocr_test_btn",
     ):
-        st.session_state["open_receipt_ocr_test"] = True
-        st.session_state.pop("receipt_ocr_result", None)
+        st.session_state["show_receipt_ocr_test"] = not st.session_state.get(
+            "show_receipt_ocr_test", False
+        )
+        if not st.session_state["show_receipt_ocr_test"]:
+            st.session_state.pop("receipt_ocr_result", None)
         st.rerun()
 
-    @st.dialog("📸 Тест на касова бележка", width="large")
-    def receipt_ocr_test_modal():
+    if st.session_state.get("show_receipt_ocr_test"):
+
+        # --- OCR system diagnostics ---
+        diag = _tm_tesseract_diagnostics()
+        st.markdown("### 🧪 Диагностика на OCR")
+
+        d1, d2 = st.columns(2)
+        with d1:
+            if diag["pytesseract"]:
+                st.success(
+                    f"🟢 pytesseract: OK · {diag['module_version'] or 'unknown'}"
+                )
+            else:
+                st.error("🔴 pytesseract: ЛИПСВА")
+
+        with d2:
+            if diag["executable"]:
+                st.success("🟢 Tesseract: OK")
+                st.code(diag["executable"], language="text")
+            else:
+                st.error("🔴 Tesseract: ЛИПСВА")
+
+        if diag["version"]:
+            st.caption(diag["version"])
+
+        with st.expander("Техническа информация"):
+            st.write("PATH:")
+            st.code(diag["path"] or "(празен)", language="text")
+            if diag["error"]:
+                st.write("Грешка:")
+                st.code(diag["error"], language="text")
+
+        if diag["executable"] and diag["pytesseract"]:
+            if st.button(
+                "⚙️ Тест на самия Tesseract",
+                key="tesseract_self_test_btn",
+                use_container_width=True,
+            ):
+                try:
+                    from PIL import ImageDraw
+                    test_img = Image.new("RGB", (900, 220), "white")
+                    draw = ImageDraw.Draw(test_img)
+                    draw.text((40, 70), "OCR TEST 123.45", fill="black")
+                    test_text = pytesseract.image_to_string(
+                        test_img,
+                        config="--oem 3 --psm 6",
+                    ).strip()
+
+                    if test_text:
+                        st.success("🟢 Tesseract работи.")
+                        st.code(test_text, language="text")
+                    else:
+                        st.warning(
+                            "🟡 Tesseract се стартира, но не върна текст."
+                        )
+                except Exception as exc:
+                    st.error(f"🔴 Tesseract self-test грешка: {exc}")
+
         st.markdown(
             """
-            <div class="tm-home-extra" style="margin-top:0;">
+            <div class="tm-home-extra" style="margin-top:10px;">
                 <div class="tm-home-extra-title">🧾 OCR ТЕСТ</div>
                 <div class="tm-home-extra-sub">
-                    Качи снимка на касова бележка. Тук само проверяваме какво
-                    успява да разчете системата — <b>няма запис на разход</b>.
+                    Качи снимка на касова бележка. Тук само проверяваме
+                    какво успява да разчете системата — <b>няма запис на разход</b>.
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
+        if not _PYTESSERACT_AVAILABLE:
+            st.warning(
+                "⚠️ Python OCR библиотеката pytesseract не е налична. "
+                "Провери дали `pytesseract` е добавен в requirements.txt."
+            )
+        else:
+            try:
+                import shutil
+                _tesseract_path = shutil.which("tesseract")
+            except Exception:
+                _tesseract_path = None
+
+            if not _tesseract_path:
+                st.error(
+                    "❌ Tesseract OCR engine не е инсталиран на сървъра. "
+                    "Добави `tesseract-ocr` и `tesseract-ocr-bul` в packages.txt "
+                    "и рестартирай приложението."
+                )
+
         uploaded = st.file_uploader(
-            "Качи снимка",
+            "Качи снимка на касова бележка",
             type=["jpg", "jpeg", "png", "webp"],
-            key="receipt_ocr_uploader",
-            label_visibility="collapsed",
+            key="receipt_ocr_uploader_v2",
         )
 
         if uploaded is not None:
@@ -1531,54 +1706,66 @@ if st.session_state["current_trip"] is None:
                 receipt_img.load()
             except Exception as exc:
                 st.error(f"❌ Не успях да отворя снимката: {exc}")
-                return
-
-            st.image(receipt_img, caption="Оригинална снимка", use_container_width=True)
-
-            if st.button(
-                "🔍  РАЗЧЕТИ КАСОВАТА БЕЛЕЖКА",
-                use_container_width=True,
-                type="primary",
-                key="run_receipt_ocr_btn",
-            ):
-                with st.spinner("Разчитам бележката…"):
-                    st.session_state["receipt_ocr_result"] = _tm_receipt_ocr(receipt_img)
-
-        result = st.session_state.get("receipt_ocr_result")
-        if result:
-            if not result.get("ok"):
-                st.error(f"❌ {result.get('error', 'OCR грешка')}")
             else:
-                st.markdown("### 🔎 Какво намерих")
-                c1, c2 = st.columns(2)
-                with c1:
-                    bgn = result.get("total_bgn")
-                    st.metric("Обща сума (лв.)", f"{bgn:,.2f} лв." if bgn is not None else "—")
-                with c2:
-                    eur = result.get("total_eur")
-                    st.metric("Обща сума (евро)", f"{eur:,.2f} €" if eur is not None else "—")
-
-                c3, c4 = st.columns(2)
-                with c3:
-                    st.metric("Дата", result.get("date") or "—")
-                with c4:
-                    st.metric("Час", result.get("time") or "—")
-
-                st.markdown("### 📝 Суров разпознат текст")
-                st.text_area(
-                    "OCR резултат",
-                    result.get("text", ""),
-                    height=260,
-                    key="receipt_ocr_raw_text",
-                )
-                st.caption(
-                    f"OCR език: {result.get('lang') or 'неизвестен'} · "
-                    "Тестов режим — нищо не е записано."
+                st.image(
+                    receipt_img,
+                    caption=f"Качена снимка · {receipt_img.width} × {receipt_img.height}px",
+                    use_container_width=True,
                 )
 
-    if st.session_state.get("open_receipt_ocr_test"):
-        st.session_state["open_receipt_ocr_test"] = False
-        receipt_ocr_test_modal()
+                if st.button(
+                    "🔍  РАЗЧЕТИ КАСОВАТА БЕЛЕЖКА",
+                    use_container_width=True,
+                    type="primary",
+                    key="run_receipt_ocr_btn_v2",
+                ):
+                    with st.spinner("Разчитам бележката…"):
+                        st.session_state["receipt_ocr_result"] = _tm_receipt_ocr(
+                            receipt_img
+                        )
+
+                result = st.session_state.get("receipt_ocr_result")
+
+                if result:
+                    if not result.get("ok"):
+                        st.error(
+                            f"❌ {result.get('error', 'OCR не върна резултат.')}"
+                        )
+                    else:
+                        st.markdown("### 🔎 Какво намерих")
+
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            bgn = result.get("total_bgn")
+                            st.metric(
+                                "Обща сума (лв.)",
+                                f"{bgn:,.2f} лв." if bgn is not None else "—",
+                            )
+                        with c2:
+                            eur = result.get("total_eur")
+                            st.metric(
+                                "Обща сума (евро)",
+                                f"{eur:,.2f} €" if eur is not None else "—",
+                            )
+
+                        c3, c4 = st.columns(2)
+                        with c3:
+                            st.metric("Дата", result.get("date") or "—")
+                        with c4:
+                            st.metric("Час", result.get("time") or "—")
+
+                        st.markdown("### 📝 Суров разпознат текст")
+                        st.text_area(
+                            "OCR резултат",
+                            result.get("text", ""),
+                            height=260,
+                            key="receipt_ocr_raw_text_v2",
+                        )
+
+                        st.caption(
+                            f"OCR език: {result.get('lang') or 'неизвестен'} · "
+                            "Тестов режим — нищо не е записано."
+                        )
 
     # Диалогът за ново пътуване е дефиниран преди бутона, за да няма нова страница.
     @st.dialog("Създаване на ново приключение")
