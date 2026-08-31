@@ -500,42 +500,79 @@ def _tm_receipt_ocr(image):
         normalized,
     )
 
-    # ---------------------------------------------------------
+    # =========================================================
     # 5. EUR СУМА
     #
-    # Най-силният случай:
+    # ВАЖНО:
+    # Никога не вземаме произволна цена от бележката.
     #
-    # ОБЩА СУМА ЕВРО 79.00
-    # СУМА ЕВРО 79.00
+    # Търсим число, което е свързано с маркера:
     #
-    # Позволяваме OCR грешки/допълнителен текст между думите.
-    # ---------------------------------------------------------
+    #   ОБЩА СУМА ЕВРО
+    #   СУМА ЕВРО
+    #   СУМА: 549.00 EUR
+    #
+    # BGN / ЛВ / ЛЕВА НЕ участват.
+    # =========================================================
 
     total_eur = None
 
-    eur_patterns = [
+    # Работим върху нормализирано копие.
+    eur_text = text
 
-        r"(?:ОБЩА\s*)?СУМА"
-        r".{0,40}?"
-        r"ЕВРО"
-        r".{0,30}?"
-        r"(\d{1,7}\.\d{2})",
+    # ---------------------------------------------------------
+    # OCR поправки:
+    #
+    # 79-00  -> 79.00
+    # 79,00  -> 79.00
+    # 79. 00 -> 79.00
+    # ---------------------------------------------------------
 
-        r"(?:ОБЩА\s*)?СУМА"
-        r".{0,40}?"
-        r"EUR"
-        r".{0,30}?"
-        r"(\d{1,7}\.\d{2})",
+    eur_text = re.sub(
+        r"(\d{1,7})\s*[-,]\s*(\d{2})",
+        r"\1.\2",
+        eur_text,
+    )
 
-        r"(\d{1,7}\.\d{2})"
-        r"\s*(?:EUR|ЕВРО|€)",
+    eur_text = re.sub(
+        r"(\d{1,7})\s*\.\s*(\d{2})",
+        r"\1.\2",
+        eur_text,
+    )
+
+    # ---------------------------------------------------------
+    # Правим и вариант без пунктуация между думите,
+    # за да можем да търсим по-лесно.
+    # ---------------------------------------------------------
+
+    eur_lines = [
+        line.strip()
+        for line in eur_text.splitlines()
+        if line.strip()
     ]
 
-    for pattern in eur_patterns:
+    # ---------------------------------------------------------
+    # 1. НАЙ-СИЛЕН ВАРИАНТ
+    #
+    # ОБЩА СУМА ЕВРО 549.00
+    # ОБЩА СУМА. ЕВРО 909.16
+    # СУМА ЕВРО 79.00
+    #
+    # Позволяваме и OCR да е сложил други символи.
+    # ---------------------------------------------------------
+
+    strong_patterns = [
+
+        r"ОБЩА\s*СУМА.{0,15}?ЕВРО.{0,20}?(\d{1,7}\.\d{2})",
+
+        r"СУМА.{0,15}?ЕВРО.{0,20}?(\d{1,7}\.\d{2})",
+    ]
+
+    for pattern in strong_patterns:
 
         match = re.search(
             pattern,
-            normalized,
+            eur_text,
             flags=re.IGNORECASE | re.DOTALL,
         )
 
@@ -552,28 +589,58 @@ def _tm_receipt_ocr(image):
                 break
 
     # ---------------------------------------------------------
-    # 6. РЕДОВО ТЪРСЕНЕ
+    # 2. EUR НА СЪЩИЯ РЕД
     #
-    # Полезно при:
+    # Например:
     #
-    # СУМА ЕВРО
-    # 79.00
-    #
-    # или:
-    #
-    # ЕВРО
-    # 79.00
+    # СУМА: 549.00 EUR
+    # 549.00 EUR
+    # 549.00 ЕВРО
     # ---------------------------------------------------------
 
     if total_eur is None:
 
-        lines = [
-            line.strip()
-            for line in normalized.splitlines()
-            if line.strip()
+        same_line_patterns = [
+
+            r"СУМА.{0,15}?(\d{1,7}\.\d{2})\s*(?:EUR|ЕВРО|€)",
+
+            r"(\d{1,7}\.\d{2})\s*(?:EUR|ЕВРО|€)",
         ]
 
-        for i, line in enumerate(lines):
+        for pattern in same_line_patterns:
+
+            match = re.search(
+                pattern,
+                eur_text,
+                flags=re.IGNORECASE,
+            )
+
+            if match:
+
+                try:
+                    total_eur = float(
+                        match.group(1)
+                    )
+                except Exception:
+                    total_eur = None
+
+                if total_eur is not None:
+                    break
+
+    # ---------------------------------------------------------
+    # 3. EUR МАРКЕР НА ЕДИН РЕД + СУМА НА СЛЕДВАЩИЯ
+    #
+    # Например:
+    #
+    # ОБЩА СУМА ЕВРО
+    # 549.00
+    #
+    # Това е точно структурата на снимката от Technopolis.
+    # ---------------------------------------------------------
+
+    if total_eur is None:
+
+        for i, line in enumerate(eur_lines):
 
             upper = line.upper()
 
@@ -585,7 +652,7 @@ def _tm_receipt_ocr(image):
                 continue
 
             # -------------------------------------------------
-            # Първо самия ред
+            # Първо търсим число на същия ред.
             # -------------------------------------------------
 
             candidates = re.findall(
@@ -595,61 +662,58 @@ def _tm_receipt_ocr(image):
 
             if candidates:
 
-                for candidate_text in candidates:
+                try:
+                    total_eur = float(
+                        candidates[-1]
+                    )
+                except Exception:
+                    total_eur = None
 
-                    try:
-                        candidate = float(
-                            candidate_text
-                        )
-                    except Exception:
-                        continue
-
-                    # Ако същият ред съдържа BGN маркер,
-                    # не го приемаме за EUR.
-                    if re.search(
-                        r"\b(?:BGN|ЛВ|ЛЕВ|ЛЕВА)\b",
-                        upper,
-                    ):
-                        continue
-
-                    total_eur = candidate
+                if total_eur is not None:
                     break
 
             # -------------------------------------------------
-            # Ако няма число — проверяваме следващите 2 реда
+            # След това гледаме следващите 2 реда.
             # -------------------------------------------------
 
-            if total_eur is None:
+            for next_line in eur_lines[i + 1:i + 3]:
 
-                for next_line in lines[i + 1:i + 3]:
+                candidates = re.findall(
+                    r"\b\d{1,7}\.\d{2}\b",
+                    next_line,
+                )
 
-                    next_upper = next_line.upper()
+                if candidates:
 
-                    if re.search(
-                        r"\b(?:BGN|ЛВ|ЛЕВ|ЛЕВА)\b",
-                        next_upper,
-                    ):
-                        continue
+                    try:
+                        total_eur = float(
+                            candidates[0]
+                        )
+                    except Exception:
+                        total_eur = None
 
-                    candidates = re.findall(
-                        r"\b\d{1,7}\.\d{2}\b",
-                        next_line,
-                    )
-
-                    if candidates:
-
-                        try:
-                            total_eur = float(
-                                candidates[0]
-                            )
-                        except Exception:
-                            total_eur = None
-
-                        if total_eur is not None:
-                            break
+                    if total_eur is not None:
+                        break
 
             if total_eur is not None:
                 break
+
+    # ---------------------------------------------------------
+    # 4. НЕ ТЪРСИМ ПОВЕЧЕ
+    #
+    # Няма fallback към:
+    # - най-голямото число
+    # - BGN
+    # - ЛВ
+    # - обменен курс
+    # - цена на артикул
+    #
+    # Ако EUR не е открит надеждно -> None.
+    # ---------------------------------------------------------
+
+    # =========================================================
+    # 6. ДАТА + ЧАС
+    # =========================================================
 
     # ---------------------------------------------------------
     # 7. ДАТА
