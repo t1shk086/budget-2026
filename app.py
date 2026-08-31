@@ -561,165 +561,104 @@ def _tm_receipt_ocr(image):
     # ---------------------------------------------------------
     # ОБЩА СУМА ЕВРО
     #
-    # Търсим стойността, която е СЛЕД "ОБЩА СУМА ЕВРО".
-    # Това е важно, защото Tesseract понякога поставя:
+    # OCR от реалната бележка връща:
     #
-    # ОБЩА СУМА ЛВ 1778.16 ОБЩА СУМА ЕВРО 909.16
+    # ОБЩА СУМА. ЕВРО 909. 16
     #
-    # на един-единствен ред.
+    # Затова първо поправяме "909. 16" -> "909.16"
+    # и после търсим числото непосредствено след ЕВРО.
     # ---------------------------------------------------------
 
     total_eur = None
 
-    for i, line in enumerate(lines):
+    # Работим върху целия OCR текст, а не само върху lines,
+    # защото Tesseract може да размести интервалите.
+    eur_text = text.upper()
 
-        upper = line.upper()
+    # Поправка на OCR:
+    # 909. 16 -> 909.16
+    # 909, 16 -> 909,16
+    eur_text = re.sub(
+        r"(\d{1,7})\s*([.,])\s*(\d{2})",
+        r"\1\2\3",
+        eur_text
+    )
 
-        # -----------------------------------------------------
-        # ВАРИАНТ 1:
-        # "ОБЩА СУМА ЕВРО 909.16" е на един ред
-        # -----------------------------------------------------
+    # Търсим:
+    #
+    # ОБЩА СУМА ЕВРО 909.16
+    #
+    # Допускаме и точка след СУМА:
+    #
+    # ОБЩА СУМА. ЕВРО 909.16
+    eur_match = re.search(
+        r"ОБЩА\s+СУМА\.?\s+ЕВРО"
+        r"\s*[:\-]?\s*"
+        r"(\d{1,7}[.,]\d{2})",
+        eur_text,
+        re.IGNORECASE
+    )
 
-        eur_match = re.search(
-            r"ОБЩА\s*СУМА\s*(?:ЕВРО|EUR)"
-            r"\s*[:\-]?\s*"
-            r"([0-9][0-9\s.,]*)",
-            upper
-        )
+    if eur_match:
 
-        if eur_match:
-
-            values = extract_money(
+        try:
+            total_eur = float(
                 eur_match.group(1)
+                .replace(",", ".")
             )
+        except Exception:
+            total_eur = None
 
-            values = [
-                v for v in values
-                if v >= 10
-            ]
+    # ---------------------------------------------------------
+    # FALLBACK
+    #
+    # Ако OCR е сложил числото на следващ ред,
+    # търсим го непосредствено след "ОБЩА СУМА ЕВРО".
+    # ---------------------------------------------------------
 
-            if values:
+    if total_eur is None:
 
-                candidate = values[0]
+        for i, line in enumerate(lines):
 
-                # Не приемаме BGN сумата за EUR.
-                if (
-                    total_bgn is None
-                    or abs(candidate - total_bgn) > 0.01
-                ):
-                    total_eur = candidate
-                    break
+            upper = line.upper()
 
-        # -----------------------------------------------------
-        # ВАРИАНТ 2:
-        #
-        # OCR е разделил текста:
-        #
-        # ОБЩА СУМА ЕВРО
-        # 909.16
-        # -----------------------------------------------------
+            if (
+                "ОБЩА" in upper
+                and "СУМА" in upper
+                and "ЕВРО" in upper
+            ):
 
-        if (
-            "ОБЩА" in upper
-            and "СУМА" in upper
-            and (
-                "ЕВРО" in upper
-                or "EUR" in upper
-            )
-        ):
-
-            for next_line in lines[i + 1:i + 4]:
-
-                values = extract_money(
-                    next_line
+                # Текущият ред + следващите два
+                block = " ".join(
+                    lines[i:i + 3]
                 )
 
-                for candidate in values:
+                # Поправяме 909. 16
+                block = re.sub(
+                    r"(\d{1,7})\s*([.,])\s*(\d{2})",
+                    r"\1\2\3",
+                    block
+                )
 
-                    if candidate < 10:
-                        continue
+                values = extract_money(block)
 
-                    # Никога не използваме BGN сумата
-                    # като EUR сума.
+                # Първата стойност, различна от BGN.
+                for value in values:
+
                     if (
                         total_bgn is not None
-                        and abs(candidate - total_bgn) <= 0.01
+                        and abs(value - total_bgn) < 0.01
                     ):
                         continue
 
-                    total_eur = candidate
-                    break
+                    if value >= 10:
+
+                        total_eur = value
+
+                        break
 
                 if total_eur is not None:
                     break
-
-        if total_eur is not None:
-            break
-
-    # ---------------------------------------------------------
-    # ВАРИАНТ 3 — последен fallback
-    #
-    # Ако OCR е разхвърлял текста, намираме число,
-    # близко до BGN / 1.95583.
-    #
-    # Това НЕ заменя реалната EUR стойност, ако вече сме я
-    # намерили.
-    # ---------------------------------------------------------
-
-    if (
-        total_eur is None
-        and total_bgn is not None
-    ):
-
-        expected_eur = total_bgn / 1.95583
-
-        possible_eur = []
-
-        # Събираме всички числа от OCR текста.
-        all_values = []
-
-        for _line in lines:
-            try:
-                all_values.extend(
-                    extract_money(_line)
-                )
-            except Exception:
-                pass
-
-        for value in all_values:
-
-            # EUR сумата трябва да е различна
-            # от BGN сумата.
-            if abs(value - total_bgn) <= 0.01:
-                continue
-
-            if value < 10:
-                continue
-
-            difference = abs(
-                value - expected_eur
-            )
-
-            relative_difference = (
-                difference / expected_eur
-            )
-
-            if relative_difference <= 0.08:
-
-                possible_eur.append(
-                    (
-                        relative_difference,
-                        value
-                    )
-                )
-
-        if possible_eur:
-
-            possible_eur.sort(
-                key=lambda item: item[0]
-            )
-
-            total_eur = possible_eur[0][1]
 
     # ---------------------------------------------------------
     # СПЕЦИАЛЕН FALLBACK ЗА НАШАТА СТРУКТУРА
