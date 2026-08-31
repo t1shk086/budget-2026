@@ -979,14 +979,24 @@ def _tm_receipt_ocr(image):
         return {
             "ok": True,
             "error": "",
+
+            # Пълният OCR за диагностика.
             "text": raw_text,
+
             "targeted_text": "",
+
+            # BGN официално не използваме.
             "total_bgn": None,
+
+            # Само EUR.
             "total_eur": total_eur,
+
             "date": date_value,
             "date_ocr": date_value,
             "date_corrected": False,
+
             "time": time_value,
+
             "lang": "bul+eng",
         }
 
@@ -1004,6 +1014,9 @@ def _tm_receipt_ocr(image):
             "date_corrected": False,
             "time": None,
         }
+
+
+def get_ui_labels():
 
 
 
