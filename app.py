@@ -11,6 +11,15 @@ import io
 import html
 import textwrap
 import streamlit.components.v1 as components
+import re
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter
+
+try:
+    import pytesseract
+    _PYTESSERACT_AVAILABLE = True
+except Exception:
+    pytesseract = None
+    _PYTESSERACT_AVAILABLE = False
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -231,6 +240,103 @@ DEFAULT_UI_LABELS = {
     "deposit": "Депозит/Резервация",
     "fuel_red_threshold": 1.80
 }
+
+def _tm_receipt_preprocess(image):
+    """Подготовка на снимката за OCR, без да променя оригинала."""
+    img = image.convert("RGB")
+    img = img.resize(
+        (max(1, int(img.width * 2.2)), max(1, int(img.height * 2.2))),
+        Image.Resampling.LANCZOS,
+    )
+    gray = ImageOps.grayscale(img)
+    gray = ImageOps.autocontrast(gray, cutoff=1)
+    gray = ImageEnhance.Contrast(gray).enhance(1.35)
+    gray = gray.filter(ImageFilter.SHARPEN)
+    return gray
+
+
+def _tm_receipt_ocr(image):
+    """OCR тест: връща суров текст и няколко безопасно извлечени полета."""
+    if not _PYTESSERACT_AVAILABLE:
+        return {"ok": False, "error": "pytesseract не е инсталиран.", "text": ""}
+
+    prepared = _tm_receipt_preprocess(image)
+    raw_text = ""
+    used_lang = None
+    last_error = None
+
+    for lang, config in [
+        ("bul+eng", "--oem 3 --psm 6"),
+        ("eng", "--oem 3 --psm 6"),
+        ("eng", "--oem 3 --psm 11"),
+    ]:
+        try:
+            raw_text = pytesseract.image_to_string(prepared, lang=lang, config=config)
+            if raw_text.strip():
+                used_lang = lang
+                break
+        except Exception as exc:
+            last_error = str(exc)
+
+    if not raw_text.strip():
+        return {
+            "ok": False,
+            "error": "OCR не върна текст." + (f" {last_error}" if last_error else ""),
+            "text": "",
+            "lang": used_lang,
+        }
+
+    normalized = raw_text.replace(",", ".")
+    lines = [ln.strip() for ln in normalized.splitlines() if ln.strip()]
+
+    total_bgn = None
+    total_eur = None
+
+    # Приоритетно търсим числата до етикетите за ОБЩА СУМА. Не вземаме
+    # първото число на бележката, защото там има количества и цени на артикули.
+    for pat in [
+        r"ОБЩА\s+СУМА\s+ЛВ[^\d]{0,30}(\d{1,7}\.\d{2})",
+        r"ОБЩА\s+СУМА[^\d]{0,30}(\d{1,7}\.\d{2})",
+        r"TOTAL[^\d]{0,30}(\d{1,7}\.\d{2})",
+    ]:
+        m = re.search(pat, normalized, flags=re.IGNORECASE | re.DOTALL)
+        if m:
+            total_bgn = float(m.group(1))
+            break
+
+    for pat in [
+        r"ОБЩА\s+СУМА\s+ЕВРО[^\d]{0,30}(\d{1,7}\.\d{2})",
+        r"ЕВРО[^\d]{0,30}(\d{1,7}\.\d{2})",
+        r"EUR[^\d]{0,30}(\d{1,7}\.\d{2})",
+    ]:
+        m = re.search(pat, normalized, flags=re.IGNORECASE | re.DOTALL)
+        if m:
+            total_eur = float(m.group(1))
+            break
+
+    if total_bgn is None:
+        for i, line in enumerate(lines):
+            if "ОБЩА СУМА" in line.upper() or "TOTAL" in line.upper():
+                nearby = " ".join(lines[i:i+2])
+                nums = re.findall(r"\d{1,7}\.\d{2}", nearby)
+                if nums:
+                    total_bgn = float(nums[-1])
+                    break
+
+    date_match = re.search(r"\b(\d{2}\.\d{2}\.\d{4})\b", normalized)
+    time_match = re.search(r"\b(\d{2}:\d{2}:\d{2})\b", normalized)
+
+    return {
+        "ok": True,
+        "error": "",
+        "text": raw_text,
+        "total_bgn": total_bgn,
+        "total_eur": total_eur,
+        "date": date_match.group(1) if date_match else None,
+        "time": time_match.group(1) if time_match else None,
+        "lang": used_lang,
+    }
+
 
 def get_ui_labels():
     labels = DEFAULT_UI_LABELS.copy()
@@ -729,6 +835,7 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
         return False
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
+if "open_receipt_ocr_test" not in st.session_state: st.session_state["open_receipt_ocr_test"] = False
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
 
 # Временно отключване на заключването на приключено пътуване.
@@ -1168,6 +1275,34 @@ if st.session_state["current_trip"] is None:
                 0 0 18px rgba(75,210,255,.04) !important;
         }
 
+        /* Receipt OCR test button */
+        div[class*="st-key-receipt_ocr_test_btn"] button {
+            min-height:62px !important;
+            padding:11px 15px !important;
+            border-radius:16px !important;
+            text-align:left !important;
+            justify-content:flex-start !important;
+            align-items:flex-start !important;
+            white-space:pre-wrap !important;
+            background:linear-gradient(145deg,rgba(20,32,42,.94),rgba(9,17,24,.98)) !important;
+            border:1px solid rgba(93,126,148,.18) !important;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 8px 20px rgba(0,0,0,.20) !important;
+        }
+        div[class*="st-key-receipt_ocr_test_btn"] button p {
+            width:100% !important;
+            white-space:pre-line !important;
+            text-align:left !important;
+            font-size:13px !important;
+            line-height:1.32 !important;
+            font-weight:400 !important;
+            color:#9aa8b3 !important;
+        }
+        div[class*="st-key-receipt_ocr_test_btn"] button p::first-line {
+            font-size:14px !important;
+            font-weight:800 !important;
+            color:#f4f8fb !important;
+        }
+
         /* Trips heading */
         .tm-home-trips-title {
             display:flex;
@@ -1354,6 +1489,96 @@ if st.session_state["current_trip"] is None:
     if st.button("➕  Бърз Разход\nДобави разход за секунди", use_container_width=True, type="primary", key="quick_expense_top_btn"):
         st.session_state["open_quick_expense"] = True
         st.rerun()
+
+    # ---------------------------------------------------------
+    # ТЕСТОВ МОДУЛ — СНИМКА НА КАСОВА БЕЛЕЖКА
+    # Само OCR тест. Не записва разход.
+    # ---------------------------------------------------------
+    if st.button(
+        "📸  Тест: Касова бележка\nСнимай бележка и виж какво разпознава",
+        use_container_width=True,
+        key="receipt_ocr_test_btn",
+    ):
+        st.session_state["open_receipt_ocr_test"] = True
+        st.session_state.pop("receipt_ocr_result", None)
+        st.rerun()
+
+    @st.dialog("📸 Тест на касова бележка", width="large")
+    def receipt_ocr_test_modal():
+        st.markdown(
+            """
+            <div class="tm-home-extra" style="margin-top:0;">
+                <div class="tm-home-extra-title">🧾 OCR ТЕСТ</div>
+                <div class="tm-home-extra-sub">
+                    Качи снимка на касова бележка. Тук само проверяваме какво
+                    успява да разчете системата — <b>няма запис на разход</b>.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        uploaded = st.file_uploader(
+            "Качи снимка",
+            type=["jpg", "jpeg", "png", "webp"],
+            key="receipt_ocr_uploader",
+            label_visibility="collapsed",
+        )
+
+        if uploaded is not None:
+            try:
+                receipt_img = Image.open(uploaded)
+                receipt_img.load()
+            except Exception as exc:
+                st.error(f"❌ Не успях да отворя снимката: {exc}")
+                return
+
+            st.image(receipt_img, caption="Оригинална снимка", use_container_width=True)
+
+            if st.button(
+                "🔍  РАЗЧЕТИ КАСОВАТА БЕЛЕЖКА",
+                use_container_width=True,
+                type="primary",
+                key="run_receipt_ocr_btn",
+            ):
+                with st.spinner("Разчитам бележката…"):
+                    st.session_state["receipt_ocr_result"] = _tm_receipt_ocr(receipt_img)
+
+        result = st.session_state.get("receipt_ocr_result")
+        if result:
+            if not result.get("ok"):
+                st.error(f"❌ {result.get('error', 'OCR грешка')}")
+            else:
+                st.markdown("### 🔎 Какво намерих")
+                c1, c2 = st.columns(2)
+                with c1:
+                    bgn = result.get("total_bgn")
+                    st.metric("Обща сума (лв.)", f"{bgn:,.2f} лв." if bgn is not None else "—")
+                with c2:
+                    eur = result.get("total_eur")
+                    st.metric("Обща сума (евро)", f"{eur:,.2f} €" if eur is not None else "—")
+
+                c3, c4 = st.columns(2)
+                with c3:
+                    st.metric("Дата", result.get("date") or "—")
+                with c4:
+                    st.metric("Час", result.get("time") or "—")
+
+                st.markdown("### 📝 Суров разпознат текст")
+                st.text_area(
+                    "OCR резултат",
+                    result.get("text", ""),
+                    height=260,
+                    key="receipt_ocr_raw_text",
+                )
+                st.caption(
+                    f"OCR език: {result.get('lang') or 'неизвестен'} · "
+                    "Тестов режим — нищо не е записано."
+                )
+
+    if st.session_state.get("open_receipt_ocr_test"):
+        st.session_state["open_receipt_ocr_test"] = False
+        receipt_ocr_test_modal()
 
     # Диалогът за ново пътуване е дефиниран преди бутона, за да няма нова страница.
     @st.dialog("Създаване на ново приключение")
