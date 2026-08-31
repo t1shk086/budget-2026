@@ -1854,27 +1854,11 @@ if st.session_state["current_trip"] is None:
                     "и рестартирай приложението."
                 )
 
-        st.caption("📷 На телефон: натисни камерата → снимай → OK → разчитането започва автоматично.")
-
-        # V5: директна камера + галерия.
-        # camera_input връща снимката след натискане на OK на телефона.
-        cam_col, gal_col = st.columns(2)
-
-        with cam_col:
-            camera_photo = st.camera_input(
-                "📷 Сними касовата бележка",
-                key="receipt_camera_v5",
-            )
-
-        with gal_col:
-            gallery_photo = st.file_uploader(
-                "🖼️ Избери от галерията",
-                type=["jpg", "jpeg", "png", "webp"],
-                key="receipt_gallery_v5",
-            )
-
-        # Камерата е с приоритет, ако има и двете.
-        uploaded = camera_photo if camera_photo is not None else gallery_photo
+        uploaded = st.file_uploader(
+            "Качи снимка на касова бележка",
+            type=["jpg", "jpeg", "png", "webp"],
+            key="receipt_ocr_uploader_v2",
+        )
 
         if uploaded is not None:
             try:
@@ -1883,27 +1867,19 @@ if st.session_state["current_trip"] is None:
             except Exception as exc:
                 st.error(f"❌ Не успях да отворя снимката: {exc}")
             else:
-                # Уникален ключ за конкретната снимка. Така при rerun
-                # след натискане OK OCR се стартира автоматично само веднъж.
-                try:
-                    image_bytes = uploaded.getvalue()
-                except Exception:
-                    image_bytes = bytes(uploaded.getbuffer())
-
-                import hashlib
-                image_key = hashlib.sha256(image_bytes).hexdigest()
-
                 st.image(
                     receipt_img,
-                    caption=f"Получена снимка · {receipt_img.width} × {receipt_img.height}px",
+                    caption=f"Качена снимка · {receipt_img.width} × {receipt_img.height}px",
                     use_container_width=True,
                 )
 
-                if st.session_state.get("receipt_ocr_image_key") != image_key:
-                    st.session_state["receipt_ocr_image_key"] = image_key
-                    st.session_state.pop("receipt_ocr_result", None)
-
-                    with st.spinner("🔍 Разчитам касовата бележка…"):
+                if st.button(
+                    "🔍  РАЗЧЕТИ КАСОВАТА БЕЛЕЖКА",
+                    use_container_width=True,
+                    type="primary",
+                    key="run_receipt_ocr_btn_v2",
+                ):
+                    with st.spinner("Разчитам бележката…"):
                         st.session_state["receipt_ocr_result"] = _tm_receipt_ocr(
                             receipt_img
                         )
