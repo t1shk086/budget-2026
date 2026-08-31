@@ -1256,6 +1256,21 @@ if st.session_state["current_trip"] is None:
             letter-spacing:.25px;
         }
 
+
+        /* V4 — Quick Overview: coordinated cool-color accents */
+        .tm-home-stat:nth-child(1) .tm-home-stat-value {
+            color:#4dd8ff !important;
+            text-shadow:0 0 12px rgba(77,216,255,.12);
+        }
+        .tm-home-stat:nth-child(2) .tm-home-stat-value {
+            color:#8edfff !important;
+            text-shadow:0 0 12px rgba(142,223,255,.10);
+        }
+        .tm-home-stat:nth-child(3) .tm-home-stat-value {
+            color:#70c9c0 !important;
+            text-shadow:0 0 12px rgba(112,201,192,.10);
+        }
+
         /* Map is now visually part of the same card family */
         .tm-modern-map-shell {
             margin-top:8px !important;
