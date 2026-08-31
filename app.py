@@ -1108,7 +1108,7 @@ if st.session_state["current_trip"] is None:
             width:100% !important;
             text-align:left !important;
             white-space:pre-wrap !important;
-            font-size:15px !important;
+            font-size:13px !important;
             line-height:1.38 !important;
             font-weight:800 !important;
             color:#f4f8fb !important;
@@ -1131,13 +1131,41 @@ if st.session_state["current_trip"] is None:
 
         div[class*="st-key-quick_expense_top_btn"] button p,
         div[class*="st-key-new_trip_home_btn"] button p {
-            color:#f4f8fb !important;
+            color:#9aa8b3 !important;
             font-weight:400 !important;
+            line-height:1.32 !important;
         }
         div[class*="st-key-quick_expense_top_btn"] button p::first-line,
         div[class*="st-key-new_trip_home_btn"] button p::first-line {
             color:#f4f8fb !important;
             font-weight:800 !important;
+        }
+
+
+        /* V3 — subtle premium polish for trip cards */
+        div[class*="st-key-trip_card_"] {
+            border-radius:18px !important;
+        }
+        div[class*="st-key-trip_card_"] > div {
+            border-radius:18px !important;
+        }
+        div[class*="st-key-trip_card_"] button {
+            border-radius:18px !important;
+            background:
+                linear-gradient(145deg, rgba(20,35,45,.98) 0%, rgba(13,24,32,.98) 58%, rgba(9,17,24,.99) 100%) !important;
+            border-color:rgba(75,210,255,.15) !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.035),
+                0 10px 26px rgba(0,0,0,.25) !important;
+            transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease !important;
+        }
+        div[class*="st-key-trip_card_"] button:hover {
+            transform:translateY(-2px) !important;
+            border-color:rgba(75,210,255,.28) !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.045),
+                0 15px 32px rgba(0,0,0,.32),
+                0 0 18px rgba(75,210,255,.04) !important;
         }
 
         /* Trips heading */
