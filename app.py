@@ -395,26 +395,30 @@ def _tm_receipt_targeted_ocr(image):
 
 def _tm_receipt_ocr(image):
     """
-    V17 — OCR за касови бележки.
+    V18 — OCR за касови бележки.
 
-    Основна цел на V17:
-    подобряване на разпознаването на цифра 0,
-    когато върху нея има хоризонтална черта.
+    Цел:
+    Подобрено разпознаване на 0, когато през цифрата
+    има хоризонтална черта.
 
     EUR е единствената официална парична стойност.
-    BGN не се използва.
+    BGN НЕ се използва.
 
     OCR варианти:
-        1. original
-        2. lower60 psm6
-        3. lower60 psm11
-        4. processed grayscale
-        5. line-removal preprocessing
+        1. original psm6
+        2. original psm11
+        3. lower60 psm6
+        4. lower60 psm11
+        5. lower50 psm6
+        6. lower50 psm11
+        7. grayscale psm6
+        8. grayscale psm11
+        9. line-removal psm6
+        10. line-removal psm11
+        11. threshold variants
 
-    НЕ правим:
-        88 -> 00
-
-    Защото 88 може да бъде реална сума.
+    ВАЖНО:
+    НЕ правим глобално 88 -> 00.
     """
 
     if not _PYTESSERACT_AVAILABLE:
@@ -450,7 +454,7 @@ def _tm_receipt_ocr(image):
         image = image.copy()
 
         # =====================================================
-        # 2. RGB
+        # 2. RGB / L
         # =====================================================
 
         try:
@@ -470,6 +474,17 @@ def _tm_receipt_ocr(image):
             if longest < 1800:
 
                 scale = 1800.0 / float(longest)
+
+                image = image.resize(
+                    (
+                        max(1, int(width * scale)),
+                        max(1, int(height * scale)),
+                    )
+                )
+
+            elif longest > 3000:
+
+                scale = 3000.0 / float(longest)
 
                 image = image.resize(
                     (
@@ -499,13 +514,25 @@ def _tm_receipt_ocr(image):
             )
         )
 
-        # -----------------------------------------------------
-        # LOWER 60%
-        # -----------------------------------------------------
+        ocr_images.append(
+            (
+                "original_psm11",
+                image,
+                "--oem 3 --psm 11",
+            )
+        )
+
+        # =====================================================
+        # 5. LOWER PARTS
+        # =====================================================
 
         try:
 
             width, height = image.size
+
+            # -------------------------------------------------
+            # LOWER 60%
+            # -------------------------------------------------
 
             lower60 = image.crop(
                 (
@@ -532,11 +559,40 @@ def _tm_receipt_ocr(image):
                 )
             )
 
+            # -------------------------------------------------
+            # LOWER 50%
+            # -------------------------------------------------
+
+            lower50 = image.crop(
+                (
+                    0,
+                    int(height * 0.50),
+                    width,
+                    height,
+                )
+            )
+
+            ocr_images.append(
+                (
+                    "lower50_psm6",
+                    lower50,
+                    "--oem 3 --psm 6",
+                )
+            )
+
+            ocr_images.append(
+                (
+                    "lower50_psm11",
+                    lower50,
+                    "--oem 3 --psm 11",
+                )
+            )
+
         except Exception:
             pass
 
         # =====================================================
-        # 5. GRAYSCALE + CONTRAST
+        # 6. GRAYSCALE
         # =====================================================
 
         try:
@@ -547,7 +603,7 @@ def _tm_receipt_ocr(image):
 
             gray = ImageEnhance.Contrast(
                 gray
-            ).enhance(2.0)
+            ).enhance(2.2)
 
             gray = gray.filter(
                 ImageFilter.SHARPEN
@@ -561,18 +617,69 @@ def _tm_receipt_ocr(image):
                 )
             )
 
+            ocr_images.append(
+                (
+                    "gray_psm11",
+                    gray,
+                    "--oem 3 --psm 11",
+                )
+            )
+
         except Exception:
             pass
 
         # =====================================================
-        # 6. LINE REMOVAL
+        # 7. THRESHOLD VARIANTS
         #
-        # Опитваме се да премахнем тънките хоризонтални
-        # черти, които могат да минават през цифрата 0.
+        # Правим ги с PIL.
         #
-        # Не използваме OpenCV задължително.
-        # Ако е наличен -> по-прецизно.
-        # Ако не е -> пропускаме този вариант.
+        # Това е важно за зачеркнатите 0.
+        # =====================================================
+
+        try:
+
+            gray_for_threshold = ImageOps.grayscale(
+                image
+            )
+
+            for threshold_value in (
+                150,
+                180,
+                210,
+            ):
+
+                threshold_img = gray_for_threshold.point(
+                    lambda p, t=threshold_value:
+                    255 if p > t else 0
+                )
+
+                ocr_images.append(
+                    (
+                        f"threshold_{threshold_value}_psm6",
+                        threshold_img,
+                        "--oem 3 --psm 6",
+                    )
+                )
+
+                ocr_images.append(
+                    (
+                        f"threshold_{threshold_value}_psm11",
+                        threshold_img,
+                        "--oem 3 --psm 11",
+                    )
+                )
+
+        except Exception:
+            pass
+
+        # =====================================================
+        # 8. LINE REMOVAL
+        #
+        # Тук атакуваме конкретно проблема с хоризонталната
+        # черта през цифрата 0.
+        #
+        # OpenCV е ОПЦИОНАЛЕН.
+        # Ако липсва -> всичко останало продължава.
         # =====================================================
 
         try:
@@ -580,17 +687,13 @@ def _tm_receipt_ocr(image):
             import cv2
             import numpy as np
 
-            # -------------------------------------------------
-            # Работим върху долната част.
-            # Там обикновено е ОБЩА СУМА ЕВРО.
-            # -------------------------------------------------
-
             width, height = image.size
 
+            # Работим основно върху долните 60%.
             lower = image.crop(
                 (
                     0,
-                    int(height * 0.45),
+                    int(height * 0.40),
                     width,
                     height,
                 )
@@ -605,10 +708,7 @@ def _tm_receipt_ocr(image):
             )
 
             # -------------------------------------------------
-            # Binary image.
-            #
-            # Черният текст става 0,
-            # белият фон става 255.
+            # OTSU
             # -------------------------------------------------
 
             _, binary = cv2.threshold(
@@ -620,16 +720,25 @@ def _tm_receipt_ocr(image):
             )
 
             # -------------------------------------------------
-            # Хоризонтален kernel.
+            # Намиране на хоризонтални линии.
             #
-            # Целта е да намери дълги тънки хоризонтални
-            # линии, а не самите цифри.
+            # По-къс kernel от V17.
+            # Това е важно, защото при V17 kernel-ът можеше
+            # да пропусне късата черта върху 0.
             # -------------------------------------------------
+
+            kernel_width = max(
+                9,
+                min(
+                    45,
+                    int(arr.shape[1] * 0.012)
+                )
+            )
 
             horizontal_kernel = cv2.getStructuringElement(
                 cv2.MORPH_RECT,
                 (
-                    max(15, int(arr.shape[1] * 0.025)),
+                    kernel_width,
                     1,
                 ),
             )
@@ -641,20 +750,20 @@ def _tm_receipt_ocr(image):
             )
 
             # -------------------------------------------------
-            # Разширяваме съвсем леко намерените линии.
+            # Съвсем леко разширяване.
             # -------------------------------------------------
 
             horizontal_lines = cv2.dilate(
                 horizontal_lines,
                 np.ones(
-                    (1, 3),
+                    (1, 2),
                     dtype=np.uint8,
                 ),
                 iterations=1,
             )
 
             # -------------------------------------------------
-            # Премахваме само намерените хоризонтални линии.
+            # Премахване.
             # -------------------------------------------------
 
             cleaned = cv2.bitwise_and(
@@ -664,7 +773,6 @@ def _tm_receipt_ocr(image):
                 ),
             )
 
-            # Връщаме обратно черно върху бяло.
             cleaned = cv2.bitwise_not(
                 cleaned
             )
@@ -674,14 +782,14 @@ def _tm_receipt_ocr(image):
             )
 
             # -------------------------------------------------
-            # Леко увеличение.
+            # Увеличение.
             # -------------------------------------------------
 
             cw, ch = cleaned_image.size
 
-            if cw < 2200:
+            if cw < 2400:
 
-                scale = 2200.0 / float(cw)
+                scale = 2400.0 / float(cw)
 
                 cleaned_image = cleaned_image.resize(
                     (
@@ -706,13 +814,93 @@ def _tm_receipt_ocr(image):
                 )
             )
 
+            # -------------------------------------------------
+            # ВТОРИ LINE REMOVAL VARIANT
+            #
+            # Малко по-агресивен kernel.
+            # -------------------------------------------------
+
+            kernel_width_2 = max(
+                15,
+                min(
+                    65,
+                    int(arr.shape[1] * 0.020)
+                )
+            )
+
+            horizontal_kernel_2 = cv2.getStructuringElement(
+                cv2.MORPH_RECT,
+                (
+                    kernel_width_2,
+                    1,
+                ),
+            )
+
+            horizontal_lines_2 = cv2.morphologyEx(
+                binary,
+                cv2.MORPH_OPEN,
+                horizontal_kernel_2,
+            )
+
+            horizontal_lines_2 = cv2.dilate(
+                horizontal_lines_2,
+                np.ones(
+                    (1, 2),
+                    dtype=np.uint8,
+                ),
+                iterations=1,
+            )
+
+            cleaned_2 = cv2.bitwise_and(
+                binary,
+                cv2.bitwise_not(
+                    horizontal_lines_2
+                ),
+            )
+
+            cleaned_2 = cv2.bitwise_not(
+                cleaned_2
+            )
+
+            cleaned_image_2 = Image.fromarray(
+                cleaned_2
+            )
+
+            cw2, ch2 = cleaned_image_2.size
+
+            if cw2 < 2400:
+
+                scale2 = 2400.0 / float(cw2)
+
+                cleaned_image_2 = cleaned_image_2.resize(
+                    (
+                        max(1, int(cw2 * scale2)),
+                        max(1, int(ch2 * scale2)),
+                    )
+                )
+
+            ocr_images.append(
+                (
+                    "line_removed_strong_psm6",
+                    cleaned_image_2,
+                    "--oem 3 --psm 6",
+                )
+            )
+
+            ocr_images.append(
+                (
+                    "line_removed_strong_psm11",
+                    cleaned_image_2,
+                    "--oem 3 --psm 11",
+                )
+            )
+
         except Exception:
-            # Ако OpenCV/Numpy не са налични,
-            # останалите OCR варианти продължават да работят.
+            # OpenCV не е задължителен.
             pass
 
         # =====================================================
-        # 7. OCR
+        # 9. OCR
         # =====================================================
 
         ocr_results = []
@@ -740,7 +928,7 @@ def _tm_receipt_ocr(image):
                 pass
 
         # =====================================================
-        # 8. НЯМА OCR
+        # 10. НЯМА OCR
         # =====================================================
 
         if not ocr_results:
@@ -759,7 +947,7 @@ def _tm_receipt_ocr(image):
             }
 
         # =====================================================
-        # 9. ПЪЛЕН OCR ТЕКСТ
+        # 11. ПЪЛЕН OCR TEXT
         # =====================================================
 
         raw_parts = []
@@ -775,7 +963,7 @@ def _tm_receipt_ocr(image):
         )
 
         # =====================================================
-        # 10. NORMALIZE
+        # 12. NORMALIZE
         # =====================================================
 
         text = raw_text.replace(
@@ -805,27 +993,39 @@ def _tm_receipt_ocr(image):
         )
 
         # =====================================================
-        # 11. EUR CANDIDATES
+        # 13. LINES
+        # =====================================================
+
+        lines = [
+            line.strip()
+            for line in text.splitlines()
+            if line.strip()
+        ]
+
+        # =====================================================
+        # 14. EUR CANDIDATES
         # =====================================================
 
         eur_candidates = []
 
         # =====================================================
-        # 12. СИЛЕН EUR МАРКЕР
+        # 15. СИЛЕН EUR МАРКЕР
+        #
+        # Най-висок приоритет.
         # =====================================================
 
         strong_patterns = [
 
-            r"ОБЩА\s*СУМА.{0,30}?ЕВРО.{0,30}?"
+            r"ОБЩА\s*СУМА.{0,40}?ЕВРО.{0,40}?"
             r"(\d{1,7}\.\d{2})",
 
-            r"ОБЩА\s*СУМА.{0,30}?EUR.{0,30}?"
+            r"ОБЩА\s*СУМА.{0,40}?EUR.{0,40}?"
             r"(\d{1,7}\.\d{2})",
 
-            r"СУМА.{0,20}?ЕВРО.{0,30}?"
+            r"СУМА.{0,25}?ЕВРО.{0,40}?"
             r"(\d{1,7}\.\d{2})",
 
-            r"СУМА.{0,20}?EUR.{0,30}?"
+            r"СУМА.{0,25}?EUR.{0,40}?"
             r"(\d{1,7}\.\d{2})",
         ]
 
@@ -850,7 +1050,7 @@ def _tm_receipt_ocr(image):
                         eur_candidates.append(
                             (
                                 value,
-                                100,
+                                200,
                                 "strong_eur_marker",
                             )
                         )
@@ -859,7 +1059,7 @@ def _tm_receipt_ocr(image):
                     pass
 
         # =====================================================
-        # 13. EUR МАРКЕР
+        # 16. EUR МАРКЕР
         # =====================================================
 
         eur_patterns = [
@@ -893,7 +1093,7 @@ def _tm_receipt_ocr(image):
                         eur_candidates.append(
                             (
                                 value,
-                                80,
+                                100,
                                 "eur_marker",
                             )
                         )
@@ -902,14 +1102,8 @@ def _tm_receipt_ocr(image):
                     pass
 
         # =====================================================
-        # 14. LINE-BY-LINE EUR
+        # 17. LINE-BY-LINE EUR
         # =====================================================
-
-        lines = [
-            line.strip()
-            for line in text.splitlines()
-            if line.strip()
-        ]
 
         for i, line in enumerate(lines):
 
@@ -922,7 +1116,7 @@ def _tm_receipt_ocr(image):
             ):
 
                 # -------------------------------------------------
-                # Число на същия ред
+                # Числа на същия ред
                 # -------------------------------------------------
 
                 candidates = re.findall(
@@ -941,7 +1135,7 @@ def _tm_receipt_ocr(image):
                         eur_candidates.append(
                             (
                                 value,
-                                70,
+                                90,
                                 "eur_line",
                             )
                         )
@@ -950,11 +1144,11 @@ def _tm_receipt_ocr(image):
                         pass
 
                 # -------------------------------------------------
-                # Следващите 3 реда
+                # Следващи 4 реда
                 # -------------------------------------------------
 
                 for next_line in lines[
-                    i + 1:i + 4
+                    i + 1:i + 5
                 ]:
 
                     next_candidates = re.findall(
@@ -973,7 +1167,7 @@ def _tm_receipt_ocr(image):
                             eur_candidates.append(
                                 (
                                     value,
-                                    60,
+                                    70,
                                     "eur_next_line",
                                 )
                             )
@@ -982,52 +1176,96 @@ def _tm_receipt_ocr(image):
                             pass
 
         # =====================================================
-        # 15. ИЗБОР НА EUR
+        # 18. ИЗБОР НА EUR
+        #
+        # Силният маркер има абсолютен приоритет.
         # =====================================================
 
         total_eur = None
 
         if eur_candidates:
 
-            counts = {}
+            strong_candidates = [
+                item
+                for item in eur_candidates
+                if item[1] >= 200
+            ]
 
-            for value, score, source in eur_candidates:
+            if strong_candidates:
 
-                key = round(
-                    float(value),
-                    2,
+                # Най-често срещаният силен кандидат.
+                strong_counts = {}
+
+                for value, score, source in strong_candidates:
+
+                    key = round(
+                        float(value),
+                        2,
+                    )
+
+                    strong_counts[key] = (
+                        strong_counts.get(
+                            key,
+                            0
+                        ) + 1
+                    )
+
+                ranked_strong = sorted(
+                    strong_counts.items(),
+                    key=lambda item: item[1],
+                    reverse=True,
                 )
 
-                if key not in counts:
+                if ranked_strong:
 
-                    counts[key] = {
-                        "score": score,
-                        "count": 1,
-                    }
+                    total_eur = ranked_strong[0][0]
 
-                else:
+            else:
 
-                    counts[key]["count"] += 1
+                # -------------------------------------------------
+                # Няма силен маркер.
+                # Използваме score + frequency.
+                # -------------------------------------------------
 
-                    if score > counts[key]["score"]:
+                counts = {}
 
-                        counts[key]["score"] = score
+                for value, score, source in eur_candidates:
 
-            ranked = sorted(
-                counts.items(),
-                key=lambda item: (
-                    item[1]["score"],
-                    item[1]["count"],
-                ),
-                reverse=True,
-            )
+                    key = round(
+                        float(value),
+                        2,
+                    )
 
-            if ranked:
+                    if key not in counts:
 
-                total_eur = ranked[0][0]
+                        counts[key] = {
+                            "score": score,
+                            "count": 1,
+                        }
+
+                    else:
+
+                        counts[key]["count"] += 1
+
+                        if score > counts[key]["score"]:
+
+                            counts[key]["score"] = score
+
+                ranked = sorted(
+                    counts.items(),
+                    key=lambda item: (
+                        item[1]["score"],
+                        item[1]["count"],
+                    ),
+                    reverse=True,
+                )
+
+                if ranked:
+
+                    total_eur = ranked[0][0]
 
         # =====================================================
-        # 16. ДАТА
+        # 19. ДАТА
         # =====================================================
 
         date_value = None
@@ -1057,7 +1295,7 @@ def _tm_receipt_ocr(image):
                 break
 
         # =====================================================
-        # 17. ЧАС
+        # 20. ЧАС
         # =====================================================
 
         time_value = None
@@ -1074,20 +1312,19 @@ def _tm_receipt_ocr(image):
             )
 
         # =====================================================
-        # 18. FINAL
+        # 21. FINAL
         # =====================================================
 
         return {
             "ok": True,
             "error": "",
 
-            # Показваме всички OCR варианти
-            # за диагностика.
+            # Пълният OCR за диагностика.
             "text": raw_text,
 
             "targeted_text": "",
 
-            # BGN не използваме.
+            # BGN официално не използваме.
             "total_bgn": None,
 
             # Само EUR.
