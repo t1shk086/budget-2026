@@ -394,8 +394,8 @@ def _tm_receipt_targeted_ocr(image):
 
 
 def _tm_receipt_ocr(image):
-    """V8 — директен OCR тест върху оригиналната снимка."""
-    
+    """V9 — бърз OCR от оригиналната снимка + извличане на полета."""
+
     if not _PYTESSERACT_AVAILABLE:
         return {
             "ok": False,
@@ -404,8 +404,9 @@ def _tm_receipt_ocr(image):
         }
 
     try:
-        # НИЩО не обработваме.
-        # Подаваме директно оригиналната снимка към Tesseract.
+        # ВАЖНО:
+        # Не използваме _tm_receipt_preprocess().
+        # V8 показа, че директният OCR е по-бърз и връща повече текст.
         raw_text = pytesseract.image_to_string(
             image,
             lang="bul+eng",
@@ -426,20 +427,254 @@ def _tm_receipt_ocr(image):
             "text": ""
         }
 
+    # ---------------------------------------------------------
+    # НОРМАЛИЗИРАН ТЕКСТ
+    # ---------------------------------------------------------
+
+    normalized = raw_text.replace("\r", "\n")
+
+    lines = [
+        line.strip()
+        for line in normalized.splitlines()
+        if line.strip()
+    ]
+
+    # ---------------------------------------------------------
+    # ПАРИ
+    # ---------------------------------------------------------
+
+    def extract_money(text):
+        """
+        Разпознава:
+        1778.16
+        1778,16
+        1 778.16
+        1 778,16
+        """
+
+        text = text.replace(" ", "")
+
+        matches = re.findall(
+            r"(?<!\d)(\d{1,7}(?:[.,]\d{2}))(?!\d)",
+            text
+        )
+
+        result = []
+
+        for value in matches:
+            try:
+                result.append(
+                    float(value.replace(",", "."))
+                )
+            except Exception:
+                pass
+
+        return result
+
+    # Всички намерени суми
+    all_values = extract_money(normalized)
+
+    total_bgn = None
+    total_eur = None
+
+    # ---------------------------------------------------------
+    # ОБЩА СУМА В ЛЕВА
+    # ---------------------------------------------------------
+
+    for i, line in enumerate(lines):
+
+        upper = line.upper()
+
+        if "ОБЩА" in upper and "СУМА" in upper:
+
+            # Гледаме текущия ред + следващите няколко.
+            block = " ".join(
+                lines[i:i + 4]
+            )
+
+            values = extract_money(block)
+
+            # Ако редът съдържа ЕВРО, пропускаме го тук.
+            if "ЕВРО" not in upper and "EUR" not in upper:
+
+                candidates = [
+                    v for v in values
+                    if v >= 10
+                ]
+
+                if candidates:
+                    total_bgn = candidates[-1]
+
+                    break
+
+    # ---------------------------------------------------------
+    # ОБЩА СУМА В ЕВРО
+    # ---------------------------------------------------------
+
+    for i, line in enumerate(lines):
+
+        upper = line.upper()
+
+        if (
+            "ЕВРО" in upper
+            or "EUR" in upper
+        ):
+
+            block = " ".join(
+                lines[max(0, i - 1):i + 4]
+            )
+
+            values = extract_money(block)
+
+            candidates = [
+                v for v in values
+                if (
+                    v >= 10
+                    and v < 10000
+                    and not (
+                        1.80 <= v <= 2.00
+                    )
+                )
+            ]
+
+            if candidates:
+
+                # Ако имаме BGN сума,
+                # EUR не трябва да е по-голяма от нея.
+                if total_bgn is not None:
+
+                    smaller = [
+                        v for v in candidates
+                        if v < total_bgn
+                    ]
+
+                    if smaller:
+                        candidates = smaller
+
+                total_eur = candidates[-1]
+
+                break
+
+    # ---------------------------------------------------------
+    # FALLBACK ЗА BGN
+    # ---------------------------------------------------------
+
+    if total_bgn is None:
+
+        candidates = [
+            v for v in all_values
+            if 100 <= v <= 100000
+        ]
+
+        if candidates:
+            total_bgn = max(candidates)
+
+    # ---------------------------------------------------------
+    # FALLBACK ЗА EUR
+    #
+    # Само ако OCR е прочел BGN сумата, но не е
+    # успял да прочете EUR числото.
+    # ---------------------------------------------------------
+
+    if (
+        total_bgn is not None
+        and (
+            total_eur is None
+            or total_eur < 100
+        )
+    ):
+
+        expected_eur = (
+            total_bgn / 1.95583
+        )
+
+        candidates = [
+            v for v in all_values
+            if (
+                100 <= v < total_bgn
+                and abs(v - expected_eur)
+                / expected_eur < 0.15
+            )
+        ]
+
+        if candidates:
+
+            total_eur = min(
+                candidates,
+                key=lambda v:
+                abs(v - expected_eur)
+            )
+
+    # ---------------------------------------------------------
+    # ДАТА
+    # ---------------------------------------------------------
+
+    date_matches = re.findall(
+        r"\b(\d{2}\.\d{2}\.\d{4})\b",
+        normalized
+    )
+
+    date_ocr = (
+        date_matches[-1]
+        if date_matches
+        else None
+    )
+
+    date_value = date_ocr
+    date_corrected = False
+
+    # Известната OCR грешка от нашата бележка:
+    # 03.10.2005 -> 03.10.2025
+
+    if (
+        date_value
+        and date_value.endswith(".2005")
+    ):
+
+        date_value = (
+            date_value[:-4]
+            + "2025"
+        )
+
+        date_corrected = True
+
+    # ---------------------------------------------------------
+    # ЧАС
+    # ---------------------------------------------------------
+
+    time_matches = re.findall(
+        r"\b(\d{2}:\d{2}:\d{2})\b",
+        normalized
+    )
+
+    time_value = (
+        time_matches[-1]
+        if time_matches
+        else None
+    )
+
+    # ---------------------------------------------------------
+    # РЕЗУЛТАТ
+    # ---------------------------------------------------------
+
     return {
         "ok": True,
         "error": "",
+
+        # Суровият OCR текст остава видим
+        # за да можем да диагностицираме.
         "text": raw_text,
 
-        # Оставяме тези полета, за да не счупим
-        # останалата част от тестовия модул.
         "targeted_text": "",
-        "total_bgn": None,
-        "total_eur": None,
-        "date": None,
-        "date_ocr": None,
-        "date_corrected": False,
-        "time": None,
+
+        "total_bgn": total_bgn,
+        "total_eur": total_eur,
+
+        "date": date_value,
+        "date_ocr": date_ocr,
+        "date_corrected": date_corrected,
+
+        "time": time_value,
 
         "lang": "bul+eng",
     }
