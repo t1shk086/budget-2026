@@ -394,7 +394,8 @@ def _tm_receipt_targeted_ocr(image):
 
 
 def _tm_receipt_ocr(image):
-    """V7: един бърз OCR pass + подобрен parser."""
+    """V8 — директен OCR тест върху оригиналната снимка."""
+    
     if not _PYTESSERACT_AVAILABLE:
         return {
             "ok": False,
@@ -403,12 +404,12 @@ def _tm_receipt_ocr(image):
         }
 
     try:
-        prepared = _tm_receipt_preprocess(image)
-
+        # НИЩО не обработваме.
+        # Подаваме директно оригиналната снимка към Tesseract.
         raw_text = pytesseract.image_to_string(
-            prepared,
+            image,
             lang="bul+eng",
-            config="--oem 3 --psm 6",
+            config="--oem 3 --psm 6"
         )
 
     except Exception as exc:
@@ -425,13 +426,23 @@ def _tm_receipt_ocr(image):
             "text": ""
         }
 
-    normalized = _tm_receipt_normalize_text(raw_text)
+    return {
+        "ok": True,
+        "error": "",
+        "text": raw_text,
 
-    lines = [
-        line.strip()
-        for line in normalized.splitlines()
-        if line.strip()
-    ]
+        # Оставяме тези полета, за да не счупим
+        # останалата част от тестовия модул.
+        "targeted_text": "",
+        "total_bgn": None,
+        "total_eur": None,
+        "date": None,
+        "date_ocr": None,
+        "date_corrected": False,
+        "time": None,
+
+        "lang": "bul+eng",
+    }
 
     # ---------------------------------------------------------
     # Намиране на парични стойности
