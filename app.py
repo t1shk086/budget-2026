@@ -5373,124 +5373,124 @@ else:
         ):
             pass
 
-_task_html = f"""
-<style>
-  * {{ box-sizing: border-box; }}
-  html, body {{ margin:0; padding:0; background:transparent; overflow:hidden; }}
-  body {{ font-family: Inter, Arial, sans-serif; }}
-  .tm-task {{
-    position: relative; width: 100%; height: 48px; overflow: hidden;
-    border-radius: 14px; background: #0c1722;
-    border: 1px solid rgba(255,255,255,.07);
-    touch-action: pan-y;
-  }}
-  .tm-task-delete {{
-    position: absolute; inset: 0 0 0 auto; width: 84px; z-index: 1;
-    display: flex; align-items: center; justify-content: center;
-    background: #42191e; color: #ff7777; font-size: 12px; font-weight: 800;
-    cursor: pointer; -webkit-tap-highlight-color: transparent;
-  }}
-  .tm-task-row {{
-    position: absolute; inset: 0; z-index: 2; display: flex; align-items: center;
-    gap: 10px; padding: 0 13px; background: #0c1722; color: #fff;
-    cursor: pointer; user-select: none; -webkit-user-select: none;
-    transition: transform .16s ease; -webkit-tap-highlight-color: transparent;
-  }}
-  .tm-task-check {{
-    width: 24px; height: 24px; flex: 0 0 24px; display: flex;
-    align-items: center; justify-content: center; font-size: 15px;
-  }}
-  .tm-task-text {{
-    min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis;
-    white-space: nowrap; font-size: 13px; line-height: 1.2;
-  }}
-  .tm-task-text.done {{ color: #7e8792; text-decoration: line-through; }}
-</style>
-
-<div class="tm-task">
-  <div class="tm-task-delete" id="tm-delete">Изтрий</div>
-  <div class="tm-task-row" id="tm-row">
-    <div class="tm-task-check">{'✓' if _item_done else '○'}</div>
-    <div class="tm-task-text {'done' if _item_done else ''}" id="tm-text"></div>
-  </div>
-</div>
-
-<script>
-(() => {{
-  const ID = {_safe_id};
-  const row = document.getElementById('tm-row');
-  const del = document.getElementById('tm-delete');
-  document.getElementById('tm-text').textContent = {_safe_title};
-
-  function go(kind) {{
-    try {{
-      // Използва се parent.location вместо window.top за избягване на iframe блокаж
-      const u = new URL(window.parent.location.href);
-      u.searchParams.delete('tm_task_toggle');
-      u.searchParams.delete('tm_task_delete');
-      u.searchParams.set(kind === 'delete' ? 'tm_task_delete' : 'tm_task_toggle', ID);
-      window.parent.location.href = u.toString();
-    }} catch(e) {{
-      // Резервен вариант през window.open, ако родителският прозорец е с друг origin
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.set(kind === 'delete' ? 'tm_task_delete' : 'tm_task_toggle', ID);
-      window.parent.postMessage({{ type: 'streamlit:setComponentValue', value: kind }}, '*');
-    }}
-  }}
-
-  let sx = 0, sy = 0, dx = 0, dragging = false, isHorizontal = false;
-
-  row.addEventListener('touchstart', e => {{
-    if (!e.touches.length) return;
-    sx = e.touches[0].clientX;
-    sy = e.touches[0].clientY;
-    dx = 0;
-    dragging = true;
-    isHorizontal = false;
-    row.style.transition = 'none';
-  }}, {{ passive: true }});
-
-  row.addEventListener('touchmove', e => {{
-    if (!dragging || !e.touches.length) return;
-    dx = e.touches[0].clientX - sx;
-    const dy = e.touches[0].clientY - sy;
-
-    // Определяме посоката само при първоначално преместване
-    if (!isHorizontal && Math.abs(dx) < Math.abs(dy)) {{
-      return;
-    }}
-    isHorizontal = true;
-
-    // Позволяваме суайп само наляво
-    if (dx < 0) {{
-      row.style.transform = 'translateX(' + Math.max(-84, dx) + 'px)';
-    }}
-  }}, {{ passive: true }});
-
-  row.addEventListener('touchend', () => {{
-    if (!dragging) return;
-    dragging = false;
-    row.style.transition = 'transform .16s ease';
-
-    // Ако суайпът е бил над 40px наляво -> отваряме бутона
-    if (dx < -40) {{
-      row.style.transform = 'translateX(-84px)';
-    }} else {{
-      row.style.transform = 'translateX(0)';
-      // Ако е било само кратко натискане (без суайп) -> toggle
-      if (Math.abs(dx) < 5) {{
-        go('toggle');
-      }}
-    }}
-  }});
-
-  del.addEventListener('click', e => {{
-    e.stopPropagation();
-    go('delete');
-  }});
-}})();
-</script>
-"""
+        _task_html = f"""
+        <style>
+          * {{ box-sizing: border-box; }}
+          html, body {{ margin:0; padding:0; background:transparent; overflow:hidden; }}
+          body {{ font-family: Inter, Arial, sans-serif; }}
+          .tm-task {{
+            position: relative; width: 100%; height: 48px; overflow: hidden;
+            border-radius: 14px; background: #0c1722;
+            border: 1px solid rgba(255,255,255,.07);
+            touch-action: pan-y;
+          }}
+          .tm-task-delete {{
+            position: absolute; inset: 0 0 0 auto; width: 84px; z-index: 1;
+            display: flex; align-items: center; justify-content: center;
+            background: #42191e; color: #ff7777; font-size: 12px; font-weight: 800;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+          }}
+          .tm-task-row {{
+            position: absolute; inset: 0; z-index: 2; display: flex; align-items: center;
+            gap: 10px; padding: 0 13px; background: #0c1722; color: #fff;
+            cursor: pointer; user-select: none; -webkit-user-select: none;
+            transition: transform .16s ease; -webkit-tap-highlight-color: transparent;
+          }}
+          .tm-task-check {{
+            width: 24px; height: 24px; flex: 0 0 24px; display: flex;
+            align-items: center; justify-content: center; font-size: 15px;
+          }}
+          .tm-task-text {{
+            min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap; font-size: 13px; line-height: 1.2;
+          }}
+          .tm-task-text.done {{ color: #7e8792; text-decoration: line-through; }}
+        </style>
+        
+        <div class="tm-task">
+          <div class="tm-task-delete" id="tm-delete">Изтрий</div>
+          <div class="tm-task-row" id="tm-row">
+            <div class="tm-task-check">{'✓' if _item_done else '○'}</div>
+            <div class="tm-task-text {'done' if _item_done else ''}" id="tm-text"></div>
+          </div>
+        </div>
+        
+        <script>
+        (() => {{
+          const ID = {_safe_id};
+          const row = document.getElementById('tm-row');
+          const del = document.getElementById('tm-delete');
+          document.getElementById('tm-text').textContent = {_safe_title};
+        
+          function go(kind) {{
+            try {{
+              // Използва се parent.location вместо window.top за избягване на iframe блокаж
+              const u = new URL(window.parent.location.href);
+              u.searchParams.delete('tm_task_toggle');
+              u.searchParams.delete('tm_task_delete');
+              u.searchParams.set(kind === 'delete' ? 'tm_task_delete' : 'tm_task_toggle', ID);
+              window.parent.location.href = u.toString();
+            }} catch(e) {{
+              // Резервен вариант през window.open, ако родителският прозорец е с друг origin
+              const currentUrl = new URL(window.location.href);
+              currentUrl.searchParams.set(kind === 'delete' ? 'tm_task_delete' : 'tm_task_toggle', ID);
+              window.parent.postMessage({{ type: 'streamlit:setComponentValue', value: kind }}, '*');
+            }}
+          }}
+        
+          let sx = 0, sy = 0, dx = 0, dragging = false, isHorizontal = false;
+        
+          row.addEventListener('touchstart', e => {{
+            if (!e.touches.length) return;
+            sx = e.touches[0].clientX;
+            sy = e.touches[0].clientY;
+            dx = 0;
+            dragging = true;
+            isHorizontal = false;
+            row.style.transition = 'none';
+          }}, {{ passive: true }});
+        
+          row.addEventListener('touchmove', e => {{
+            if (!dragging || !e.touches.length) return;
+            dx = e.touches[0].clientX - sx;
+            const dy = e.touches[0].clientY - sy;
+        
+            // Определяме посоката само при първоначално преместване
+            if (!isHorizontal && Math.abs(dx) < Math.abs(dy)) {{
+              return;
+            }}
+            isHorizontal = true;
+        
+            // Позволяваме суайп само наляво
+            if (dx < 0) {{
+              row.style.transform = 'translateX(' + Math.max(-84, dx) + 'px)';
+            }}
+          }}, {{ passive: true }});
+        
+          row.addEventListener('touchend', () => {{
+            if (!dragging) return;
+            dragging = false;
+            row.style.transition = 'transform .16s ease';
+        
+            // Ако суайпът е бил над 40px наляво -> отваряме бутона
+            if (dx < -40) {{
+              row.style.transform = 'translateX(-84px)';
+            }} else {{
+              row.style.transform = 'translateX(0)';
+              // Ако е било само кратко натискане (без суайп) -> toggle
+              if (Math.abs(dx) < 5) {{
+                go('toggle');
+              }}
+            }}
+          }});
+        
+          del.addEventListener('click', e => {{
+            e.stopPropagation();
+            go('delete');
+          }});
+        }})();
+        </script>
+        """
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
