@@ -1,5 +1,4 @@
 # Изтеглете файла от линка по-горе или копирайте целия код отдолу:
-import json
 import streamlit as st
 import pandas as pd
 import datetime
@@ -866,26 +865,6 @@ def _add_plan_item_and_clear(t_id, widget_key):
     except Exception:
         pass
 
-
-
-# =========================================================
-# MOBILE TASK ACTION BRIDGE
-# =========================================================
-try:
-    _tm_toggle = st.query_params.get("tm_task_toggle")
-    _tm_delete = st.query_params.get("tm_task_delete")
-
-    if _tm_toggle:
-        del st.query_params["tm_task_toggle"]
-        _toggle_plan_item(str(_tm_toggle))
-        st.rerun()
-
-    if _tm_delete:
-        del st.query_params["tm_task_delete"]
-        _delete_plan_item(str(_tm_delete))
-        st.rerun()
-except Exception:
-    pass
 
 
 if "open_quick_expense" not in st.session_state:
@@ -4633,173 +4612,21 @@ else:
 
     if not plan_df.empty:
         st.markdown("<div class='tm-plan-list'>", unsafe_allow_html=True)
-
-        for _, plan_row in plan_df.iterrows():
+        for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
+            st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
-
-            # Each row is a real HTML/JS component. There is NO Streamlit delete button.
-            safe_id = json.dumps(item_id, ensure_ascii=False)
-            safe_title = json.dumps(title, ensure_ascii=False)
-            done_js = "true" if item_done else "false"
-
-            task_html = f"""
-            <style>
-              html,body {{ margin:0; padding:0; background:transparent; }}
-              body {{ font-family:Inter,Arial,sans-serif; }}
-              .tm-task {{
-                position:relative; width:100%; height:48px;
-                overflow:hidden; border-radius:14px;
-                background:#0c1722;
-                border:1px solid rgba(255,255,255,.07);
-                touch-action:pan-y;
-              }}
-              .tm-task-delete {{
-                position:absolute; top:0; right:0; bottom:0;
-                width:86px; z-index:1;
-                display:flex; align-items:center; justify-content:center;
-                background:#42191e; color:#ff7777;
-                font-size:12px; font-weight:800;
-                cursor:pointer;
-              }}
-              .tm-task-row {{
-                position:absolute; top:0; left:0; right:0; bottom:0;
-                z-index:2;
-                display:flex; align-items:center; gap:10px;
-                padding:0 13px;
-                background:#0c1722; color:#fff;
-                cursor:pointer;
-                user-select:none; -webkit-user-select:none;
-                transition:transform .16s ease;
-              }}
-              .tm-task-check {{
-                width:24px; height:24px; flex:0 0 24px;
-                display:flex; align-items:center; justify-content:center;
-                font-size:15px;
-              }}
-              .tm-task-text {{
-                min-width:0; flex:1;
-                overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-                font-size:13px; line-height:1.2;
-              }}
-              .tm-task-text.done {{
-                color:#7e8792; text-decoration:line-through;
-              }}
-            </style>
-
-            <div class="tm-task" id="task">
-              <div class="tm-task-delete" id="delete">Изтрий</div>
-              <div class="tm-task-row" id="row">
-                <div class="tm-task-check" id="check"></div>
-                <div class="tm-task-text" id="text"></div>
-              </div>
-            </div>
-
-            <script>
-            (() => {{
-              const ID = {safe_id};
-              const TITLE = {safe_title};
-              const DONE = {done_js};
-
-              const row = document.getElementById("row");
-              const del = document.getElementById("delete");
-              const text = document.getElementById("text");
-              const check = document.getElementById("check");
-
-              text.textContent = TITLE;
-              text.classList.toggle("done", DONE);
-              check.textContent = DONE ? "✓" : "○";
-
-              function run(action) {{
-                const url = new URL(window.top.location.href);
-                url.searchParams.delete("tm_task_toggle");
-                url.searchParams.delete("tm_task_delete");
-                url.searchParams.set(
-                  action === "delete" ? "tm_task_delete" : "tm_task_toggle",
-                  ID
-                );
-                window.top.location.assign(url.toString());
-              }}
-
-              let sx=0, sy=0, dx=0, moving=false, vertical=false;
-
-              row.addEventListener("touchstart", e => {{
-                if (!e.touches.length) return;
-                sx=e.touches[0].clientX;
-                sy=e.touches[0].clientY;
-                dx=0; moving=true; vertical=false;
-                row.style.transition="none";
-              }}, {{passive:true}});
-
-              row.addEventListener("touchmove", e => {{
-                if (!moving || !e.touches.length) return;
-                dx=e.touches[0].clientX-sx;
-                const dy=e.touches[0].clientY-sy;
-
-                if (Math.abs(dy)>Math.abs(dx)) {{
-                  vertical=true;
-                  return;
-                }}
-                if (dx<0) {{
-                  row.style.transform="translateX("+Math.max(-86,dx)+"px)";
-                }}
-              }}, {{passive:true}});
-
-              row.addEventListener("touchend", () => {{
-                if (!moving) return;
-                moving=false;
-                row.style.transition="transform .16s ease";
-
-                if (vertical) {{
-                  row.style.transform="translateX(0)";
-                  return;
-                }}
-
-                if (dx < -55) {{
-                  row.style.transform="translateX(-86px)";
-                  return; // wait for explicit tap on Изтрий
-                }}
-
-                row.style.transform="translateX(0)";
-                if (Math.abs(dx) < 10) {{
-                  run("toggle");
-                }}
-              }});
-
-              row.addEventListener("touchcancel", () => {{
-                moving=false; vertical=false;
-                row.style.transform="translateX(0)";
-              }});
-
-              // Desktop click on task.
-              row.addEventListener("click", e => {{
-                if (!moving && Math.abs(dx) < 10) run("toggle");
-              }});
-
-              // IMPORTANT: delete is a real clickable element AFTER swipe.
-              del.addEventListener("click", e => {{
-                e.preventDefault();
-                e.stopPropagation();
-                run("delete");
-              }});
-              del.addEventListener("touchend", e => {{
-                e.preventDefault();
-                e.stopPropagation();
-                run("delete");
-              }});
-            }})();
-            </script>
-            """
-
-            components.html(task_html, height=54, scrolling=False)
-
+            icon = "✅" if item_done else "⬜"
+            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
+            with task_row:
+                left_shift = max(18, min(55, 72 - len(title)))
+                task_label = f"{icon} {title}" + "\u00a0" * left_shift
+                st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
+                st.button("🗑️", key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,), width="content")
         st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.markdown(
-            "<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>",
-            unsafe_allow_html=True,
-        )
+        st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
