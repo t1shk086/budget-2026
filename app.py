@@ -848,16 +848,6 @@ def _toggle_plan_item(item_id):
     except Exception:
         pass
 
-def _set_plan_item_done(item_id, widget_key):
-    try:
-        df_plan = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
-        mask = df_plan["item_id"].astype(str) == str(item_id)
-        if mask.any():
-            df_plan.loc[mask, "done"] = bool(st.session_state.get(widget_key, False))
-            update_trip_plan(df_plan)
-    except Exception:
-        pass
-
 def _delete_plan_item(item_id):
     try:
         delete_trip_plan_item(str(item_id))
@@ -4620,65 +4610,33 @@ else:
         ):
             pass
 
-    st.markdown("""
-    <style>
-        /* Тестов дизайн за задачите: чист ред, действията са скрити вътре. */
-        .tm-plan-list [data-testid="stExpander"] {
-            background: rgba(255,255,255,.025) !important;
-            border: 1px solid rgba(255,255,255,.07) !important;
-            border-radius: 14px !important;
-            margin-bottom: 8px !important;
-            overflow: hidden !important;
-        }
-        .tm-plan-list [data-testid="stExpander"] summary {
-            padding: 12px 14px !important;
-            min-height: 46px !important;
-        }
-        .tm-plan-list [data-testid="stExpander"] summary p {
-            font-size: 14px !important;
-            font-weight: 650 !important;
-            margin: 0 !important;
-        }
-        .tm-plan-list [data-testid="stExpanderDetails"] {
-            padding: 0 14px 13px 14px !important;
-        }
-        .tm-plan-list [data-testid="stExpanderDetails"] [data-testid="stCheckbox"] {
-            margin-top: 2px !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
     if not plan_df.empty:
         st.markdown("<div class='tm-plan-list'>", unsafe_allow_html=True)
         for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
+            st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
             icon = "✅" if item_done else "⬜"
-            expander_label = f"{icon}  {title}"
-
-            with st.expander(expander_label, expanded=False):
-                task_check_key = f"task_done_{trip_id}_{item_id}"
-                st.checkbox(
-                    "Задачата е изпълнена",
-                    value=item_done,
-                    key=task_check_key,
-                    disabled=plan_locked,
-                    on_change=_set_plan_item_done,
-                    args=(item_id, task_check_key),
-                )
-
-                st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-                st.caption("Действия")
-
-                if st.button(
-                    "🗑️  Премахни задачата",
-                    key=f"task_delete_{trip_id}_{item_id}",
-                    disabled=plan_locked,
+            with st.expander(f"{icon}  {title}", expanded=False):
+                st.button(
+                    "↩️ Отбележи като изпълнена" if not item_done else "↩️ Върни като неизпълнена",
+                    key=f"task_toggle_{trip_id}_{item_id}",
+                    on_click=_toggle_plan_item,
+                    args=(item_id,),
                     width="stretch",
-                ):
-                    _delete_plan_item(item_id)
-                    st.rerun()
+                )
+                st.markdown(
+                    "<div style='height:4px'></div>",
+                    unsafe_allow_html=True,
+                )
+                st.button(
+                    "Премахни задачата",
+                    key=f"task_delete_{trip_id}_{item_id}",
+                    on_click=_delete_plan_item,
+                    args=(item_id,),
+                    width="stretch",
+                )
         st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
@@ -4909,18 +4867,18 @@ else:
                 if _fav_right.strip():
                     _fav_desc = _fav_left.strip().replace('🏁','').strip()
                     _fav_title = _fav_right.strip()
-            st.markdown(
-                f"<div class='tm-fav-data-row'>"
-                f"<div class='tm-fav-cell fav-place-cell'><div class='tm-fav-place'><span class='tm-fav-dot' style='background:{_fav_dot_color}'></span>{html.escape(_fav_title)}</div></div>"
-                f"<div class='tm-fav-cell fav-desc-cell'><div class='tm-fav-description'>{html.escape(_fav_desc)}</div></div>"
-                f"<div class='tm-fav-cell fav-coord-cell'><div class='tm-fav-coord'>{_fav_lat:.5f}, {_fav_lon:.5f}</div></div>"
-                f"<div class='tm-fav-cell fav-action-cell'></div>"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-            _fav_action_cols = st.columns([1, 12])
-            with _fav_action_cols[1]:
-                if st.button('🗑️', key=f'fav_delete_{trip_id}_{_fav_idx}', help=f'Изтрий {_fav_title}'):
+            with st.expander(f"📍  {_fav_title}", expanded=False):
+                st.markdown(
+                    f"<div style='color:#aab3bd;font-size:11px;margin-bottom:8px;'>{html.escape(_fav_desc)}</div>"
+                    f"<div style='color:#8d98a4;font-size:10px;font-variant-numeric:tabular-nums;'>{_fav_lat:.5f}, {_fav_lon:.5f}</div>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+                if st.button(
+                    "Премахни мястото",
+                    key=f'fav_delete_{trip_id}_{_fav_idx}',
+                    width="stretch",
+                ):
                     try:
                         df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
                         if _fav_idx in df_map.index:
