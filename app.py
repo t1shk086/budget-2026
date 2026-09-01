@@ -3020,6 +3020,429 @@ if st.session_state["current_trip"] is None:
     # =========================================================
 
 else:
+    # =========================================================
+    # ✨ TRAVEL MANAGER — MODERN OPEN TRIP UI
+    # Само визуална модернизация.
+    # НЕ променя логика, изчисления, session_state или данни.
+    # =========================================================
+
+    st.markdown("""
+    <style>
+
+    /* =====================================================
+       ОСНОВЕН КОНТЕЙНЕР НА ОТВОРЕНОТО ПЪТУВАНЕ
+       ===================================================== */
+
+    [data-testid="stAppViewContainer"] {
+        background:
+            radial-gradient(
+                circle at 50% 0%,
+                rgba(0, 217, 255, 0.045),
+                transparent 34%
+            ),
+            #0b1017 !important;
+    }
+
+    /* =====================================================
+       ЗАГЛАВИЕ НА ПЪТУВАНЕТО
+       Хващаме старото h2 без да променяме текста му.
+       ===================================================== */
+
+    [data-testid="stMarkdownContainer"]
+    h2[style*="background"] {
+        font-family: "Segoe UI", Roboto, sans-serif !important;
+        font-size: 30px !important;
+        font-weight: 850 !important;
+        letter-spacing: -0.4px !important;
+        line-height: 1.15 !important;
+        margin-top: 4px !important;
+        margin-bottom: 2px !important;
+        padding: 0 !important;
+
+        background:
+            linear-gradient(
+                135deg,
+                #ffffff 0%,
+                #8be9ff 42%,
+                #4facfe 100%
+            ) !important;
+
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        text-shadow:
+            0 0 22px rgba(0, 217, 255, 0.10) !important;
+    }
+
+    /* Периодът под заглавието */
+    [data-testid="stMarkdownContainer"]
+    h2[style*="background"] + p {
+        color: #7f8a99 !important;
+        font-size: 12px !important;
+        font-weight: 650 !important;
+        letter-spacing: 0.25px !important;
+        margin-top: 6px !important;
+        margin-bottom: 15px !important;
+    }
+
+    /* =====================================================
+       ГОРНИТЕ 4 СТАТИСТИКИ
+       ===================================================== */
+
+    .tm-trip-status {
+        gap: 8px !important;
+        margin-top: 10px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .tm-trip-stat {
+        position: relative !important;
+        overflow: hidden !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,0.055),
+                rgba(255,255,255,0.018)
+            ) !important;
+
+        border: 1px solid rgba(255,255,255,0.075) !important;
+        border-radius: 15px !important;
+
+        padding: 13px 9px !important;
+
+        box-shadow:
+            0 7px 20px rgba(0,0,0,0.18),
+            inset 0 1px 0 rgba(255,255,255,0.035) !important;
+
+        transition:
+            transform .2s ease,
+            border-color .2s ease !important;
+    }
+
+    .tm-trip-stat::before {
+        content: "" !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 2px !important;
+
+        background:
+            linear-gradient(
+                90deg,
+                rgba(0,217,255,0),
+                rgba(0,217,255,.65),
+                rgba(79,172,254,0)
+            ) !important;
+
+        opacity: .65 !important;
+    }
+
+    .tm-trip-stat-label {
+        color: #7f8997 !important;
+        font-size: 9px !important;
+        font-weight: 850 !important;
+        letter-spacing: .7px !important;
+    }
+
+    .tm-trip-stat-value {
+        color: #f7fbff !important;
+        font-size: 17px !important;
+        font-weight: 900 !important;
+        margin-top: 4px !important;
+    }
+
+    /* =====================================================
+       TRIP HEALTH
+       ===================================================== */
+
+    .tm-health {
+        gap: 8px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .tm-health-item {
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,.045),
+                rgba(255,255,255,.012)
+            ) !important;
+
+        border: 1px solid rgba(255,255,255,.065) !important;
+        border-radius: 14px !important;
+
+        padding: 11px 13px !important;
+
+        box-shadow:
+            0 6px 18px rgba(0,0,0,.15),
+            inset 0 1px 0 rgba(255,255,255,.025) !important;
+    }
+
+    .tm-health-title {
+        color: #737f8e !important;
+        font-size: 9px !important;
+        font-weight: 850 !important;
+        letter-spacing: .75px !important;
+    }
+
+    .tm-health-value {
+        font-size: 12px !important;
+        font-weight: 850 !important;
+        margin-top: 5px !important;
+    }
+
+    /* =====================================================
+       НОМЕРАТА НА СЕКЦИИТЕ
+       ===================================================== */
+
+    .tm-section-title {
+        margin-top: 18px !important;
+        margin-bottom: 10px !important;
+
+        font-size: 13px !important;
+        font-weight: 850 !important;
+        letter-spacing: .45px !important;
+        color: #f5f8fc !important;
+    }
+
+    .tm-section-number {
+        width: 27px !important;
+        height: 27px !important;
+        min-width: 27px !important;
+
+        font-size: 11px !important;
+        font-weight: 900 !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,.07),
+                rgba(255,255,255,.018)
+            ) !important;
+
+        box-shadow:
+            0 5px 14px rgba(0,0,0,.2),
+            inset 0 1px 1px rgba(255,255,255,.05) !important;
+    }
+
+    /* =====================================================
+       ВСИЧКИ ОСНОВНИ КАРТИ ВЪВ ВЪТРЕШНОТО ПЪТУВАНЕ
+       ===================================================== */
+
+    .tm-budget-card-inner,
+    .tm-budget-mini-card,
+    .premium-expense-card,
+    .category-expense-card {
+        box-shadow:
+            0 7px 20px rgba(0,0,0,.17),
+            inset 0 1px 0 rgba(255,255,255,.025) !important;
+    }
+
+    /* =====================================================
+       БЮДЖЕТНИ КАРТИ
+       ===================================================== */
+
+    .tm-budget-mini-card {
+        border-radius: 15px !important;
+        padding: 16px !important;
+        min-height: 138px !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,.045),
+                rgba(255,255,255,.012)
+            ) !important;
+    }
+
+    .tm-budget-mini-label {
+        font-size: 10px !important;
+        letter-spacing: .55px !important;
+    }
+
+    .tm-budget-mini-value {
+        font-size: 23px !important;
+        font-weight: 900 !important;
+    }
+
+    .tm-budget-mini-line {
+        font-size: 10.5px !important;
+        color: #aeb7c3 !important;
+    }
+
+    .tm-budget-mini-sub {
+        font-size: 10px !important;
+    }
+
+    /* =====================================================
+       КАРТА ЗА ПРОБЕГА
+       ===================================================== */
+
+    [data-testid="stMarkdownContainer"]
+    div[style*="СЛЕДЕНЕ НА ПРОБЕГА"] {
+        border-radius: 16px !important;
+    }
+
+    /* =====================================================
+       BUTTONS — ЕДИНЕН MODERN STYLE
+       ===================================================== */
+
+    button[data-testid="stBaseButton-secondary"],
+    button[data-testid="stBaseButton-primary"] {
+
+        min-height: 42px !important;
+
+        border-radius: 13px !important;
+
+        font-family:
+            "Segoe UI",
+            Roboto,
+            sans-serif !important;
+
+        font-size: 12px !important;
+        font-weight: 800 !important;
+
+        letter-spacing: .15px !important;
+
+        border:
+            1px solid rgba(255,255,255,.075) !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                #202631,
+                #151a22
+            ) !important;
+
+        color: #f4f7fb !important;
+
+        box-shadow:
+            0 6px 16px rgba(0,0,0,.20),
+            inset 0 1px 0 rgba(255,255,255,.035) !important;
+
+        transition:
+            transform .18s ease,
+            border-color .18s ease,
+            box-shadow .18s ease !important;
+    }
+
+    button[data-testid="stBaseButton-secondary"]:hover,
+    button[data-testid="stBaseButton-primary"]:hover {
+
+        transform: translateY(-1px) !important;
+
+        border-color:
+            rgba(0,217,255,.32) !important;
+
+        box-shadow:
+            0 8px 22px rgba(0,0,0,.25),
+            0 0 18px rgba(0,217,255,.07) !important;
+    }
+
+    /* =====================================================
+       ОСНОВНИЯ ACTION БУТОН
+       ===================================================== */
+
+    button[data-testid="stBaseButton-primary"] {
+        background:
+            linear-gradient(
+                135deg,
+                rgba(0,217,255,.13),
+                rgba(79,172,254,.08)
+            ) !important;
+
+        border-color:
+            rgba(0,217,255,.28) !important;
+    }
+
+    /* =====================================================
+       INPUT ПОЛЕТА
+       ===================================================== */
+
+    div[data-baseweb="input"],
+    div[data-baseweb="textarea"] {
+
+        border-radius: 12px !important;
+
+        background:
+            rgba(255,255,255,.025) !important;
+
+        border:
+            1px solid rgba(255,255,255,.075) !important;
+    }
+
+    div[data-baseweb="input"]:focus-within,
+    div[data-baseweb="textarea"]:focus-within {
+
+        border-color:
+            rgba(0,217,255,.42) !important;
+
+        box-shadow:
+            0 0 0 1px rgba(0,217,255,.10),
+            0 0 18px rgba(0,217,255,.06) !important;
+    }
+
+    /* =====================================================
+       HR / РАЗДЕЛИТЕЛИ
+       ===================================================== */
+
+    hr {
+        border-color:
+            rgba(255,255,255,.055) !important;
+
+        margin-top: 14px !important;
+        margin-bottom: 14px !important;
+    }
+
+    /* =====================================================
+       MOBILE
+       ===================================================== */
+
+    @media (max-width: 640px) {
+
+        .tm-trip-status {
+            grid-template-columns:
+                repeat(2, minmax(0,1fr)) !important;
+
+            gap: 7px !important;
+        }
+
+        .tm-trip-stat {
+            padding: 12px 8px !important;
+            border-radius: 14px !important;
+        }
+
+        .tm-trip-stat-value {
+            font-size: 16px !important;
+        }
+
+        .tm-health {
+            grid-template-columns: 1fr !important;
+        }
+
+        .tm-section-title {
+            font-size: 12.5px !important;
+        }
+
+        .tm-section-number {
+            width: 26px !important;
+            height: 26px !important;
+            min-width: 26px !important;
+        }
+
+        [data-testid="stMarkdownContainer"]
+        h2[style*="background"] {
+            font-size: 25px !important;
+        }
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+
+    # =========================================================
+    # КРАЙ НА ВИЗУАЛНИЯ SKIN
+    # =========================================================    
     trip_id = st.session_state["current_trip"]
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
