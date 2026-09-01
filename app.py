@@ -2959,7 +2959,7 @@ else:
 
 
 
-        st.markdown("<div class='tm-section-title' style='margin-bottom:6px;'><span class='tm-section-number tm-n1'>1</span><span>Данни за разход и пробег</span></div>", unsafe_allow_html=True)
+        st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n1'>1</span><span>Данни за разход и пробег</span></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 20px; text-align: center;'><div style='display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; position: relative;'><span style='font-size: 11px; font-weight: bold; color: #888; letter-spacing: 1px;'>📍 ПРОБЕГ</span>{f'<span style=\"background:rgba(255,75,75,0.15); color:#ff4b4b; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:bold;\">🔒 ЗАКЛЮЧЕН</span>' if is_trip_finished else ''}</div><div style='position: relative; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin: 25px 15px 15px 15px;'><div style='position: absolute; left: 0; top: 0; height: 100%; width: {km_progress_pct}%; background: linear-gradient(90deg, #00f2fe, #4facfe); border-radius: 10px;'></div><div style='position: absolute; left: 0; top: -8px; background: #1c1c1c; border: 2px solid #00f2fe; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: bold;'>S</div>{finish_icon_html}</div><div style='display: flex; justify-content: space-between; font-size: 13px; padding: 0 10px; gap: 10px;'><div style='text-align: left;'><span style='color: #666; display: block; font-size: 11px;'>Старт</span><b style='color: white; font-size: 14px;'>{s_km:.0f} км</b></div><div style='text-align: center;'><span style='color: #666; display: block; font-size: 11px;'>Изминати</span><b style='color: #00f2fe; font-size: 14px;'>{dist:.0f} км</b></div><div style='text-align: right;'><span style='color: #666; display: block; font-size: 11px;'>Краен</span><b style='color: white; font-size: 14px;'>{f'{eff_end_km:.0f} км' if eff_end_km > 0 else '—'}</b></div></div></div>", unsafe_allow_html=True)
         # Разделяме екрана на две основни колони: за уредите и за статистика на разходите
         box_col1, box_col2 = st.columns(2)
@@ -4522,6 +4522,44 @@ else:
     </style>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <style>
+    /* Задачи: няма постоянно видимо кошче. То остава само технически налично
+       и се извиква от истински swipe наляво. */
+    div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] {
+        gap: 0 !important;
+        overflow: hidden !important;
+        touch-action: pan-y !important;
+    }
+    div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(1) {
+        flex: 1 1 100% !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(2) {
+        flex: 0 0 1px !important;
+        max-width: 1px !important;
+        width: 1px !important;
+        overflow: hidden !important;
+        opacity: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    div[data-testid="stElementContainer"]:has(.compact-task-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child(2) button {
+        width: 1px !important;
+        min-width: 1px !important;
+        max-width: 1px !important;
+        height: 1px !important;
+        min-height: 1px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        border: 0 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # =========================================================
     # 🧳 ПЛАН НА ПЪТУВАНЕТО
     # =========================================================
@@ -4563,7 +4601,7 @@ else:
             margin-top:5px; color:#8f96a3; font-size:10px;
         }
         .tm-plan-list {
-            margin:0 10px 10px 10px;
+            margin:0 10px 6px 10px;
             padding-top:2px;
         }
         @media (max-width:640px) {
@@ -4611,23 +4649,6 @@ else:
             pass
 
     if not plan_df.empty:
-        st.markdown("""
-        <style>
-            div[class*="st-key-task_delete_"] button {
-                min-width:34px !important; width:34px !important;
-                height:34px !important; min-height:34px !important;
-                padding:0 !important; border:0 !important;
-                background:transparent !important; color:#7e8494 !important;
-                font-size:20px !important; font-weight:400 !important;
-                box-shadow:none !important;
-            }
-            div[class*="st-key-task_delete_"] button:hover {
-                color:#ff5b63 !important;
-                background:rgba(255,91,99,.08) !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-
         st.markdown("<div class='tm-plan-list'>", unsafe_allow_html=True)
         for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
             st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
@@ -4637,24 +4658,83 @@ else:
             icon = "✅" if item_done else "⬜"
             task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
             with task_row:
-                st.button(
-                    f"{icon} {title}",
-                    key=f"task_toggle_{trip_id}_{item_id}",
-                    on_click=_toggle_plan_item,
-                    args=(item_id,),
-                    width="stretch",
-                )
-                st.button(
-                    "×",
-                    key=f"task_delete_{trip_id}_{item_id}",
-                    on_click=_delete_plan_item,
-                    args=(item_id,),
-                    width="content",
-                    help="Премахни задачата",
-                )
+                left_shift = max(18, min(55, 72 - len(title)))
+                task_label = f"{icon} {title}" + "\u00a0" * left_shift
+                st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
+                st.button("🗑️", key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,), width="content")
         st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
+
+    # Истински touch swipe наляво: извиква съществуващия Streamlit delete callback.
+    components.html("""
+    <script>
+    (() => {
+      const doc = window.parent.document;
+
+      function bind(marker) {
+        const host = marker.closest('[data-testid="stElementContainer"]');
+        if (!host) return;
+        let block = host.nextElementSibling;
+        while (block && !block.querySelector('[data-testid="stHorizontalBlock"]')) {
+          block = block.nextElementSibling;
+        }
+        if (!block) return;
+        const row = block.querySelector('[data-testid="stHorizontalBlock"]') || block;
+        const cols = row.querySelectorAll(':scope > [data-testid="stColumn"]');
+        if (cols.length < 2 || row.dataset.tmSwipeBound === "1") return;
+
+        const taskBtn = cols[0].querySelector('button');
+        const deleteBtn = cols[1].querySelector('button');
+        if (!taskBtn || !deleteBtn) return;
+
+        row.dataset.tmSwipeBound = "1";
+        let sx = 0, sy = 0, dx = 0, active = false;
+
+        taskBtn.addEventListener('touchstart', e => {
+          if (!e.touches.length) return;
+          sx = e.touches[0].clientX;
+          sy = e.touches[0].clientY;
+          dx = 0;
+          active = true;
+          taskBtn.style.transition = 'none';
+        }, {passive:true});
+
+        taskBtn.addEventListener('touchmove', e => {
+          if (!active || !e.touches.length) return;
+          dx = e.touches[0].clientX - sx;
+          const dy = e.touches[0].clientY - sy;
+          if (Math.abs(dy) > Math.abs(dx) || dx >= 0) return;
+          taskBtn.style.transform = 'translateX(' + Math.max(-76, dx) + 'px)';
+        }, {passive:true});
+
+        taskBtn.addEventListener('touchend', () => {
+          if (!active) return;
+          active = false;
+          taskBtn.style.transition = 'transform .14s ease';
+          if (dx < -55) {
+            taskBtn.style.transform = 'translateX(-18px)';
+            setTimeout(() => deleteBtn.click(), 80);
+          } else {
+            taskBtn.style.transform = 'translateX(0)';
+          }
+        }, {passive:true});
+
+        taskBtn.addEventListener('touchcancel', () => {
+          active = false;
+          taskBtn.style.transform = 'translateX(0)';
+        }, {passive:true});
+      }
+
+      function scan() {
+        doc.querySelectorAll('.compact-task-row-marker').forEach(bind);
+      }
+
+      scan();
+      new MutationObserver(scan).observe(doc.body, {childList:true, subtree:true});
+    })();
+    </script>
+    """, height=0, scrolling=False)
 
     st.markdown("---")
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
@@ -4742,7 +4822,7 @@ else:
     st.markdown("""
     <style>
         .tm-fav-headline {
-            margin-top:12px;
+            margin-top:18px;
             margin-bottom:10px;
             display:flex;
             align-items:center;
@@ -4810,7 +4890,7 @@ else:
 
     if df_points.empty:
         st.markdown(
-            "<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:14px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
+            "<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
             unsafe_allow_html=True,
         )
     else:
