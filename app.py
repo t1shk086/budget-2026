@@ -4613,24 +4613,30 @@ else:
     if not plan_df.empty:
         st.markdown("<div class='tm-plan-list'>", unsafe_allow_html=True)
         for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
+            st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
             icon = "✅" if item_done else "⬜"
-            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
-            with task_row:
-                st.button(f"{icon} {title}", key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
-                if st.button("⋯", key=f"task_more_{trip_id}_{item_id}", help="Действия", width="content"):
-                    st.session_state[f"task_menu_{trip_id}_{item_id}"] = not st.session_state.get(f"task_menu_{trip_id}_{item_id}", False)
-            if st.session_state.get(f"task_menu_{trip_id}_{item_id}", False):
-                menu_col1, menu_col2 = st.columns([8, 1])
-                with menu_col1:
-                    st.markdown("<div style='color:#7e8494;font-size:11px;padding:5px 0 8px 8px;'>Действия за тази задача</div>", unsafe_allow_html=True)
-                with menu_col2:
-                    if st.button("🗑️", key=f"task_delete_{trip_id}_{item_id}", help="Премахни задачата", width="content"):
-                        _delete_plan_item(item_id)
-                        st.session_state[f"task_menu_{trip_id}_{item_id}"] = False
-                        st.rerun()
+            with st.expander(f"{icon}  {title}", expanded=False):
+                st.button(
+                    "↩️ Отбележи като изпълнена" if not item_done else "↩️ Върни като неизпълнена",
+                    key=f"task_toggle_{trip_id}_{item_id}",
+                    on_click=_toggle_plan_item,
+                    args=(item_id,),
+                    width="stretch",
+                )
+                st.markdown(
+                    "<div style='height:4px'></div>",
+                    unsafe_allow_html=True,
+                )
+                st.button(
+                    "Премахни задачата",
+                    key=f"task_delete_{trip_id}_{item_id}",
+                    on_click=_delete_plan_item,
+                    args=(item_id,),
+                    width="stretch",
+                )
         st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
@@ -4851,7 +4857,9 @@ else:
             _fav_lat = float(_fav_row.get('lat',0) or 0)
             _fav_lon = float(_fav_row.get('lon',0) or 0)
             _fav_color = str(_fav_row.get('color','blue') or 'blue').strip().lower()
-            _fav_color_map = {'red':'#ff5b63','green':'#42d96f','blue':'#4facfe','purple':'#9a6cff','orange':'#ff9b3d'}
+            _fav_color_map = {
+                'red':'#ff5b63','green':'#42d96f','blue':'#4facfe','purple':'#9a6cff','orange':'#ff9b3d'
+            }
             _fav_dot_color = _fav_color_map.get(_fav_color, '#4facfe')
             _fav_desc = 'Запазено място'
             if ':' in _fav_title:
@@ -4859,35 +4867,26 @@ else:
                 if _fav_right.strip():
                     _fav_desc = _fav_left.strip().replace('🏁','').strip()
                     _fav_title = _fav_right.strip()
-            st.markdown(f"<div class='tm-fav-data-row'><div class='tm-fav-cell fav-place-cell'><div class='tm-fav-place'><span class='tm-fav-dot' style='background:{_fav_dot_color}'></span>{html.escape(_fav_title)}</div></div><div class='tm-fav-cell fav-desc-cell'><div class='tm-fav-description'>{html.escape(_fav_desc)}</div></div><div class='tm-fav-cell fav-coord-cell'><div class='tm-fav-coord'>{_fav_lat:.5f}, {_fav_lon:.5f}</div></div><div class='tm-fav-cell fav-action-cell'></div></div>", unsafe_allow_html=True)
-            fav_open = st.session_state.get(f"fav_open_{trip_id}_{_fav_idx}", False)
-            fav_cols = st.columns([1, 1, 8])
-            with fav_cols[0]:
-                if st.button("⋯", key=f"fav_more_{trip_id}_{_fav_idx}", help="Действия", width="content"):
-                    st.session_state[f"fav_open_{trip_id}_{_fav_idx}"] = not fav_open
-                    st.rerun()
-            with fav_cols[1]:
-                if st.button("🗺️", key=f"fav_preview_{trip_id}_{_fav_idx}", help="Преглед на картата", width="content"):
-                    st.session_state["stable_lat"] = _fav_lat
-                    st.session_state["stable_lon"] = _fav_lon
-                    st.session_state["stable_zoom"] = 15
-                    st.session_state["map_current_trip_id"] = trip_id
-                    st.rerun()
-            if fav_open:
-                fav_menu = st.columns([8, 1])
-                with fav_menu[0]:
-                    st.markdown("<div style='color:#7e8494;font-size:11px;padding:4px 0 7px 8px;'>Действия за това място</div>", unsafe_allow_html=True)
-                with fav_menu[1]:
-                    if st.button("🗑️", key=f"fav_delete_{trip_id}_{_fav_idx}", help="Премахни мястото", width="content"):
-                        try:
-                            df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
-                            if _fav_idx in df_map.index:
-                                df_map = df_map.drop(index=_fav_idx)
-                                df_map.to_csv(MAP_FILE, index=False, encoding='utf-8')
-                                st.session_state[f"fav_open_{trip_id}_{_fav_idx}"] = False
-                                st.rerun()
-                        except Exception:
-                            pass
+            with st.expander(f"📍  {_fav_title}", expanded=False):
+                st.markdown(
+                    f"<div style='color:#aab3bd;font-size:11px;margin-bottom:8px;'>{html.escape(_fav_desc)}</div>"
+                    f"<div style='color:#8d98a4;font-size:10px;font-variant-numeric:tabular-nums;'>{_fav_lat:.5f}, {_fav_lon:.5f}</div>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+                if st.button(
+                    "Премахни мястото",
+                    key=f'fav_delete_{trip_id}_{_fav_idx}',
+                    width="stretch",
+                ):
+                    try:
+                        df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
+                        if _fav_idx in df_map.index:
+                            df_map = df_map.drop(index=_fav_idx)
+                            df_map.to_csv(MAP_FILE, index=False, encoding='utf-8')
+                            st.rerun()
+                    except Exception:
+                        pass
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
