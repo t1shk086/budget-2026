@@ -4659,7 +4659,6 @@ else:
 
             with st.expander(expander_label, expanded=False):
                 task_check_key = f"task_done_{trip_id}_{item_id}"
-                # Статусът се променя тук, а не чрез отделен грозен бутон за действие.
                 st.checkbox(
                     "Задачата е изпълнена",
                     value=item_done,
@@ -4669,16 +4668,14 @@ else:
                     args=(item_id, task_check_key),
                 )
 
-                st.markdown(
-                    "<div style='height:4px'></div>",
-                    unsafe_allow_html=True,
-                )
+                st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+                st.caption("Действия")
 
                 if st.button(
                     "🗑️  Премахни задачата",
                     key=f"task_delete_{trip_id}_{item_id}",
                     disabled=plan_locked,
-                    use_container_width=True,
+                    width="stretch",
                 ):
                     _delete_plan_item(item_id)
                     st.rerun()
