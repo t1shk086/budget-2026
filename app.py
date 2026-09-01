@@ -4709,13 +4709,13 @@ else:
             pass
 
     # =========================================================
-    # ❤️ ЛЮБИМИ МЕСТА — тестов вариант с разгъваеми карти
+    # ❤️ ЛЮБИМИ МЕСТА — реална таблична визуализация
     # =========================================================
     st.markdown("""
     <style>
         .tm-fav-headline {
             margin-top:18px;
-            margin-bottom:10px;
+            margin-bottom:9px;
             display:flex;
             align-items:center;
             justify-content:space-between;
@@ -4735,41 +4735,88 @@ else:
             background:rgba(255,255,255,.035);
             border:1px solid rgba(255,255,255,.07);
         }
-        div[data-testid="stExpander"] {
-            border:1px solid rgba(255,255,255,.075) !important;
-            border-radius:16px !important;
-            background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
-            box-shadow:4px 6px 16px rgba(0,0,0,.20) !important;
-            margin-bottom:8px !important;
-            overflow:hidden !important;
+        .tm-fav-head-row,
+        .tm-fav-data-row {
+            display:grid;
+            grid-template-columns:minmax(170px,1.35fr) minmax(180px,1.15fr) minmax(170px,1fr) 52px;
+            gap:0;
+            align-items:center;
         }
-        div[data-testid="stExpander"] details summary {
-            padding:13px 15px !important;
+        .tm-fav-table {
+            overflow:hidden;
+            border:1px solid rgba(255,255,255,.07);
+            border-radius:16px;
+            background:linear-gradient(180deg,rgba(12,19,25,.96),rgba(7,12,17,.96));
+            box-shadow:0 10px 26px rgba(0,0,0,.20);
         }
-        div[data-testid="stExpander"] details summary p {
-            font-size:14px !important;
-            font-weight:800 !important;
-            color:#ffffff !important;
+        .tm-fav-head-row {
+            min-height:34px;
+            background:rgba(255,255,255,.025);
+            border-bottom:1px solid rgba(255,255,255,.07);
         }
-        .tm-fav-details {
-            padding:2px 4px 8px;
-            color:#aab3bd;
+        .tm-fav-th {
+            color:#737e89;
+            font-size:9px;
+            font-weight:900;
+            letter-spacing:.65px;
+            padding:0 10px;
+            text-transform:uppercase;
+        }
+        .tm-fav-data-row {
+            min-height:54px;
+            border-bottom:1px solid rgba(255,255,255,.055);
+        }
+        .tm-fav-data-row:last-child { border-bottom:0; }
+        .tm-fav-cell {
+            color:#dfe4ea;
             font-size:11px;
-            line-height:1.55;
+            line-height:1.35;
+            padding:9px 10px;
+            min-width:0;
+        }
+        .tm-fav-place {
+            color:#fff;
+            font-weight:800;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .tm-fav-description {
+            color:#aab3bd;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
         }
         .tm-fav-coord {
             color:#8d98a4;
             font-variant-numeric:tabular-nums;
             font-size:10px;
-            margin-top:3px;
+        }
+        .tm-fav-dot {
+            display:inline-block;
+            width:7px;
+            height:7px;
+            border-radius:50%;
+            margin-right:7px;
+            vertical-align:1px;
+        }
+        @media(max-width:760px){
+            .tm-fav-head-row,
+            .tm-fav-data-row { grid-template-columns:minmax(120px,1.1fr) minmax(130px,1fr) 94px 44px; }
+            .tm-fav-th,.tm-fav-cell { padding-left:8px; padding-right:8px; }
+            .tm-fav-cell { font-size:10px; }
         }
         @media(max-width:560px){
-            div[data-testid="stExpander"] details summary {
-                padding:12px 13px !important;
+            .tm-fav-head-row { display:none; }
+            .tm-fav-data-row {
+                grid-template-columns:minmax(0,1fr) 44px;
+                grid-template-areas:"place action" "description action" "coord action";
+                padding:8px 0;
             }
-            div[data-testid="stExpander"] details summary p {
-                font-size:13px !important;
-            }
+            .tm-fav-data-row .fav-place-cell { grid-area:place; }
+            .tm-fav-data-row .fav-desc-cell { grid-area:description; }
+            .tm-fav-data-row .fav-coord-cell { grid-area:coord; }
+            .tm-fav-data-row .fav-action-cell { grid-area:action; }
         }
     </style>
     """, unsafe_allow_html=True)
@@ -4782,10 +4829,16 @@ else:
 
     if df_points.empty:
         st.markdown(
-            "<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
+            "<div class='tm-fav-table' style='padding:18px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
             unsafe_allow_html=True,
         )
     else:
+        st.markdown(
+            "<div class='tm-fav-table'><div class='tm-fav-head-row'>"
+            "<div class='tm-fav-th'>МЯСТО</div><div class='tm-fav-th'>ОПИСАНИЕ</div>"
+            "<div class='tm-fav-th'>КООРДИНАТИ</div><div class='tm-fav-th'></div></div>",
+            unsafe_allow_html=True,
+        )
         for _fav_i, (_fav_idx, _fav_row) in enumerate(df_points.iterrows()):
             _fav_title = str(_fav_row.get('title','Място') or 'Място').strip()
             _fav_lat = float(_fav_row.get('lat',0) or 0)
@@ -4801,39 +4854,27 @@ else:
                 if _fav_right.strip():
                     _fav_desc = _fav_left.strip().replace('🏁','').strip()
                     _fav_title = _fav_right.strip()
-
-            _safe_title = html.escape(_fav_title)
             st.markdown(
-                f"<style>div[data-testid='stExpander'] .tm-fav-dot-{_fav_i}{{display:inline-block;width:8px;height:8px;border-radius:50%;background:{_fav_dot_color};margin-right:8px;vertical-align:1px;}}</style>",
+                f"<div class='tm-fav-data-row'>"
+                f"<div class='tm-fav-cell fav-place-cell'><div class='tm-fav-place'><span class='tm-fav-dot' style='background:{_fav_dot_color}'></span>{html.escape(_fav_title)}</div></div>"
+                f"<div class='tm-fav-cell fav-desc-cell'><div class='tm-fav-description'>{html.escape(_fav_desc)}</div></div>"
+                f"<div class='tm-fav-cell fav-coord-cell'><div class='tm-fav-coord'>{_fav_lat:.5f}, {_fav_lon:.5f}</div></div>"
+                f"<div class='tm-fav-cell fav-action-cell'></div>"
+                f"</div>",
                 unsafe_allow_html=True,
             )
-
-            with st.expander(f"📍 {_fav_title}", expanded=False):
-                st.markdown(
-                    f"<div class='tm-fav-details'>"
-                    f"<div><b style='color:#ffffff'>{_safe_title}</b></div>"
-                    f"<div>{html.escape(_fav_desc)}</div>"
-                    f"<div class='tm-fav-coord'>📍 {_fav_lat:.5f}, {_fav_lon:.5f}</div>"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
-                fav_action_1, fav_action_2 = st.columns(2)
-                with fav_action_1:
-                    if st.button("🗺️ Покажи на картата", key=f"fav_show_{trip_id}_{_fav_idx}", use_container_width=True):
-                        st.session_state["stable_lat"] = _fav_lat
-                        st.session_state["stable_lon"] = _fav_lon
-                        st.session_state["stable_zoom"] = 13
-                        st.rerun()
-                with fav_action_2:
-                    if st.button("🗑️ Премахни", key=f"fav_delete_{trip_id}_{_fav_idx}", use_container_width=True, disabled=trip_locked):
-                        try:
-                            df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
-                            if _fav_idx in df_map.index:
-                                df_map = df_map.drop(index=_fav_idx)
-                                df_map.to_csv(MAP_FILE, index=False, encoding='utf-8')
-                                st.rerun()
-                        except Exception:
-                            pass
+            _fav_action_cols = st.columns([1, 12])
+            with _fav_action_cols[1]:
+                if st.button('🗑️', key=f'fav_delete_{trip_id}_{_fav_idx}', help=f'Изтрий {_fav_title}'):
+                    try:
+                        df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
+                        if _fav_idx in df_map.index:
+                            df_map = df_map.drop(index=_fav_idx)
+                            df_map.to_csv(MAP_FILE, index=False, encoding='utf-8')
+                            st.rerun()
+                    except Exception:
+                        pass
+        st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
