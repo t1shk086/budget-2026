@@ -395,53 +395,47 @@ def _tm_receipt_targeted_ocr(image):
 
 def _tm_receipt_ocr(image):
     """
-    V19 — стабилен OCR за касови бележки.
+    V20 — OCR за касови бележки.
 
-    EUR е единствената валута, която използваме.
+    EUR е единствената валута.
+    BGN не участва в избора на сумата.
 
-    Основен специален проблем:
-        OCR понякога чете:
-            549.00
-        като:
-            549.88
+    Основната промяна спрямо V18/V19 е TARGETED OCR:
+    - намираме думата "ЕВРО" / "EUR" в долната част на бележката;
+    - вземаме само областта вдясно/под нея, където е сумата;
+    - пускаме отделен цифров OCR pass върху тази малка област;
+    - това позволява на Tesseract да види правилно 0 с хоризонтална черта.
 
-    V19 НЕ прави глобално 88 -> 00.
-
-    Корекцията се допуска само когато:
-        1. числото е в контекста на ОБЩА СУМА ЕВРО
-        2. завършва на .88
-        3. има OCR вариант, при който същата сума е разпозната
-           с .00
-
-    Така реално число 549.88 няма да бъде произволно променено.
-
-    Запазваме целия суров OCR за диагностика.
+    НЕ правим глобално 88 -> 00.
+    88 се заменя с 00 само ако targeted OCR действително намери
+    00 за същата EUR сума.
     """
 
+    empty_result = {
+        "ok": False,
+        "error": "",
+        "text": "",
+        "targeted_text": "",
+        "total_bgn": None,
+        "total_eur": None,
+        "date": None,
+        "date_ocr": None,
+        "date_corrected": False,
+        "time": None,
+        "lang": "bul+eng",
+    }
+
     if not _PYTESSERACT_AVAILABLE:
-        return {
-            "ok": False,
-            "error": "pytesseract не е инсталиран.",
-            "text": "",
-            "targeted_text": "",
-            "total_bgn": None,
-            "total_eur": None,
-            "date": None,
-            "date_ocr": None,
-            "date_corrected": False,
-            "time": None,
-            "lang": "bul+eng",
-        }
+        result = empty_result.copy()
+        result["error"] = "pytesseract не е инсталиран."
+        return result
 
     try:
-        from PIL import (
-            ImageOps,
-            ImageEnhance,
-            ImageFilter,
-        )
+        import re
+        from PIL import ImageOps, ImageEnhance, ImageFilter
 
         # =====================================================
-        # 1. ORIENTATION
+        # 1. IMAGE PREPARATION
         # =====================================================
 
         try:
@@ -451,19 +445,11 @@ def _tm_receipt_ocr(image):
 
         image = image.copy()
 
-        # =====================================================
-        # 2. RGB
-        # =====================================================
-
         try:
             if image.mode not in ("RGB", "L"):
                 image = image.convert("RGB")
         except Exception:
             pass
-
-        # =====================================================
-        # 3. RESIZE
-        # =====================================================
 
         try:
             width, height = image.size
@@ -471,475 +457,285 @@ def _tm_receipt_ocr(image):
 
             if longest < 1800:
                 scale = 1800.0 / float(longest)
-
                 image = image.resize(
                     (
                         max(1, int(width * scale)),
                         max(1, int(height * scale)),
                     )
                 )
-
-            elif longest > 3000:
-                scale = 3000.0 / float(longest)
-
+            elif longest > 2800:
+                scale = 2800.0 / float(longest)
                 image = image.resize(
                     (
                         max(1, int(width * scale)),
                         max(1, int(height * scale)),
                     )
                 )
-
         except Exception:
             pass
 
         # =====================================================
-        # 4. OCR VARIANTS
+        # 2. STANDARD OCR VARIANTS
         # =====================================================
 
-        ocr_images = []
-
-        # -----------------------------------------------------
-        # ORIGINAL
-        # -----------------------------------------------------
-
-        ocr_images.append(
-            (
-                "original_psm6",
-                image,
-                "--oem 3 --psm 6",
-            )
-        )
-
-        ocr_images.append(
-            (
-                "original_psm11",
-                image,
-                "--oem 3 --psm 11",
-            )
-        )
-
-        # =====================================================
-        # LOWER PART
-        #
-        # Там обикновено се намира крайната сума.
-        # =====================================================
+        ocr_images = [
+            ("original_psm6", image, "--oem 3 --psm 6"),
+        ]
 
         try:
             width, height = image.size
-
-            lower = image.crop(
-                (
-                    0,
-                    int(height * 0.40),
-                    width,
-                    height,
-                )
+            lower40 = image.crop(
+                (0, int(height * 0.40), width, height)
             )
-
             ocr_images.append(
-                (
-                    "lower40_psm6",
-                    lower,
-                    "--oem 3 --psm 6",
-                )
+                ("lower40_psm11", lower40, "--oem 3 --psm 11")
             )
-
-            ocr_images.append(
-                (
-                    "lower40_psm11",
-                    lower,
-                    "--oem 3 --psm 11",
-                )
-            )
-
         except Exception:
             pass
-
-        # =====================================================
-        # GRAYSCALE
-        # =====================================================
 
         try:
             gray = ImageOps.grayscale(image)
-
-            gray = ImageEnhance.Contrast(
-                gray
-            ).enhance(2.0)
-
-            gray = gray.filter(
-                ImageFilter.SHARPEN
-            )
-
-            ocr_images.append(
-                (
-                    "gray_psm6",
-                    gray,
-                    "--oem 3 --psm 6",
-                )
-            )
-
-            ocr_images.append(
-                (
-                    "gray_psm11",
-                    gray,
-                    "--oem 3 --psm 11",
-                )
-            )
-
+            gray = ImageEnhance.Contrast(gray).enhance(1.8)
+            gray = gray.filter(ImageFilter.SHARPEN)
+            # Gray pass не е нужен за избора на сумата —
+            # targeted OCR по-долу е по-надежден и по-бърз.
+            pass
         except Exception:
             pass
 
         # =====================================================
-        # THRESHOLD VARIANT
-        #
-        # Помага при нули с хоризонтална черта.
-        # =====================================================
-
-        try:
-            import cv2
-            import numpy as np
-
-            gray_np = np.array(
-                ImageOps.grayscale(image)
-            )
-
-            # OTSU
-            _, binary = cv2.threshold(
-                gray_np,
-                0,
-                255,
-                cv2.THRESH_BINARY
-                + cv2.THRESH_OTSU,
-            )
-
-            threshold_image = Image.fromarray(
-                binary
-            )
-
-            ocr_images.append(
-                (
-                    "threshold_psm6",
-                    threshold_image,
-                    "--oem 3 --psm 6",
-                )
-            )
-
-            ocr_images.append(
-                (
-                    "threshold_psm11",
-                    threshold_image,
-                    "--oem 3 --psm 11",
-                )
-            )
-
-        except Exception:
-            pass
-
-        # =====================================================
-        # ADAPTIVE THRESHOLD
-        # =====================================================
-
-        try:
-            import cv2
-            import numpy as np
-
-            gray_np = np.array(
-                ImageOps.grayscale(image)
-            )
-
-            adaptive = cv2.adaptiveThreshold(
-                gray_np,
-                255,
-                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY,
-                31,
-                11,
-            )
-
-            adaptive_image = Image.fromarray(
-                adaptive
-            )
-
-            ocr_images.append(
-                (
-                    "adaptive_psm6",
-                    adaptive_image,
-                    "--oem 3 --psm 6",
-                )
-            )
-
-            ocr_images.append(
-                (
-                    "adaptive_psm11",
-                    adaptive_image,
-                    "--oem 3 --psm 11",
-                )
-            )
-
-        except Exception:
-            pass
-
-        # =====================================================
-        # HORIZONTAL LINE REMOVAL
-        #
-        # Това е специално за:
-        #
-        #       00
-        #       ──
-        #
-        # което Tesseract понякога вижда като 88.
-        #
-        # ВАЖНО:
-        # НЕ променяме цифри.
-        # Само премахваме физическите хоризонтални линии
-        # от изображението.
-        # =====================================================
-
-        try:
-            import cv2
-            import numpy as np
-
-            gray_np = np.array(
-                ImageOps.grayscale(image)
-            )
-
-            # Инвертираме:
-            # текст/линии -> бяло
-            # фон -> черно
-            inverted = cv2.bitwise_not(
-                gray_np
-            )
-
-            # Хоризонтални линии.
-            kernel_width = max(
-                20,
-                int(gray_np.shape[1] * 0.015),
-            )
-
-            horizontal_kernel = cv2.getStructuringElement(
-                cv2.MORPH_RECT,
-                (
-                    kernel_width,
-                    1,
-                ),
-            )
-
-            detected_lines = cv2.morphologyEx(
-                inverted,
-                cv2.MORPH_OPEN,
-                horizontal_kernel,
-            )
-
-            # Малко разширяване само по хоризонтала.
-            detected_lines = cv2.dilate(
-                detected_lines,
-                np.ones(
-                    (1, 3),
-                    dtype=np.uint8,
-                ),
-                iterations=1,
-            )
-
-            # Връщаме оригиналното изображение
-            # и изтриваме само откритите линии.
-            cleaned = gray_np.copy()
-
-            cleaned[
-                detected_lines > 0
-            ] = 255
-
-            cleaned_image = Image.fromarray(
-                cleaned
-            )
-
-            ocr_images.append(
-                (
-                    "line_removed_psm6",
-                    cleaned_image,
-                    "--oem 3 --psm 6",
-                )
-            )
-
-            ocr_images.append(
-                (
-                    "line_removed_psm11",
-                    cleaned_image,
-                    "--oem 3 --psm 11",
-                )
-            )
-
-            # -------------------------------------------------
-            # Същото, но само за долната част.
-            # Това е особено важно за крайната сума.
-            # -------------------------------------------------
-
-            width, height = image.size
-
-            lower = image.crop(
-                (
-                    0,
-                    int(height * 0.45),
-                    width,
-                    height,
-                )
-            )
-
-            lower_gray = ImageOps.grayscale(
-                lower
-            )
-
-            lower_np = np.array(
-                lower_gray
-            )
-
-            lower_inverted = cv2.bitwise_not(
-                lower_np
-            )
-
-            lower_kernel_width = max(
-                15,
-                int(lower_np.shape[1] * 0.012),
-            )
-
-            lower_kernel = cv2.getStructuringElement(
-                cv2.MORPH_RECT,
-                (
-                    lower_kernel_width,
-                    1,
-                ),
-            )
-
-            lower_lines = cv2.morphologyEx(
-                lower_inverted,
-                cv2.MORPH_OPEN,
-                lower_kernel,
-            )
-
-            lower_lines = cv2.dilate(
-                lower_lines,
-                np.ones(
-                    (1, 3),
-                    dtype=np.uint8,
-                ),
-                iterations=1,
-            )
-
-            lower_cleaned = lower_np.copy()
-
-            lower_cleaned[
-                lower_lines > 0
-            ] = 255
-
-            lower_cleaned_image = Image.fromarray(
-                lower_cleaned
-            )
-
-            ocr_images.append(
-                (
-                    "lower_line_removed_psm6",
-                    lower_cleaned_image,
-                    "--oem 3 --psm 6",
-                )
-            )
-
-            ocr_images.append(
-                (
-                    "lower_line_removed_psm11",
-                    lower_cleaned_image,
-                    "--oem 3 --psm 11",
-                )
-            )
-
-        except Exception:
-            pass
-
-        # =====================================================
-        # 5. OCR
+        # 3. STANDARD OCR
         # =====================================================
 
         ocr_results = []
 
         for name, img, config in ocr_images:
-
             try:
                 result = pytesseract.image_to_string(
                     img,
                     lang="bul+eng",
                     config=config,
                 )
-
                 if result and result.strip():
-
-                    ocr_results.append(
-                        (
-                            name,
-                            result,
-                        )
-                    )
-
+                    ocr_results.append((name, result))
             except Exception:
                 pass
 
         # =====================================================
-        # 6. NO OCR
+        # 4. TARGETED OCR — НАЙ-ВАЖНАТА ПРОМЯНА
         # =====================================================
 
-        if not ocr_results:
+        targeted_results = []
+        targeted_debug = []
 
-            return {
-                "ok": True,
-                "error": "OCR не върна текст.",
-                "text": "[OCR НЕ ВЪРНА ТЕКСТ]",
-                "targeted_text": "",
-                "total_bgn": None,
-                "total_eur": None,
-                "date": None,
-                "date_ocr": None,
-                "date_corrected": False,
-                "time": None,
-                "lang": "bul+eng",
-            }
+        try:
+            width, height = image.size
+
+            # Долната част съдържа ОБЩА СУМА ЕВРО при този тип бележки.
+            crop_top = int(height * 0.32)
+            lower = image.crop(
+                (0, crop_top, width, height)
+            )
+
+            data_variants = [
+                ("target_locator_psm11", lower, "--oem 3 --psm 11"),
+            ]
+
+            seen_boxes = set()
+
+            for locator_name, locator_img, locator_config in data_variants:
+                try:
+                    data = pytesseract.image_to_data(
+                        locator_img,
+                        lang="bul+eng",
+                        config=locator_config,
+                        output_type=pytesseract.Output.DICT,
+                    )
+                except Exception:
+                    continue
+
+                for idx, token in enumerate(data.get("text", [])):
+                    token_text = str(token or "").strip()
+                    token_upper = token_text.upper()
+
+                    # OCR може да върне ЕВРО, EUR или близки варианти.
+                    token_clean = re.sub(r"[^A-ZА-ЯЁ€]", "", token_upper)
+                    is_eur_token = token_clean in (
+                        "ЕВРО",
+                        "EUR",
+                        "EBPO",
+                        "EВРО",
+                        "EYP",
+                        "€",
+                    )
+
+                    if not is_eur_token:
+                        continue
+
+                    try:
+                        left = int(data["left"][idx])
+                        top = int(data["top"][idx])
+                        tw = int(data["width"][idx])
+                        th = int(data["height"][idx])
+                    except Exception:
+                        continue
+
+                    key = (
+                        round(left / 20),
+                        round(top / 20),
+                        round(tw / 20),
+                        round(th / 20),
+                    )
+                    if key in seen_boxes:
+                        continue
+                    seen_boxes.add(key)
+
+                    # Вземаме областта вдясно от ЕВРО и малко под него.
+                    x1 = max(0, left + tw - 12)
+                    y1 = max(0, top - 25)
+                    x2 = width
+                    y2 = min(
+                        lower.height,
+                        top + max(th * 6, 150),
+                    )
+
+                    if x2 <= x1 or y2 <= y1:
+                        continue
+
+                    amount_crop = lower.crop(
+                        (x1, y1, x2, y2)
+                    )
+
+                    # Увеличаваме силно малката област.
+                    try:
+                        amount_crop = amount_crop.resize(
+                            (
+                                max(1, amount_crop.width * 5),
+                                max(1, amount_crop.height * 5),
+                            ),
+                            Image.Resampling.LANCZOS,
+                        )
+                    except Exception:
+                        amount_crop = amount_crop.resize(
+                            (
+                                max(1, amount_crop.width * 5),
+                                max(1, amount_crop.height * 5),
+                            )
+                        )
+
+                    targeted_variants = [
+                        ("target_raw", amount_crop),
+                    ]
+
+                    try:
+                        target_gray = ImageOps.grayscale(
+                            amount_crop
+                        )
+                        targeted_variants.append(
+                            ("target_gray", target_gray)
+                        )
+
+                        target_contrast = ImageEnhance.Contrast(
+                            target_gray
+                        ).enhance(1.8)
+                        targeted_variants.append(
+                            ("target_contrast", target_contrast)
+                        )
+
+                        # Otsu е особено полезен при касови бележки.
+                        try:
+                            import cv2
+                            import numpy as np
+
+                            arr = np.array(target_gray)
+                            _, otsu = cv2.threshold(
+                                arr,
+                                0,
+                                255,
+                                cv2.THRESH_BINARY + cv2.THRESH_OTSU,
+                            )
+                            targeted_variants.append(
+                                (
+                                    "target_otsu",
+                                    Image.fromarray(otsu),
+                                )
+                            )
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+
+                    for variant_name, target_img in targeted_variants:
+                        for psm in (6,):
+                            try:
+                                config = (
+                                    f"--oem 3 --psm {psm} "
+                                    "-c tessedit_char_whitelist=0123456789.,"
+                                )
+
+                                out = pytesseract.image_to_string(
+                                    target_img,
+                                    lang="eng",
+                                    config=config,
+                                )
+
+                                if out and out.strip():
+                                    targeted_results.append(
+                                        (
+                                            f"{locator_name}_{variant_name}_psm{psm}",
+                                            out,
+                                        )
+                                    )
+                            except Exception:
+                                pass
+
+                    targeted_debug.append(
+                        f"[{locator_name}] {token_text}"
+                    )
+
+        except Exception:
+            pass
 
         # =====================================================
-        # 7. RAW TEXT
+        # 5. RAW TEXT
         # =====================================================
 
         raw_parts = []
 
         for name, result in ocr_results:
-
             raw_parts.append(
                 f"[{name}]\n{result.strip()}"
             )
 
-        raw_text = "\n\n".join(
-            raw_parts
-        )
+        for name, result in targeted_results:
+            raw_parts.append(
+                f"[{name}]\n{result.strip()}"
+            )
+
+        raw_text = "\n\n".join(raw_parts)
+
+        if not raw_text.strip():
+            result = empty_result.copy()
+            result.update({
+                "ok": True,
+                "error": "OCR не върна текст.",
+                "text": "[OCR НЕ ВЪРНА ТЕКСТ]",
+                "targeted_text": "",
+            })
+            return result
 
         # =====================================================
-        # 8. NORMALIZATION
+        # 6. NORMALIZATION
         # =====================================================
 
-        text = raw_text.replace(
-            "\r",
-            "\n",
-        )
+        text = raw_text.replace("\r", "\n")
 
-        # 549-88 -> 549.88
         text = re.sub(
-            r"(\d{1,7})\s*-\s*(\d{2})",
+            r"(\d{1,7})\s*[-,]\s*(\d{2})",
             r"\1.\2",
             text,
         )
 
-        # 549,88 -> 549.88
-        text = re.sub(
-            r"(\d{1,7})\s*,\s*(\d{2})",
-            r"\1.\2",
-            text,
-        )
-
-        # 549. 88 -> 549.88
         text = re.sub(
             r"(\d{1,7})\s*\.\s*(\d{2})",
             r"\1.\2",
@@ -953,639 +749,304 @@ def _tm_receipt_ocr(image):
         ]
 
         # =====================================================
-        # 9. HELPERS
+        # 7. MONEY EXTRACTION
         # =====================================================
 
-        def _money_values(value_text):
-
+        def money_values(block):
             values = []
-
-            if not value_text:
+            if not block:
                 return values
 
-            normalized = str(
-                value_text
-            ).strip()
+            patterns = [
+                r"(?<!\d)(\d{1,7}\.\d{2})(?!\d)",
+                r"(?<!\d)(\d{1,7},\d{2})(?!\d)",
+                r"(?<!\d)(\d{1,7})\s*\.\s*(\d{2})(?!\d)",
+                r"(?<!\d)(\d{1,7})\s*-\s*(\d{2})(?!\d)",
+            ]
 
-            normalized = re.sub(
-                r"(\d{1,7})\s*[-,]\s*(\d{2})",
-                r"\1.\2",
-                normalized,
-            )
-
-            normalized = re.sub(
-                r"(\d{1,7})\s*\.\s*(\d{2})",
-                r"\1.\2",
-                normalized,
-            )
-
-            matches = re.finditer(
-                r"(?<!\d)"
-                r"(\d{1,7})"
-                r"\.(\d{2})"
-                r"(?!\d)",
-                normalized,
-            )
-
-            for match in matches:
-
-                try:
-                    number = float(
-                        match.group(1)
-                        + "."
-                        + match.group(2)
-                    )
-
-                    if 0 < number < 1000000:
-                        values.append(
-                            (
-                                number,
-                                match.group(0),
-                            )
+            for pattern in patterns:
+                for match in re.finditer(pattern, block):
+                    if len(match.groups()) == 1:
+                        value_text = match.group(1).replace(",", ".")
+                    else:
+                        value_text = (
+                            match.group(1)
+                            + "."
+                            + match.group(2)
                         )
 
-                except Exception:
-                    pass
+                    try:
+                        value = float(value_text)
+                    except Exception:
+                        continue
+
+                    if 0 < value < 1000000:
+                        values.append(
+                            (
+                                round(value, 2),
+                                value_text,
+                            )
+                        )
 
             return values
 
         # =====================================================
-        # 10. EUR CANDIDATES
+        # 8. EUR CANDIDATES
         # =====================================================
 
         candidates = []
 
-        for variant_name, variant_text in ocr_results:
+        # --- TARGETED OCR има най-голяма тежест ---
+        for name, result in targeted_results:
+            for value, value_text in money_values(result):
+                candidates.append({
+                    "value": value,
+                    "score": 5000,
+                    "source": name,
+                    "corrected": False,
+                })
 
-            variant_text_normalized = (
-                variant_text
-                .replace("\r", "\n")
-            )
+        # --- Директен текст около ОБЩА СУМА ЕВРО ---
+        for i, line in enumerate(lines):
+            upper = line.upper()
 
-            variant_text_normalized = re.sub(
-                r"(\d{1,7})\s*-\s*(\d{2})",
-                r"\1.\2",
-                variant_text_normalized,
-            )
-
-            variant_text_normalized = re.sub(
-                r"(\d{1,7})\s*,\s*(\d{2})",
-                r"\1.\2",
-                variant_text_normalized,
-            )
-
-            variant_text_normalized = re.sub(
-                r"(\d{1,7})\s*\.\s*(\d{2})",
-                r"\1.\2",
-                variant_text_normalized,
-            )
-
-            variant_lines = [
-                x.strip()
-                for x in variant_text_normalized.splitlines()
-                if x.strip()
-            ]
-
-            # =================================================
-            # A. DIRECT TOTAL EUR
-            # =================================================
-
-            for i, line in enumerate(
-                variant_lines
-            ):
-
-                upper = line.upper()
-
-                has_total = (
-                    "ОБЩА" in upper
-                    and "СУМА" in upper
-                )
-
-                has_eur = (
+            if (
+                "ОБЩА" in upper
+                and "СУМА" in upper
+                and (
                     "ЕВРО" in upper
                     or "EUR" in upper
                     or "€" in upper
                 )
+            ):
+                window = " ".join(
+                    lines[i:i + 4]
+                )
 
-                if not (
-                    has_total
-                    and has_eur
+                for value, value_text in money_values(window):
+                    candidates.append({
+                        "value": value,
+                        "score": 3000,
+                        "source": "direct_total_window",
+                        "corrected": False,
+                    })
+
+        # --- EUR маркер ---
+        eur_text_patterns = [
+            r"(\d{1,7}\.\d{2})\s*(?:EUR|ЕВРО|€)",
+            r"(?:EUR|ЕВРО|€)\s*[:\-]?\s*(\d{1,7}\.\d{2})",
+        ]
+
+        for name, result in ocr_results:
+            normalized_result = re.sub(
+                r"(\d{1,7})\s*[-,]\s*(\d{2})",
+                r"\1.\2",
+                result,
+            )
+
+            for pattern in eur_text_patterns:
+                for match in re.finditer(
+                    pattern,
+                    normalized_result,
+                    flags=re.IGNORECASE,
+                ):
+                    try:
+                        value = float(match.group(1))
+                    except Exception:
+                        continue
+                    if 0 < value < 1000000:
+                        candidates.append({
+                            "value": round(value, 2),
+                            "score": 1800,
+                            "source": name + "_eur_marker",
+                            "corrected": False,
+                        })
+
+        # --- Редове около EUR ---
+        for i, line in enumerate(lines):
+            upper = line.upper()
+            if not (
+                "ЕВРО" in upper
+                or "EUR" in upper
+                or "€" in upper
+            ):
+                continue
+
+            for distance, next_line in enumerate(
+                lines[i:i + 4],
+                start=0,
+            ):
+                if re.search(
+                    r"\b(?:BGN|ЛВ|ЛЕВА|ЛЕВ)\b",
+                    next_line.upper(),
                 ):
                     continue
 
-                # ---------------------------------------------
-                # Същият ред
-                # ---------------------------------------------
-
-                for value, raw_value in _money_values(
-                    line
-                ):
-
-                    candidates.append(
-                        {
-                            "value": value,
-                            "raw": raw_value,
-                            "variant": variant_name,
-                            "score": 1000,
-                            "direct": True,
-                        }
-                    )
-
-                # ---------------------------------------------
-                # Следващите 4 реда
-                # ---------------------------------------------
-
-                for distance, next_line in enumerate(
-                    variant_lines[
-                        i + 1:i + 5
-                    ],
-                    start=1,
-                ):
-
-                    next_upper = next_line.upper()
-
-                    # Ако следващият ред е BGN,
-                    # не го използваме.
-                    if re.search(
-                        r"\b(?:BGN|ЛВ|ЛЕВА|ЛЕВ)\b",
-                        next_upper,
-                        flags=re.IGNORECASE,
-                    ):
-                        continue
-
-                    for value, raw_value in _money_values(
-                        next_line
-                    ):
-
-                        candidates.append(
-                            {
-                                "value": value,
-                                "raw": raw_value,
-                                "variant": variant_name,
-                                "score": (
-                                    950
-                                    - distance * 80
-                                ),
-                                "direct": True,
-                            }
-                        )
-
-            # =================================================
-            # B. EUR СЪС СИМВОЛ
-            # =================================================
-
-            eur_patterns = [
-
-                r"(\d{1,7}\.\d{2})"
-                r"\s*(?:EUR|ЕВРО|€)",
-
-                r"(?:EUR|ЕВРО|€)"
-                r"\s*[:\-]?\s*"
-                r"(\d{1,7}\.\d{2})",
-            ]
-
-            for pattern in eur_patterns:
-
-                for match in re.finditer(
-                    pattern,
-                    variant_text_normalized,
-                    flags=re.IGNORECASE,
-                ):
-
-                    try:
-
-                        value = float(
-                            match.group(1)
-                        )
-
-                        if 0 < value < 1000000:
-
-                            candidates.append(
-                                {
-                                    "value": value,
-                                    "raw": match.group(1),
-                                    "variant": variant_name,
-                                    "score": 700,
-                                    "direct": False,
-                                }
-                            )
-
-                    except Exception:
-                        pass
+                for value, value_text in money_values(next_line):
+                    candidates.append({
+                        "value": value,
+                        "score": max(1600 - distance * 200, 800),
+                        "source": "eur_near_line",
+                        "corrected": False,
+                    })
 
         # =====================================================
-        # 11. GROUP CANDIDATES
+        # 9. SPECIAL 88 -> 00
+        # =====================================================
+        # Само когато имаме силен EUR контекст.
+        # Никога глобално.
+
+        correction_candidates = []
+
+        for candidate in candidates:
+            value = candidate["value"]
+
+            cents = int(round((value - int(value)) * 100))
+
+            if cents == 88:
+                corrected = float(
+                    f"{int(value)}.00"
+                )
+
+                correction_candidates.append({
+                    "value": corrected,
+                    "score": candidate["score"] - 300,
+                    "source": candidate["source"] + "_88_to_00",
+                    "corrected": True,
+                })
+
+        # ВАЖНО:
+        # correction_candidates НЕ печели само защото има 88.
+        # Печели само ако няма по-силен реален кандидат от targeted OCR.
+        candidates.extend(correction_candidates)
+
+        # =====================================================
+        # 10. RANKING
         # =====================================================
 
         grouped = {}
 
         for candidate in candidates:
-
             value = round(
                 float(candidate["value"]),
                 2,
             )
 
-            key = value
-
-            if key not in grouped:
-
-                grouped[key] = {
-                    "count": 0,
-                    "direct_count": 0,
-                    "variants": set(),
-                    "best_score": 0,
+            if value not in grouped:
+                grouped[value] = {
+                    "score": candidate["score"],
+                    "count": 1,
+                    "corrected": candidate["corrected"],
+                    "source": candidate["source"],
                 }
-
-            grouped[key]["count"] += 1
-
-            grouped[key]["variants"].add(
-                candidate["variant"]
-            )
-
-            if candidate["direct"]:
-                grouped[key]["direct_count"] += 1
-
-            grouped[key]["best_score"] = max(
-                grouped[key]["best_score"],
-                candidate["score"],
-            )
-
-        # =====================================================
-        # 12. SPECIAL 88 -> 00
-        #
-        # ТУК Е НОВОТО.
-        #
-        # Ако имаме например:
-        #
-        # variant A: 549.88
-        # variant B: 549.00
-        #
-        # тогава приемаме 549.00.
-        #
-        # Но ако ВСИЧКИ варианти казват 549.88,
-        # НЕ го променяме.
-        # =====================================================
-
-        corrected_values = {}
-
-        for value in list(grouped.keys()):
-
-            cents = int(
-                round(value * 100)
-            ) % 100
-
-            if cents != 88:
-                continue
-
-            integer_part = int(
-                value
-            )
-
-            possible_zero_value = float(
-                f"{integer_part}.00"
-            )
-
-            if possible_zero_value in grouped:
-
-                corrected_values[value] = (
-                    possible_zero_value
+            else:
+                grouped[value]["count"] += 1
+                grouped[value]["score"] = max(
+                    grouped[value]["score"],
+                    candidate["score"],
                 )
-
-        # =====================================================
-        # 13. CHOOSE TOTAL
-        # =====================================================
+                if candidate["corrected"]:
+                    grouped[value]["corrected"] = True
 
         total_eur = None
         date_corrected = False
 
         if grouped:
-
-            ranking = []
-
-            for value, info in grouped.items():
-
-                effective_score = (
-                    info["best_score"]
-                    + min(
-                        info["count"] * 20,
-                        100,
-                    )
-                    + min(
-                        info["direct_count"] * 50,
-                        150,
-                    )
-                )
-
-                ranking.append(
-                    (
-                        value,
-                        effective_score,
-                        info,
-                    )
-                )
-
-            ranking.sort(
-                key=lambda x: x[1],
+            ranked = sorted(
+                grouped.items(),
+                key=lambda item: (
+                    item[1]["score"],
+                    item[1]["count"],
+                ),
                 reverse=True,
             )
 
-            if ranking:
-
-                best_value = ranking[0][0]
-
-                # -------------------------------------------------
-                # Ако най-добрият кандидат е xx.88,
-                # но xx.00 е потвърден от друг OCR вариант,
-                # използваме xx.00.
-                # -------------------------------------------------
-
-                if best_value in corrected_values:
-
-                    corrected_value = (
-                        corrected_values[
-                            best_value
-                        ]
-                    )
-
-                    original_info = grouped[
-                        best_value
-                    ]
-
-                    corrected_info = grouped[
-                        corrected_value
-                    ]
-
-                    # Трябва да има реално потвърждение
-                    # от поне един OCR вариант.
-                    different_variant_confirmation = (
-                        len(
-                            corrected_info[
-                                "variants"
-                            ]
-                        ) >= 1
-                    )
-
-                    if (
-                        different_variant_confirmation
-                        and (
-                            corrected_info[
-                                "direct_count"
-                            ] > 0
-                            or corrected_info[
-                                "count"
-                            ] >= 2
-                        )
-                    ):
-
-                        total_eur = round(
-                            corrected_value,
-                            2,
-                        )
-
-                        date_corrected = True
-
-                    else:
-
-                        total_eur = round(
-                            best_value,
-                            2,
-                        )
-
-                else:
-
-                    total_eur = round(
-                        best_value,
-                        2,
-                    )
+            total_eur = ranked[0][0]
+            date_corrected = bool(
+                ranked[0][1]["corrected"]
+            )
 
         # =====================================================
-        # 14. TARGETED TEXT
+        # 11. TARGETED TEXT
         # =====================================================
 
         targeted_parts = []
 
-        for variant_name, variant_text in ocr_results:
-
-            variant_lines = [
-                x.strip()
-                for x in variant_text.splitlines()
-                if x.strip()
-            ]
-
-            for i, line in enumerate(
-                variant_lines
+        for i, line in enumerate(lines):
+            upper = line.upper()
+            if (
+                "ОБЩА" in upper
+                and "СУМА" in upper
+                and (
+                    "ЕВРО" in upper
+                    or "EUR" in upper
+                    or "€" in upper
+                )
             ):
+                targeted_parts.extend(
+                    lines[max(0, i - 1):min(len(lines), i + 5)]
+                )
 
-                upper = line.upper()
-
-                if (
-                    "ОБЩА" in upper
-                    and "СУМА" in upper
-                    and (
-                        "ЕВРО" in upper
-                        or "EUR" in upper
-                        or "€" in upper
-                    )
-                ):
-
-                    start = max(
-                        0,
-                        i - 1,
-                    )
-
-                    end = min(
-                        len(variant_lines),
-                        i + 5,
-                    )
-
-                    targeted_parts.append(
-                        f"[{variant_name}]\n"
-                        + "\n".join(
-                            variant_lines[
-                                start:end
-                            ]
-                        )
-                    )
-
-        targeted_text = "\n\n".join(
-            dict.fromkeys(
-                targeted_parts
-            )
+        targeted_text = "\n".join(
+            dict.fromkeys(targeted_parts + targeted_debug)
         )
 
         # =====================================================
-        # 15. DATE
+        # 12. DATE
         # =====================================================
 
         date_value = None
 
         date_patterns = [
-
             r"\b(\d{2}[./-]\d{2}[./-]\d{4})\b",
-
             r"\b(\d{4}[./-]\d{2}[./-]\d{2})\b",
         ]
 
-        # Първо търсим ред, който прилича
-        # на дата на покупката.
-        for line in lines:
-
-            for pattern in date_patterns:
-
-                match = re.search(
-                    pattern,
-                    line,
+        for pattern in date_patterns:
+            match = re.search(pattern, text)
+            if match:
+                date_value = (
+                    match.group(1)
+                    .replace("/", ".")
+                    .replace("-", ".")
                 )
-
-                if match:
-
-                    date_value = (
-                        match.group(1)
-                        .replace("/", ".")
-                        .replace("-", ".")
-                    )
-
-                    break
-
-            if date_value:
                 break
 
         # =====================================================
-        # 16. TIME
+        # 13. TIME
         # =====================================================
 
         time_value = None
-
         time_match = re.search(
             r"\b(\d{2}:\d{2}(?::\d{2})?)\b",
             text,
         )
 
         if time_match:
-
-            time_value = (
-                time_match.group(1)
-            )
+            time_value = time_match.group(1)
 
         # =====================================================
-        # 17. FINAL
+        # 14. FINAL
         # =====================================================
 
         return {
             "ok": True,
             "error": "",
-
-            # Целият OCR.
             "text": raw_text,
-
-            # Само зоната около общата EUR сума.
             "targeted_text": targeted_text,
-
-            # BGN НЕ се използва.
             "total_bgn": None,
-
-            # Само EUR.
             "total_eur": total_eur,
-
             "date": date_value,
             "date_ocr": date_value,
             "date_corrected": date_corrected,
-
             "time": time_value,
-
             "lang": "bul+eng",
         }
 
     except Exception as exc:
-
-        return {
-            "ok": False,
-            "error": f"OCR грешка: {exc}",
-            "text": "",
-            "targeted_text": "",
-            "total_bgn": None,
-            "total_eur": None,
-            "date": None,
-            "date_ocr": None,
-            "date_corrected": False,
-            "time": None,
-            "lang": "bul+eng",
-        }
-    except Exception as exc:
-
-        return {
-            "ok": False,
-            "error": f"OCR грешка: {exc}",
-            "text": "",
-            "targeted_text": "",
-            "total_bgn": None,
-            "total_eur": None,
-            "date": None,
-            "date_ocr": None,
-            "date_corrected": False,
-            "time": None,
-            "lang": "bul+eng",
-        }
-
-    except Exception as exc:
-
-        return {
-            "ok": False,
-            "error": f"OCR грешка: {exc}",
-            "text": "",
-            "targeted_text": "",
-            "total_bgn": None,
-            "total_eur": None,
-            "date": None,
-            "date_ocr": None,
-            "date_corrected": False,
-            "time": None,
-            "lang": "bul+eng",
-        }
-        return {
-            "ok": True,
-            "error": "",
-
-            # Пълният OCR за диагностика.
-            "text": raw_text,
-
-            "targeted_text": "",
-
-            # BGN официално не използваме.
-            "total_bgn": None,
-
-            # Само EUR.
-            "total_eur": total_eur,
-
-            "date": date_value,
-            "date_ocr": date_value,
-            "date_corrected": False,
-
-            "time": time_value,
-
-            "lang": "bul+eng",
-        }
-
-    except Exception as exc:
-
-        return {
-            "ok": False,
-            "error": f"OCR грешка: {exc}",
-            "text": "",
-            "targeted_text": "",
-            "total_bgn": None,
-            "total_eur": None,
-            "date": None,
-            "date_ocr": None,
-            "date_corrected": False,
-            "time": None,
-        }
-
-
-
-
-
+        result = empty_result.copy()
+        result["error"] = f"OCR грешка: {exc}"
+        return result
 
 def get_ui_labels():
     labels = DEFAULT_UI_LABELS.copy()
