@@ -5373,6 +5373,16 @@ else:
         ):
             pass
 
+if not plan_df.empty:
+    st.markdown("<div class='tm-plan-list tm-real-task-list'>", unsafe_allow_html=True)
+    
+    for _, plan_row in plan_df.iterrows():
+        _item_id = str(plan_row["item_id"])
+        _item_done = bool(plan_row.get("done", False))
+        _title = str(plan_row.get("title", "Задача"))
+        _safe_id = json.dumps(_item_id, ensure_ascii=False)
+        _safe_title = json.dumps(_title, ensure_ascii=False)
+
         _task_html = f"""
         <style>
           * {{ box-sizing: border-box; }}
@@ -5406,7 +5416,7 @@ else:
           }}
           .tm-task-text.done {{ color: #7e8792; text-decoration: line-through; }}
         </style>
-        
+
         <div class="tm-task">
           <div class="tm-task-delete" id="tm-delete">Изтрий</div>
           <div class="tm-task-row" id="tm-row">
@@ -5414,32 +5424,30 @@ else:
             <div class="tm-task-text {'done' if _item_done else ''}" id="tm-text"></div>
           </div>
         </div>
-        
+
         <script>
         (() => {{
           const ID = {_safe_id};
           const row = document.getElementById('tm-row');
           const del = document.getElementById('tm-delete');
           document.getElementById('tm-text').textContent = {_safe_title};
-        
+
           function go(kind) {{
             try {{
-              // Използва се parent.location вместо window.top за избягване на iframe блокаж
               const u = new URL(window.parent.location.href);
               u.searchParams.delete('tm_task_toggle');
               u.searchParams.delete('tm_task_delete');
               u.searchParams.set(kind === 'delete' ? 'tm_task_delete' : 'tm_task_toggle', ID);
               window.parent.location.href = u.toString();
             }} catch(e) {{
-              // Резервен вариант през window.open, ако родителският прозорец е с друг origin
               const currentUrl = new URL(window.location.href);
               currentUrl.searchParams.set(kind === 'delete' ? 'tm_task_delete' : 'tm_task_toggle', ID);
               window.parent.postMessage({{ type: 'streamlit:setComponentValue', value: kind }}, '*');
             }}
           }}
-        
+
           let sx = 0, sy = 0, dx = 0, dragging = false, isHorizontal = false;
-        
+
           row.addEventListener('touchstart', e => {{
             if (!e.touches.length) return;
             sx = e.touches[0].clientX;
@@ -5449,41 +5457,37 @@ else:
             isHorizontal = false;
             row.style.transition = 'none';
           }}, {{ passive: true }});
-        
+
           row.addEventListener('touchmove', e => {{
             if (!dragging || !e.touches.length) return;
             dx = e.touches[0].clientX - sx;
             const dy = e.touches[0].clientY - sy;
-        
-            // Определяме посоката само при първоначално преместване
+
             if (!isHorizontal && Math.abs(dx) < Math.abs(dy)) {{
               return;
             }}
             isHorizontal = true;
-        
-            // Позволяваме суайп само наляво
+
             if (dx < 0) {{
               row.style.transform = 'translateX(' + Math.max(-84, dx) + 'px)';
             }}
           }}, {{ passive: true }});
-        
+
           row.addEventListener('touchend', () => {{
             if (!dragging) return;
             dragging = false;
             row.style.transition = 'transform .16s ease';
-        
-            // Ако суайпът е бил над 40px наляво -> отваряме бутона
+
             if (dx < -40) {{
               row.style.transform = 'translateX(-84px)';
             }} else {{
               row.style.transform = 'translateX(0)';
-              // Ако е било само кратко натискане (без суайп) -> toggle
               if (Math.abs(dx) < 5) {{
                 go('toggle');
               }}
             }}
           }});
-        
+
           del.addEventListener('click', e => {{
             e.stopPropagation();
             go('delete');
@@ -5491,8 +5495,13 @@ else:
         }})();
         </script>
         """
-    else:
-        st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
+        components.html(_task_html, height=54, scrolling=False)
+        
+    st.markdown("</div>", unsafe_allow_html=True)
+else:
+    st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
+
+st.markdown("---")
 
     st.markdown("---")
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
