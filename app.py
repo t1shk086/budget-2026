@@ -11,53 +11,6 @@ import io
 import html
 import textwrap
 import streamlit.components.v1 as components
-import tempfile
-from pathlib import Path
-
-
-
-# =========================================================
-# REAL MOBILE TASK COMPONENT
-# =========================================================
-_TM_TASK_COMPONENT_DIR = Path(tempfile.gettempdir()) / "travel_manager_task_component_v1"
-_TM_TASK_COMPONENT_DIR.mkdir(parents=True, exist_ok=True)
-_TM_TASK_COMPONENT_HTML = _TM_TASK_COMPONENT_DIR / "index.html"
-if not _TM_TASK_COMPONENT_HTML.exists():
-    _TM_TASK_COMPONENT_HTML.write_text(r'''<!doctype html>
-<html><head><meta charset="utf-8">
-<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
-<style>
-html,body{margin:0;padding:0;background:transparent;font-family:Inter,Arial,sans-serif}
-#card{position:relative;height:48px;width:100%;overflow:hidden;border-radius:14px;background:#0c1722;border:1px solid rgba(255,255,255,.07);touch-action:pan-y}
-#delete{position:absolute;right:0;top:0;bottom:0;width:84px;display:flex;align-items:center;justify-content:center;background:#42191e;color:#ff7777;font-size:12px;font-weight:800;cursor:pointer;z-index:1}
-#row{position:absolute;inset:0;z-index:2;display:flex;align-items:center;gap:10px;padding:0 13px;background:#0c1722;color:#fff;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .16s ease}
-#check{width:24px;height:24px;flex:0 0 24px;display:flex;align-items:center;justify-content:center;font-size:15px}
-#text{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:1.2}
-#text.done{color:#7e8792;text-decoration:line-through}
-</style></head><body>
-<div id="card"><div id="delete">Изтрий</div><div id="row"><div id="check"></div><div id="text"></div></div></div>
-<script>
-const {Streamlit}=window;
-let args={}; let eventNo=0; let sx=0,sy=0,dx=0,moving=false,vertical=false;
-function send(action){eventNo++; Streamlit.setComponentValue({action:action,id:String(args.id||''),event_id:String(Date.now())+'_'+eventNo});}
-function render(){
-  const row=document.getElementById('row'), text=document.getElementById('text'), check=document.getElementById('check');
-  text.textContent=String(args.title||'Задача'); text.classList.toggle('done',!!args.done); check.textContent=args.done?'✓':'○';
-  row.style.transform='translateX(0)';
-  Streamlit.setFrameHeight(54);
-}
-Streamlit.events.addEventListener(Streamlit.RENDER_EVENT,(event)=>{args=event.detail.args||{};render();});
-Streamlit.setComponentReady(); Streamlit.setFrameHeight(54);
-const row=document.getElementById('row'), del=document.getElementById('delete');
-row.addEventListener('touchstart',e=>{if(!e.touches.length)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;dx=0;moving=true;vertical=false;row.style.transition='none';},{passive:true});
-row.addEventListener('touchmove',e=>{if(!moving||!e.touches.length)return;dx=e.touches[0].clientX-sx;const dy=e.touches[0].clientY-sy;if(Math.abs(dy)>Math.abs(dx)){vertical=true;return;}if(dx<0)row.style.transform='translateX('+Math.max(-84,dx)+'px)';},{passive:true});
-row.addEventListener('touchend',()=>{if(!moving)return;moving=false;row.style.transition='transform .16s ease';if(vertical){row.style.transform='translateX(0)';return;}if(dx<-50){row.style.transform='translateX(-84px)';}else{row.style.transform='translateX(0)';if(Math.abs(dx)<10)send('toggle');}});
-row.addEventListener('touchcancel',()=>{moving=false;vertical=false;row.style.transform='translateX(0)';});
-row.addEventListener('click',()=>{if(!moving&&Math.abs(dx)<10)send('toggle');});
-del.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();send('delete');});
-del.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();send('delete');});
-</script></body></html>''', encoding='utf-8')
-_TM_TASK_COMPONENT = components.declare_component("travel_manager_task_v1", path=str(_TM_TASK_COMPONENT_DIR))
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -919,7 +872,12 @@ if "open_quick_expense" not in st.session_state:
 
 if st.session_state["current_trip"] is None:
     st.session_state["edit_unlocked_trip"] = None
-    st.markdown("<div style='text-align: center; margin-bottom: 5px;'><h1 style='font-family: \"Segoe UI\", Roboto, sans-serif; font-weight: 900; font-size: 46px; background: linear-gradient(135deg, #00f2fe, #4facfe, #ff4b4b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 10px rgba(0, 242, 254, 0.2); margin-bottom: 0px;'>🐾 PixelApp</h1><p style='font-family: \"Segoe UI\", Roboto, sans-serif; font-size: 16px; color: #ffd700; font-weight: 500; margin-top: -8px; margin-bottom: 30px;'>Travel Manager</p></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="tm-home-header">
+        <div class="tm-home-brand">🐾 <span>PixelApp</span></div>
+        <div class="tm-home-brand-sub">Travel Manager</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Пътуване се счита за съществуващо и без разход:
     # пазим го в SETTINGS_FILE още при създаването, а бюджетът е отделно в CATEGORY_BUDGETS_FILE.
@@ -1090,6 +1048,277 @@ if st.session_state["current_trip"] is None:
         }
         /* ===== END V9 VISUAL REFRESH ===== */
 
+
+        /* =========================================================
+           HOME V10 — unified dashboard design
+           ========================================================= */
+        .tm-home-header {
+            text-align:center;
+            margin: 2px 0 24px 0;
+        }
+        .tm-home-brand {
+            color:#eef7fb;
+            font-family:"Segoe UI",Roboto,sans-serif;
+            font-size:38px;
+            line-height:1.05;
+            font-weight:900;
+            letter-spacing:-1.2px;
+            text-shadow:0 0 22px rgba(75,210,255,.10);
+        }
+        .tm-home-brand span {
+            background:linear-gradient(135deg,#f3fbff 0%,#8edfff 55%,#4facfe 100%);
+            -webkit-background-clip:text;
+            -webkit-text-fill-color:transparent;
+            background-clip:text;
+        }
+        .tm-home-brand-sub {
+            margin-top:4px;
+            color:#8d99a5;
+            font-size:13px;
+            font-weight:600;
+            letter-spacing:.4px;
+        }
+
+        /* Two primary actions */
+        div[class*="st-key-quick_expense_top_btn"] button,
+        div[class*="st-key-new_trip_home_btn"] button {
+            min-height:68px !important;
+            padding:13px 16px !important;
+            border-radius:17px !important;
+            text-align:left !important;
+            justify-content:flex-start !important;
+            align-items:flex-start !important;
+            white-space:pre-wrap !important;
+            border:1px solid rgba(255,255,255,.09) !important;
+            background:linear-gradient(145deg,rgba(20,34,44,.98),rgba(8,16,23,.98)) !important;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 9px 22px rgba(0,0,0,.23) !important;
+            transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease !important;
+        }
+        div[class*="st-key-quick_expense_top_btn"] button {
+            border-color:rgba(75,210,255,.18) !important;
+        }
+        div[class*="st-key-quick_expense_top_btn"] button:hover,
+        div[class*="st-key-new_trip_home_btn"] button:hover {
+            transform:translateY(-2px) !important;
+            border-color:rgba(75,210,255,.28) !important;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 14px 30px rgba(0,0,0,.30),0 0 18px rgba(75,210,255,.045) !important;
+        }
+        div[class*="st-key-quick_expense_top_btn"] button p,
+        div[class*="st-key-new_trip_home_btn"] button p {
+            width:100% !important;
+            text-align:left !important;
+            white-space:pre-wrap !important;
+            font-size:13px !important;
+            line-height:1.38 !important;
+            font-weight:800 !important;
+            color:#f4f8fb !important;
+        }
+        div[class*="st-key-quick_expense_top_btn"] button p::first-line,
+        div[class*="st-key-new_trip_home_btn"] button p::first-line {
+            font-size:15px !important;
+            font-weight:800 !important;
+        }
+        /* Explanatory second line: smaller, lighter, not bold */
+        div[class*="st-key-quick_expense_top_btn"] button p,
+        div[class*="st-key-new_trip_home_btn"] button p {
+            white-space:pre-line !important;
+        }
+        div[class*="st-key-quick_expense_top_btn"] button p::after,
+        div[class*="st-key-new_trip_home_btn"] button p::after {
+            font-weight:400 !important;
+        }
+
+
+        div[class*="st-key-quick_expense_top_btn"] button p,
+        div[class*="st-key-new_trip_home_btn"] button p {
+            color:#9aa8b3 !important;
+            font-weight:400 !important;
+            line-height:1.32 !important;
+        }
+        div[class*="st-key-quick_expense_top_btn"] button p::first-line,
+        div[class*="st-key-new_trip_home_btn"] button p::first-line {
+            color:#f4f8fb !important;
+            font-weight:800 !important;
+        }
+
+
+        /* V3 — subtle premium polish for trip cards */
+        div[class*="st-key-trip_card_"] {
+            border-radius:18px !important;
+        }
+        div[class*="st-key-trip_card_"] > div {
+            border-radius:18px !important;
+        }
+        div[class*="st-key-trip_card_"] button {
+            border-radius:18px !important;
+            background:
+                linear-gradient(145deg, rgba(20,35,45,.98) 0%, rgba(13,24,32,.98) 58%, rgba(9,17,24,.99) 100%) !important;
+            border-color:rgba(75,210,255,.15) !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.035),
+                0 10px 26px rgba(0,0,0,.25) !important;
+            transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease !important;
+        }
+        div[class*="st-key-trip_card_"] button:hover {
+            transform:translateY(-2px) !important;
+            border-color:rgba(75,210,255,.28) !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.045),
+                0 15px 32px rgba(0,0,0,.32),
+                0 0 18px rgba(75,210,255,.04) !important;
+        }
+
+        /* Trips heading */
+        .tm-home-trips-title {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            color:#aab4be;
+            font-size:11px;
+            font-weight:900;
+            letter-spacing:.8px;
+            margin:22px 0 10px 2px;
+            padding-bottom:9px;
+            border-bottom:1px solid rgba(255,255,255,.07);
+        }
+        .tm-home-trips-count {
+            color:#71808d;
+            font-size:9px;
+            font-weight:700;
+            letter-spacing:.2px;
+            text-transform:none;
+        }
+
+        /* Lower information cards: graphite-blue, same effects as trip cards */
+        .tm-home-extra {
+            margin-top:12px;
+            padding:14px 15px;
+            border-radius:17px;
+            border:1px solid rgba(93,126,148,.22);
+            background:linear-gradient(145deg,rgba(20,32,42,.97),rgba(9,17,24,.97));
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 9px 24px rgba(0,0,0,.24);
+            backdrop-filter:blur(8px);
+            transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+        }
+        .tm-home-extra:hover {
+            transform:translateY(-2px);
+            border-color:rgba(75,210,255,.22);
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 14px 30px rgba(0,0,0,.30),0 0 0 1px rgba(75,210,255,.035);
+        }
+        .tm-home-extra-title {
+            color:#aeb8c2 !important;
+            font-size:10px !important;
+            font-weight:900 !important;
+            letter-spacing:.75px !important;
+            margin-bottom:8px !important;
+        }
+        .tm-home-extra-main {
+            color:#f4f8fb !important;
+            font-size:16px !important;
+            font-weight:850 !important;
+            line-height:1.25 !important;
+        }
+        .tm-home-extra-sub {
+            color:#8996a2 !important;
+            font-size:11px !important;
+            font-weight:500 !important;
+            margin-top:4px !important;
+            line-height:1.35 !important;
+        }
+        .tm-home-stats {
+            display:flex;
+            gap:8px;
+            margin-top:11px;
+        }
+        .tm-home-stat {
+            flex:1;
+            min-width:0;
+            padding:11px 7px;
+            border-radius:14px;
+            border:1px solid rgba(93,126,148,.17);
+            background:linear-gradient(180deg,rgba(25,39,51,.82),rgba(12,21,28,.82));
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+            text-align:center;
+        }
+        .tm-home-stat-value {
+            color:#f2f7fa !important;
+            font-size:15px;
+            font-weight:850;
+            line-height:1.2;
+        }
+        .tm-home-stat-label {
+            color:#7f8c98 !important;
+            font-size:8px;
+            font-weight:700;
+            margin-top:4px;
+            white-space:nowrap;
+            letter-spacing:.25px;
+        }
+
+
+        /* V4 — Quick Overview: coordinated cool-color accents */
+        .tm-home-stat:nth-child(1) .tm-home-stat-value {
+            color:#4dd8ff !important;
+            text-shadow:0 0 12px rgba(77,216,255,.12);
+        }
+        .tm-home-stat:nth-child(2) .tm-home-stat-value {
+            color:#8edfff !important;
+            text-shadow:0 0 12px rgba(142,223,255,.10);
+        }
+        .tm-home-stat:nth-child(3) .tm-home-stat-value {
+            color:#70c9c0 !important;
+            text-shadow:0 0 12px rgba(112,201,192,.10);
+        }
+
+        /* Map is now visually part of the same card family */
+        .tm-modern-map-shell {
+            margin-top:8px !important;
+            padding:12px !important;
+            border-radius:18px !important;
+            border:1px solid rgba(93,126,148,.22) !important;
+            background:linear-gradient(145deg,rgba(20,32,42,.97),rgba(9,17,24,.97)) !important;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 10px 26px rgba(0,0,0,.25) !important;
+        }
+        .tm-map-section-head {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            margin:0 2px 10px 2px;
+        }
+        .tm-map-section-title {
+            color:#aeb8c2;
+            font-size:10px;
+            font-weight:900;
+            letter-spacing:.75px;
+        }
+        .tm-map-count {
+            padding:5px 9px !important;
+            border-radius:999px !important;
+            background:rgba(75,210,255,.07) !important;
+            border:1px solid rgba(75,210,255,.13) !important;
+            color:#b9e8ff !important;
+            font-size:9px !important;
+            font-weight:800 !important;
+        }
+
+        @media(max-width:640px){
+            .tm-home-brand { font-size:32px; }
+            .tm-home-header { margin-bottom:20px; }
+            div[class*="st-key-quick_expense_top_btn"] button,
+            div[class*="st-key-new_trip_home_btn"] button {
+                min-height:64px !important;
+                padding:12px 14px !important;
+                border-radius:16px !important;
+            }
+            .tm-home-trips-title { margin-top:18px; }
+            .tm-home-extra { padding:12px 13px; }
+            .tm-home-stats { gap:6px; }
+            .tm-home-stat { padding:10px 5px; }
+            .tm-home-stat-value { font-size:13px; }
+        }
+
         /* FINAL LEFT ALIGNMENT — override Streamlit's internal flex centering. */
         div[class*="st-key-trip_card_"] div[data-testid="stButton"] > div {
             width:100% !important;
@@ -1122,7 +1351,7 @@ if st.session_state["current_trip"] is None:
     """, unsafe_allow_html=True)
 
     # Бърз разход — първи и най-лесен за достигане.
-    if st.button("➕ Бърз Разход", use_container_width=True, type="primary", key="quick_expense_top_btn"):
+    if st.button("➕  Бърз Разход\nДобави разход за секунди", use_container_width=True, type="primary", key="quick_expense_top_btn"):
         st.session_state["open_quick_expense"] = True
         st.rerun()
 
@@ -1172,7 +1401,7 @@ if st.session_state["current_trip"] is None:
             st.rerun()
 
     # Ново пътуване — над списъка, но след основното действие.
-    if st.button("  Ново Пътуване", use_container_width=True, key="new_trip_home_btn"):
+    if st.button("✈️  Ново Пътуване\nСъздай ново приключение", use_container_width=True, key="new_trip_home_btn"):
         create_trip_modal()
 
     # Sort trips: active/upcoming first by start date, completed last by most recent start date.
@@ -1196,7 +1425,7 @@ if st.session_state["current_trip"] is None:
     existing = sorted(existing, key=_trip_sort_key)
 
     if existing:
-        st.markdown("<div class='tm-home-trips-title'>Избери Дестинация</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='tm-home-trips-title'><span>МОИТЕ ПЪТУВАНИЯ</span><span class='tm-home-trips-count'>{len(existing)} пътувания</span></div>", unsafe_allow_html=True)
 
         for _trip in existing:
             _trip_id = str(_trip)
@@ -1365,33 +1594,44 @@ if st.session_state["current_trip"] is None:
                 st.markdown(
                     f"""
                     <style>
+                    /* MODERN TRIP CARD — само визуална промяна */
                     {_card_selector} button {{
-                        min-height:108px !important;
+                        min-height:148px !important;
                         height:auto !important;
                         width:100% !important;
                         box-sizing:border-box !important;
-                        padding:14px 0 24px 8px !important;
-                        border-radius:16px !important;
-                        border:1px solid rgba(255,255,255,.08) !important;
+                        padding:16px 18px 28px 18px !important;
+                        border-radius:20px !important;
+                        border:1px solid rgba(255,255,255,.085) !important;
+                        border-left:3px solid rgba(0,242,254,.42) !important;
                         background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
-                        box-shadow:4px 4px 12px rgba(0,0,0,.24) !important;
+                            {_bar_gradient} bottom / 100% 7px no-repeat,
+                            radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%),
+                            linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014)) !important;
+                        box-shadow:0 8px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.025) !important;
                         color:#fff !important;
                         text-align:left !important;
                         justify-content:flex-start !important;
                         align-items:flex-start !important;
                         white-space:pre-wrap !important;
                         font-family:inherit !important;
-                        line-height:1.45 !important;
+                        font-size:15px !important;
+                        font-weight:500 !important;
+                        line-height:1.52 !important;
+                        transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease !important;
                     }}
                     {_card_selector} button:hover {{
-                        border-color:rgba(0,242,254,.22) !important;
+                        border-color:rgba(0,242,254,.24) !important;
+                        border-left-color:rgba(0,242,254,.82) !important;
                         background:
-                            {_bar_gradient} bottom / 100% 12px no-repeat,
-                            linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018)) !important;
-                        box-shadow:4px 6px 16px rgba(0,0,0,.30),0 0 14px rgba(0,242,254,.05) !important;
-                        transform:translateY(-1px) !important;
+                            {_bar_gradient} bottom / 100% 7px no-repeat,
+                            radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%),
+                            linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022)) !important;
+                        box-shadow:0 12px 30px rgba(0,0,0,.30), 0 0 18px rgba(0,242,254,.055) !important;
+                        transform:translateY(-2px) !important;
+                    }}
+                    {_card_selector} button:active {{
+                        transform:translateY(0) !important;
                     }}
                     {_card_selector} button > div {{
                         width:100% !important;
@@ -1415,8 +1655,10 @@ if st.session_state["current_trip"] is None:
                     }}
                     @media(max-width:640px) {{
                         {_card_selector} button {{
-                            min-height:102px !important;
-                            padding:12px 0 23px 6px !important;
+                            min-height:140px !important;
+                            padding:14px 14px 27px 14px !important;
+                            border-radius:18px !important;
+                            font-size:14px !important;
                         }}
                     }}
                     </style>
@@ -1425,13 +1667,21 @@ if st.session_state["current_trip"] is None:
                 )
 
                 _remaining_card = max(0.0, _budget - _spent) if _budget > 0 else 0.0
-                _label = (
-                    f"🚙  **{_trip_name}**    →\n"
-                    f"{_status_dot}  {_status_text}"
-                    f"{f' · {_trip_dates_line}' if _trip_dates_line else ''}\n"
-                    f"{_budget_line}"
-                    f"{f'\n💳 Остават: €{_remaining_card:,.0f}' if _budget > 0 else ''}"
-                )
+                if _budget > 0:
+                    _label = (
+                        f"🚙  **{_trip_name}**\n"
+                        f"{_status_dot}  {_status_text}"
+                        f"{f' · {_trip_dates_line}' if _trip_dates_line else ''}\n\n"
+                        f"**€{_spent:,.2f}** / €{_budget:,.2f}    **{_pct:.0f}%**\n"
+                        f"💳 Остават **€{_remaining_card:,.0f}**"
+                    )
+                else:
+                    _label = (
+                        f"🚙  **{_trip_name}**\n"
+                        f"{_status_dot}  {_status_text}"
+                        f"{f' · {_trip_dates_line}' if _trip_dates_line else ''}\n\n"
+                        f"Без зададен бюджет"
+                    )
 
                 if st.button(
                     _label,
@@ -1514,10 +1764,18 @@ if st.session_state["current_trip"] is None:
         }
         .tm-home-extra {
                     margin-top:12px;
-                    padding:12px 14px;
-                    border-radius:14px;
-                    border:1px solid rgba(255,255,255,.07);
-                    background:rgba(255,255,255,.018);
+                    padding:13px 14px;
+                    border-radius:16px;
+                    border:1px solid rgba(93,126,148,.22);
+                    background:linear-gradient(180deg, rgba(20,32,42,.96), rgba(9,17,24,.96));
+                    box-shadow:inset 0 1px 0 rgba(255,255,255,.035), 0 8px 22px rgba(0,0,0,.24);
+                    backdrop-filter:blur(8px);
+                    transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+                }
+        .tm-home-extra:hover {
+                    transform:translateY(-2px);
+                    border-color:rgba(75,210,255,.22);
+                    box-shadow:inset 0 1px 0 rgba(255,255,255,.045), 0 14px 28px rgba(0,0,0,.30), 0 0 0 1px rgba(75,210,255,.035);
                 }
                 .tm-home-extra-title {
                     color:#9aa1ad;
@@ -1551,9 +1809,10 @@ if st.session_state["current_trip"] is None:
                     flex:1;
                     min-width:0;
                     padding:10px 8px;
-                    border-radius:12px;
-                    border:1px solid rgba(255,255,255,.06);
-                    background:rgba(255,255,255,.018);
+                    border-radius:13px;
+                    border:1px solid rgba(93,126,148,.16);
+                    background:linear-gradient(180deg, rgba(25,39,51,.82), rgba(12,21,28,.82));
+                    box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
                     text-align:center;
                 }
                 .tm-home-stat-value {
@@ -1608,8 +1867,8 @@ if st.session_state["current_trip"] is None:
                 f"""
                 <div class="tm-home-extra">
                     <div class="tm-home-extra-title">🕐 ПОСЛЕДНА АКТИВНОСТ</div>
-                    <div class="tm-home-extra-main">{_la_trip} · €{_la_amount:,.2f}</div>
-                    <div class="tm-home-extra-sub">{_la_cat} - {_la_desc}</div>
+                    <div class="tm-home-extra-main">€{_la_amount:,.2f}</div>
+                    <div class="tm-home-extra-sub">{_la_trip} · {_la_cat} · {_la_desc}</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -2232,7 +2491,7 @@ if st.session_state["current_trip"] is None:
     # МОИТЕ МЕСТА — обща карта на всички вече записани точки.
     # Използва само съществуващия MAP_FILE; не добавя нова геокодираща логика.
     # ---------------------------------------------------------
-    st.markdown("<div class='tm-home-extra-title' style='margin-top:18px;margin-bottom:8px;'>🌍 МОИТЕ МЕСТА</div>", unsafe_allow_html=True)
+
     _home_map_points = []
     try:
         if os.path.exists(MAP_FILE):
@@ -2263,6 +2522,17 @@ if st.session_state["current_trip"] is None:
     except Exception:
         _home_map_points = []
 
+    st.markdown(
+        f"""
+        <div class="tm-modern-map-shell">
+            <div class="tm-map-section-head">
+                <div class="tm-map-section-title">🌍 МОИТЕ МЕСТА</div>
+                <div class="tm-map-count">{len(_home_map_points)} места</div>
+            </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     if _home_map_points:
         _map_center = (
             sum(p[0] for p in _home_map_points) / len(_home_map_points),
@@ -2281,12 +2551,14 @@ if st.session_state["current_trip"] is None:
                 popup=f"<b>{html.escape(_title)}</b><br>{html.escape(get_trip_display_name(_mtid))}",
                 icon=folium.Icon(color="green", icon="map-marker", prefix="fa"),
             ).add_to(_home_map)
-        st_folium(_home_map, use_container_width=True, height=320, key="home_my_places_map_1237")
+        st_folium(_home_map, use_container_width=True, height=300, key="home_my_places_map_1237")
     else:
         st.markdown(
             "<div class='tm-home-extra'><div class='tm-home-extra-sub'>Няма записани места за показване.</div></div>",
             unsafe_allow_html=True,
         )
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if st.button("➖ Последни разходи", use_container_width=True, key="recent_expenses_home_btn"):
             @st.dialog("➖ Последни разходи", width="large")
@@ -2748,6 +3020,429 @@ if st.session_state["current_trip"] is None:
     # =========================================================
 
 else:
+    # =========================================================
+    # ✨ TRAVEL MANAGER — MODERN OPEN TRIP UI
+    # Само визуална модернизация.
+    # НЕ променя логика, изчисления, session_state или данни.
+    # =========================================================
+
+    st.markdown("""
+    <style>
+
+    /* =====================================================
+       ОСНОВЕН КОНТЕЙНЕР НА ОТВОРЕНОТО ПЪТУВАНЕ
+       ===================================================== */
+
+    [data-testid="stAppViewContainer"] {
+        background:
+            radial-gradient(
+                circle at 50% 0%,
+                rgba(0, 217, 255, 0.045),
+                transparent 34%
+            ),
+            #0b1017 !important;
+    }
+
+    /* =====================================================
+       ЗАГЛАВИЕ НА ПЪТУВАНЕТО
+       Хващаме старото h2 без да променяме текста му.
+       ===================================================== */
+
+    [data-testid="stMarkdownContainer"]
+    h2[style*="background"] {
+        font-family: "Segoe UI", Roboto, sans-serif !important;
+        font-size: 30px !important;
+        font-weight: 850 !important;
+        letter-spacing: -0.4px !important;
+        line-height: 1.15 !important;
+        margin-top: 4px !important;
+        margin-bottom: 2px !important;
+        padding: 0 !important;
+
+        background:
+            linear-gradient(
+                135deg,
+                #ffffff 0%,
+                #8be9ff 42%,
+                #4facfe 100%
+            ) !important;
+
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        text-shadow:
+            0 0 22px rgba(0, 217, 255, 0.10) !important;
+    }
+
+    /* Периодът под заглавието */
+    [data-testid="stMarkdownContainer"]
+    h2[style*="background"] + p {
+        color: #7f8a99 !important;
+        font-size: 12px !important;
+        font-weight: 650 !important;
+        letter-spacing: 0.25px !important;
+        margin-top: 6px !important;
+        margin-bottom: 15px !important;
+    }
+
+    /* =====================================================
+       ГОРНИТЕ 4 СТАТИСТИКИ
+       ===================================================== */
+
+    .tm-trip-status {
+        gap: 8px !important;
+        margin-top: 10px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .tm-trip-stat {
+        position: relative !important;
+        overflow: hidden !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,0.055),
+                rgba(255,255,255,0.018)
+            ) !important;
+
+        border: 1px solid rgba(255,255,255,0.075) !important;
+        border-radius: 15px !important;
+
+        padding: 13px 9px !important;
+
+        box-shadow:
+            0 7px 20px rgba(0,0,0,0.18),
+            inset 0 1px 0 rgba(255,255,255,0.035) !important;
+
+        transition:
+            transform .2s ease,
+            border-color .2s ease !important;
+    }
+
+    .tm-trip-stat::before {
+        content: "" !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 2px !important;
+
+        background:
+            linear-gradient(
+                90deg,
+                rgba(0,217,255,0),
+                rgba(0,217,255,.65),
+                rgba(79,172,254,0)
+            ) !important;
+
+        opacity: .65 !important;
+    }
+
+    .tm-trip-stat-label {
+        color: #7f8997 !important;
+        font-size: 9px !important;
+        font-weight: 850 !important;
+        letter-spacing: .7px !important;
+    }
+
+    .tm-trip-stat-value {
+        color: #f7fbff !important;
+        font-size: 17px !important;
+        font-weight: 900 !important;
+        margin-top: 4px !important;
+    }
+
+    /* =====================================================
+       TRIP HEALTH
+       ===================================================== */
+
+    .tm-health {
+        gap: 8px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .tm-health-item {
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,.045),
+                rgba(255,255,255,.012)
+            ) !important;
+
+        border: 1px solid rgba(255,255,255,.065) !important;
+        border-radius: 14px !important;
+
+        padding: 11px 13px !important;
+
+        box-shadow:
+            0 6px 18px rgba(0,0,0,.15),
+            inset 0 1px 0 rgba(255,255,255,.025) !important;
+    }
+
+    .tm-health-title {
+        color: #737f8e !important;
+        font-size: 9px !important;
+        font-weight: 850 !important;
+        letter-spacing: .75px !important;
+    }
+
+    .tm-health-value {
+        font-size: 12px !important;
+        font-weight: 850 !important;
+        margin-top: 5px !important;
+    }
+
+    /* =====================================================
+       НОМЕРАТА НА СЕКЦИИТЕ
+       ===================================================== */
+
+    .tm-section-title {
+        margin-top: 18px !important;
+        margin-bottom: 10px !important;
+
+        font-size: 13px !important;
+        font-weight: 850 !important;
+        letter-spacing: .45px !important;
+        color: #f5f8fc !important;
+    }
+
+    .tm-section-number {
+        width: 27px !important;
+        height: 27px !important;
+        min-width: 27px !important;
+
+        font-size: 11px !important;
+        font-weight: 900 !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,.07),
+                rgba(255,255,255,.018)
+            ) !important;
+
+        box-shadow:
+            0 5px 14px rgba(0,0,0,.2),
+            inset 0 1px 1px rgba(255,255,255,.05) !important;
+    }
+
+    /* =====================================================
+       ВСИЧКИ ОСНОВНИ КАРТИ ВЪВ ВЪТРЕШНОТО ПЪТУВАНЕ
+       ===================================================== */
+
+    .tm-budget-card-inner,
+    .tm-budget-mini-card,
+    .premium-expense-card,
+    .category-expense-card {
+        box-shadow:
+            0 7px 20px rgba(0,0,0,.17),
+            inset 0 1px 0 rgba(255,255,255,.025) !important;
+    }
+
+    /* =====================================================
+       БЮДЖЕТНИ КАРТИ
+       ===================================================== */
+
+    .tm-budget-mini-card {
+        border-radius: 15px !important;
+        padding: 16px !important;
+        min-height: 138px !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,.045),
+                rgba(255,255,255,.012)
+            ) !important;
+    }
+
+    .tm-budget-mini-label {
+        font-size: 10px !important;
+        letter-spacing: .55px !important;
+    }
+
+    .tm-budget-mini-value {
+        font-size: 23px !important;
+        font-weight: 900 !important;
+    }
+
+    .tm-budget-mini-line {
+        font-size: 10.5px !important;
+        color: #aeb7c3 !important;
+    }
+
+    .tm-budget-mini-sub {
+        font-size: 10px !important;
+    }
+
+    /* =====================================================
+       КАРТА ЗА ПРОБЕГА
+       ===================================================== */
+
+    [data-testid="stMarkdownContainer"]
+    div[style*="СЛЕДЕНЕ НА ПРОБЕГА"] {
+        border-radius: 16px !important;
+    }
+
+    /* =====================================================
+       BUTTONS — ЕДИНЕН MODERN STYLE
+       ===================================================== */
+
+    button[data-testid="stBaseButton-secondary"],
+    button[data-testid="stBaseButton-primary"] {
+
+        min-height: 42px !important;
+
+        border-radius: 13px !important;
+
+        font-family:
+            "Segoe UI",
+            Roboto,
+            sans-serif !important;
+
+        font-size: 12px !important;
+        font-weight: 800 !important;
+
+        letter-spacing: .15px !important;
+
+        border:
+            1px solid rgba(255,255,255,.075) !important;
+
+        background:
+            linear-gradient(
+                145deg,
+                #202631,
+                #151a22
+            ) !important;
+
+        color: #f4f7fb !important;
+
+        box-shadow:
+            0 6px 16px rgba(0,0,0,.20),
+            inset 0 1px 0 rgba(255,255,255,.035) !important;
+
+        transition:
+            transform .18s ease,
+            border-color .18s ease,
+            box-shadow .18s ease !important;
+    }
+
+    button[data-testid="stBaseButton-secondary"]:hover,
+    button[data-testid="stBaseButton-primary"]:hover {
+
+        transform: translateY(-1px) !important;
+
+        border-color:
+            rgba(0,217,255,.32) !important;
+
+        box-shadow:
+            0 8px 22px rgba(0,0,0,.25),
+            0 0 18px rgba(0,217,255,.07) !important;
+    }
+
+    /* =====================================================
+       ОСНОВНИЯ ACTION БУТОН
+       ===================================================== */
+
+    button[data-testid="stBaseButton-primary"] {
+        background:
+            linear-gradient(
+                135deg,
+                rgba(0,217,255,.13),
+                rgba(79,172,254,.08)
+            ) !important;
+
+        border-color:
+            rgba(0,217,255,.28) !important;
+    }
+
+    /* =====================================================
+       INPUT ПОЛЕТА
+       ===================================================== */
+
+    div[data-baseweb="input"],
+    div[data-baseweb="textarea"] {
+
+        border-radius: 12px !important;
+
+        background:
+            rgba(255,255,255,.025) !important;
+
+        border:
+            1px solid rgba(255,255,255,.075) !important;
+    }
+
+    div[data-baseweb="input"]:focus-within,
+    div[data-baseweb="textarea"]:focus-within {
+
+        border-color:
+            rgba(0,217,255,.42) !important;
+
+        box-shadow:
+            0 0 0 1px rgba(0,217,255,.10),
+            0 0 18px rgba(0,217,255,.06) !important;
+    }
+
+    /* =====================================================
+       HR / РАЗДЕЛИТЕЛИ
+       ===================================================== */
+
+    hr {
+        border-color:
+            rgba(255,255,255,.055) !important;
+
+        margin-top: 14px !important;
+        margin-bottom: 14px !important;
+    }
+
+    /* =====================================================
+       MOBILE
+       ===================================================== */
+
+    @media (max-width: 640px) {
+
+        .tm-trip-status {
+            grid-template-columns:
+                repeat(2, minmax(0,1fr)) !important;
+
+            gap: 7px !important;
+        }
+
+        .tm-trip-stat {
+            padding: 12px 8px !important;
+            border-radius: 14px !important;
+        }
+
+        .tm-trip-stat-value {
+            font-size: 16px !important;
+        }
+
+        .tm-health {
+            grid-template-columns: 1fr !important;
+        }
+
+        .tm-section-title {
+            font-size: 12.5px !important;
+        }
+
+        .tm-section-number {
+            width: 26px !important;
+            height: 26px !important;
+            min-width: 26px !important;
+        }
+
+        [data-testid="stMarkdownContainer"]
+        h2[style*="background"] {
+            font-size: 25px !important;
+        }
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+
+    # =========================================================
+    # КРАЙ НА ВИЗУАЛНИЯ SKIN
+    # =========================================================    
     trip_id = st.session_state["current_trip"]
     c_s = get_trip_settings(trip_id)
     car_trip, t_fuel, s_km, e_km, m_fuel = str(c_s["car_trip"]), str(c_s["track_fuel"]), float(c_s["start_km"]), float(c_s["end_km"]), float(c_s["manual_fuel"])
@@ -4660,28 +5355,17 @@ else:
     if not plan_df.empty:
         st.markdown("<div class='tm-plan-list'>", unsafe_allow_html=True)
         for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
+            st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
             item_id = str(plan_row["item_id"])
             item_done = bool(plan_row.get("done", False))
             title = str(plan_row.get("title", "Задача"))
-
-            _event = _TM_TASK_COMPONENT(
-                id=item_id,
-                title=title,
-                done=item_done,
-                key=f"tm_real_task_{trip_id}_{item_id}",
-            )
-            if isinstance(_event, dict):
-                _event_id = str(_event.get("event_id", ""))
-                _event_key = f"tm_last_task_event_{trip_id}_{item_id}"
-                if _event_id and st.session_state.get(_event_key) != _event_id:
-                    st.session_state[_event_key] = _event_id
-                    _action = str(_event.get("action", ""))
-                    if _action == "toggle":
-                        _toggle_plan_item(item_id)
-                        st.rerun()
-                    elif _action == "delete":
-                        _delete_plan_item(item_id)
-                        st.rerun()
+            icon = "✅" if item_done else "⬜"
+            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
+            with task_row:
+                left_shift = max(18, min(55, 72 - len(title)))
+                task_label = f"{icon} {title}" + "\u00a0" * left_shift
+                st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
+                st.button("🗑️", key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,), width="content")
         st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
@@ -4767,13 +5451,13 @@ else:
             pass
 
     # =========================================================
-    # ❤️ ЛЮБИМИ МЕСТА — тестов вариант с разгъваеми карти
+    # ❤️ ЛЮБИМИ МЕСТА — реална таблична визуализация
     # =========================================================
     st.markdown("""
     <style>
         .tm-fav-headline {
             margin-top:18px;
-            margin-bottom:10px;
+            margin-bottom:9px;
             display:flex;
             align-items:center;
             justify-content:space-between;
@@ -4793,41 +5477,88 @@ else:
             background:rgba(255,255,255,.035);
             border:1px solid rgba(255,255,255,.07);
         }
-        div[data-testid="stExpander"] {
-            border:1px solid rgba(255,255,255,.075) !important;
-            border-radius:16px !important;
-            background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
-            box-shadow:4px 6px 16px rgba(0,0,0,.20) !important;
-            margin-bottom:4px !important;
-            overflow:hidden !important;
+        .tm-fav-head-row,
+        .tm-fav-data-row {
+            display:grid;
+            grid-template-columns:minmax(170px,1.35fr) minmax(180px,1.15fr) minmax(170px,1fr) 52px;
+            gap:0;
+            align-items:center;
         }
-        div[data-testid="stExpander"] details summary {
-            padding:9px 13px !important;
+        .tm-fav-table {
+            overflow:hidden;
+            border:1px solid rgba(255,255,255,.07);
+            border-radius:16px;
+            background:linear-gradient(180deg,rgba(12,19,25,.96),rgba(7,12,17,.96));
+            box-shadow:0 10px 26px rgba(0,0,0,.20);
         }
-        div[data-testid="stExpander"] details summary p {
-            font-size:14px !important;
-            font-weight:800 !important;
-            color:#ffffff !important;
+        .tm-fav-head-row {
+            min-height:34px;
+            background:rgba(255,255,255,.025);
+            border-bottom:1px solid rgba(255,255,255,.07);
         }
-        .tm-fav-details {
-            padding:2px 4px 8px;
-            color:#aab3bd;
+        .tm-fav-th {
+            color:#737e89;
+            font-size:9px;
+            font-weight:900;
+            letter-spacing:.65px;
+            padding:0 10px;
+            text-transform:uppercase;
+        }
+        .tm-fav-data-row {
+            min-height:54px;
+            border-bottom:1px solid rgba(255,255,255,.055);
+        }
+        .tm-fav-data-row:last-child { border-bottom:0; }
+        .tm-fav-cell {
+            color:#dfe4ea;
             font-size:11px;
-            line-height:1.55;
+            line-height:1.35;
+            padding:9px 10px;
+            min-width:0;
+        }
+        .tm-fav-place {
+            color:#fff;
+            font-weight:800;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .tm-fav-description {
+            color:#aab3bd;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
         }
         .tm-fav-coord {
             color:#8d98a4;
             font-variant-numeric:tabular-nums;
             font-size:10px;
-            margin-top:3px;
+        }
+        .tm-fav-dot {
+            display:inline-block;
+            width:7px;
+            height:7px;
+            border-radius:50%;
+            margin-right:7px;
+            vertical-align:1px;
+        }
+        @media(max-width:760px){
+            .tm-fav-head-row,
+            .tm-fav-data-row { grid-template-columns:minmax(120px,1.1fr) minmax(130px,1fr) 94px 44px; }
+            .tm-fav-th,.tm-fav-cell { padding-left:8px; padding-right:8px; }
+            .tm-fav-cell { font-size:10px; }
         }
         @media(max-width:560px){
-            div[data-testid="stExpander"] details summary {
-                padding:9px 12px !important;
+            .tm-fav-head-row { display:none; }
+            .tm-fav-data-row {
+                grid-template-columns:minmax(0,1fr) 44px;
+                grid-template-areas:"place action" "description action" "coord action";
+                padding:8px 0;
             }
-            div[data-testid="stExpander"] details summary p {
-                font-size:13px !important;
-            }
+            .tm-fav-data-row .fav-place-cell { grid-area:place; }
+            .tm-fav-data-row .fav-desc-cell { grid-area:description; }
+            .tm-fav-data-row .fav-coord-cell { grid-area:coord; }
+            .tm-fav-data-row .fav-action-cell { grid-area:action; }
         }
     </style>
     """, unsafe_allow_html=True)
@@ -4840,10 +5571,16 @@ else:
 
     if df_points.empty:
         st.markdown(
-            "<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
+            "<div class='tm-fav-table' style='padding:18px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
             unsafe_allow_html=True,
         )
     else:
+        st.markdown(
+            "<div class='tm-fav-table'><div class='tm-fav-head-row'>"
+            "<div class='tm-fav-th'>МЯСТО</div><div class='tm-fav-th'>ОПИСАНИЕ</div>"
+            "<div class='tm-fav-th'>КООРДИНАТИ</div><div class='tm-fav-th'></div></div>",
+            unsafe_allow_html=True,
+        )
         for _fav_i, (_fav_idx, _fav_row) in enumerate(df_points.iterrows()):
             _fav_title = str(_fav_row.get('title','Място') or 'Място').strip()
             _fav_lat = float(_fav_row.get('lat',0) or 0)
@@ -4859,39 +5596,27 @@ else:
                 if _fav_right.strip():
                     _fav_desc = _fav_left.strip().replace('🏁','').strip()
                     _fav_title = _fav_right.strip()
-
-            _safe_title = html.escape(_fav_title)
             st.markdown(
-                f"<style>div[data-testid='stExpander'] .tm-fav-dot-{_fav_i}{{display:inline-block;width:8px;height:8px;border-radius:50%;background:{_fav_dot_color};margin-right:8px;vertical-align:1px;}}</style>",
+                f"<div class='tm-fav-data-row'>"
+                f"<div class='tm-fav-cell fav-place-cell'><div class='tm-fav-place'><span class='tm-fav-dot' style='background:{_fav_dot_color}'></span>{html.escape(_fav_title)}</div></div>"
+                f"<div class='tm-fav-cell fav-desc-cell'><div class='tm-fav-description'>{html.escape(_fav_desc)}</div></div>"
+                f"<div class='tm-fav-cell fav-coord-cell'><div class='tm-fav-coord'>{_fav_lat:.5f}, {_fav_lon:.5f}</div></div>"
+                f"<div class='tm-fav-cell fav-action-cell'></div>"
+                f"</div>",
                 unsafe_allow_html=True,
             )
-
-            with st.expander(f"📍 {_fav_title}", expanded=False):
-                st.markdown(
-                    f"<div class='tm-fav-details'>"
-                    f"<div><b style='color:#ffffff'>{_safe_title}</b></div>"
-                    f"<div>{html.escape(_fav_desc)}</div>"
-                    f"<div class='tm-fav-coord'>📍 {_fav_lat:.5f}, {_fav_lon:.5f}</div>"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
-                fav_action_1, fav_action_2 = st.columns(2)
-                with fav_action_1:
-                    if st.button("🗺️ Покажи на картата", key=f"fav_show_{trip_id}_{_fav_idx}", use_container_width=True):
-                        st.session_state["stable_lat"] = _fav_lat
-                        st.session_state["stable_lon"] = _fav_lon
-                        st.session_state["stable_zoom"] = 13
-                        st.rerun()
-                with fav_action_2:
-                    if st.button("🗑️ Премахни", key=f"fav_delete_{trip_id}_{_fav_idx}", use_container_width=True, disabled=trip_locked):
-                        try:
-                            df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
-                            if _fav_idx in df_map.index:
-                                df_map = df_map.drop(index=_fav_idx)
-                                df_map.to_csv(MAP_FILE, index=False, encoding='utf-8')
-                                st.rerun()
-                        except Exception:
-                            pass
+            _fav_action_cols = st.columns([1, 12])
+            with _fav_action_cols[1]:
+                if st.button('🗑️', key=f'fav_delete_{trip_id}_{_fav_idx}', help=f'Изтрий {_fav_title}'):
+                    try:
+                        df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
+                        if _fav_idx in df_map.index:
+                            df_map = df_map.drop(index=_fav_idx)
+                            df_map.to_csv(MAP_FILE, index=False, encoding='utf-8')
+                            st.rerun()
+                    except Exception:
+                        pass
+        st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
