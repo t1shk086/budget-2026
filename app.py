@@ -864,27 +864,27 @@ def _add_plan_item_and_clear(t_id, widget_key):
             st.session_state[widget_key] = ""
     except Exception:
         pass
-# One-shot bridge used by the real task HTML component.
-# It runs after the task callbacks are defined, then removes the parameter
-# before rerunning so the same action cannot repeat.
-try:
-    _tm_toggle_id = st.query_params.get("tm_task_toggle")
-    _tm_delete_id = st.query_params.get("tm_task_delete")
 
-    if _tm_toggle_id:
+
+
+# =========================================================
+# MOBILE TASK ACTION BRIDGE
+# =========================================================
+try:
+    _tm_toggle = st.query_params.get("tm_task_toggle")
+    _tm_delete = st.query_params.get("tm_task_delete")
+
+    if _tm_toggle:
         del st.query_params["tm_task_toggle"]
-        _toggle_plan_item(str(_tm_toggle_id))
+        _toggle_plan_item(str(_tm_toggle))
         st.rerun()
 
-    if _tm_delete_id:
+    if _tm_delete:
         del st.query_params["tm_task_delete"]
-        _delete_plan_item(str(_tm_delete_id))
+        _delete_plan_item(str(_tm_delete))
         st.rerun()
 except Exception:
     pass
-
-
-
 
 
 if "open_quick_expense" not in st.session_state:
@@ -4543,161 +4543,257 @@ else:
     """, unsafe_allow_html=True)
 
     # =========================================================
+    # 🧳 ПЛАН НА ПЪТУВАНЕТО
+    # =========================================================
+    plan_df = get_trip_plan(trip_id)
+    plan_done = int(plan_df["done"].sum()) if not plan_df.empty else 0
+    plan_total = len(plan_df)
+    plan_pct = (plan_done / plan_total * 100.0) if plan_total else 0.0
+
+    st.markdown("""
+    <style>
+        .tm-plan-header {
+            display:flex; justify-content:space-between; align-items:center; gap:10px;
+            margin:14px 14px 10px 14px;
+            padding-bottom:10px;
+            border-bottom:1px solid rgba(255,255,255,.06);
+        }
+        .tm-plan-title-wrap { display:flex; align-items:center; gap:10px; min-width:0; }
+        .tm-plan-title { color:#fff; font-size:15px; font-weight:800; letter-spacing:.25px; }
+        .tm-plan-count {
+            color:#aeb5c0; font-size:11px; white-space:nowrap;
+            padding:4px 8px; border-radius:999px;
+            background:rgba(255,255,255,.035);
+            border:1px solid rgba(255,255,255,.06);
+        }
+        .tm-plan-progress-wrap { margin:0 14px 12px 14px; }
+        .tm-plan-progress {
+            height:6px; width:100%;
+            background:rgba(255,255,255,.07);
+            border-radius:99px; overflow:hidden;
+            box-shadow:inset 0 1px 2px rgba(0,0,0,.35);
+        }
+        .tm-plan-progress-fill {
+            height:100%;
+            background:linear-gradient(90deg,#9b7cff,#b79cff);
+            border-radius:99px;
+        }
+        .tm-plan-progress-meta {
+            display:flex; justify-content:flex-end;
+            margin-top:5px; color:#8f96a3; font-size:10px;
+        }
+        .tm-plan-list {
+            margin:0 10px 10px 10px;
+            padding-top:2px;
+        }
+        @media (max-width:640px) {
+            .tm-plan-title { font-size:14px; }
+            .tm-plan-header { margin:12px 12px 9px 12px; }
+            .tm-plan-progress-wrap { margin:0 12px 10px 12px; }
+            .tm-plan-list { margin:0 8px 8px 8px; }
+        }
+        @media (max-width:640px) {
+            .tm-plan-title { font-size:14px; }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n3'>3</span><span>ПЛАН НА ПЪТУВАНЕТО</span></div>", unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="tm-plan-progress-wrap">
+        <div class="tm-plan-progress"><div class="tm-plan-progress-fill" style="width:{plan_pct:.2f}%;"></div></div>
+        <div class="tm-plan-progress-meta">{plan_pct:.1f}% завършено · {plan_done}/{plan_total} изпълнени</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    plan_col1, plan_col2 = st.columns([1, 1])
+    with plan_col1:
+        plan_input_key = f"trip_plan_new_{trip_id}"
+        new_plan_item = st.text_input(
+            "Добави задача",
+            placeholder="Пътуването е приключено." if float(e_km) > 0.0 else "напр. Резервация за ресторант...",
+            key=plan_input_key,
+            disabled=float(e_km) > 0.0,
+        )
+    with plan_col2:
+        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+        plan_input_key = f"trip_plan_new_{trip_id}"
+        plan_locked = float(e_km) > 0.0
+        if st.button(
+            "🔒 Пътуването е приключено" if plan_locked else "➕ Добави в плана",
+            use_container_width=True,
+            key=f"trip_plan_add_{trip_id}",
+            on_click=None if plan_locked else _add_plan_item_and_clear,
+            args=(trip_id, plan_input_key),
+            disabled=plan_locked,
+        ):
+            pass
+
     if not plan_df.empty:
-        st.markdown("""
-        <style>
-        .tm-plan-list-real { margin:0 8px 8px 8px; }
-        .tm-real-task-wrap { margin:4px 0; }
-        </style>
-        """, unsafe_allow_html=True)
+        st.markdown("<div class='tm-plan-list'>", unsafe_allow_html=True)
 
         for _, plan_row in plan_df.iterrows():
-            _item_id = str(plan_row["item_id"])
-            _item_done = bool(plan_row["done"])
-            _title = str(plan_row.get("title", "Задача"))
+            item_id = str(plan_row["item_id"])
+            item_done = bool(plan_row.get("done", False))
+            title = str(plan_row.get("title", "Задача"))
 
-            import json as _tm_json
-            _safe_title = _tm_json.dumps(_title, ensure_ascii=False)
-            _safe_id = _tm_json.dumps(_item_id, ensure_ascii=False)
+            # Each row is a real HTML/JS component. There is NO Streamlit delete button.
+            safe_id = json.dumps(item_id, ensure_ascii=False)
+            safe_title = json.dumps(title, ensure_ascii=False)
+            done_js = "true" if item_done else "false"
 
-            _task_html = f"""
+            task_html = f"""
             <style>
-              * {{ box-sizing:border-box; }}
-              body {{ margin:0; background:transparent; font-family:Inter,Arial,sans-serif; }}
-              .tm-card {{
-                position:relative; height:48px; width:100%; overflow:hidden;
-                border-radius:14px; background:#0c1722;
+              html,body {{ margin:0; padding:0; background:transparent; }}
+              body {{ font-family:Inter,Arial,sans-serif; }}
+              .tm-task {{
+                position:relative; width:100%; height:48px;
+                overflow:hidden; border-radius:14px;
+                background:#0c1722;
                 border:1px solid rgba(255,255,255,.07);
                 touch-action:pan-y;
               }}
-              .tm-delete {{
-                position:absolute; inset:0 0 0 auto; width:84px;
+              .tm-task-delete {{
+                position:absolute; top:0; right:0; bottom:0;
+                width:86px; z-index:1;
                 display:flex; align-items:center; justify-content:center;
                 background:#42191e; color:#ff7777;
                 font-size:12px; font-weight:800;
-                cursor:pointer; z-index:1;
+                cursor:pointer;
               }}
-              .tm-row {{
-                position:absolute; inset:0; z-index:2;
+              .tm-task-row {{
+                position:absolute; top:0; left:0; right:0; bottom:0;
+                z-index:2;
                 display:flex; align-items:center; gap:10px;
-                padding:0 13px; background:#0c1722;
-                color:#fff; cursor:pointer;
+                padding:0 13px;
+                background:#0c1722; color:#fff;
+                cursor:pointer;
                 user-select:none; -webkit-user-select:none;
                 transition:transform .16s ease;
               }}
-              .tm-check {{
-                width:25px; height:25px; flex:0 0 25px;
+              .tm-task-check {{
+                width:24px; height:24px; flex:0 0 24px;
                 display:flex; align-items:center; justify-content:center;
                 font-size:15px;
               }}
-              .tm-text {{
-                flex:1; min-width:0; font-size:13px; line-height:1.2;
-                white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+              .tm-task-text {{
+                min-width:0; flex:1;
+                overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+                font-size:13px; line-height:1.2;
               }}
-              .tm-text.done {{ color:#7e8792; text-decoration:line-through; }}
+              .tm-task-text.done {{
+                color:#7e8792; text-decoration:line-through;
+              }}
             </style>
 
-            <div class="tm-card" id="tm-card">
-              <div class="tm-delete" id="tm-delete">Изтрий</div>
-              <div class="tm-row" id="tm-row">
-                <div class="tm-check">{'✓' if _item_done else '○'}</div>
-                <div class="tm-text {'done' if _item_done else ''}" id="tm-text"></div>
+            <div class="tm-task" id="task">
+              <div class="tm-task-delete" id="delete">Изтрий</div>
+              <div class="tm-task-row" id="row">
+                <div class="tm-task-check" id="check"></div>
+                <div class="tm-task-text" id="text"></div>
               </div>
             </div>
 
             <script>
             (() => {{
-              const taskId = {_safe_id};
-              document.getElementById("tm-text").textContent = {_safe_title};
+              const ID = {safe_id};
+              const TITLE = {safe_title};
+              const DONE = {done_js};
 
-              const card = document.getElementById("tm-card");
-              const row = document.getElementById("tm-row");
-              const del = document.getElementById("tm-delete");
+              const row = document.getElementById("row");
+              const del = document.getElementById("delete");
+              const text = document.getElementById("text");
+              const check = document.getElementById("check");
 
-              let sx=0, sy=0, dx=0, touching=false, swiped=false;
+              text.textContent = TITLE;
+              text.classList.toggle("done", DONE);
+              check.textContent = DONE ? "✓" : "○";
 
-              function action(kind) {{
-                const u = new URL(window.top.location.href);
-                u.searchParams.delete("tm_task_toggle");
-                u.searchParams.delete("tm_task_delete");
-                u.searchParams.set(
-                  kind === "delete" ? "tm_task_delete" : "tm_task_toggle",
-                  taskId
+              function run(action) {{
+                const url = new URL(window.top.location.href);
+                url.searchParams.delete("tm_task_toggle");
+                url.searchParams.delete("tm_task_delete");
+                url.searchParams.set(
+                  action === "delete" ? "tm_task_delete" : "tm_task_toggle",
+                  ID
                 );
-                window.top.location.href = u.toString();
+                window.top.location.assign(url.toString());
               }}
 
-              // Desktop/mouse click: toggle.
-              row.addEventListener("click", (e) => {{
-                if (!touching && !swiped) action("toggle");
-              }});
+              let sx=0, sy=0, dx=0, moving=false, vertical=false;
 
-              // Touch: short tap toggles; left swipe reveals delete.
-              row.addEventListener("touchstart", (e) => {{
+              row.addEventListener("touchstart", e => {{
                 if (!e.touches.length) return;
                 sx=e.touches[0].clientX;
                 sy=e.touches[0].clientY;
-                dx=0;
-                touching=true;
-                swiped=false;
+                dx=0; moving=true; vertical=false;
                 row.style.transition="none";
               }}, {{passive:true}});
 
-              row.addEventListener("touchmove", (e) => {{
-                if (!touching || !e.touches.length) return;
+              row.addEventListener("touchmove", e => {{
+                if (!moving || !e.touches.length) return;
                 dx=e.touches[0].clientX-sx;
                 const dy=e.touches[0].clientY-sy;
 
-                // Vertical scrolling wins.
-                if (Math.abs(dy) > Math.abs(dx)) return;
-
-                if (dx < 0) {{
-                  swiped=true;
-                  row.style.transform="translateX("+Math.max(-84,dx)+"px)";
+                if (Math.abs(dy)>Math.abs(dx)) {{
+                  vertical=true;
+                  return;
+                }}
+                if (dx<0) {{
+                  row.style.transform="translateX("+Math.max(-86,dx)+"px)";
                 }}
               }}, {{passive:true}});
 
               row.addEventListener("touchend", () => {{
-                if (!touching) return;
-                touching=false;
+                if (!moving) return;
+                moving=false;
                 row.style.transition="transform .16s ease";
 
-                if (dx < -50) {{
-                  swiped=true;
-                  row.style.transform="translateX(-84px)";
-                }} else {{
-                  const wasTap = !swiped && Math.abs(dx) < 10;
+                if (vertical) {{
                   row.style.transform="translateX(0)";
-                  // Let the synthetic click handle the tap exactly once.
-                  if (wasTap) {{
-                    setTimeout(() => {{
-                      if (typeof row.click === "function") row.click();
-                    }}, 0);
-                  }}
+                  return;
+                }}
+
+                if (dx < -55) {{
+                  row.style.transform="translateX(-86px)";
+                  return; // wait for explicit tap on Изтрий
+                }}
+
+                row.style.transform="translateX(0)";
+                if (Math.abs(dx) < 10) {{
+                  run("toggle");
                 }}
               }});
 
               row.addEventListener("touchcancel", () => {{
-                touching=false;
-                swiped=false;
+                moving=false; vertical=false;
                 row.style.transform="translateX(0)";
               }});
 
-              // This is now genuinely clickable after the row is swiped away.
-              del.addEventListener("click", (e) => {{
-                e.stopPropagation();
-                action("delete");
+              // Desktop click on task.
+              row.addEventListener("click", e => {{
+                if (!moving && Math.abs(dx) < 10) run("toggle");
               }});
-              del.addEventListener("touchend", (e) => {{
+
+              // IMPORTANT: delete is a real clickable element AFTER swipe.
+              del.addEventListener("click", e => {{
+                e.preventDefault();
                 e.stopPropagation();
-                action("delete");
+                run("delete");
+              }});
+              del.addEventListener("touchend", e => {{
+                e.preventDefault();
+                e.stopPropagation();
+                run("delete");
               }});
             }})();
             </script>
             """
 
-            components.html(_task_html, height=54, scrolling=False)
+            components.html(task_html, height=54, scrolling=False)
 
+        st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown(
             "<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>",
