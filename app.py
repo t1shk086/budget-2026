@@ -1,4 +1,5 @@
 # Изтеглете файла от линка по-горе или копирайте целия код отдолу:
+import json
 import streamlit as st
 import pandas as pd
 import datetime
