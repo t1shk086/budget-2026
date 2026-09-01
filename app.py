@@ -4525,196 +4525,103 @@ else:
     # =========================================================
     # 🧳 ПЛАН НА ПЪТУВАНЕТО
 
-    st.markdown("""
+    # === TRUE TASK COMPONENT: click toggles, swipe-left deletes ===
+    _task_component = r"""
     <style>
-    /* TASKS ONLY: the delete button is technical/invisible. */
-    div[data-testid="stHorizontalBlock"]:has(button[aria-label*="task_delete_"]) {
-        overflow:hidden !important;
-        touch-action:pan-y !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(button[aria-label*="task_delete_"]) > div[data-testid="stColumn"]:nth-child(2) {
-        flex:0 0 1px !important;
-        max-width:1px !important;
-        width:1px !important;
-        min-width:1px !important;
-        padding:0 !important;
-        margin:0 !important;
-        overflow:hidden !important;
-        opacity:0 !important;
-        pointer-events:none !important;
-    }
+      *{box-sizing:border-box}
+      body{margin:0;background:transparent;font-family:Inter,Arial,sans-serif;color:#fff}
+      .task{position:relative;overflow:hidden;border-radius:14px;margin:5px 0;height:48px;
+            background:#0c1722;border:1px solid rgba(255,255,255,.07);touch-action:pan-y}
+      .delete{position:absolute;right:0;top:0;bottom:0;width:82px;display:flex;
+              align-items:center;justify-content:center;background:#3a171b;color:#ff7777;
+              font-size:12px;font-weight:700}
+      .row{position:absolute;inset:0;z-index:2;display:flex;align-items:center;gap:10px;
+           padding:0 13px;background:#0c1722;transition:transform .15s ease;
+           user-select:none;-webkit-user-select:none}
+      .check{width:25px;height:25px;border-radius:50%;display:flex;align-items:center;
+             justify-content:center;flex:0 0 25px;font-size:14px}
+      .txt{font-size:13px;line-height:1.2;flex:1}
+      .done{color:#7e8792;text-decoration:line-through}
     </style>
-    """, unsafe_allow_html=True)
-    components.html("""
+    <div id="task"></div>
     <script>
-    (() => {
-      const doc = window.parent.document;
-      const seen = new WeakSet();
+    const params = new URLSearchParams(location.search);
+    const label = decodeURIComponent(params.get("label") || "");
+    const done = params.get("done") === "1";
+    const taskId = params.get("id") || "";
 
-      function bind() {
-        doc.querySelectorAll('button').forEach(btn => {
-          const text = (btn.innerText || '').trim();
-          if (!text || seen.has(btn)) return;
+    const host = document.getElementById("task");
+    host.innerHTML =
+      '<div class="task" id="card">' +
+        '<div class="delete" id="del">Изтрий</div>' +
+        '<div class="row" id="row">' +
+          '<div class="check">' + (done ? '✓' : '○') + '</div>' +
+          '<div class="txt ' + (done ? 'done' : '') + '">' +
+            label.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) +
+          '</div>' +
+        '</div>' +
+      '</div>';
 
-          // Only bind buttons that belong to a task row and have a sibling hidden delete button.
-          const block = btn.closest('[data-testid="stHorizontalBlock"]');
-          if (!block) return;
-          const cols = block.querySelectorAll(':scope > [data-testid="stColumn"]');
-          if (cols.length < 2) return;
-          const del = cols[1].querySelector('button');
-          if (!del) return;
+    const card=document.getElementById("card"), row=document.getElementById("row");
+    let sx=0,sy=0,dx=0,drag=false,moved=false;
 
-          // Avoid binding arbitrary two-column controls: task buttons use the task text.
-          if (!block.querySelector('[data-testid="stColumn"]:nth-child(2) button')) return;
+    function send(action){
+      parent.postMessage({type:"travel_manager_task",action:action,id:taskId}, "*");
+    }
 
-          seen.add(btn);
-          let sx=0, sy=0, dx=0, active=false;
+    row.addEventListener("touchstart",e=>{
+      if(!e.touches.length)return;
+      sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+      dx=0; drag=true; moved=false; row.style.transition="none";
+    },{passive:true});
 
-          btn.addEventListener('touchstart', e => {
-            if (!e.touches.length) return;
-            sx=e.touches[0].clientX;
-            sy=e.touches[0].clientY;
-            dx=0;
-            active=true;
-            btn.style.transition='none';
-          }, {passive:true});
+    row.addEventListener("touchmove",e=>{
+      if(!drag||!e.touches.length)return;
+      dx=e.touches[0].clientX-sx;
+      const dy=e.touches[0].clientY-sy;
+      if(Math.abs(dy)>Math.abs(dx)){return;}
+      if(dx<0){moved=true;row.style.transform=`translateX(${Math.max(-82,dx)}px)`;}
+    },{passive:true});
 
-          btn.addEventListener('touchmove', e => {
-            if (!active || !e.touches.length) return;
-            dx=e.touches[0].clientX-sx;
-            const dy=e.touches[0].clientY-sy;
-            if (Math.abs(dy)>Math.abs(dx) || dx>=0) return;
-            btn.style.transform='translateX('+Math.max(-82,dx)+'px)';
-          }, {passive:true});
-
-          btn.addEventListener('touchend', () => {
-            if (!active) return;
-            active=false;
-            btn.style.transition='transform .14s ease';
-            if (dx < -55) {
-              btn.style.transform='translateX(-18px)';
-              setTimeout(() => del.click(), 80);
-            } else {
-              btn.style.transform='translateX(0)';
-            }
-          }, {passive:true});
-
-          btn.addEventListener('touchcancel', () => {
-            active=false;
-            btn.style.transform='translateX(0)';
-          }, {passive:true});
-        });
+    row.addEventListener("touchend",()=>{
+      if(!drag)return; drag=false;
+      row.style.transition="transform .15s ease";
+      if(dx < -55){
+        row.style.transform="translateX(-82px)";
+        setTimeout(()=>send("delete"),120);
+      }else{
+        row.style.transform="translateX(0)";
+        if(!moved) send("toggle");
       }
+    });
 
-      bind();
-      new MutationObserver(bind).observe(doc.body,{childList:true,subtree:true});
-    })();
+    row.addEventListener("click",()=>{
+      if(!moved && Math.abs(dx)<8) send("toggle");
+      moved=false;
+    });
     </script>
-    """, height=0, scrolling=False)
+    """
 
-    # =========================================================
-    plan_df = get_trip_plan(trip_id)
-    plan_done = int(plan_df["done"].sum()) if not plan_df.empty else 0
-    plan_total = len(plan_df)
-    plan_pct = (plan_done / plan_total * 100.0) if plan_total else 0.0
-
-    st.markdown("""
-    <style>
-        .tm-plan-header {
-            display:flex; justify-content:space-between; align-items:center; gap:10px;
-            margin:14px 14px 10px 14px;
-            padding-bottom:10px;
-            border-bottom:1px solid rgba(255,255,255,.06);
-        }
-        .tm-plan-title-wrap { display:flex; align-items:center; gap:10px; min-width:0; }
-        .tm-plan-title { color:#fff; font-size:15px; font-weight:800; letter-spacing:.25px; }
-        .tm-plan-count {
-            color:#aeb5c0; font-size:11px; white-space:nowrap;
-            padding:4px 8px; border-radius:999px;
-            background:rgba(255,255,255,.035);
-            border:1px solid rgba(255,255,255,.06);
-        }
-        .tm-plan-progress-wrap { margin:0 14px 12px 14px; }
-        .tm-plan-progress {
-            height:6px; width:100%;
-            background:rgba(255,255,255,.07);
-            border-radius:99px; overflow:hidden;
-            box-shadow:inset 0 1px 2px rgba(0,0,0,.35);
-        }
-        .tm-plan-progress-fill {
-            height:100%;
-            background:linear-gradient(90deg,#9b7cff,#b79cff);
-            border-radius:99px;
-        }
-        .tm-plan-progress-meta {
-            display:flex; justify-content:flex-end;
-            margin-top:5px; color:#8f96a3; font-size:10px;
-        }
-        .tm-plan-list {
-            margin:0 10px 10px 10px;
-            padding-top:2px;
-        }
-        @media (max-width:640px) {
-            .tm-plan-title { font-size:14px; }
-            .tm-plan-header { margin:12px 12px 9px 12px; }
-            .tm-plan-progress-wrap { margin:0 12px 10px 12px; }
-            .tm-plan-list { margin:0 8px 8px 8px; }
-        }
-        @media (max-width:640px) {
-            .tm-plan-title { font-size:14px; }
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n3'>3</span><span>ПЛАН НА ПЪТУВАНЕТО</span></div>", unsafe_allow_html=True)
-
-    st.markdown(f"""
-    <div class="tm-plan-progress-wrap">
-        <div class="tm-plan-progress"><div class="tm-plan-progress-fill" style="width:{plan_pct:.2f}%;"></div></div>
-        <div class="tm-plan-progress-meta">{plan_pct:.1f}% завършено · {plan_done}/{plan_total} изпълнени</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    plan_col1, plan_col2 = st.columns([1, 1])
-    with plan_col1:
-        plan_input_key = f"trip_plan_new_{trip_id}"
-        new_plan_item = st.text_input(
-            "Добави задача",
-            placeholder="Пътуването е приключено." if float(e_km) > 0.0 else "напр. Резервация за ресторант...",
-            key=plan_input_key,
-            disabled=float(e_km) > 0.0,
+    # Render each task as the actual component. No st.button delete control.
+    for _task_i, _task in enumerate(trip_plan):
+        _item_id = str(_task.get("id", _task_i))
+        _label = str(_task.get("text", _task.get("title", "")))
+        _done = bool(_task.get("done", False))
+        _src = _task_component.replace(
+            'label = decodeURIComponent(params.get("label") || "");',
+            'label = decodeURIComponent(params.get("label") || "");'
         )
-    with plan_col2:
-        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-        plan_input_key = f"trip_plan_new_{trip_id}"
-        plan_locked = float(e_km) > 0.0
-        if st.button(
-            "🔒 Пътуването е приключено" if plan_locked else "➕ Добави в плана",
-            use_container_width=True,
-            key=f"trip_plan_add_{trip_id}",
-            on_click=None if plan_locked else _add_plan_item_and_clear,
-            args=(trip_id, plan_input_key),
-            disabled=plan_locked,
-        ):
-            pass
+        # Pass state through query parameters so each component is independent.
+        _src = _src.replace(
+            '<div id="task"></div>',
+            '<div id="task"></div>'
+        )
+        _src = _src.replace(
+            'const params = new URLSearchParams(location.search);',
+            f'const params = new URLSearchParams(location.search);\\n    params.set("label", encodeURIComponent({repr(_label)})); params.set("done", {"1" if _done else "0"}); params.set("id", {repr(_item_id)});'
+        )
+        components.html(_src, height=54, scrolling=False)
 
-    if not plan_df.empty:
-        st.markdown("<div class='tm-plan-list'>", unsafe_allow_html=True)
-        for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
-            st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
-            item_id = str(plan_row["item_id"])
-            item_done = bool(plan_row.get("done", False))
-            title = str(plan_row.get("title", "Задача"))
-            icon = "✅" if item_done else "⬜"
-            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
-            with task_row:
-                left_shift = max(18, min(55, 72 - len(title)))
-                task_label = f"{icon} {title}" + "\u00a0" * left_shift
-                st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
-                st.button("🗑️", key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,), width="content")
-        st.markdown("</div>", unsafe_allow_html=True)
-    else:
-        st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
