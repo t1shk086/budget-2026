@@ -860,8 +860,7 @@ def _render_task_swipe(items, key):
     )
 
 
-def _render_task_swipe(items, key):
-    return _tm_task_swipe(items=items, key=key, default=None)
+
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
