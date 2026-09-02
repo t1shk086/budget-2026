@@ -5560,11 +5560,20 @@ else:
             }
             for _, _r in plan_df.iterrows()
         ]
-    st.session_state["task_plan_locked"] = bool(plan_locked)
-    
-    _render_task_swipe(_task_items)
+
+        st.session_state["task_plan_locked"] = bool(plan_locked)
+
+        _render_task_swipe(_task_items)
+
     else:
-        st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравяш.</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>"
+            "Добави резервации, места или задачи, които не искаш да забравяш."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("---")
 
     st.markdown("---")
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
