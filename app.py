@@ -790,16 +790,10 @@ export default function(component) {
         const del = task.querySelector('.tm-task-delete');
         let sx = 0, sy = 0, dx = 0, moved = false, dragging = false;
 
-        del.addEventListener('click', function(e) {
-            e.stopPropagation();
-            emit('delete', id);
-        });
-
-let sx = 0;
-let sy = 0;
-let dx = 0;
-let moved = false;
-let dragging = false;
+del.addEventListener('click', function(e) {
+    e.stopPropagation();
+    emit('delete', id);
+});
 
 row.addEventListener('pointerdown', function(e) {
     sx = e.clientX;
@@ -881,7 +875,6 @@ row.addEventListener('click', function(e) {
 
     emit('toggle', id);
 });
-
         root.appendChild(task);
     });
 }
