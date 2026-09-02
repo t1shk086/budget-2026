@@ -6678,32 +6678,33 @@ else:
         js=_FAV_JS,
     )
 
-    def _handle_fav_swipe_action():
-        try:
-            _component_state = st.session_state.get("tmFavoritesSwipe")
-            if not _component_state:
-                return
+    def _apply_fav_swipe_action(_event):
+        """Изпълнява действието от swipe компонента извън callback-а.
 
-            _event = getattr(_component_state, "action", None)
+        Така trigger-ът се обработва в нормалния script run и можем
+        безопасно да направим st.rerun() след промяната.
+        Връща True, ако е извършено реално действие.
+        """
+        try:
             if not isinstance(_event, dict):
-                return
+                return False
 
             _action = str(_event.get("action", ""))
             _fav_id = str(_event.get("id", ""))
             if not _fav_id:
-                return
+                return False
 
             try:
                 _row_index = int(_fav_id)
             except Exception:
-                return
+                return False
 
             _df_map = pd.read_csv(MAP_FILE, encoding="utf-8")
             if _row_index not in _df_map.index:
-                return
+                return False
 
             if str(_df_map.loc[_row_index, "trip_id"]) != str(trip_id):
-                return
+                return False
 
             if _action == "show":
                 _lat = float(_df_map.loc[_row_index, "lat"])
@@ -6711,18 +6712,19 @@ else:
                 st.session_state["stable_lat"] = _lat
                 st.session_state["stable_lon"] = _lon
                 st.session_state["stable_zoom"] = 13
-                # Не извикваме st.rerun() вътре в callback.
-                # Streamlit автоматично изпълнява новия run след callback-а.
+                return True
 
-            elif _action == "delete":
+            if _action == "delete":
                 if trip_locked:
-                    return
+                    return False
                 _df_map = _df_map.drop(index=_row_index)
                 _df_map.to_csv(MAP_FILE, index=False, encoding="utf-8")
-                # Не извикваме st.rerun() вътре в callback.
+                return True
 
         except Exception:
-            pass
+            return False
+
+        return False
 
     def _render_favorites_swipe(df_points):
         _items = []
@@ -6751,7 +6753,8 @@ else:
         return _tm_fav_component(
             data={"items": _items},
             key="tmFavoritesSwipe",
-            on_action_change=_handle_fav_swipe_action,
+            # Регистрираме trigger-а, но обработваме event-а в нормалния run.
+            on_action_change=lambda: None,
         )
 
     st.markdown("""
@@ -6784,7 +6787,12 @@ else:
             unsafe_allow_html=True,
         )
     else:
-        _render_favorites_swipe(df_points)
+        _fav_result = _render_favorites_swipe(df_points)
+        _fav_event = getattr(_fav_result, "action", None)
+        if _apply_fav_swipe_action(_fav_event):
+            # Вече сме извън callback-а, затова rerun е валиден и
+            # интерфейсът се обновява веднага след едно натискане.
+            st.rerun()
 
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
