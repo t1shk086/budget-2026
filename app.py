@@ -851,7 +851,7 @@ _tm_task_component = st.components.v2.component(
     js=_TASK_JS,
 )
 
-def _render_task_swipe(items, key=None):
+def _render_task_swipe(items):
     return _tm_task_component(
         data={"items": items},
         default={"action": None},
