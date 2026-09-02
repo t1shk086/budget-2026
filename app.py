@@ -10,6 +10,8 @@ from geopy.geocoders import Nominatim
 import io
 import html
 import textwrap
+import tempfile
+from pathlib import Path as _Path
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
@@ -727,6 +729,65 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
         return True
     except: 
         return False
+
+
+# =========================================================
+# REAL TASK COMPONENT — click = done/undone, swipe left = reveal delete
+# This is isolated from the rest of the UI and does not change the app design.
+# =========================================================
+def _tm_task_component():
+    _dir = _Path(tempfile.gettempdir()) / "pixelapp_task_swipe_v1"
+    _dir.mkdir(parents=True, exist_ok=True)
+    _html = _dir / "index.html"
+    if not _html.exists():
+        _html.write_text(r'''<!doctype html>
+<html><head><meta charset="utf-8">
+<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
+<style>
+html,body{margin:0;padding:0;background:transparent;font-family:"Segoe UI",Roboto,sans-serif;color:#fff}
+*{box-sizing:border-box}
+#root{width:100%;padding:0 0 2px}
+.task{position:relative;overflow:hidden;width:100%;min-height:38px;margin:4px 0;border-radius:12px;border:1px solid rgba(255,255,255,.05);background:linear-gradient(135deg,#252932,#16191f);box-shadow:0 4px 15px rgba(0,0,0,.30);touch-action:pan-y}
+.delete{position:absolute;right:0;top:0;bottom:0;width:72px;display:flex;align-items:center;justify-content:center;background:#3a171b;color:#ff7777;font-size:12px;font-weight:700;cursor:pointer;user-select:none}
+.row{position:relative;z-index:2;min-height:38px;display:flex;align-items:center;gap:8px;padding:7px 10px;background:linear-gradient(135deg,#252932,#16191f);transition:transform .16s ease;user-select:none;-webkit-user-select:none;cursor:pointer}
+.icon{width:22px;flex:0 0 22px;text-align:center;font-size:14px;line-height:1}
+.txt{min-width:0;flex:1;font-size:13px;line-height:1.25;font-weight:600;overflow-wrap:anywhere;color:#fff}
+.done .txt{color:#7e8494;text-decoration:line-through}
+.task.open .row{transform:translateX(-72px)}
+</style></head><body><div id="root"></div>
+<script>
+const S=window.Streamlit;
+let state={items:[]};
+let openId=null;
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function emit(action,id){S.setComponentValue({action,id,event_id:String(Date.now())+'_'+Math.random().toString(36).slice(2)});}
+function render(args){
+  state.items=Array.isArray(args.items)?args.items:[];
+  const root=document.getElementById('root'); root.innerHTML='';
+  state.items.forEach(item=>{
+    const id=String(item.id), done=!!item.done, title=String(item.title||'Задача');
+    const task=document.createElement('div'); task.className='task'+(openId===id?' open':''); task.dataset.id=id;
+    task.innerHTML='<div class="delete">🗑️ Изтрий</div><div class="row"><div class="icon">'+(done?'✅':'⬜')+'</div><div class="txt">'+esc(title)+'</div></div>';
+    const row=task.querySelector('.row'), del=task.querySelector('.delete');
+    del.addEventListener('click',e=>{e.stopPropagation(); emit('delete',id);});
+    let sx=0,sy=0,dx=0,drag=false,moved=false;
+    row.addEventListener('touchstart',e=>{if(!e.touches.length)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;dx=0;drag=true;moved=false;row.style.transition='none';},{passive:true});
+    row.addEventListener('touchmove',e=>{if(!drag||!e.touches.length)return;const x=e.touches[0].clientX,y=e.touches[0].clientY;dx=x-sx;const dy=y-sy;if(Math.abs(dy)>Math.abs(dx))return;if(dx<0){moved=true;row.style.transform='translateX('+Math.max(-72,dx)+'px)';}else if(openId===id){row.style.transform='translateX('+Math.min(0,-72+dx)+'px)';}},{passive:true});
+    row.addEventListener('touchend',()=>{if(!drag)return;drag=false;row.style.transition='transform .16s ease';if(dx<-40){openId=id;row.style.transform='translateX(-72px)';}else if(dx>40&&openId===id){openId=null;row.style.transform='translateX(0)';}else if(!moved){openId=null;emit('toggle',id);}moved=false;});
+    row.addEventListener('click',()=>{if(!moved){if(openId===id){openId=null;row.style.transform='translateX(0)';}else{emit('toggle',id);}}moved=false;});
+    root.appendChild(task);
+  });
+  S.setFrameHeight(Math.max(44,state.items.length*46+4));
+}
+S.events.addEventListener(S.RENDER_EVENT,e=>render(e.detail.args||{}));
+S.setComponentReady(); S.setFrameHeight(44);
+</script></body></html>''', encoding='utf-8')
+    return components.declare_component("pixelapp_task_swipe_v1", path=str(_dir))
+
+_tm_task_swipe = _tm_task_component()
+
+def _render_task_swipe(items, key):
+    return _tm_task_swipe(items=items, key=key, default=None)
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
@@ -5353,22 +5414,30 @@ else:
             pass
 
     if not plan_df.empty:
-        st.markdown("<div class='tm-plan-list'>", unsafe_allow_html=True)
-        for row_num, (_, plan_row) in enumerate(plan_df.iterrows()):
-            st.markdown("<div class='compact-task-row-marker'></div>", unsafe_allow_html=True)
-            item_id = str(plan_row["item_id"])
-            item_done = bool(plan_row.get("done", False))
-            title = str(plan_row.get("title", "Задача"))
-            icon = "✅" if item_done else "⬜"
-            task_row = st.container(horizontal=True, vertical_alignment="center", gap="small")
-            with task_row:
-                left_shift = max(18, min(55, 72 - len(title)))
-                task_label = f"{icon} {title}" + "\u00a0" * left_shift
-                st.button(task_label, key=f"task_toggle_{trip_id}_{item_id}", on_click=_toggle_plan_item, args=(item_id,), width="stretch")
-                st.button("🗑️", key=f"task_delete_{trip_id}_{item_id}", on_click=_delete_plan_item, args=(item_id,), width="content")
-        st.markdown("</div>", unsafe_allow_html=True)
+        _task_items = [
+            {
+                "id": str(_r.get("item_id", "")),
+                "title": str(_r.get("title", "Задача")),
+                "done": bool(_r.get("done", False)),
+            }
+            for _, _r in plan_df.iterrows()
+        ]
+        _task_event = _render_task_swipe(_task_items, key=f"task_swipe_{trip_id}")
+        if isinstance(_task_event, dict):
+            _event_id = str(_task_event.get("event_id", ""))
+            if _event_id and st.session_state.get("last_task_event_id") != _event_id:
+                st.session_state["last_task_event_id"] = _event_id
+                _event_action = str(_task_event.get("action", ""))
+                _event_item = str(_task_event.get("id", ""))
+                if _event_action == "toggle" and _event_item:
+                    _toggle_plan_item(_event_item)
+                    st.rerun()
+                elif _event_action == "delete" and _event_item:
+                    if not plan_locked:
+                        _delete_plan_item(_event_item)
+                        st.rerun()
     else:
-        st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравиш.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравяш.</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
@@ -5451,114 +5520,38 @@ else:
             pass
 
     # =========================================================
-    # ❤️ ЛЮБИМИ МЕСТА — реална таблична визуализация
+    # =========================================================
+    # ❤️ ЛЮБИМИ МЕСТА — разгъваеми карти с карта/премахване
     # =========================================================
     st.markdown("""
     <style>
         .tm-fav-headline {
             margin-top:18px;
-            margin-bottom:9px;
+            margin-bottom:10px;
             display:flex;
             align-items:center;
             justify-content:space-between;
             gap:10px;
         }
-        .tm-fav-title {
-            color:#ffffff;
-            font-size:13px;
-            font-weight:900;
-            letter-spacing:.25px;
-        }
+        .tm-fav-title { color:#ffffff; font-size:13px; font-weight:900; letter-spacing:.25px; }
         .tm-fav-count {
-            color:#aeb7c1;
-            font-size:10px;
-            padding:5px 8px;
-            border-radius:999px;
-            background:rgba(255,255,255,.035);
-            border:1px solid rgba(255,255,255,.07);
+            color:#aeb7c1; font-size:10px; padding:5px 8px; border-radius:999px;
+            background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.07);
         }
-        .tm-fav-head-row,
-        .tm-fav-data-row {
-            display:grid;
-            grid-template-columns:minmax(170px,1.35fr) minmax(180px,1.15fr) minmax(170px,1fr) 52px;
-            gap:0;
-            align-items:center;
+        div[data-testid="stExpander"] {
+            border:1px solid rgba(255,255,255,.075) !important;
+            border-radius:16px !important;
+            background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
+            box-shadow:4px 6px 16px rgba(0,0,0,.20) !important;
+            margin-bottom:8px !important; overflow:hidden !important;
         }
-        .tm-fav-table {
-            overflow:hidden;
-            border:1px solid rgba(255,255,255,.07);
-            border-radius:16px;
-            background:linear-gradient(180deg,rgba(12,19,25,.96),rgba(7,12,17,.96));
-            box-shadow:0 10px 26px rgba(0,0,0,.20);
-        }
-        .tm-fav-head-row {
-            min-height:34px;
-            background:rgba(255,255,255,.025);
-            border-bottom:1px solid rgba(255,255,255,.07);
-        }
-        .tm-fav-th {
-            color:#737e89;
-            font-size:9px;
-            font-weight:900;
-            letter-spacing:.65px;
-            padding:0 10px;
-            text-transform:uppercase;
-        }
-        .tm-fav-data-row {
-            min-height:54px;
-            border-bottom:1px solid rgba(255,255,255,.055);
-        }
-        .tm-fav-data-row:last-child { border-bottom:0; }
-        .tm-fav-cell {
-            color:#dfe4ea;
-            font-size:11px;
-            line-height:1.35;
-            padding:9px 10px;
-            min-width:0;
-        }
-        .tm-fav-place {
-            color:#fff;
-            font-weight:800;
-            white-space:nowrap;
-            overflow:hidden;
-            text-overflow:ellipsis;
-        }
-        .tm-fav-description {
-            color:#aab3bd;
-            white-space:nowrap;
-            overflow:hidden;
-            text-overflow:ellipsis;
-        }
-        .tm-fav-coord {
-            color:#8d98a4;
-            font-variant-numeric:tabular-nums;
-            font-size:10px;
-        }
-        .tm-fav-dot {
-            display:inline-block;
-            width:7px;
-            height:7px;
-            border-radius:50%;
-            margin-right:7px;
-            vertical-align:1px;
-        }
-        @media(max-width:760px){
-            .tm-fav-head-row,
-            .tm-fav-data-row { grid-template-columns:minmax(120px,1.1fr) minmax(130px,1fr) 94px 44px; }
-            .tm-fav-th,.tm-fav-cell { padding-left:8px; padding-right:8px; }
-            .tm-fav-cell { font-size:10px; }
-        }
+        div[data-testid="stExpander"] details summary { padding:13px 15px !important; }
+        div[data-testid="stExpander"] details summary p { font-size:14px !important; font-weight:800 !important; color:#ffffff !important; }
+        .tm-fav-details { padding:2px 4px 8px; color:#aab3bd; font-size:11px; line-height:1.55; }
+        .tm-fav-coord { color:#8d98a4; font-variant-numeric:tabular-nums; font-size:10px; margin-top:3px; }
         @media(max-width:560px){
-            .tm-fav-head-row { display:none; }
-            .tm-fav-data-row {
-                grid-template-columns:minmax(0,1fr) 44px;
-                grid-template-areas:"place action" "description action" "coord action";
-                padding:8px 0;
-            }
-            .tm-fav-data-row .fav-place-cell { grid-area:place; }
-            .tm-fav-data-row .fav-desc-cell { grid-area:description; }
-            .tm-fav-data-row .fav-coord-cell { grid-area:coord; }
-            .tm-fav-data-row .fav-action-cell { grid-area:action; }
+            div[data-testid="stExpander"] details summary { padding:12px 13px !important; }
+            div[data-testid="stExpander"] details summary p { font-size:13px !important; }
         }
     </style>
     """, unsafe_allow_html=True)
@@ -5571,52 +5564,48 @@ else:
 
     if df_points.empty:
         st.markdown(
-            "<div class='tm-fav-table' style='padding:18px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
+            "<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
             unsafe_allow_html=True,
         )
     else:
-        st.markdown(
-            "<div class='tm-fav-table'><div class='tm-fav-head-row'>"
-            "<div class='tm-fav-th'>МЯСТО</div><div class='tm-fav-th'>ОПИСАНИЕ</div>"
-            "<div class='tm-fav-th'>КООРДИНАТИ</div><div class='tm-fav-th'></div></div>",
-            unsafe_allow_html=True,
-        )
         for _fav_i, (_fav_idx, _fav_row) in enumerate(df_points.iterrows()):
             _fav_title = str(_fav_row.get('title','Място') or 'Място').strip()
             _fav_lat = float(_fav_row.get('lat',0) or 0)
             _fav_lon = float(_fav_row.get('lon',0) or 0)
-            _fav_color = str(_fav_row.get('color','blue') or 'blue').strip().lower()
-            _fav_color_map = {
-                'red':'#ff5b63','green':'#42d96f','blue':'#4facfe','purple':'#9a6cff','orange':'#ff9b3d'
-            }
-            _fav_dot_color = _fav_color_map.get(_fav_color, '#4facfe')
             _fav_desc = 'Запазено място'
             if ':' in _fav_title:
                 _fav_left, _fav_right = _fav_title.split(':',1)
                 if _fav_right.strip():
                     _fav_desc = _fav_left.strip().replace('🏁','').strip()
                     _fav_title = _fav_right.strip()
-            st.markdown(
-                f"<div class='tm-fav-data-row'>"
-                f"<div class='tm-fav-cell fav-place-cell'><div class='tm-fav-place'><span class='tm-fav-dot' style='background:{_fav_dot_color}'></span>{html.escape(_fav_title)}</div></div>"
-                f"<div class='tm-fav-cell fav-desc-cell'><div class='tm-fav-description'>{html.escape(_fav_desc)}</div></div>"
-                f"<div class='tm-fav-cell fav-coord-cell'><div class='tm-fav-coord'>{_fav_lat:.5f}, {_fav_lon:.5f}</div></div>"
-                f"<div class='tm-fav-cell fav-action-cell'></div>"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-            _fav_action_cols = st.columns([1, 12])
-            with _fav_action_cols[1]:
-                if st.button('🗑️', key=f'fav_delete_{trip_id}_{_fav_idx}', help=f'Изтрий {_fav_title}'):
-                    try:
-                        df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
-                        if _fav_idx in df_map.index:
-                            df_map = df_map.drop(index=_fav_idx)
-                            df_map.to_csv(MAP_FILE, index=False, encoding='utf-8')
-                            st.rerun()
-                    except Exception:
-                        pass
-        st.markdown("</div>", unsafe_allow_html=True)
+
+            _safe_title = html.escape(_fav_title)
+            with st.expander(f"📍 {_fav_title}", expanded=False):
+                st.markdown(
+                    f"<div class='tm-fav-details'>"
+                    f"<div><b style='color:#ffffff'>{_safe_title}</b></div>"
+                    f"<div>{html.escape(_fav_desc)}</div>"
+                    f"<div class='tm-fav-coord'>📍 {_fav_lat:.5f}, {_fav_lon:.5f}</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+                fav_action_1, fav_action_2 = st.columns(2)
+                with fav_action_1:
+                    if st.button("🗺️ Покажи на картата", key=f"fav_show_{trip_id}_{_fav_idx}", use_container_width=True):
+                        st.session_state["stable_lat"] = _fav_lat
+                        st.session_state["stable_lon"] = _fav_lon
+                        st.session_state["stable_zoom"] = 13
+                        st.rerun()
+                with fav_action_2:
+                    if st.button("🗑️ Премахни", key=f"fav_delete_{trip_id}_{_fav_idx}", use_container_width=True, disabled=trip_locked):
+                        try:
+                            df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
+                            if _fav_idx in df_map.index:
+                                df_map = df_map.drop(index=_fav_idx)
+                                df_map.to_csv(MAP_FILE, index=False, encoding='utf-8')
+                                st.rerun()
+                        except Exception:
+                            pass
 
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
