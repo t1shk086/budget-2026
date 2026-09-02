@@ -6331,7 +6331,7 @@ else:
     _3b_input_key = f"planned_3b_search_{trip_id}"
     _3b_query = st.text_input(
         "Добави спирка",
-        placeholder="напр. OMV Niš Serbia",
+        placeholder="напр. OMV Livigno Italy",
         key=_3b_input_key,
         disabled=trip_locked,
     )
