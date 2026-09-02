@@ -6189,11 +6189,43 @@ else:
             if not (-90 <= _lat <= 90 and -180 <= _lon <= 180):
                 return
 
+            _place_name_3b = None
+            try:
+                _geolocator_reverse_3b = Nominatim(
+                    user_agent="pixelapp_travel_manager_2026",
+                    timeout=10
+                )
+                _location_reverse_3b = _geolocator_reverse_3b.reverse(
+                    (_lat, _lon),
+                    exactly_one=True,
+                    language="bg,en",
+                    addressdetails=True,
+                    zoom=18
+                )
+                if _location_reverse_3b:
+                    _raw_reverse_3b = getattr(_location_reverse_3b, "raw", {}) or {}
+                    _place_name_3b = str(
+                        _raw_reverse_3b.get("name") or ""
+                    ).strip()
+
+                    if not _place_name_3b:
+                        _place_name_3b = str(
+                            getattr(_location_reverse_3b, "address", "") or ""
+                        ).split(",")[0].strip() or None
+            except Exception:
+                _place_name_3b = None
+
+            _location_title_3b = (
+                f"3b: 📍 {_place_name_3b}"
+                if _place_name_3b
+                else "3b: 📍 Моето местоположение"
+            )
+
             if add_map_point(
                 trip_id,
                 _lat,
                 _lon,
-                "3b: 📍 Моето местоположение",
+                _location_title_3b,
                 "purple"
             ):
                 st.session_state["tmCurrentLocation3bLastEvent"] = _event_id
