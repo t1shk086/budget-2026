@@ -6238,6 +6238,16 @@ else:
         except Exception:
             pass
 
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+    st.markdown(
+        "<div class='tm-section-title' style='margin-bottom:10px;'>"
+        "<span class='tm-section-number tm-n3'>3b</span>"
+        "<span>ПЛАНИРАНИ СПИРКИ</span></div>",
+        unsafe_allow_html=True
+    )
+
+    # GPS бутонът е част от 3b и стои непосредствено под заглавието.
     if not trip_locked:
         _tm_current_location_component(
             key="tmCurrentLocation3b",
@@ -6246,7 +6256,7 @@ else:
     else:
         st.markdown(
             "<div style='color:#7e8494;font-size:11px;text-align:center;'>"
-            "Пътуването е приключено.</div>",
+            "Пътуването е приключило.</div>",
             unsafe_allow_html=True,
         )
 
@@ -6290,15 +6300,6 @@ else:
                 st.session_state.pop("tmCurrentLocation3bPending", None)
                 st.session_state.pop("tmCurrentLocation3bManualName", None)
                 st.rerun()
-
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-
-    st.markdown(
-        "<div class='tm-section-title' style='margin-bottom:10px;'>"
-        "<span class='tm-section-number tm-n3'>3b</span>"
-        "<span>ПЛАНИРАНИ СПИРКИ</span></div>",
-        unsafe_allow_html=True
-    )
 
     _3b_points = get_map_points(trip_id)
     _3b_stops = _3b_points[
@@ -6475,6 +6476,8 @@ else:
         except Exception:
             pass
 
+    # =========================================================
+    # =========================================================
     # =========================================================
     # =========================================================
     # ❤️ ЛЮБИМИ МЕСТА — click = покажи на картата, swipe left = изтрий
@@ -6770,90 +6773,6 @@ else:
         )
     else:
         _render_favorites_swipe(df_points)
-
-    st.markdown("""
-    <style>
-        .tm-fav-headline {
-            margin-top:14px;
-            margin-bottom:7px;
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:10px;
-        }
-        .tm-fav-title { color:#ffffff; font-size:13px; font-weight:900; letter-spacing:.25px; }
-        .tm-fav-count {
-            color:#aeb7c1; font-size:10px; padding:5px 8px; border-radius:999px;
-            background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.07);
-        }
-        div[data-testid="stExpander"] {
-            border:1px solid rgba(255,255,255,.075) !important;
-            border-radius:16px !important;
-            background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
-            box-shadow:4px 6px 16px rgba(0,0,0,.20) !important;
-            margin-bottom:4px !important; overflow:hidden !important;
-        }
-        div[data-testid="stExpander"] details summary { padding:9px 13px !important; }
-        div[data-testid="stExpander"] details summary p { font-size:13px !important; font-weight:800 !important; color:#ffffff !important; }
-        .tm-fav-details { padding:0 3px 5px; color:#aab3bd; font-size:10.5px; line-height:1.45; }
-        .tm-fav-coord { color:#8d98a4; font-variant-numeric:tabular-nums; font-size:9.5px; margin-top:2px; }
-        @media(max-width:560px){
-            div[data-testid="stExpander"] details summary { padding:12px 13px !important; }
-            div[data-testid="stExpander"] details summary p { font-size:13px !important; }
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-    df_points = get_map_points(trip_id)
-    st.markdown(
-        f"<div class='tm-fav-headline'><div class='tm-fav-title'>❤️ ЛЮБИМИ МЕСТА</div><div class='tm-fav-count'>{len(df_points)} {'място' if len(df_points)==1 else 'места'}</div></div>",
-        unsafe_allow_html=True,
-    )
-
-    if df_points.empty:
-        st.markdown(
-            "<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
-            unsafe_allow_html=True,
-        )
-    else:
-        for _fav_i, (_fav_idx, _fav_row) in enumerate(df_points.iterrows()):
-            _fav_title = str(_fav_row.get('title','Място') or 'Място').strip()
-            _fav_lat = float(_fav_row.get('lat',0) or 0)
-            _fav_lon = float(_fav_row.get('lon',0) or 0)
-            _fav_desc = 'Запазено място'
-            if ':' in _fav_title:
-                _fav_left, _fav_right = _fav_title.split(':',1)
-                if _fav_right.strip():
-                    _fav_desc = _fav_left.strip().replace('🏁','').strip()
-                    _fav_title = _fav_right.strip()
-
-            _safe_title = html.escape(_fav_title)
-            with st.expander(f"📍 {_fav_title}", expanded=False):
-                st.markdown(
-                    f"<div class='tm-fav-details'>"
-                    f"<div><b style='color:#ffffff'>{_safe_title}</b></div>"
-                    f"<div>{html.escape(_fav_desc)}</div>"
-                    f"<div class='tm-fav-coord'>📍 {_fav_lat:.5f}, {_fav_lon:.5f}</div>"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
-                fav_action_1, fav_action_2 = st.columns(2)
-                with fav_action_1:
-                    if st.button("🗺️ Покажи на картата", key=f"fav_show_{trip_id}_{_fav_idx}", use_container_width=True):
-                        st.session_state["stable_lat"] = _fav_lat
-                        st.session_state["stable_lon"] = _fav_lon
-                        st.session_state["stable_zoom"] = 13
-                        st.rerun()
-                with fav_action_2:
-                    if st.button("🗑️ Премахни", key=f"fav_delete_{trip_id}_{_fav_idx}", use_container_width=True, disabled=trip_locked):
-                        try:
-                            df_map = pd.read_csv(MAP_FILE, encoding='utf-8')
-                            if _fav_idx in df_map.index:
-                                df_map = df_map.drop(index=_fav_idx)
-                                df_map.to_csv(MAP_FILE, index=False, encoding='utf-8')
-                                st.rerun()
-                        except Exception:
-                            pass
 
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
