@@ -4719,7 +4719,8 @@ else:
         if chart_values:
             chart_bars = []
             for day_label, value in zip(chart_days, chart_values):
-                chart_max = max(chart_values) if chart_values and max(chart_values) > 0 else 1.0bar_height = max(8.0, (value / chart_max) * 100.0)
+                chart_max = max(chart_values) if chart_values and max(chart_values) > 0 else 1.0
+                bar_height = max(8.0, (value / chart_max) * 100.0)
                 chart_bars.append(
                     f"""
                     <div style="flex:1;min-width:30px;display:flex;flex-direction:column;
