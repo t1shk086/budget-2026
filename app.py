@@ -4040,7 +4040,7 @@ else:
     
     ekran_za_kategorii = st.empty()
 
-    if st.button("🔙 НАЗАД КЪМ НАЧАЛЕН ЕКРАН", use_container_width=True): 
+    if st.button("🔙 КЪМ ГЛАВНО МЕНЮ", use_container_width=True): 
         st.session_state["current_trip"] = None
         st.session_state["edit_unlocked_trip"] = None
         st.rerun()
