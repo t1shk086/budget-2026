@@ -231,6 +231,8 @@ DEFAULT_UI_LABELS = {
     "pet": "Куче",
     "hotel": "Нощувки/Хотел",
     "deposit": "Депозит/Резервация",
+    "planned_stops_label": "3b",
+    "my_location_label": "Запазено място",
     "fuel_red_threshold": 1.80
 }
 
@@ -249,7 +251,7 @@ def get_ui_labels():
         pass
     return labels
 
-def save_ui_labels(pet_label, hotel_label, deposit_label, fuel_red_threshold=1.80):
+def save_ui_labels(pet_label, hotel_label, deposit_label, fuel_red_threshold=1.80, planned_stops_label="3b", my_location_label="Запазено място"):
     try:
         try:
             fuel_red_threshold = float(fuel_red_threshold)
@@ -260,6 +262,8 @@ def save_ui_labels(pet_label, hotel_label, deposit_label, fuel_red_threshold=1.8
             "pet": pet_label,
             "hotel": hotel_label,
             "deposit": deposit_label,
+            "planned_stops_label": str(planned_stops_label or "3b").strip() or "3b",
+            "my_location_label": str(my_location_label or "Запазено място").strip() or "Запазено място",
             "fuel_red_threshold": fuel_red_threshold
         }]).to_csv(LABELS_FILE, index=False, encoding="utf-8")
         return True
@@ -6721,13 +6725,16 @@ else:
         _items = []
         for _fav_idx, _fav_row in df_points.iterrows():
             _fav_title = str(_fav_row.get("title", "Място") or "Място").strip()
-            _fav_desc = "Запазено място"
+            _fav_desc = UI_LABELS.get("my_location_label", "Запазено място")
 
-            if ":" in _fav_title:
-                _fav_left, _fav_right = _fav_title.split(":", 1)
-                if _fav_right.strip():
-                    _fav_desc = _fav_left.strip().replace("🏁", "").strip()
-                    _fav_title = _fav_right.strip()
+            if _fav_title.lower().startswith("3b:"):
+                _fav_right = _fav_title.split(":", 1)[1].strip()
+                if _fav_right:
+                    if "📍" in _fav_right:
+                        _fav_desc = UI_LABELS.get("my_location_label", "Запазено място")
+                    else:
+                        _fav_desc = UI_LABELS.get("planned_stops_label", "3b")
+                    _fav_title = _fav_right
 
             _items.append({
                 "id": str(_fav_idx),
@@ -7164,6 +7171,25 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 key="admin_accommodation_labels"
             )
 
+        st.markdown("##### 🏷️ Имена за картата и запазените места")
+        st.caption("Тези две имена са само визуални. Вътрешните маркери на приложението не се променят.")
+
+        rename_map_col1, rename_map_col2 = st.columns(2)
+        with rename_map_col1:
+            new_planned_stops_label = st.text_input(
+                "Име вместо „3b“:",
+                value=str(UI_LABELS.get("planned_stops_label", "3b") or "3b"),
+                key="admin_planned_stops_label",
+                placeholder="Напр. Планирана спирка",
+            ).strip()
+        with rename_map_col2:
+            new_my_location_label = st.text_input(
+                "Име вместо „Запазено място“:",
+                value=str(UI_LABELS.get("my_location_label", "Запазено място") or "Запазено място"),
+                key="admin_my_location_label",
+                placeholder="Напр. Моята локация",
+            ).strip()
+
         current_fuel_threshold = float(UI_LABELS.get("fuel_red_threshold", 1.80) or 1.80)
         new_fuel_threshold = st.number_input(
             "⛽ Гориво — индикатор за висока цена (EUR/л):",
@@ -7182,7 +7208,14 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 hotel_label = "Нощувки/Хотел"
                 deposit_label = "Депозит/Резервация"
 
-            if save_ui_labels(new_pet_label, hotel_label, deposit_label, new_fuel_threshold):
+            if save_ui_labels(
+                new_pet_label,
+                hotel_label,
+                deposit_label,
+                new_fuel_threshold,
+                new_planned_stops_label or "3b",
+                new_my_location_label or "Запазено място",
+            ):
                 st.success("✅ Настройките са запазени.")
                 st.rerun()
             else:
