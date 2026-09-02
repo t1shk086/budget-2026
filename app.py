@@ -6711,14 +6711,15 @@ else:
                 st.session_state["stable_lat"] = _lat
                 st.session_state["stable_lon"] = _lon
                 st.session_state["stable_zoom"] = 13
-                st.rerun()
+                # Не извикваме st.rerun() вътре в callback.
+                # Streamlit автоматично изпълнява новия run след callback-а.
 
             elif _action == "delete":
                 if trip_locked:
                     return
                 _df_map = _df_map.drop(index=_row_index)
                 _df_map.to_csv(MAP_FILE, index=False, encoding="utf-8")
-                st.rerun()
+                # Не извикваме st.rerun() вътре в callback.
 
         except Exception:
             pass
