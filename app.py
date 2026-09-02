@@ -851,9 +851,8 @@ _tm_task_component = st.components.v2.component(
     js=_TASK_JS,
 )
 
-def _render_task_swipe(items, key):
+def _render_task_swipe(items, key=None):
     return _tm_task_component(
-        key=key,
         data={"items": items},
         default={"action": None},
         on_action_change=lambda: None,
@@ -5495,10 +5494,7 @@ else:
             }
             for _, _r in plan_df.iterrows()
         ]
-        _task_result = _render_task_swipe(
-    _task_items,
-    key=f"taskSwipe{trip_id}"
-)
+_task_result = _render_task_swipe(_task_items)
         _task_event = getattr(_task_result, "action", None)
         if isinstance(_task_event, dict):
             _event_action = str(_task_event.get("action", ""))
