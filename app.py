@@ -4148,8 +4148,45 @@ else:
         edit_range = st.date_input("Изберете нови дати:", value=[current_start, current_end], key="edit_dates_cal")
         
         # Показваме колко литра има натрупани в момента за информация
-        if m_fuel > 0:
-            st.info(f"📋 Текущо натрупано пропуснато гориво: {m_fuel:.1f} л.")
+        # =========================================================
+        # ОБЩО РЪЧНО ДОБАВЕНО ГОРИВО
+        # =========================================================
+        # 1. Ръчно гориво с известна цена -> m_fuel
+        # 2. Ръчно гориво без известна цена -> DATA_FILE.liters
+        # Нормалните зареждания НЕ участват тук.
+        
+        _manual_no_cost_liters = 0.0
+        
+        try:
+            _df_manual = pd.read_csv(DATA_FILE, encoding="utf-8")
+        
+            _df_manual = _df_manual[
+                (_df_manual["trip_id"].astype(str) == str(trip_id)) &
+                (_df_manual["category"].astype(str) == "Транспорт")
+            ].copy()
+        
+            _manual_no_cost_mask = _df_manual["description"].astype(str).str.contains(
+                r"\[ГОРИВО\s+БЕЗ\s+СТОЙНОСТ\]",
+                case=False,
+                regex=True,
+                na=False
+            )
+        
+            _manual_no_cost_liters = pd.to_numeric(
+                _df_manual.loc[_manual_no_cost_mask, "liters"],
+                errors="coerce"
+            ).fillna(0.0).sum()
+        
+        except Exception:
+            _manual_no_cost_liters = 0.0
+        
+        _manual_total_liters = float(m_fuel) + float(_manual_no_cost_liters)
+        
+        if _manual_total_liters > 0:
+            st.info(
+                f"📋 Текущо натрупано ръчно гориво: "
+                f"{_manual_total_liters:.1f} л."
+            )
         
         st.markdown("<br>", unsafe_allow_html=True)
         
@@ -4179,20 +4216,58 @@ else:
             st.rerun()
             
         # Автоматизирано нулиране на литри И премахване на паричните записи от хронологията
-        if m_fuel > 0 and not trip_locked:
-            if st.button("🗑️ Изчисти натрупаните ръчни литри и разходи", use_container_width=True):
-                # 1. Нулиране на литрите в SETTINGS_FILE
-                save_trip_settings(trip_id, car_trip, "Да", s_km, e_km, 0.0, st_date, en_date)
-                
-                # 2. Изчистване на съответните финансови записи от DATA_FILE
+        # =========================================================
+        # ИЗЧИСТВАНЕ НА ВСИЧКО РЪЧНО ДОБАВЕНО ГОРИВО
+        # =========================================================
+        # Изчистваме едновременно:
+        # - [ПРОПУСНАТО ГОРИВО]       -> има цена
+        # - [ГОРИВО БЕЗ СТОЙНОСТ]     -> няма цена
+        # Нормалните зареждания НЕ се пипат.
+        
+        if _manual_total_liters > 0 and not trip_locked:
+            if st.button(
+                "🗑️ Изчисти натрупаните ръчни литри и разходи",
+                use_container_width=True
+            ):
+                # 1. Нулираме натрупаното ръчно гориво с известна стойност
+                save_trip_settings(
+                    trip_id,
+                    car_trip,
+                    "Да",
+                    s_km,
+                    e_km,
+                    0.0,
+                    st_date,
+                    en_date
+                )
+        
+                # 2. Премахваме и двата вида ръчни записи
                 try:
                     df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
-                    mask_to_delete = (df_all["trip_id"] == trip_id) & (df_all["description"].astype(str).str.contains(r"\[ПРОПУСНАТО ГОРИВО\]"))
-                    df_clean = df_all[~mask_to_delete]
-                    df_clean.to_csv(DATA_FILE, index=False, encoding="utf-8")
-                except:
+        
+                    manual_mask = (
+                        (df_all["trip_id"].astype(str) == str(trip_id)) &
+                        (
+                            df_all["description"].astype(str).str.contains(
+                                r"(?:\[ПРОПУСНАТО\s+ГОРИВО\]|\[ГОРИВО\s+БЕЗ\s+СТОЙНОСТ\])",
+                                case=False,
+                                regex=True,
+                                na=False
+                            )
+                        )
+                    )
+        
+                    df_clean = df_all[~manual_mask]
+        
+                    df_clean.to_csv(
+                        DATA_FILE,
+                        index=False,
+                        encoding="utf-8"
+                    )
+        
+                except Exception:
                     pass
-                
+        
                 st.session_state["form_version"] += 1
                 st.rerun()
 
