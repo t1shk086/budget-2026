@@ -10,8 +10,6 @@ from geopy.geocoders import Nominatim
 import io
 import html
 import textwrap
-import tempfile
-from pathlib import Path as _Path
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
@@ -735,56 +733,132 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
 # REAL TASK COMPONENT — click = done/undone, swipe left = reveal delete
 # This is isolated from the rest of the UI and does not change the app design.
 # =========================================================
-def _tm_task_component():
-    _dir = _Path(tempfile.gettempdir()) / "pixelapp_task_swipe_v1"
-    _dir.mkdir(parents=True, exist_ok=True)
-    _html = _dir / "index.html"
-    if not _html.exists():
-        _html.write_text(r'''<!doctype html>
-<html><head><meta charset="utf-8">
-<script src="https://unpkg.com/streamlit-component-lib@2.0.0/dist/index.js"></script>
-<style>
-html,body{margin:0;padding:0;background:transparent;font-family:"Segoe UI",Roboto,sans-serif;color:#fff}
-*{box-sizing:border-box}
-#root{width:100%;padding:0 0 2px}
-.task{position:relative;overflow:hidden;width:100%;min-height:38px;margin:4px 0;border-radius:12px;border:1px solid rgba(255,255,255,.05);background:linear-gradient(135deg,#252932,#16191f);box-shadow:0 4px 15px rgba(0,0,0,.30);touch-action:pan-y}
-.delete{position:absolute;right:0;top:0;bottom:0;width:72px;display:flex;align-items:center;justify-content:center;background:#3a171b;color:#ff7777;font-size:12px;font-weight:700;cursor:pointer;user-select:none}
-.row{position:relative;z-index:2;min-height:38px;display:flex;align-items:center;gap:8px;padding:7px 10px;background:linear-gradient(135deg,#252932,#16191f);transition:transform .16s ease;user-select:none;-webkit-user-select:none;cursor:pointer}
-.icon{width:22px;flex:0 0 22px;text-align:center;font-size:14px;line-height:1}
-.txt{min-width:0;flex:1;font-size:13px;line-height:1.25;font-weight:600;overflow-wrap:anywhere;color:#fff}
-.done .txt{color:#7e8494;text-decoration:line-through}
-.task.open .row{transform:translateX(-72px)}
-</style></head><body><div id="root"></div>
-<script>
-const S=window.Streamlit;
-let state={items:[]};
-let openId=null;
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function emit(action,id){S.setComponentValue({action,id,event_id:String(Date.now())+'_'+Math.random().toString(36).slice(2)});}
-function render(args){
-  state.items=Array.isArray(args.items)?args.items:[];
-  const root=document.getElementById('root'); root.innerHTML='';
-  state.items.forEach(item=>{
-    const id=String(item.id), done=!!item.done, title=String(item.title||'Задача');
-    const task=document.createElement('div'); task.className='task'+(openId===id?' open':''); task.dataset.id=id;
-    task.innerHTML='<div class="delete">🗑️ Изтрий</div><div class="row"><div class="icon">'+(done?'✅':'⬜')+'</div><div class="txt">'+esc(title)+'</div></div>';
-    const row=task.querySelector('.row'), del=task.querySelector('.delete');
-    del.addEventListener('click',e=>{e.stopPropagation(); emit('delete',id);});
-    let sx=0,sy=0,dx=0,drag=false,moved=false;
-    row.addEventListener('touchstart',e=>{if(!e.touches.length)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;dx=0;drag=true;moved=false;row.style.transition='none';},{passive:true});
-    row.addEventListener('touchmove',e=>{if(!drag||!e.touches.length)return;const x=e.touches[0].clientX,y=e.touches[0].clientY;dx=x-sx;const dy=y-sy;if(Math.abs(dy)>Math.abs(dx))return;if(dx<0){moved=true;row.style.transform='translateX('+Math.max(-72,dx)+'px)';}else if(openId===id){row.style.transform='translateX('+Math.min(0,-72+dx)+'px)';}},{passive:true});
-    row.addEventListener('touchend',()=>{if(!drag)return;drag=false;row.style.transition='transform .16s ease';if(dx<-40){openId=id;row.style.transform='translateX(-72px)';}else if(dx>40&&openId===id){openId=null;row.style.transform='translateX(0)';}else if(!moved){openId=null;emit('toggle',id);}moved=false;});
-    row.addEventListener('click',()=>{if(!moved){if(openId===id){openId=null;row.style.transform='translateX(0)';}else{emit('toggle',id);}}moved=false;});
-    root.appendChild(task);
-  });
-  S.setFrameHeight(Math.max(44,state.items.length*46+4));
-}
-S.events.addEventListener(S.RENDER_EVENT,e=>render(e.detail.args||{}));
-S.setComponentReady(); S.setFrameHeight(44);
-</script></body></html>''', encoding='utf-8')
-    return components.declare_component("pixelapp_task_swipe_v1", path=str(_dir))
 
-_tm_task_swipe = _tm_task_component()
+# =========================================================
+# TASKS — Streamlit Components v2
+# Click/tap = done/undone; swipe left = reveal delete.
+# No iframe and no external CDN/frontend asset.
+# =========================================================
+_TASK_HTML = """
+<div id="tm-task-root"></div>
+"""
+
+_TASK_CSS = """
+#tm-task-root { width:100%; margin:0; padding:0 0 2px 0; }
+.tm-task { position:relative; overflow:hidden; width:100%; min-height:34px; margin:2px 0; border-radius:11px; border:1px solid rgba(255,255,255,.05); background:linear-gradient(135deg,#252932,#16191f); box-shadow:0 3px 11px rgba(0,0,0,.24); touch-action:pan-y; }
+.tm-task-delete { position:absolute; right:0; top:0; bottom:0; width:68px; display:flex; align-items:center; justify-content:center; background:#3a171b; color:#ff7777; font-size:11px; font-weight:700; cursor:pointer; user-select:none; }
+.tm-task-row { position:relative; z-index:2; min-height:34px; display:flex; align-items:center; gap:7px; padding:5px 9px; background:linear-gradient(135deg,#252932,#16191f); transition:transform .16s ease; user-select:none; -webkit-user-select:none; cursor:pointer; }
+.tm-task-icon { width:20px; flex:0 0 20px; text-align:center; font-size:13px; line-height:1; }
+.tm-task-text { min-width:0; flex:1; font-size:12px; line-height:1.2; font-weight:600; overflow-wrap:anywhere; color:#fff; }
+.tm-task.done .tm-task-text { color:#7e8494; text-decoration:line-through; }
+"""
+
+_TASK_JS = r"""
+export default function(component) {
+    const { parentElement, data, setTriggerValue } = component;
+    const root = parentElement.querySelector('#tm-task-root');
+    const items = Array.isArray(data?.items) ? data.items : [];
+    let openId = null;
+
+    function esc(value) {
+        return String(value ?? '').replace(/[&<>\"']/g, function(c) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];
+        });
+    }
+
+    function emit(action, id) {
+        setTriggerValue('action', {
+            action: action,
+            id: String(id),
+            event_id: String(Date.now()) + '_' + Math.random().toString(36).slice(2)
+        });
+    }
+
+    root.innerHTML = '';
+
+    items.forEach(function(item) {
+        const id = String(item.id ?? '');
+        const done = !!item.done;
+        const title = String(item.title ?? 'Задача');
+        const task = document.createElement('div');
+        task.className = 'tm-task' + (done ? ' done' : '');
+        task.dataset.id = id;
+        task.innerHTML = '<div class="tm-task-delete">🗑️ Изтрий</div>' +
+                         '<div class="tm-task-row"><div class="tm-task-icon">' + (done ? '✅' : '⬜') + '</div><div class="tm-task-text">' + esc(title) + '</div></div>';
+
+        const row = task.querySelector('.tm-task-row');
+        const del = task.querySelector('.tm-task-delete');
+        let sx = 0, sy = 0, dx = 0, moved = false, dragging = false;
+
+        del.addEventListener('click', function(e) {
+            e.stopPropagation();
+            emit('delete', id);
+        });
+
+        row.addEventListener('pointerdown', function(e) {
+            sx = e.clientX; sy = e.clientY; dx = 0; moved = false; dragging = true;
+            try { row.setPointerCapture(e.pointerId); } catch (_) {}
+            row.style.transition = 'none';
+        });
+
+        row.addEventListener('pointermove', function(e) {
+            if (!dragging) return;
+            const tx = e.clientX - sx;
+            const ty = e.clientY - sy;
+            if (Math.abs(ty) > Math.abs(tx) && Math.abs(ty) > 8) return;
+            dx = tx;
+            if (tx < 0) {
+                moved = true;
+                row.style.transform = 'translateX(' + Math.max(-68, tx) + 'px)';
+            } else if (openId === id) {
+                moved = true;
+                row.style.transform = 'translateX(' + Math.min(0, -68 + tx) + 'px)';
+            }
+        });
+
+        row.addEventListener('pointerup', function(e) {
+            if (!dragging) return;
+            dragging = false;
+            try { row.releasePointerCapture(e.pointerId); } catch (_) {}
+            row.style.transition = 'transform .16s ease';
+            if (dx < -35) {
+                openId = id;
+                row.style.transform = 'translateX(-68px)';
+            } else if (dx > 35 && openId === id) {
+                openId = null;
+                row.style.transform = 'translateX(0)';
+            } else if (!moved) {
+                openId = null;
+                emit('toggle', id);
+            }
+            dx = 0; moved = false;
+        });
+
+        row.addEventListener('pointercancel', function() {
+            dragging = false; dx = 0; moved = false;
+            row.style.transition = 'transform .16s ease';
+        });
+
+        root.appendChild(task);
+    });
+}
+"""
+
+_tm_task_component = st.components.v2.component(
+    name="pixelapp_task_swipe_v2",
+    html=_TASK_HTML,
+    css=_TASK_CSS,
+    js=_TASK_JS,
+)
+
+def _render_task_swipe(items, key):
+    return _tm_task_component(
+        key=key,
+        data={"items": items},
+        default={"action": None},
+        on_action_change=lambda: None,
+    )
+
 
 def _render_task_swipe(items, key):
     return _tm_task_swipe(items=items, key=key, default=None)
@@ -5422,20 +5496,17 @@ else:
             }
             for _, _r in plan_df.iterrows()
         ]
-        _task_event = _render_task_swipe(_task_items, key=f"task_swipe_{trip_id}")
+        _task_result = _render_task_swipe(_task_items, key=f"task_swipe_{trip_id}")
+        _task_event = getattr(_task_result, "action", None)
         if isinstance(_task_event, dict):
-            _event_id = str(_task_event.get("event_id", ""))
-            if _event_id and st.session_state.get("last_task_event_id") != _event_id:
-                st.session_state["last_task_event_id"] = _event_id
-                _event_action = str(_task_event.get("action", ""))
-                _event_item = str(_task_event.get("id", ""))
-                if _event_action == "toggle" and _event_item:
-                    _toggle_plan_item(_event_item)
-                    st.rerun()
-                elif _event_action == "delete" and _event_item:
-                    if not plan_locked:
-                        _delete_plan_item(_event_item)
-                        st.rerun()
+            _event_action = str(_task_event.get("action", ""))
+            _event_item = str(_task_event.get("id", ""))
+            if _event_action == "toggle" and _event_item:
+                _toggle_plan_item(_event_item)
+                st.rerun()
+            elif _event_action == "delete" and _event_item and not plan_locked:
+                _delete_plan_item(_event_item)
+                st.rerun()
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравяш.</div>", unsafe_allow_html=True)
 
@@ -5526,8 +5597,8 @@ else:
     st.markdown("""
     <style>
         .tm-fav-headline {
-            margin-top:18px;
-            margin-bottom:10px;
+            margin-top:14px;
+            margin-bottom:7px;
             display:flex;
             align-items:center;
             justify-content:space-between;
@@ -5543,12 +5614,12 @@ else:
             border-radius:16px !important;
             background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)) !important;
             box-shadow:4px 6px 16px rgba(0,0,0,.20) !important;
-            margin-bottom:8px !important; overflow:hidden !important;
+            margin-bottom:4px !important; overflow:hidden !important;
         }
-        div[data-testid="stExpander"] details summary { padding:13px 15px !important; }
-        div[data-testid="stExpander"] details summary p { font-size:14px !important; font-weight:800 !important; color:#ffffff !important; }
-        .tm-fav-details { padding:2px 4px 8px; color:#aab3bd; font-size:11px; line-height:1.55; }
-        .tm-fav-coord { color:#8d98a4; font-variant-numeric:tabular-nums; font-size:10px; margin-top:3px; }
+        div[data-testid="stExpander"] details summary { padding:9px 13px !important; }
+        div[data-testid="stExpander"] details summary p { font-size:13px !important; font-weight:800 !important; color:#ffffff !important; }
+        .tm-fav-details { padding:0 3px 5px; color:#aab3bd; font-size:10.5px; line-height:1.45; }
+        .tm-fav-coord { color:#8d98a4; font-variant-numeric:tabular-nums; font-size:9.5px; margin-top:2px; }
         @media(max-width:560px){
             div[data-testid="stExpander"] details summary { padding:12px 13px !important; }
             div[data-testid="stExpander"] details summary p { font-size:13px !important; }
