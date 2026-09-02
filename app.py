@@ -1862,7 +1862,7 @@ if st.session_state["current_trip"] is None:
     existing = sorted(existing, key=_trip_sort_key)
 
     if existing:
-        st.markdown(f"<div class='tm-home-trips-title'><span>МОИТЕ ПЪТУВАНИЯ</span><span class='tm-home-trips-count'>{len(existing)} пътувания</span></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='tm-home-trips-title'><span>Моите пътувания</span><span class='tm-home-trips-count'>{len(existing)} пътувания</span></div>", unsafe_allow_html=True)
 
         for _trip in existing:
             _trip_id = str(_trip)
