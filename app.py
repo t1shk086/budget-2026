@@ -5944,7 +5944,7 @@ else:
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n3'>3</span><span>ПЛАН НА ПЪТУВАНЕТО</span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='tm-section-title' style='margin-bottom:12px;'><span class='tm-section-number tm-n3'>3</span><span>To-Do List</span></div>", unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="tm-plan-progress-wrap">
