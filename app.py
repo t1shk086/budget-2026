@@ -3896,7 +3896,42 @@ else:
         color_gauge_real = "#00f2fe" if val_real < 6.0 else ("#ffa500" if val_real < 8.5 else "#ff4b4b")
         color_gauge_avg = "#00f2fe" if val_average < 6.0 else ("#ffa500" if val_average < 8.5 else "#ff4b4b")
         
-        transport_liters = float(df_expenses[df_expenses['category'] == 'Транспорт']['liters'].sum()) + m_fuel
+        # Общо ръчно добавени литри:
+# включва и "гориво без стойност", което се записва директно в liters.
+_manual_no_cost_liters = 0.0
+
+try:
+    _manual_no_cost_mask = (
+        (df_expenses["category"] == "Транспорт") &
+        df_expenses["description"].astype(str).str.contains(
+            r"\[ГОРИВО\s+БЕЗ\s+СТОЙНОСТ\]",
+            case=False,
+            regex=True,
+            na=False
+        )
+    )
+
+    for _idx in df_expenses.index[_manual_no_cost_mask]:
+        _desc = str(df_expenses.loc[_idx, "description"])
+        _match = re.search(
+            r"Добавени\s*([0-9]+(?:\.[0-9]+)?)\s*литра",
+            _desc,
+            flags=re.IGNORECASE
+        )
+        if _match:
+            _manual_no_cost_liters += float(_match.group(1))
+except Exception:
+    _manual_no_cost_liters = 0.0
+
+_manual_total_liters = m_fuel + _manual_no_cost_liters
+
+transport_liters = (
+    float(
+        df_expenses[
+            df_expenses["category"] == "Транспорт"
+        ]["liters"].sum()
+    )
+)
 
 
 
