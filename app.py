@@ -795,49 +795,92 @@ export default function(component) {
             emit('delete', id);
         });
 
-        row.addEventListener('pointerdown', function(e) {
-            sx = e.clientX; sy = e.clientY; dx = 0; moved = false; dragging = true;
-            try { row.setPointerCapture(e.pointerId); } catch (_) {}
-            row.style.transition = 'none';
-        });
+let sx = 0;
+let sy = 0;
+let dx = 0;
+let moved = false;
+let dragging = false;
 
-        row.addEventListener('pointermove', function(e) {
-            if (!dragging) return;
-            const tx = e.clientX - sx;
-            const ty = e.clientY - sy;
-            if (Math.abs(ty) > Math.abs(tx) && Math.abs(ty) > 8) return;
-            dx = tx;
-            if (tx < 0) {
-                moved = true;
-                row.style.transform = 'translateX(' + Math.max(-68, tx) + 'px)';
-            } else if (openId === id) {
-                moved = true;
-                row.style.transform = 'translateX(' + Math.min(0, -68 + tx) + 'px)';
-            }
-        });
+row.addEventListener('pointerdown', function(e) {
+    sx = e.clientX;
+    sy = e.clientY;
+    dx = 0;
+    moved = false;
+    dragging = true;
 
-        row.addEventListener('pointerup', function(e) {
-            if (!dragging) return;
-            dragging = false;
-            try { row.releasePointerCapture(e.pointerId); } catch (_) {}
-            row.style.transition = 'transform .16s ease';
-            if (dx < -35) {
-                openId = id;
-                row.style.transform = 'translateX(-68px)';
-            } else if (dx > 35 && openId === id) {
-                openId = null;
-                row.style.transform = 'translateX(0)';
-            } else if (!moved) {
-                openId = null;
-                emit('toggle', id);
-            }
-            dx = 0; moved = false;
-        });
+    try {
+        row.setPointerCapture(e.pointerId);
+    } catch (_) {}
 
-        row.addEventListener('pointercancel', function() {
-            dragging = false; dx = 0; moved = false;
-            row.style.transition = 'transform .16s ease';
-        });
+    row.style.transition = 'none';
+});
+
+row.addEventListener('pointermove', function(e) {
+    if (!dragging) return;
+
+    const tx = e.clientX - sx;
+    const ty = e.clientY - sy;
+
+    if (Math.abs(ty) > Math.abs(tx) && Math.abs(ty) > 8) {
+        return;
+    }
+
+    dx = tx;
+
+    if (tx < 0) {
+        moved = true;
+        row.style.transform =
+            'translateX(' + Math.max(-68, tx) + 'px)';
+    } else if (openId === id) {
+        moved = true;
+        row.style.transform =
+            'translateX(' + Math.min(0, -68 + tx) + 'px)';
+    }
+});
+
+row.addEventListener('pointerup', function(e) {
+    if (!dragging) return;
+
+    dragging = false;
+
+    try {
+        row.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+
+    row.style.transition = 'transform .16s ease';
+
+    if (dx < -35) {
+        openId = id;
+        row.style.transform = 'translateX(-68px)';
+    } else if (dx > 35 && openId === id) {
+        openId = null;
+        row.style.transform = 'translateX(0)';
+    }
+
+    dx = 0;
+});
+
+row.addEventListener('pointercancel', function() {
+    dragging = false;
+    dx = 0;
+    moved = false;
+    row.style.transition = 'transform .16s ease';
+});
+
+row.addEventListener('click', function(e) {
+    if (moved) {
+        moved = false;
+        return;
+    }
+
+    if (openId === id) {
+        openId = null;
+        row.style.transform = 'translateX(0)';
+        return;
+    }
+
+    emit('toggle', id);
+});
 
         root.appendChild(task);
     });
