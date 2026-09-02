@@ -6215,11 +6215,16 @@ else:
             except Exception:
                 _place_name_3b = None
 
-            _location_title_3b = (
-                f"3b: 📍 {_place_name_3b}"
-                if _place_name_3b
-                else "3b: 📍 Моето местоположение"
-            )
+            if not _place_name_3b:
+                st.session_state["tmCurrentLocation3bPending"] = {
+                    "event_id": _event_id,
+                    "lat": _lat,
+                    "lon": _lon,
+                }
+                st.session_state["tmCurrentLocation3bLastEvent"] = _event_id
+                return
+
+            _location_title_3b = f"3b: 📍 {_place_name_3b}"
 
             if add_map_point(
                 trip_id,
@@ -6244,6 +6249,47 @@ else:
             "Пътуването е приключено.</div>",
             unsafe_allow_html=True,
         )
+
+    # Ако reverse geocoding не намери именувано място, потребителят може
+    # сам да даде име, като GPS координатите остават същите.
+    _pending_3b = st.session_state.get("tmCurrentLocation3bPending")
+    if (not trip_locked) and isinstance(_pending_3b, dict):
+        st.markdown(
+            "<div style='margin:4px 0 6px;color:#fff;font-size:12px;font-weight:700;'>"
+            "📍 Не е намерено име на мястото"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        st.caption(
+            f"GPS: {_pending_3b.get('lat', 0.0):.6f}, "
+            f"{_pending_3b.get('lon', 0.0):.6f}"
+        )
+        _manual_3b_name = st.text_input(
+            "Име на спирката",
+            key="tmCurrentLocation3bManualName",
+            placeholder="напр. Паркинг пред езерото",
+        )
+        _manual_3b_cols = st.columns([1, 1])
+        with _manual_3b_cols[0]:
+            if st.button("➕ ЗАПИШИ СПИРКАТА", key="tmCurrentLocation3bSaveManual"):
+                _manual_3b_name = str(_manual_3b_name or "").strip()
+                if _manual_3b_name:
+                    if add_map_point(
+                        trip_id,
+                        float(_pending_3b["lat"]),
+                        float(_pending_3b["lon"]),
+                        f"3b: 📍 {_manual_3b_name}",
+                        "purple"
+                    ):
+                        st.session_state.pop("tmCurrentLocation3bPending", None)
+                        st.session_state.pop("tmCurrentLocation3bManualName", None)
+                        st.session_state[f"planned_3b_results_{trip_id}"] = []
+                        st.rerun()
+        with _manual_3b_cols[1]:
+            if st.button("✖ ОТКАЖИ", key="tmCurrentLocation3bCancelManual"):
+                st.session_state.pop("tmCurrentLocation3bPending", None)
+                st.session_state.pop("tmCurrentLocation3bManualName", None)
+                st.rerun()
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
