@@ -3925,13 +3925,53 @@ else:
         
         _manual_total_liters = m_fuel + _manual_no_cost_liters
         
-        transport_liters = (
-            float(
-                df_expenses[
-                    df_expenses["category"] == "Транспорт"
-                ]["liters"].sum()
-            )
-        )
+        # =========================================================
+        # ОБЩО ЗАРЕДЕНО ГОРИВО
+        # Включва:
+        # - нормални зареждания
+        # - частични зареждания
+        # - пълни зареждания
+        # - ръчно гориво с известна стойност
+        # - ръчно гориво без известна стойност
+        # =========================================================
+        
+        _transport_fuel = df_expenses[
+            df_expenses["category"].astype(str) == "Транспорт"
+        ].copy()
+        
+        # Всички нормални зареждания, които имат записани литри
+        transport_liters = pd.to_numeric(
+            _transport_fuel["liters"],
+            errors="coerce"
+        ).fillna(0.0).sum()
+        
+        # Ръчните записи понякога имат liters=0,
+        # затова извличаме литрите директно от описанието.
+        for _, _fuel_row in _transport_fuel.iterrows():
+            _desc = str(_fuel_row.get("description", ""))
+        
+            if re.search(
+                r"\[(?:ПРОПУСНАТО\s+ГОРИВО|ГОРИВО\s+БЕЗ\s+СТОЙНОСТ)\]",
+                _desc,
+                flags=re.IGNORECASE
+            ):
+                _match = re.search(
+                    r"Добавени\s*([0-9]+(?:\.[0-9]+)?)\s*литра",
+                    _desc,
+                    flags=re.IGNORECASE
+                )
+        
+                if _match:
+                    _manual_liters_from_desc = float(_match.group(1))
+        
+                    # Добавяме само ако този ред още не е записал
+                    # литрите си в колоната liters.
+                    if float(_fuel_row.get("liters", 0) or 0) <= 0:
+                        transport_liters += _manual_liters_from_desc
+        
+        # m_fuel съдържа само ръчното гориво с известна стойност,
+        # което се пази отделно от CSV.
+        transport_liters += float(m_fuel or 0.0)
 
 
 
