@@ -5495,7 +5495,10 @@ else:
             }
             for _, _r in plan_df.iterrows()
         ]
-        _task_result = _render_task_swipe(_task_items, key=f"task_swipe_{trip_id}")
+        _task_result = _render_task_swipe(
+    _task_items,
+    key=f"taskSwipe{trip_id}"
+)
         _task_event = getattr(_task_result, "action", None)
         if isinstance(_task_event, dict):
             _event_action = str(_task_event.get("action", ""))
