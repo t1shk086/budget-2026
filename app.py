@@ -6264,7 +6264,7 @@ else:
     st.markdown(
         "<div class='tm-section-title' style='margin-bottom:10px;'>"
         "<span class='tm-section-number tm-n3'>3b</span>"
-        "<span>ПЛАНИРАНИ СПИРКИ</span></div>",
+        "<span>Планирани спирки</span></div>",
         unsafe_allow_html=True
     )
 
