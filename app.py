@@ -11,6 +11,7 @@ import io
 import html
 import textwrap
 import streamlit.components.v1 as components
+import re
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
