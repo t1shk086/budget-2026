@@ -6477,8 +6477,300 @@ else:
 
     # =========================================================
     # =========================================================
-    # ❤️ ЛЮБИМИ МЕСТА — разгъваеми карти с карта/премахване
+    # ❤️ ЛЮБИМИ МЕСТА — click = покажи на картата, swipe left = изтрий
+    # Същият swipe модел като при задачите.
     # =========================================================
+    _FAV_HTML = """
+    <div id="tm-fav-root"></div>
+    """
+
+    _FAV_CSS = """
+    #tm-fav-root { width:100%; margin:0; padding:0 0 2px 0; }
+    .tm-fav {
+        position:relative; overflow:hidden; width:100%; min-height:58px;
+        margin:3px 0; border-radius:14px;
+        border:1px solid rgba(255,255,255,.07);
+        background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+        box-shadow:4px 5px 14px rgba(0,0,0,.20);
+        touch-action:pan-y;
+    }
+    .tm-fav-delete {
+        position:absolute; right:0; top:0; bottom:0; width:76px;
+        display:flex; align-items:center; justify-content:center;
+        background:#3a171b; color:#ff7777; font-size:11px;
+        font-weight:700; cursor:pointer; user-select:none;
+        -webkit-user-select:none;
+    }
+    .tm-fav-row {
+        position:relative; z-index:2; min-height:58px;
+        display:flex; align-items:center; gap:9px;
+        padding:9px 12px; box-sizing:border-box;
+        background:linear-gradient(135deg,#252932,#16191f);
+        transition:transform .16s ease;
+        user-select:none; -webkit-user-select:none;
+        cursor:pointer; touch-action:pan-y;
+    }
+    .tm-fav-icon { width:22px; flex:0 0 22px; text-align:center; font-size:15px; }
+    .tm-fav-content { min-width:0; flex:1; }
+    .tm-fav-name {
+        color:#fff; font-size:12.5px; line-height:1.25;
+        font-weight:800; overflow-wrap:anywhere;
+    }
+    .tm-fav-desc {
+        color:#aab3bd; font-size:10px; line-height:1.25;
+        margin-top:3px; overflow-wrap:anywhere;
+    }
+    .tm-fav-coord {
+        color:#7e8494; font-size:9px; line-height:1.2;
+        margin-top:2px; font-variant-numeric:tabular-nums;
+    }
+    @media(max-width:560px){
+        .tm-fav-row { min-height:62px; padding:10px 12px; }
+        .tm-fav-name { font-size:12.5px; }
+    }
+    """
+
+    _FAV_JS = r"""
+    export default function(component) {
+        const { parentElement, data, setTriggerValue } = component;
+        const root = parentElement.querySelector('#tm-fav-root');
+        const items = Array.isArray(data?.items) ? data.items : [];
+        let openId = null;
+
+        function esc(value) {
+            return String(value ?? '').replace(/[&<>\"']/g, function(c) {
+                return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'};
+            });
+        }
+
+        function emit(action, id) {
+            setTriggerValue('action', {
+                action: action,
+                id: String(id),
+                event_id: String(Date.now()) + '_' + Math.random().toString(36).slice(2)
+            });
+        }
+
+        root.innerHTML = '';
+
+        items.forEach(function(item) {
+            const id = String(item.id ?? '');
+            const title = String(item.title ?? 'Място');
+            const desc = String(item.desc ?? 'Запазено място');
+            const coords = String(item.coords ?? '');
+
+            const fav = document.createElement('div');
+            fav.className = 'tm-fav';
+            fav.dataset.id = id;
+
+            fav.innerHTML =
+                '<div class="tm-fav-delete">🗑️ Изтрий</div>' +
+                '<div class="tm-fav-row">' +
+                    '<div class="tm-fav-icon">📍</div>' +
+                    '<div class="tm-fav-content">' +
+                        '<div class="tm-fav-name">' + esc(title) + '</div>' +
+                        '<div class="tm-fav-desc">' + esc(desc) + '</div>' +
+                        '<div class="tm-fav-coord">' + esc(coords) + '</div>' +
+                    '</div>' +
+                '</div>';
+
+            const row = fav.querySelector('.tm-fav-row');
+            const del = fav.querySelector('.tm-fav-delete');
+
+            let sx = 0, sy = 0, dx = 0, moved = false, dragging = false;
+
+            del.addEventListener('click', function(e) {
+                e.stopPropagation();
+                emit('delete', id);
+            });
+
+            row.addEventListener('pointerdown', function(e) {
+                sx = e.clientX;
+                sy = e.clientY;
+                dx = 0;
+                moved = false;
+                dragging = true;
+                try { row.setPointerCapture(e.pointerId); } catch (_) {}
+                row.style.transition = 'none';
+            });
+
+            row.addEventListener('pointermove', function(e) {
+                if (!dragging) return;
+
+                const tx = e.clientX - sx;
+                const ty = e.clientY - sy;
+
+                if (Math.abs(ty) > Math.abs(tx) && Math.abs(ty) > 8) return;
+
+                dx = tx;
+
+                if (tx < 0) {
+                    moved = true;
+                    row.style.transform =
+                        'translateX(' + Math.max(-76, tx) + 'px)';
+                } else if (openId === id) {
+                    moved = true;
+                    row.style.transform =
+                        'translateX(' + Math.min(0, -76 + tx) + 'px)';
+                }
+            });
+
+            row.addEventListener('pointerup', function(e) {
+                if (!dragging) return;
+
+                dragging = false;
+                try { row.releasePointerCapture(e.pointerId); } catch (_) {}
+
+                row.style.transition = 'transform .16s ease';
+
+                if (dx < -35) {
+                    openId = id;
+                    row.style.transform = 'translateX(-76px)';
+                } else if (dx > 35 && openId === id) {
+                    openId = null;
+                    row.style.transform = 'translateX(0)';
+                }
+
+                dx = 0;
+            });
+
+            row.addEventListener('pointercancel', function() {
+                dragging = false;
+                dx = 0;
+                moved = false;
+                row.style.transition = 'transform .16s ease';
+            });
+
+            row.addEventListener('click', function(e) {
+                if (moved) {
+                    moved = false;
+                    return;
+                }
+
+                if (openId === id) {
+                    openId = null;
+                    row.style.transform = 'translateX(0)';
+                    return;
+                }
+
+                // Нормално натискане = само покажи мястото на картата.
+                emit('show', id);
+            });
+
+            root.appendChild(fav);
+        });
+    }
+    """
+
+    _tm_fav_component = st.components.v2.component(
+        name="pixelapp_favorites_swipe_v1",
+        html=_FAV_HTML,
+        css=_FAV_CSS,
+        js=_FAV_JS,
+    )
+
+    def _handle_fav_swipe_action():
+        try:
+            _component_state = st.session_state.get("tmFavoritesSwipe")
+            if not _component_state:
+                return
+
+            _event = getattr(_component_state, "action", None)
+            if not isinstance(_event, dict):
+                return
+
+            _action = str(_event.get("action", ""))
+            _fav_id = str(_event.get("id", ""))
+            if not _fav_id:
+                return
+
+            try:
+                _row_index = int(_fav_id)
+            except Exception:
+                return
+
+            _df_map = pd.read_csv(MAP_FILE, encoding="utf-8")
+            if _row_index not in _df_map.index:
+                return
+
+            if str(_df_map.loc[_row_index, "trip_id"]) != str(trip_id):
+                return
+
+            if _action == "show":
+                _lat = float(_df_map.loc[_row_index, "lat"])
+                _lon = float(_df_map.loc[_row_index, "lon"])
+                st.session_state["stable_lat"] = _lat
+                st.session_state["stable_lon"] = _lon
+                st.session_state["stable_zoom"] = 13
+                st.rerun()
+
+            elif _action == "delete":
+                if trip_locked:
+                    return
+                _df_map = _df_map.drop(index=_row_index)
+                _df_map.to_csv(MAP_FILE, index=False, encoding="utf-8")
+                st.rerun()
+
+        except Exception:
+            pass
+
+    def _render_favorites_swipe(df_points):
+        _items = []
+        for _fav_idx, _fav_row in df_points.iterrows():
+            _fav_title = str(_fav_row.get("title", "Място") or "Място").strip()
+            _fav_desc = "Запазено място"
+
+            if ":" in _fav_title:
+                _fav_left, _fav_right = _fav_title.split(":", 1)
+                if _fav_right.strip():
+                    _fav_desc = _fav_left.strip().replace("🏁", "").strip()
+                    _fav_title = _fav_right.strip()
+
+            _items.append({
+                "id": str(_fav_idx),
+                "title": _fav_title,
+                "desc": _fav_desc,
+                "coords": f"📍 {float(_fav_row.get('lat', 0) or 0):.5f}, {float(_fav_row.get('lon', 0) or 0):.5f}",
+            })
+
+        return _tm_fav_component(
+            data={"items": _items},
+            key="tmFavoritesSwipe",
+            on_action_change=_handle_fav_swipe_action,
+        )
+
+    st.markdown("""
+    <style>
+        .tm-fav-headline {
+            margin-top:14px;
+            margin-bottom:7px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+        }
+        .tm-fav-title { color:#ffffff; font-size:13px; font-weight:900; letter-spacing:.25px; }
+        .tm-fav-count {
+            color:#aeb7c1; font-size:10px; padding:5px 8px; border-radius:999px;
+            background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.07);
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    df_points = get_map_points(trip_id)
+    st.markdown(
+        f"<div class='tm-fav-headline'><div class='tm-fav-title'>❤️ ЛЮБИМИ МЕСТА</div><div class='tm-fav-count'>{len(df_points)} {'място' if len(df_points)==1 else 'места'}</div></div>",
+        unsafe_allow_html=True,
+    )
+
+    if df_points.empty:
+        st.markdown(
+            "<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма запазени места за това пътуване.</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        _render_favorites_swipe(df_points)
+
     st.markdown("""
     <style>
         .tm-fav-headline {
