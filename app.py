@@ -6508,6 +6508,7 @@ else:
         display:flex; align-items:center; justify-content:center;
         background:#3a171b; color:#ff7777; font-size:11px;
         font-weight:700; cursor:pointer; user-select:none;
+        touch-action:manipulation; -webkit-tap-highlight-color:transparent;
         -webkit-user-select:none;
     }
     .tm-fav-row {
@@ -6588,9 +6589,25 @@ else:
 
             let sx = 0, sy = 0, dx = 0, moved = false, dragging = false;
 
-            del.addEventListener('click', function(e) {
-                e.stopPropagation();
+            // Mobile-safe delete: use pointerup directly instead of click.
+            // On some phones the synthetic click after a touch is delivered
+            // one interaction later inside the component iframe.
+            let deleteSent = false;
+            function sendDelete(e) {
+                if (deleteSent) return;
+                deleteSent = true;
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
                 emit('delete', id);
+                setTimeout(function() { deleteSent = false; }, 400);
+            }
+            del.addEventListener('pointerup', sendDelete);
+            del.addEventListener('click', function(e) {
+                // Mouse fallback only; touch/pointerup already emitted.
+                if (e && e.pointerType === 'mouse') sendDelete(e);
+                else if (e) { e.preventDefault(); e.stopPropagation(); }
             });
 
             row.addEventListener('pointerdown', function(e) {
