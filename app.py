@@ -887,11 +887,41 @@ _tm_task_component = st.components.v2.component(
     js=_TASK_JS,
 )
 
-def _render_task_swipe(items, key=None):
+def _handle_task_swipe_action():
+    try:
+        _component_state = st.session_state.get("tmTaskSwipe")
+
+        if not _component_state:
+            return
+
+        _event = getattr(_component_state, "action", None)
+
+        if not isinstance(_event, dict):
+            return
+
+        _action = str(_event.get("action", ""))
+        _item_id = str(_event.get("id", ""))
+
+        if not _item_id:
+            return
+
+        if _action == "toggle":
+            _toggle_plan_item(_item_id)
+
+        elif _action == "delete":
+            # Изтриването се разрешава само ако пътуването не е заключено.
+            if not st.session_state.get("task_plan_locked", False):
+                _delete_plan_item(_item_id)
+
+    except Exception:
+        pass
+
+
+def _render_task_swipe(items):
     return _tm_task_component(
         data={"items": items},
-        default={"action": None},
-        on_action_change=lambda: None,
+        key="tmTaskSwipe",
+        on_action_change=_handle_task_swipe_action,
     )
 
 
@@ -5530,17 +5560,9 @@ else:
             }
             for _, _r in plan_df.iterrows()
         ]
-        _task_result = _render_task_swipe(_task_items)
-        _task_event = getattr(_task_result, "action", None)
-        if isinstance(_task_event, dict):
-            _event_action = str(_task_event.get("action", ""))
-            _event_item = str(_task_event.get("id", ""))
-            if _event_action == "toggle" and _event_item:
-                _toggle_plan_item(_event_item)
-                st.rerun()
-            elif _event_action == "delete" and _event_item and not plan_locked:
-                _delete_plan_item(_event_item)
-                st.rerun()
+st.session_state["task_plan_locked"] = bool(plan_locked)
+
+_render_task_swipe(_task_items)
     else:
         st.markdown("<div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'>Добави резервации, места или задачи, които не искаш да забравяш.</div>", unsafe_allow_html=True)
 
