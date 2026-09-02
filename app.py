@@ -6083,6 +6083,138 @@ else:
         except Exception:
             return None
 
+    # =========================================================
+    # 3b — ТЕКУЩА ЛОКАЦИЯ ОТ ТЕЛЕФОНА
+    # GPS се взема директно от браузъра и се записва като 3b спирка.
+    # =========================================================
+    _CURRENT_LOCATION_HTML = """
+    <button id="tm-current-location-btn" type="button">📍 ДОБАВИ МОЯТА ЛОКАЦИЯ</button>
+    <div id="tm-current-location-status"></div>
+    """
+
+    _CURRENT_LOCATION_CSS = """
+    #tm-current-location-btn {
+        width:100%; min-height:42px; border-radius:12px;
+        border:1px solid rgba(0,242,254,.16);
+        background:linear-gradient(135deg,#252932,#16191f);
+        color:#fff; font-size:13px; font-weight:700;
+        cursor:pointer; box-shadow:0 4px 15px rgba(0,0,0,.35);
+    }
+    #tm-current-location-btn:active { transform:scale(.99); }
+    #tm-current-location-btn:disabled { opacity:.55; cursor:default; }
+    #tm-current-location-status {
+        margin-top:5px; color:#7e8494; font-size:10px; text-align:center;
+        min-height:14px;
+    }
+    """
+
+    _CURRENT_LOCATION_JS = r"""
+    export default function(component) {
+        const { parentElement, setTriggerValue } = component;
+        const btn = parentElement.querySelector('#tm-current-location-btn');
+        const status = parentElement.querySelector('#tm-current-location-status');
+
+        function emitLocation(lat, lon) {
+            setTriggerValue('location', {
+                lat: Number(lat),
+                lon: Number(lon),
+                event_id: String(Date.now()) + '_' + Math.random().toString(36).slice(2)
+            });
+        }
+
+        btn.addEventListener('click', function() {
+            if (!navigator.geolocation) {
+                status.textContent = 'GPS не е наличен в този браузър.';
+                return;
+            }
+
+            btn.disabled = true;
+            status.textContent = 'Определяне на текущото местоположение…';
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    emitLocation(
+                        position.coords.latitude,
+                        position.coords.longitude
+                    );
+                    status.textContent = 'Локацията е получена.';
+                    btn.disabled = false;
+                },
+                function(error) {
+                    let message = 'Неуспешно получаване на локацията.';
+                    if (error && error.code === 1) {
+                        message = 'Разреши достъп до местоположението в браузъра.';
+                    } else if (error && error.code === 2) {
+                        message = 'Местоположението не може да бъде определено.';
+                    } else if (error && error.code === 3) {
+                        message = 'Изтече времето за определяне на локацията.';
+                    }
+                    status.textContent = message;
+                    btn.disabled = false;
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                }
+            );
+        });
+    }
+    """
+
+    _tm_current_location_component = st.components.v2.component(
+        name="pixelapp_current_location_3b",
+        html=_CURRENT_LOCATION_HTML,
+        css=_CURRENT_LOCATION_CSS,
+        js=_CURRENT_LOCATION_JS,
+    )
+
+    def _handle_current_location_3b():
+        try:
+            _state = st.session_state.get("tmCurrentLocation3b")
+            if not _state:
+                return
+            _loc = getattr(_state, "location", None)
+            if not isinstance(_loc, dict):
+                return
+
+            _event_id = str(_loc.get("event_id", ""))
+            if not _event_id:
+                return
+            if st.session_state.get("tmCurrentLocation3bLastEvent") == _event_id:
+                return
+
+            _lat = float(_loc.get("lat"))
+            _lon = float(_loc.get("lon"))
+            if not (-90 <= _lat <= 90 and -180 <= _lon <= 180):
+                return
+
+            if add_map_point(
+                trip_id,
+                _lat,
+                _lon,
+                "3b: 📍 Моето местоположение",
+                "purple"
+            ):
+                st.session_state["tmCurrentLocation3bLastEvent"] = _event_id
+                st.session_state[f"planned_3b_results_{trip_id}"] = []
+        except Exception:
+            pass
+
+    if not trip_locked:
+        _tm_current_location_component(
+            key="tmCurrentLocation3b",
+            on_location_change=_handle_current_location_3b,
+        )
+    else:
+        st.markdown(
+            "<div style='color:#7e8494;font-size:11px;text-align:center;'>"
+            "Пътуването е приключено.</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
     st.markdown(
         "<div class='tm-section-title' style='margin-bottom:10px;'>"
         "<span class='tm-section-number tm-n3'>3b</span>"
