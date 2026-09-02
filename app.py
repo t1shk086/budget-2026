@@ -6809,7 +6809,7 @@ else:
 
     df_points = get_map_points(trip_id)
     st.markdown(
-        f"<div class='tm-fav-headline'><div class='tm-fav-title'>❤️ ЛЮБИМИ МЕСТА</div><div class='tm-fav-count'>{len(df_points)} {'място' if len(df_points)==1 else 'места'}</div></div>",
+        f"<div class='tm-fav-headline'><div class='tm-fav-title'>❤️ Любими места</div><div class='tm-fav-count'>{len(df_points)} {'място' if len(df_points)==1 else 'места'}</div></div>",
         unsafe_allow_html=True,
     )
 
