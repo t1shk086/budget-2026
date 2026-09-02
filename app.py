@@ -2342,7 +2342,7 @@ if st.session_state["current_trip"] is None:
             st.markdown(
                 f"""
                 <div class="tm-home-extra">
-                    <div class="tm-home-extra-title">✈️ СЛЕДВАЩО ПЪТУВАНЕ</div>
+                    <div class="tm-home-extra-title">✈️ Следващо пътуване</div>
                     <div class="tm-home-extra-main">{_next_trip}</div>
                     <div class="tm-home-extra-sub">{_next_trip_date.strftime("%d.%m.%Y")} · {_when}</div>
                 </div>
@@ -2355,7 +2355,7 @@ if st.session_state["current_trip"] is None:
             st.markdown(
                 f"""
                 <div class="tm-home-extra">
-                    <div class="tm-home-extra-title">🕐 ПОСЛЕДНА АКТИВНОСТ</div>
+                    <div class="tm-home-extra-title">🕐 Последна активност</div>
                     <div class="tm-home-extra-main">€{_la_amount:,.2f}</div>
                     <div class="tm-home-extra-sub">{_la_trip} · {_la_cat} · {_la_desc}</div>
                 </div>
