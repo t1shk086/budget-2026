@@ -6526,6 +6526,14 @@ else:
         touch-action:manipulation; -webkit-tap-highlight-color:transparent;
         -webkit-user-select:none;
     }
+    .tm-fav-edit {
+        position:absolute; right:76px; top:0; bottom:0; width:76px;
+        display:flex; align-items:center; justify-content:center;
+        background:#162c3a; color:#9edfff; font-size:11px;
+        font-weight:700; cursor:pointer; user-select:none;
+        touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+        -webkit-user-select:none;
+    }
     .tm-fav-row {
         position:relative; z-index:2; min-height:58px;
         display:flex; align-items:center; gap:9px;
@@ -6590,6 +6598,7 @@ else:
 
             fav.innerHTML =
                 '<div class="tm-fav-delete">🗑️ Изтрий</div>' +
+                '<div class="tm-fav-edit">✏️ Промени</div>' +
                 '<div class="tm-fav-row">' +
                     '<div class="tm-fav-icon">📍</div>' +
                     '<div class="tm-fav-content">' +
@@ -6601,6 +6610,7 @@ else:
 
             const row = fav.querySelector('.tm-fav-row');
             const del = fav.querySelector('.tm-fav-delete');
+            const edit = fav.querySelector('.tm-fav-edit');
 
             let sx = 0, sy = 0, dx = 0, moved = false, dragging = false;
 
@@ -6622,6 +6632,23 @@ else:
             del.addEventListener('click', function(e) {
                 // Mouse fallback only; touch/pointerup already emitted.
                 if (e && e.pointerType === 'mouse') sendDelete(e);
+                else if (e) { e.preventDefault(); e.stopPropagation(); }
+            });
+
+            let editSent = false;
+            function sendEdit(e) {
+                if (editSent) return;
+                editSent = true;
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                emit('rename', id);
+                setTimeout(function() { editSent = false; }, 400);
+            }
+            edit.addEventListener('pointerup', sendEdit);
+            edit.addEventListener('click', function(e) {
+                if (e && e.pointerType === 'mouse') sendEdit(e);
                 else if (e) { e.preventDefault(); e.stopPropagation(); }
             });
 
@@ -6648,11 +6675,11 @@ else:
                 if (tx < 0) {
                     moved = true;
                     row.style.transform =
-                        'translateX(' + Math.max(-76, tx) + 'px)';
+                        'translateX(' + Math.max(-152, tx) + 'px)';
                 } else if (openId === id) {
                     moved = true;
                     row.style.transform =
-                        'translateX(' + Math.min(0, -76 + tx) + 'px)';
+                        'translateX(' + Math.min(0, -152 + tx) + 'px)';
                 }
             });
 
@@ -6666,7 +6693,7 @@ else:
 
                 if (dx < -35) {
                     openId = id;
-                    row.style.transform = 'translateX(-76px)';
+                    row.style.transform = 'translateX(-152px)';
                 } else if (dx > 35 && openId === id) {
                     openId = null;
                     row.style.transform = 'translateX(0)';
@@ -6753,6 +6780,13 @@ else:
                 _df_map.to_csv(MAP_FILE, index=False, encoding="utf-8")
                 return True
 
+            if _action == "rename":
+                if trip_locked:
+                    return False
+                st.session_state["fav_rename_row"] = _row_index
+                st.session_state["fav_rename_value"] = str(_df_map.loc[_row_index, "title"] or "").strip()
+                return True
+
         except Exception:
             return False
 
@@ -6825,6 +6859,53 @@ else:
             # Вече сме извън callback-а, затова rerun е валиден и
             # интерфейсът се обновява веднага след едно натискане.
             st.rerun()
+
+    # ---------------------------------------------------------
+    # Преименуване на конкретно запазено място.
+    # Координатите остават непроменени; сменя се само title.
+    # ---------------------------------------------------------
+    _fav_rename_row = st.session_state.get("fav_rename_row")
+    if _fav_rename_row is not None:
+        try:
+            _rename_df = pd.read_csv(MAP_FILE, encoding="utf-8")
+            _fav_rename_row = int(_fav_rename_row)
+            if _fav_rename_row in _rename_df.index and str(_rename_df.loc[_fav_rename_row, "trip_id"]) == str(trip_id):
+                _old_title = str(_rename_df.loc[_fav_rename_row, "title"] or "").strip()
+                _prefix = ""
+                _display_old = _old_title
+                if _old_title.lower().startswith("3b:"):
+                    _prefix = _old_title.split(":", 1)[0] + ": "
+                    _display_old = _old_title.split(":", 1)[1].strip()
+
+                _rename_value = st.text_input(
+                    "✏️ Ново име на мястото",
+                    value=str(st.session_state.get("fav_rename_value", _display_old) or ""),
+                    key="fav_rename_input",
+                    placeholder="Например: Вкъщи"
+                ).strip()
+
+                _rc1, _rc2 = st.columns(2)
+                with _rc1:
+                    if st.button("💾 Запази", use_container_width=True, key="fav_rename_save_btn"):
+                        if not _rename_value:
+                            st.warning("⚠️ Въведи име.")
+                        else:
+                            _rename_df.loc[_fav_rename_row, "title"] = _prefix + _rename_value
+                            _rename_df.to_csv(MAP_FILE, index=False, encoding="utf-8")
+                            st.session_state.pop("fav_rename_row", None)
+                            st.session_state.pop("fav_rename_value", None)
+                            st.rerun()
+                with _rc2:
+                    if st.button("Отказ", use_container_width=True, key="fav_rename_cancel_btn"):
+                        st.session_state.pop("fav_rename_row", None)
+                        st.session_state.pop("fav_rename_value", None)
+                        st.rerun()
+            else:
+                st.session_state.pop("fav_rename_row", None)
+                st.session_state.pop("fav_rename_value", None)
+        except Exception:
+            st.session_state.pop("fav_rename_row", None)
+            st.session_state.pop("fav_rename_value", None)
 
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
