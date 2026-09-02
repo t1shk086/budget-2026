@@ -731,63 +731,6 @@ def add_map_point(t_id, lat, lon, title, color="blue"):
         return False
 
 
-def search_planned_stops(query, limit=5):
-    """Търси реални места по име/град чрез Nominatim и връща няколко резултата за избор."""
-    try:
-        query = str(query or "").strip()
-        if len(query) < 2:
-            return []
-        geolocator = Nominatim(user_agent="pixelapp_travel_manager_2026", timeout=10)
-        locations = geolocator.geocode(query, exactly_one=False, limit=int(limit), language="bg,en", addressdetails=True) or []
-        results = []
-        seen = set()
-        for loc in locations:
-            key = (round(float(loc.latitude), 6), round(float(loc.longitude), 6))
-            if key in seen:
-                continue
-            seen.add(key)
-            raw = getattr(loc, "raw", {}) or {}
-            results.append({
-                "name": str(raw.get("name") or loc.address.split(",")[0]),
-                "address": str(loc.address),
-                "lat": float(loc.latitude),
-                "lon": float(loc.longitude),
-            })
-        return results
-    except Exception:
-        return []
-
-
-def build_google_maps_route_url(points):
-    """Изгражда Google Maps маршрут: текущата позиция -> спирки в зададения ред."""
-    try:
-        points = list(points or [])
-        if not points:
-            return ""
-
-        coords = []
-        for p in points:
-            lat = float(p.get("lat"))
-            lon = float(p.get("lon"))
-            coords.append(f"{lat:.6f},{lon:.6f}")
-
-        # Google Maps може да използва текущото местоположение като старт,
-        # което е най-подходящо за навигация от телефона в автомобила.
-        destination = coords[-1]
-        waypoints = coords[:-1]
-
-        url = (
-            "https://www.google.com/maps/dir/?api=1"
-            f"&destination={quote(destination, safe='')}"
-            "&travelmode=driving"
-            "&dir_action=navigate"
-        )
-        if waypoints:
-            url += f"&waypoints={quote('|'.join(waypoints), safe='')}"
-        return url
-    except Exception:
-        return ""
-
 # =========================================================
 # REAL TASK COMPONENT — click = done/undone, swipe left = reveal delete
 # This is isolated from the rest of the UI and does not change the app design.
@@ -982,6 +925,205 @@ def _render_task_swipe(items):
         key="tmTaskSwipe",
         on_action_change=_handle_task_swipe_action,
     )
+
+# =========================================================
+# HOME TRIPS — swipe left to reveal delete, without changing
+# the existing trip-card design. Tap/click still opens the trip.
+# =========================================================
+_HOME_TRIP_HTML = """
+<div id="tm-home-trip-root"></div>
+"""
+
+_HOME_TRIP_CSS = """
+#tm-home-trip-root { width:100%; margin:0; padding:0; }
+.tm-home-trip { position:relative; overflow:hidden; width:100%; min-height:108px; border-radius:16px; }
+.tm-home-trip-delete { position:absolute; right:0; top:0; bottom:0; width:76px; display:none; align-items:center; justify-content:center; background:#3a171b; color:#ff7777; font-size:11px; font-weight:700; cursor:pointer; user-select:none; -webkit-user-select:none; z-index:0; pointer-events:auto; }
+.tm-home-trip-row { position:relative; z-index:2; width:100%; min-height:108px; box-sizing:border-box; padding:14px 16px 24px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.085); border-left:3px solid rgba(0,242,254,.42); background:var(--tm-card-bg); box-shadow:0 8px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.025); color:#fff; text-align:left; font-family:inherit; font-size:14px; font-weight:500; line-height:1.45; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; touch-action:pan-y; user-select:none; -webkit-user-select:none; cursor:pointer; }
+.tm-home-trip-row:hover { border-color:rgba(0,242,254,.24); border-left-color:rgba(0,242,254,.82); background:var(--tm-card-hover-bg); box-shadow:0 12px 30px rgba(0,0,0,.30), 0 0 18px rgba(0,242,254,.055); transform:translateY(-2px); }
+.tm-home-trip-content { width:100%; white-space:pre-wrap; }
+.tm-home-trip-title { font-size:14px; font-weight:800; line-height:1.35; }
+.tm-home-trip-spent { font-size:14px; font-weight:700; }
+.tm-home-trip-pct { font-size:14px; font-weight:700; }
+.tm-home-trip-remaining { font-size:14px; font-weight:700; }
+@media(max-width:640px) {
+    .tm-home-trip { min-height:102px; }
+    .tm-home-trip-row { min-height:102px; padding:12px 14px 23px 14px; border-radius:16px; font-size:14px; }
+}
+"""
+
+_HOME_TRIP_JS = r"""
+export default function(component) {
+    const { parentElement, data, setTriggerValue } = component;
+    const root = parentElement.querySelector('#tm-home-trip-root');
+    const item = data?.item || {};
+    const id = String(item.id ?? '');
+    const openText = String(item.open_text ?? '');
+    const title = String(item.title ?? '');
+    const status = String(item.status ?? '');
+    const dates = String(item.dates ?? '');
+    const spent = String(item.spent ?? '');
+    const budget = String(item.budget ?? '');
+    const pct = String(item.pct ?? '');
+    const remaining = String(item.remaining ?? '');
+    const hasBudget = !!item.has_budget;
+    const gradient = String(item.gradient ?? '');
+    const hoverGradient = String(item.hover_gradient ?? gradient);
+
+    function esc(value) {
+        return String(value ?? '').replace(/[&<>\"']/g, function(c) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];
+        });
+    }
+
+    function emit(action) {
+        setTriggerValue('action', {
+            action: action,
+            id: id,
+            event_id: String(Date.now()) + '_' + Math.random().toString(36).slice(2)
+        });
+    }
+
+    root.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'tm-home-trip';
+    card.innerHTML =
+        '<div class="tm-home-trip-row" style="--tm-card-bg:' + esc(gradient) + ';--tm-card-hover-bg:' + esc(hoverGradient) + '">' +
+        '<div class="tm-home-trip-content">' +
+        '<div>🚙  <span class="tm-home-trip-title">' + esc(title) + '</span></div>' +
+        '<div>' + esc(status) + (dates ? ' · ' + esc(dates) : '') + '</div>' +
+        (hasBudget
+            ? '<br><div><span class="tm-home-trip-spent">€' + esc(spent) + '</span> / €' + esc(budget) + '    <span class="tm-home-trip-pct">' + esc(pct) + '%</span></div>' +
+              '<div>💳 Остават <span class="tm-home-trip-remaining">€' + esc(remaining) + '</span></div>'
+            : '<br><div>Без зададен бюджет</div>') +
+        '</div></div>';
+
+    const row = card.querySelector('.tm-home-trip-row');
+    let del = null;
+    let sx = 0, sy = 0, dx = 0, moved = false, dragging = false;
+    let open = false;
+
+    function createDeleteLayer() {
+        if (del) return;
+        del = document.createElement('div');
+        del.className = 'tm-home-trip-delete';
+        del.textContent = '🗑️ Изтрий';
+        del.addEventListener('click', function(e) {
+            e.stopPropagation();
+            emit('delete');
+        });
+        card.appendChild(del);
+    }
+
+    function showDeleteLayer() {
+        createDeleteLayer();
+        del.style.display = 'flex';
+    }
+
+    function removeDeleteLayer() {
+        if (del) {
+            del.remove();
+            del = null;
+        }
+        row.style.transform = 'translateX(0)';
+    }
+
+    row.addEventListener('pointerdown', function(e) {
+        sx = e.clientX;
+        sy = e.clientY;
+        dx = 0;
+        moved = false;
+        dragging = true;
+        try { row.setPointerCapture(e.pointerId); } catch (_) {}
+        row.style.transition = 'none';
+    });
+
+    row.addEventListener('pointermove', function(e) {
+        if (!dragging) return;
+        const tx = e.clientX - sx;
+        const ty = e.clientY - sy;
+        if (Math.abs(ty) > Math.abs(tx) && Math.abs(ty) > 8) return;
+        dx = tx;
+        if (tx < 0) {
+            moved = true;
+            if (tx < -10) showDeleteLayer();
+            row.style.transform = 'translateX(' + Math.max(-76, tx) + 'px)';
+        } else if (open) {
+            moved = true;
+            row.style.transform = 'translateX(' + Math.min(0, -76 + tx) + 'px)';
+        }
+    });
+
+    row.addEventListener('pointerup', function(e) {
+        if (!dragging) return;
+        dragging = false;
+        try { row.releasePointerCapture(e.pointerId); } catch (_) {}
+        row.style.transition = 'transform .16s ease';
+        if (dx < -35) {
+            open = true;
+            showDeleteLayer();
+            row.style.transform = 'translateX(-76px)';
+        } else if (dx > 35 && open) {
+            open = false;
+            row.style.transform = 'translateX(0)';
+            removeDeleteLayer();
+        }
+        dx = 0;
+    });
+
+    row.addEventListener('pointercancel', function() {
+        dragging = false;
+        dx = 0;
+        moved = false;
+        row.style.transition = 'transform .16s ease';
+        removeDeleteLayer();
+    });
+
+    row.addEventListener('click', function(e) {
+        if (moved) {
+            moved = false;
+            return;
+        }
+        if (open) {
+            open = false;
+            row.style.transform = 'translateX(0)';
+            removeDeleteLayer();
+            return;
+        }
+        emit('open');
+    });
+
+    removeDeleteLayer();
+    root.appendChild(card);
+}
+"""
+
+_tm_home_trip_component = st.components.v2.component(
+    name="pixelapp_home_trip_swipe_v2",
+    html=_HOME_TRIP_HTML,
+    css=_HOME_TRIP_CSS,
+    js=_HOME_TRIP_JS,
+)
+
+def _handle_home_trip_swipe_action():
+    try:
+        for _k, _state in list(st.session_state.items()):
+            if not str(_k).startswith("tmHomeTripSwipe_"):
+                continue
+            _event = getattr(_state, "action", None)
+            if not isinstance(_event, dict):
+                continue
+            _action = str(_event.get("action", ""))
+            _item_id = str(_event.get("id", ""))
+            if not _item_id:
+                continue
+            if _action == "open":
+                st.session_state["current_trip"] = _item_id
+                return
+            if _action == "delete":
+                st.session_state["home_trip_pending_delete"] = _item_id
+                return
+    except Exception:
+        pass
 
 
 
@@ -1608,6 +1750,37 @@ if st.session_state["current_trip"] is None:
     </style>
     """, unsafe_allow_html=True)
 
+    @st.dialog("🚨 Изтриване на цялото пътуване")
+    def confirm_delete_home_trip_dialog(_home_trip_id):
+        st.error(f"ВНИМАНИЕ! Изтриване на пътуването до {str(_home_trip_id).replace('_', ' ')}?")
+        c_tr1, c_tr2 = st.columns(2)
+        with c_tr1:
+            if st.button("✔️ ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary", key=f"home_confirm_delete_{_home_trip_id}"):
+                try:
+                    if os.path.exists(DATA_FILE):
+                        pd.read_csv(DATA_FILE, encoding="utf-8")[lambda d: d["trip_id"] != _home_trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
+                    if os.path.exists(SETTINGS_FILE):
+                        pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != _home_trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
+                    if os.path.exists(TRIP_PLAN_FILE):
+                        pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")[lambda d: d["trip_id"] != _home_trip_id].to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
+                    if os.path.exists(CATEGORY_BUDGETS_FILE):
+                        df_budget_delete = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+                        if "trip_id" in df_budget_delete.columns:
+                            df_budget_delete[df_budget_delete["trip_id"].astype(str) != str(_home_trip_id)].to_csv(CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8")
+                    if os.path.exists(MAP_FILE):
+                        df_map_delete = pd.read_csv(MAP_FILE, encoding="utf-8")
+                        if "trip_id" in df_map_delete.columns:
+                            df_map_delete[df_map_delete["trip_id"].astype(str) != str(_home_trip_id)].to_csv(MAP_FILE, index=False, encoding="utf-8")
+                except Exception:
+                    pass
+                st.session_state["current_trip"] = None
+                st.session_state["home_trip_pending_delete"] = None
+                st.rerun()
+        with c_tr2:
+            if st.button("✖️ ОТКАЗ", use_container_width=True, key=f"home_cancel_delete_{_home_trip_id}"):
+                st.session_state["home_trip_pending_delete"] = None
+                st.rerun()
+
     # Бърз разход — първи и най-лесен за достигане.
     if st.button("➕  Бърз Разход\nДобави разход за секунди", use_container_width=True, type="primary", key="quick_expense_top_btn"):
         st.session_state["open_quick_expense"] = True
@@ -1941,13 +2114,50 @@ if st.session_state["current_trip"] is None:
                         f"Без зададен бюджет"
                     )
 
-                if st.button(
-                    _label,
-                    use_container_width=True,
-                    key=_button_key
-                ):
-                    st.session_state["current_trip"] = _trip_id
-                    st.rerun()
+                _home_trip_bg = (
+                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
+                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                    f"linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+                ) if _budget > 0 else (
+                    "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
+                    "radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                    "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+                )
+                _home_trip_hover_bg = (
+                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
+                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                    f"linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+                ) if _budget > 0 else (
+                    "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
+                    "radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                    "linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+                )
+
+                _trip_swipe_state = _tm_home_trip_component(
+                    data={
+                        "item": {
+                            "id": _trip_id,
+                            "title": _trip_name,
+                            "status": f"{_status_dot}  {_status_text}",
+                            "dates": _trip_dates_line,
+                            "spent": f"{_spent:,.2f}",
+                            "budget": f"{_budget:,.2f}",
+                            "pct": f"{_pct:.0f}",
+                            "remaining": f"{_remaining_card:,.0f}",
+                            "has_budget": _budget > 0,
+                            "gradient": _home_trip_bg,
+                            "hover_gradient": _home_trip_hover_bg,
+                        }
+                    },
+                    key=f"tmHomeTripSwipe_{_safe_key}",
+                    on_action_change=_handle_home_trip_swipe_action,
+                )
+
+        if st.session_state.get("home_trip_pending_delete"):
+            confirm_delete_home_trip_dialog(st.session_state["home_trip_pending_delete"])
+
         st.markdown(
             """
             <div style="
@@ -5769,70 +5979,213 @@ else:
 
     st.markdown("---")
 
-    st.markdown("---")
-    # =========================================================
-    # ПЛАНИРАНИ СПИРКИ — търсене на реално място по име/град
-    # =========================================================
-    st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>ПЛАНИРАНИ СПИРКИ</span></div>", unsafe_allow_html=True)
-    st.markdown("<div style='color:#7e8494;font-size:12px;margin-bottom:10px;'>Търси място, бензиностанция, ресторант или град и избери точния резултат.</div>", unsafe_allow_html=True)
 
-    _stop_query_key = f"planned_stop_query_{trip_id}"
-    _stop_results_key = f"planned_stop_results_{trip_id}"
-    _stop_col1, _stop_col2 = st.columns([0.74, 0.26])
-    with _stop_col1:
-        st.text_input("Търси спирка", placeholder="напр. OMV Niš Serbia", key=_stop_query_key, label_visibility="collapsed")
-    with _stop_col2:
-        if st.button("🔎 Търси", use_container_width=True, key=f"planned_stop_search_{trip_id}"):
-            _found_stops = search_planned_stops(st.session_state.get(_stop_query_key, ""), limit=5)
-            st.session_state[_stop_results_key] = _found_stops
-            if not _found_stops:
-                st.warning("Не намерих подходящо място. Пробвай с име + град + държава.")
+    # =========================================================
+    # 3b — ПЛАНИРАНИ СПИРКИ / GOOGLE MAPS НАВИГАЦИЯ
+    # Отделено от съществуващата карта и любимите места.
+    # =========================================================
+    def _search_3b_places(query, limit=5):
+        try:
+            query = str(query or "").strip()
+            if len(query) < 2:
+                return []
+            geolocator_3b = Nominatim(
+                user_agent="pixelapp_travel_manager_2026",
+                timeout=10
+            )
+            locations_3b = geolocator_3b.geocode(
+                query,
+                exactly_one=False,
+                limit=int(limit),
+                language="bg,en",
+                addressdetails=True
+            ) or []
+            results_3b = []
+            seen_3b = set()
+            for loc_3b in locations_3b:
+                key_3b = (
+                    round(float(loc_3b.latitude), 6),
+                    round(float(loc_3b.longitude), 6)
+                )
+                if key_3b in seen_3b:
+                    continue
+                seen_3b.add(key_3b)
+                raw_3b = getattr(loc_3b, "raw", {}) or {}
+                results_3b.append({
+                    "name": str(
+                        raw_3b.get("name")
+                        or str(loc_3b.address).split(",")[0]
+                    ),
+                    "address": str(loc_3b.address),
+                    "lat": float(loc_3b.latitude),
+                    "lon": float(loc_3b.longitude),
+                })
+            return results_3b
+        except Exception:
+            return []
 
-    _stop_results = st.session_state.get(_stop_results_key, [])
-    if _stop_results:
-        st.markdown("<div style='color:#b8bdc9;font-size:12px;margin:6px 0 8px;'>Избери точната спирка:</div>", unsafe_allow_html=True)
-        for _stop_idx, _stop in enumerate(_stop_results):
-            _stop_name = html.escape(str(_stop.get("name", "Място")))
-            _stop_address = html.escape(str(_stop.get("address", "")))
-            _s1, _s2 = st.columns([0.78, 0.22])
-            with _s1:
-                st.markdown(f"<div style='padding:7px 2px 7px 4px;'><div style='font-weight:700;color:#fff;'>📍 {_stop_name}</div><div style='font-size:11px;color:#7e8494;line-height:1.35;'>{_stop_address}</div></div>", unsafe_allow_html=True)
-            with _s2:
-                if st.button("➕ Добави", key=f"planned_stop_add_{trip_id}_{_stop_idx}", use_container_width=True):
-                    _save_title = f"📍 {_stop.get('name', 'Планирана спирка')}"
-                    if add_map_point(trip_id, _stop["lat"], _stop["lon"], _save_title, "purple"):
-                        st.session_state[_stop_results_key] = []
+    def _add_3b_stop(t_id, place):
+        try:
+            return add_map_point(
+                t_id,
+                place["lat"],
+                place["lon"],
+                f"3b: {place['name']}",
+                "purple"
+            )
+        except Exception:
+            return False
+
+    def _build_3b_google_maps_url(t_id):
+        try:
+            df_3b = get_map_points(t_id)
+            if df_3b.empty:
+                return None
+
+            stops_3b = df_3b[
+                df_3b["title"].astype(str).str.startswith("3b:")
+                & (df_3b["color"].astype(str) == "purple")
+            ].copy()
+
+            if stops_3b.empty:
+                return None
+
+            # Последната спирка е дестинацията.
+            # Всички предходни са междинни спирки в същия ред.
+            destination_3b = stops_3b.iloc[-1]
+            intermediate_3b = stops_3b.iloc[:-1]
+
+            destination_value_3b = (
+                f"{float(destination_3b['lat']):.6f},"
+                f"{float(destination_3b['lon']):.6f}"
+            )
+
+            params_3b = [
+                "api=1",
+                "destination=" + quote(destination_value_3b),
+                "travelmode=driving",
+                "dir_action=navigate",
+            ]
+
+            if not intermediate_3b.empty:
+                # Maps URLs поддържа до 3 waypoints в мобилен браузър.
+                # За навигация от телефона използваме първите 3 междинни спирки.
+                waypoint_values_3b = [
+                    f"{float(row['lat']):.6f},{float(row['lon']):.6f}"
+                    for _, row in intermediate_3b.head(3).iterrows()
+                ]
+                if waypoint_values_3b:
+                    params_3b.append(
+                        "waypoints=" + quote("|".join(waypoint_values_3b))
+                    )
+
+            return "https://www.google.com/maps/dir/?" + "&".join(params_3b)
+        except Exception:
+            return None
+
+    st.markdown(
+        "<div class='tm-section-title' style='margin-bottom:10px;'>"
+        "<span class='tm-section-number tm-n3'>3b</span>"
+        "<span>ПЛАНИРАНИ СПИРКИ</span></div>",
+        unsafe_allow_html=True
+    )
+
+    _3b_points = get_map_points(trip_id)
+    _3b_stops = _3b_points[
+        _3b_points["title"].astype(str).str.startswith("3b:")
+        & (_3b_points["color"].astype(str) == "purple")
+    ].copy()
+
+    _3b_input_key = f"planned_3b_search_{trip_id}"
+    _3b_query = st.text_input(
+        "Добави спирка",
+        placeholder="напр. OMV Niš Serbia",
+        key=_3b_input_key,
+        disabled=trip_locked,
+    )
+
+    _3b_search_key = f"planned_3b_search_btn_{trip_id}"
+    if st.button(
+        "🔎 Търси място",
+        use_container_width=True,
+        key=_3b_search_key,
+        disabled=trip_locked,
+    ):
+        st.session_state[f"planned_3b_results_{trip_id}"] = _search_3b_places(_3b_query, 5)
+
+    _3b_results = st.session_state.get(f"planned_3b_results_{trip_id}", [])
+
+    if _3b_results:
+        st.markdown(
+            "<div style='color:#7e8494;font-size:11px;margin:2px 0 7px;'>"
+            "Избери точното място:</div>",
+            unsafe_allow_html=True,
+        )
+        for _3b_i, _3b_place in enumerate(_3b_results):
+            _3b_c1, _3b_c2 = st.columns([0.78, 0.22])
+            with _3b_c1:
+                st.markdown(
+                    f"<div style='font-size:11px;line-height:1.35;'>"
+                    f"<b style='color:#fff;'>{html.escape(_3b_place['name'])}</b><br>"
+                    f"<span style='color:#7e8494;'>{html.escape(_3b_place['address'])}</span>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+            with _3b_c2:
+                if st.button(
+                    "➕",
+                    key=f"planned_3b_add_{trip_id}_{_3b_i}",
+                    disabled=trip_locked,
+                ):
+                    if _add_3b_stop(trip_id, _3b_place):
+                        st.session_state[f"planned_3b_results_{trip_id}"] = []
                         st.rerun()
 
-    # =========================================================
-    # GOOGLE MAPS НАВИГАЦИЯ — тестова версия
-    # =========================================================
-    _planned_map_points = get_map_points(trip_id)
-    _planned_only = _planned_map_points[
-        _planned_map_points["color"].astype(str).str.lower() == "purple"
-    ].copy() if not _planned_map_points.empty and "color" in _planned_map_points.columns else pd.DataFrame()
+    if not _3b_stops.empty:
+        st.markdown(
+            f"<div style='color:#aeb7c1;font-size:11px;margin:10px 0 6px;'>"
+            f"Маршрут · {len(_3b_stops)} {'спирка' if len(_3b_stops)==1 else 'спирки'}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
-    if len(_planned_only) >= 1:
-        _planned_route_points = [
-            {"lat": row["lat"], "lon": row["lon"]}
-            for _, row in _planned_only.iterrows()
-        ]
-        _google_route_url = build_google_maps_route_url(_planned_route_points)
-        if _google_route_url:
+        for _3b_i, (_3b_idx, _3b_row) in enumerate(_3b_stops.iterrows(), start=1):
+            _3b_name = str(_3b_row.get("title", "3b: Спирка")).replace("3b:", "", 1).strip()
             st.markdown(
-                "<div style='color:#7e8494;font-size:12px;margin:2px 0 8px;'>"
-                "Навигацията използва текущото местоположение като старт и спирките в реда, в който са добавени."
+                f"<div style='border:1px solid rgba(255,255,255,.06);"
+                f"border-radius:11px;background:rgba(255,255,255,.025);"
+                f"padding:8px 10px;margin:3px 0;color:#fff;font-size:11px;'>"
+                f"<b>{_3b_i}.</b>&nbsp; {_3b_name}"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+        _3b_url = _build_3b_google_maps_url(trip_id)
+        if _3b_url:
+            st.markdown(
+                f"<a href='{html.escape(_3b_url, quote=True)}' target='_blank' "
+                f"style='display:block;text-align:center;text-decoration:none;"
+                f"padding:11px 14px;margin-top:9px;border-radius:12px;"
+                f"background:linear-gradient(135deg,#252932,#16191f);"
+                f"border:1px solid rgba(255,255,255,.06);color:#fff;"
+                f"font-weight:700;font-size:12px;'>"
+                f"🧭 ОТВОРИ МАРШРУТА В GOOGLE MAPS"
+                f"</a>",
+                unsafe_allow_html=True,
+            )
+
+        if len(_3b_stops) > 3:
+            st.markdown(
+                "<div style='color:#7e8494;font-size:10px;margin-top:5px;'>"
+                "За навигация от телефона Google Maps приема до 3 междинни спирки "
+                "чрез този линк. Всички планирани спирки остават записани в Travel Manager."
                 "</div>",
                 unsafe_allow_html=True,
             )
-            st.link_button(
-                "🧭 ОТВОРИ МАРШРУТА В GOOGLE MAPS",
-                _google_route_url,
-                use_container_width=True,
-            )
 
     st.markdown("---")
 
+    st.markdown("---")
     st.markdown("<div class='tm-section-title' style='margin-bottom:10px;'><span class='tm-section-number tm-n4'>4</span><span>КАРТА НА СПИРКИТЕ И ДЕСТИНАЦИИТЕ</span></div>", unsafe_allow_html=True)
     df_points = get_map_points(trip_id)
     st.markdown(f"<div class='tm-modern-map-shell'><div class='tm-map-meta-row'><div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'><span>📍 Запазени места от това пътуване - </span><span class='tm-map-count'>{len(df_points)} {'място' if len(df_points)==1 else 'места'}</span></div>", unsafe_allow_html=True)
