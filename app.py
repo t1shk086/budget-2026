@@ -936,7 +936,7 @@ _HOME_TRIP_HTML = """
 _HOME_TRIP_CSS = """
 #tm-home-trip-root { width:100%; margin:0; padding:0; }
 .tm-home-trip { position:relative; overflow:hidden; width:100%; min-height:148px; border-radius:20px; }
-.tm-home-trip-delete { position:absolute; right:0; top:0; bottom:0; width:76px; display:flex; align-items:center; justify-content:center; background:#3a171b; color:#ff7777; font-size:11px; font-weight:700; cursor:pointer; user-select:none; -webkit-user-select:none; }
+.tm-home-trip-delete { position:absolute; right:0; top:0; bottom:0; width:76px; display:none; align-items:center; justify-content:center; background:#3a171b; color:#ff7777; font-size:11px; font-weight:700; cursor:pointer; user-select:none; -webkit-user-select:none; z-index:0; pointer-events:auto; }
 .tm-home-trip-row { position:relative; z-index:2; width:100%; min-height:148px; box-sizing:border-box; padding:16px 18px 28px 18px; border-radius:20px; border:1px solid rgba(255,255,255,.085); border-left:3px solid rgba(0,242,254,.42); background:var(--tm-card-bg); box-shadow:0 8px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.025); color:#fff; text-align:left; font-family:inherit; font-size:15px; font-weight:500; line-height:1.52; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; touch-action:pan-y; user-select:none; -webkit-user-select:none; cursor:pointer; }
 .tm-home-trip-row:hover { border-color:rgba(0,242,254,.24); border-left-color:rgba(0,242,254,.82); background:var(--tm-card-hover-bg); box-shadow:0 12px 30px rgba(0,0,0,.30), 0 0 18px rgba(0,242,254,.055); transform:translateY(-2px); }
 .tm-home-trip-content { width:100%; white-space:pre-wrap; }
@@ -985,7 +985,7 @@ export default function(component) {
     root.innerHTML = '';
     const card = document.createElement('div');
     card.className = 'tm-home-trip';
-    card.innerHTML = '<div class="tm-home-trip-delete">🗑️ Изтрий</div>' +
+    card.innerHTML =
         '<div class="tm-home-trip-row" style="--tm-card-bg:' + esc(gradient) + ';--tm-card-hover-bg:' + esc(hoverGradient) + '">' +
         '<div class="tm-home-trip-content">' +
         '<div>🚙  <span class="tm-home-trip-title">' + esc(title) + '</span></div>' +
@@ -997,14 +997,34 @@ export default function(component) {
         '</div></div>';
 
     const row = card.querySelector('.tm-home-trip-row');
-    const del = card.querySelector('.tm-home-trip-delete');
+    let del = null;
     let sx = 0, sy = 0, dx = 0, moved = false, dragging = false;
     let open = false;
 
-    del.addEventListener('click', function(e) {
-        e.stopPropagation();
-        emit('delete');
-    });
+    function createDeleteLayer() {
+        if (del) return;
+        del = document.createElement('div');
+        del.className = 'tm-home-trip-delete';
+        del.textContent = '🗑️ Изтрий';
+        del.addEventListener('click', function(e) {
+            e.stopPropagation();
+            emit('delete');
+        });
+        card.appendChild(del);
+    }
+
+    function showDeleteLayer() {
+        createDeleteLayer();
+        del.style.display = 'flex';
+    }
+
+    function removeDeleteLayer() {
+        if (del) {
+            del.remove();
+            del = null;
+        }
+        row.style.transform = 'translateX(0)';
+    }
 
     row.addEventListener('pointerdown', function(e) {
         sx = e.clientX;
@@ -1024,6 +1044,7 @@ export default function(component) {
         dx = tx;
         if (tx < 0) {
             moved = true;
+            if (tx < -10) showDeleteLayer();
             row.style.transform = 'translateX(' + Math.max(-76, tx) + 'px)';
         } else if (open) {
             moved = true;
@@ -1038,10 +1059,12 @@ export default function(component) {
         row.style.transition = 'transform .16s ease';
         if (dx < -35) {
             open = true;
+            showDeleteLayer();
             row.style.transform = 'translateX(-76px)';
         } else if (dx > 35 && open) {
             open = false;
             row.style.transform = 'translateX(0)';
+            removeDeleteLayer();
         }
         dx = 0;
     });
@@ -1051,6 +1074,7 @@ export default function(component) {
         dx = 0;
         moved = false;
         row.style.transition = 'transform .16s ease';
+        removeDeleteLayer();
     });
 
     row.addEventListener('click', function(e) {
@@ -1061,17 +1085,19 @@ export default function(component) {
         if (open) {
             open = false;
             row.style.transform = 'translateX(0)';
+            removeDeleteLayer();
             return;
         }
         emit('open');
     });
 
+    removeDeleteLayer();
     root.appendChild(card);
 }
 """
 
 _tm_home_trip_component = st.components.v2.component(
-    name="pixelapp_home_trip_swipe_v1",
+    name="pixelapp_home_trip_swipe_v2",
     html=_HOME_TRIP_HTML,
     css=_HOME_TRIP_CSS,
     js=_HOME_TRIP_JS,
