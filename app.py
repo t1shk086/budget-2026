@@ -6784,7 +6784,10 @@ else:
                 if trip_locked:
                     return False
                 st.session_state["fav_rename_row"] = _row_index
-                st.session_state["fav_rename_value"] = str(_df_map.loc[_row_index, "title"] or "").strip()
+                _rename_title = str(_df_map.loc[_row_index, "title"] or "").strip()
+                if _rename_title.lower().startswith("3b:"):
+                    _rename_title = _rename_title.split(":", 1)[1].strip()
+                st.session_state["fav_rename_value"] = _rename_title
                 return True
 
         except Exception:
