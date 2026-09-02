@@ -2158,8 +2158,23 @@ if st.session_state["current_trip"] is None:
                         }
                     },
                     key=f"tmHomeTripSwipe_{_safe_key}",
-                    on_action_change=_handle_home_trip_swipe_action,
+                    on_action_change=lambda: None,
                 )
+
+                # Обработваме събитието от картата директно в нормалния поток,
+                # а не в callback. Това е важно за мобилните touch събития:
+                # едно натискане трябва веднага да отвори пътуването.
+                _trip_event = getattr(_trip_swipe_state, "action", None)
+                if isinstance(_trip_event, dict):
+                    _trip_action = str(_trip_event.get("action", ""))
+                    _trip_event_id = str(_trip_event.get("id", ""))
+                    if _trip_event_id == str(_trip_id):
+                        if _trip_action == "open":
+                            st.session_state["current_trip"] = _trip_id
+                            st.rerun()
+                        elif _trip_action == "delete":
+                            st.session_state["home_trip_pending_delete"] = _trip_id
+                            st.rerun()
 
         if st.session_state.get("home_trip_pending_delete"):
             confirm_delete_home_trip_dialog(st.session_state["home_trip_pending_delete"])
