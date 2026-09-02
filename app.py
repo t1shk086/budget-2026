@@ -232,7 +232,8 @@ DEFAULT_UI_LABELS = {
     "hotel": "Нощувки/Хотел",
     "deposit": "Депозит/Резервация",
     "planned_stops_label": "3b",
-    "my_location_label": "Запазено място",
+    "saved_place_label": "Запазено място",
+    "my_location_label": "Моята локация",
     "fuel_red_threshold": 1.80
 }
 
@@ -251,7 +252,7 @@ def get_ui_labels():
         pass
     return labels
 
-def save_ui_labels(pet_label, hotel_label, deposit_label, fuel_red_threshold=1.80, planned_stops_label="3b", my_location_label="Запазено място"):
+def save_ui_labels(pet_label, hotel_label, deposit_label, fuel_red_threshold=1.80, planned_stops_label="3b", saved_place_label="Запазено място", my_location_label="Моята локация"):
     try:
         try:
             fuel_red_threshold = float(fuel_red_threshold)
@@ -263,7 +264,8 @@ def save_ui_labels(pet_label, hotel_label, deposit_label, fuel_red_threshold=1.8
             "hotel": hotel_label,
             "deposit": deposit_label,
             "planned_stops_label": str(planned_stops_label or "3b").strip() or "3b",
-            "my_location_label": str(my_location_label or "Запазено място").strip() or "Запазено място",
+            "saved_place_label": str(saved_place_label or "Запазено място").strip() or "Запазено място",
+            "my_location_label": str(my_location_label or "Моята локация").strip() or "Моята локация",
             "fuel_red_threshold": fuel_red_threshold
         }]).to_csv(LABELS_FILE, index=False, encoding="utf-8")
         return True
@@ -6725,13 +6727,15 @@ else:
         _items = []
         for _fav_idx, _fav_row in df_points.iterrows():
             _fav_title = str(_fav_row.get("title", "Място") or "Място").strip()
-            _fav_desc = UI_LABELS.get("my_location_label", "Запазено място")
+            # Три независими визуални типа:
+            # 1) търсено място в 3b, 2) ръчно запазено място, 3) GPS „Моята локация“.
+            _fav_desc = UI_LABELS.get("saved_place_label", "Запазено място")
 
             if _fav_title.lower().startswith("3b:"):
                 _fav_right = _fav_title.split(":", 1)[1].strip()
                 if _fav_right:
                     if "📍" in _fav_right:
-                        _fav_desc = UI_LABELS.get("my_location_label", "Запазено място")
+                        _fav_desc = UI_LABELS.get("my_location_label", "Моята локация")
                     else:
                         _fav_desc = UI_LABELS.get("planned_stops_label", "3b")
                     _fav_title = _fav_right
@@ -7172,22 +7176,29 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
             )
 
         st.markdown("##### 🏷️ Имена за картата и запазените места")
-        st.caption("Тези две имена са само визуални. Вътрешните маркери на приложението не се променят.")
+        st.caption("Трите имена са само визуални. Вътрешните маркери на приложението не се променят.")
 
-        rename_map_col1, rename_map_col2 = st.columns(2)
+        rename_map_col1, rename_map_col2, rename_map_col3 = st.columns(3)
         with rename_map_col1:
             new_planned_stops_label = st.text_input(
-                "Име вместо „3b“:",
+                "Име за местата от търсачката в 3b:",
                 value=str(UI_LABELS.get("planned_stops_label", "3b") or "3b"),
                 key="admin_planned_stops_label",
                 placeholder="Напр. Планирана спирка",
             ).strip()
         with rename_map_col2:
+            new_saved_place_label = st.text_input(
+                "Име за ръчно добавените места:",
+                value=str(UI_LABELS.get("saved_place_label", "Запазено място") or "Запазено място"),
+                key="admin_saved_place_label",
+                placeholder="Напр. Любимо място",
+            ).strip()
+        with rename_map_col3:
             new_my_location_label = st.text_input(
-                "Име вместо „Запазено място“:",
-                value=str(UI_LABELS.get("my_location_label", "Запазено място") or "Запазено място"),
+                "Име за моята GPS локация:",
+                value=str(UI_LABELS.get("my_location_label", "Моята локация") or "Моята локация"),
                 key="admin_my_location_label",
-                placeholder="Напр. Моята локация",
+                placeholder="Напр. GPS местоположение",
             ).strip()
 
         current_fuel_threshold = float(UI_LABELS.get("fuel_red_threshold", 1.80) or 1.80)
@@ -7214,7 +7225,8 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 deposit_label,
                 new_fuel_threshold,
                 new_planned_stops_label or "3b",
-                new_my_location_label or "Запазено място",
+                new_saved_place_label or "Запазено място",
+                new_my_location_label or "Моята локация",
             ):
                 st.success("✅ Настройките са запазени.")
                 st.rerun()
