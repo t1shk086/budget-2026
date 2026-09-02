@@ -6252,7 +6252,7 @@ else:
                 _lat,
                 _lon,
                 _location_title_3b,
-                "purple"
+                "red"
             ):
                 st.session_state["tmCurrentLocation3bLastEvent"] = _event_id
                 st.session_state[f"planned_3b_results_{trip_id}"] = []
@@ -6310,7 +6310,7 @@ else:
                         float(_pending_3b["lat"]),
                         float(_pending_3b["lon"]),
                         f"3b: 📍 {_manual_3b_name}",
-                        "purple"
+                        "red"
                     ):
                         st.session_state.pop("tmCurrentLocation3bPending", None)
                         st.session_state.pop("tmCurrentLocation3bManualName", None)
@@ -6477,7 +6477,8 @@ else:
         with c_m1: 
             title_in = st.text_input("Име на новата спирка:", placeholder="напр. Хотел...", key="map_title_click")
         with c_m2: 
-            color_in = st.selectbox("Цвят:", ["blue", "green", "red", "purple", "orange"], key="map_color_click")
+            color_in = "green"
+            st.markdown("<div style='color:#7e8494;font-size:11px;padding-top:8px;'>🟢 Ръчно добавено</div>", unsafe_allow_html=True)
         cb1, cb2 = st.columns([0.7, 0.3])
         with cb1:
             if st.button("💾 Запис", use_container_width=True, type="primary") and title_in:
