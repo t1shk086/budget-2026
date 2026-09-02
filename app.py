@@ -12,6 +12,7 @@ import html
 import textwrap
 import streamlit.components.v1 as components
 import re
+from urllib.parse import quote
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -756,6 +757,36 @@ def search_planned_stops(query, limit=5):
     except Exception:
         return []
 
+
+def build_google_maps_route_url(points):
+    """Изгражда Google Maps маршрут: текущата позиция -> спирки в зададения ред."""
+    try:
+        points = list(points or [])
+        if not points:
+            return ""
+
+        coords = []
+        for p in points:
+            lat = float(p.get("lat"))
+            lon = float(p.get("lon"))
+            coords.append(f"{lat:.6f},{lon:.6f}")
+
+        # Google Maps може да използва текущото местоположение като старт,
+        # което е най-подходящо за навигация от телефона в автомобила.
+        destination = coords[-1]
+        waypoints = coords[:-1]
+
+        url = (
+            "https://www.google.com/maps/dir/?api=1"
+            f"&destination={quote(destination, safe='')}"
+            "&travelmode=driving"
+            "&dir_action=navigate"
+        )
+        if waypoints:
+            url += f"&waypoints={quote('|'.join(waypoints), safe='')}"
+        return url
+    except Exception:
+        return ""
 
 # =========================================================
 # REAL TASK COMPONENT — click = done/undone, swipe left = reveal delete
@@ -5772,6 +5803,33 @@ else:
                     if add_map_point(trip_id, _stop["lat"], _stop["lon"], _save_title, "purple"):
                         st.session_state[_stop_results_key] = []
                         st.rerun()
+
+    # =========================================================
+    # GOOGLE MAPS НАВИГАЦИЯ — тестова версия
+    # =========================================================
+    _planned_map_points = get_map_points(trip_id)
+    _planned_only = _planned_map_points[
+        _planned_map_points["color"].astype(str).str.lower() == "purple"
+    ].copy() if not _planned_map_points.empty and "color" in _planned_map_points.columns else pd.DataFrame()
+
+    if len(_planned_only) >= 1:
+        _planned_route_points = [
+            {"lat": row["lat"], "lon": row["lon"]}
+            for _, row in _planned_only.iterrows()
+        ]
+        _google_route_url = build_google_maps_route_url(_planned_route_points)
+        if _google_route_url:
+            st.markdown(
+                "<div style='color:#7e8494;font-size:12px;margin:2px 0 8px;'>"
+                "Навигацията използва текущото местоположение като старт и спирките в реда, в който са добавени."
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            st.link_button(
+                "🧭 ОТВОРИ МАРШРУТА В GOOGLE MAPS",
+                _google_route_url,
+                use_container_width=True,
+            )
 
     st.markdown("---")
 
