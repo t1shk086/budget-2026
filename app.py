@@ -6109,7 +6109,7 @@ else:
     # GPS се взема директно от браузъра и се записва като 3b спирка.
     # =========================================================
     _CURRENT_LOCATION_HTML = """
-    <button id="tm-current-location-btn" type="button">📍 ДОБАВИ МОЯТА ЛОКАЦИЯ</button>
+    <button id="tm-current-location-btn" type="button">📍 Моята локация</button>
     <div id="tm-current-location-status"></div>
     """
 
