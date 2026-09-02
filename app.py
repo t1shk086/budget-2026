@@ -6440,11 +6440,19 @@ else:
     m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
     folium.LatLngPopup().add_to(m)
     
-    for _, pt in df_points.iterrows(): 
+    for _, pt in df_points.iterrows():
+        # Един и същ цвят за pin-а на картата и малкия pin във "Любими места".
+        _pt_title = str(pt.get("title", "") or "").strip()
+        if _pt_title.lower().startswith("3b:"):
+            _pt_after = _pt_title.split(":", 1)[1].strip()
+            _pt_color = "red" if "📍" in _pt_after else "purple"
+        else:
+            _pt_color = "green"
+
         folium.Marker(
-            location=[pt["lat"], pt["lon"]], 
-            popup=pt["title"], 
-            icon=folium.Icon(color=pt["color"], icon="info-sign")
+            location=[pt["lat"], pt["lon"]],
+            popup=pt["title"],
+            icon=folium.Icon(color=_pt_color, icon="info-sign")
         ).add_to(m)
     
     points_count = len(df_points)
@@ -6544,7 +6552,11 @@ else:
         user-select:none; -webkit-user-select:none;
         cursor:pointer; touch-action:pan-y;
     }
-    .tm-fav-icon { width:22px; flex:0 0 22px; text-align:center; font-size:15px; }
+    .tm-fav-icon {
+        width:22px; flex:0 0 22px; text-align:center;
+        display:flex; align-items:center; justify-content:center;
+    }
+    .tm-fav-icon svg { width:17px; height:20px; display:block; }
     .tm-fav-content { min-width:0; flex:1; }
     .tm-fav-name {
         color:#fff; font-size:12.5px; line-height:1.25;
@@ -6592,6 +6604,13 @@ else:
             const title = String(item.title ?? 'Място');
             const desc = String(item.desc ?? 'Запазено място');
             const coords = String(item.coords ?? '');
+            const pinColor = ['red', 'purple', 'green'].includes(String(item.pin_color ?? ''))
+                ? String(item.pin_color)
+                : 'green';
+
+            const pinSvg = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+                '<path fill="' + pinColor + '" d="M12 2C7.58 2 4 5.58 4 10c0 5.5 8 12 8 12s8-6.5 8-12c0-4.42-3.58-8-8-8zm0 11.2A3.2 3.2 0 1 1 12 6.8a3.2 3.2 0 0 1 0 6.4z"/>' +
+                '</svg>';
 
             const fav = document.createElement('div');
             fav.className = 'tm-fav';
@@ -6601,7 +6620,7 @@ else:
                 '<div class="tm-fav-delete">🗑️ Изтрий</div>' +
                 '<div class="tm-fav-edit">✏️ Промени</div>' +
                 '<div class="tm-fav-row">' +
-                    '<div class="tm-fav-icon">📍</div>' +
+                    '<div class="tm-fav-icon">' + pinSvg + '</div>' +
                     '<div class="tm-fav-content">' +
                         '<div class="tm-fav-name">' + esc(title) + '</div>' +
                         '<div class="tm-fav-desc">' + esc(desc) + '</div>' +
@@ -6813,10 +6832,17 @@ else:
                         _fav_desc = UI_LABELS.get("planned_stops_label", "3b")
                     _fav_title = _fav_right
 
+            if str(_fav_row.get("title", "") or "").strip().lower().startswith("3b:"):
+                _fav_after = str(_fav_row.get("title", "") or "").split(":", 1)[1].strip()
+                _fav_pin_color = "red" if "📍" in _fav_after else "purple"
+            else:
+                _fav_pin_color = "green"
+
             _items.append({
                 "id": str(_fav_idx),
                 "title": _fav_title,
                 "desc": _fav_desc,
+                "pin_color": _fav_pin_color,
                 "coords": f"📍 {float(_fav_row.get('lat', 0) or 0):.5f}, {float(_fav_row.get('lon', 0) or 0):.5f}",
             })
 
