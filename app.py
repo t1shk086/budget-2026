@@ -7059,6 +7059,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         DATA_FILE,
                         SETTINGS_FILE,
                         MAP_FILE,
+                        TRIP_PLAN_FILE,
                         LABELS_FILE,
                         CATEGORY_BUDGETS_FILE
                     ]:
@@ -7185,7 +7186,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         with zipfile.ZipFile(uploaded_zip) as zip_file:
                             namelist = zip_file.namelist()
                             restored_count = 0
-                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE]:
+                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, TRIP_PLAN_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE]:
                                 if f_name in namelist:
                                     with open(f_name, "wb") as f_out:
                                         f_out.write(zip_file.read(f_name))
