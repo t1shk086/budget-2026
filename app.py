@@ -3458,7 +3458,6 @@ if st.session_state["current_trip"] is None:
                     _valid_home_trip_ids = set()
             for _, _mpr in _mp_home.iterrows():
                 try:
-                try:
                     _mtid = str(_mpr.get("trip_id", "")).strip()
 
                     if not _mtid or _mtid.lower() in {"none", "nan", "null"}:
