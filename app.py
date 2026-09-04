@@ -632,8 +632,11 @@ def _google_drive_bootstrap():
         )
         st.stop()
 
-def google_drive_sync():
-    """Upload changed CSV files after the app has finished processing the current action."""
+def google_drive_sync(force=False):
+    """Upload changed CSV files only when explicitly requested."""
+
+    if not force:
+        return
 
     if not st.session_state.get("google_drive_service_ready"):
         return
@@ -3445,27 +3448,20 @@ if st.session_state["current_trip"] is None:
     try:
         if os.path.exists(MAP_FILE):
             _mp_home = pd.read_csv(MAP_FILE, encoding="utf-8")
-            _valid_home_trip_ids = set()
-            if os.path.exists(SETTINGS_FILE):
-                try:
-                    _settings_home = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-                    if "trip_id" in _settings_home.columns:
-                        _valid_home_trip_ids = {
-                            str(x).strip() for x in _settings_home["trip_id"].dropna().tolist()
-                            if str(x).strip() and str(x).strip().lower() not in {"none", "nan", "null"}
-                        }
-                except Exception:
-                    _valid_home_trip_ids = set()
             for _, _mpr in _mp_home.iterrows():
                 try:
                     _mtid = str(_mpr.get("trip_id", "")).strip()
                     _lat = float(_mpr.get("lat"))
                     _lon = float(_mpr.get("lon"))
+
                     if not _mtid or _mtid.lower() in {"none", "nan", "null"}:
                         continue
-                    if _valid_home_trip_ids and _mtid not in _valid_home_trip_ids:
+                    if not (-90 <= _lat <= 90 and -180 <= _lon <= 180):
                         continue
-                    _home_map_points.append((_lat, _lon, str(_mpr.get("title", "Място")), _mtid))
+
+                    _home_map_points.append(
+                        (_lat, _lon, str(_mpr.get("title", "Място")), _mtid)
+                    )
                 except Exception:
                     continue
     except Exception:
@@ -3500,6 +3496,22 @@ if st.session_state["current_trip"] is None:
                 popup=f"<b>{html.escape(_title)}</b><br>{html.escape(get_trip_display_name(_mtid))}",
                 icon=folium.Icon(color="green", icon="map-marker", prefix="fa"),
             ).add_to(_home_map)
+
+        if len(_home_map_points) > 1:
+            _home_map.fit_bounds(
+                [
+                    [
+                        min(p[0] for p in _home_map_points),
+                        min(p[1] for p in _home_map_points),
+                    ],
+                    [
+                        max(p[0] for p in _home_map_points),
+                        max(p[1] for p in _home_map_points),
+                    ],
+                ],
+                padding=(20, 20),
+            )
+
         st_folium(_home_map, use_container_width=True, height=300, key="home_my_places_map_1237")
     else:
         st.markdown(
@@ -6929,6 +6941,7 @@ else:
         or st.session_state["map_current_trip_id"] != trip_id
     ):
         st.session_state["map_current_trip_id"] = trip_id
+        st.session_state["trip_map_needs_fit"] = True
 
         if not df_points.empty:
             _map_lat = pd.to_numeric(df_points["lat"], errors="coerce").mean()
@@ -6996,6 +7009,27 @@ else:
             popup=_pt_title,
             icon=folium.Icon(color=_pt_color, icon="info-sign")
         ).add_to(m)
+
+    if (
+        st.session_state.get("trip_map_needs_fit", False)
+        and len(df_points) > 1
+    ):
+        m.fit_bounds(
+            [
+                [
+                    float(df_points["lat"].min()),
+                    float(df_points["lon"].min()),
+                ],
+                [
+                    float(df_points["lat"].max()),
+                    float(df_points["lon"].max()),
+                ],
+            ],
+            padding=(20, 20),
+        )
+        st.session_state["trip_map_needs_fit"] = False
+    elif len(df_points) <= 1:
+        st.session_state["trip_map_needs_fit"] = False
     
     points_count = len(df_points)
     click_state = "active" if "active_click" in st.session_state and st.session_state["active_click"] is not None else "idle"
@@ -7018,7 +7052,6 @@ else:
             if map_data.get("zoom") is not None:
                 st.session_state["stable_zoom"] = map_data["zoom"]
             st.session_state["active_click"] = new_click
-            google_drive_sync()
             st.rerun()
             
     if "active_click" in st.session_state and st.session_state["active_click"] is not None and not trip_locked:
@@ -7035,12 +7068,11 @@ else:
             if st.button("💾 Запис", use_container_width=True, type="primary") and title_in:
                 if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in): 
                     st.session_state["active_click"] = None
-                    google_drive_sync()
+                    st.session_state["trip_map_needs_fit"] = True
                     st.rerun()
         with cb2:
             if st.button("❌ Отказ", use_container_width=True): 
                 st.session_state["active_click"] = None
-                google_drive_sync()
                 st.rerun()
     def _delete_map_point(idx):
         try:
@@ -7629,7 +7661,9 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                     file_name="PixelApp_Data_Backup.zip",
                     mime="application/zip",
                     use_container_width=True,
-                    key="download_all_csv_backup_btn"
+                    key="download_all_csv_backup_btn",
+                    on_click=google_drive_sync,
+                    args=(True,),
                 )
 
                 # =====================================================
@@ -7751,7 +7785,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         st.success("🎉 Данните са възстановени успешно!")
                         st.session_state["show_admin_panel"] = False
                         st.session_state["current_trip"] = None
-                        google_drive_sync()
+                        google_drive_sync(force=True)
                         st.rerun()
 
         st.markdown("---")
