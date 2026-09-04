@@ -276,13 +276,13 @@ def _google_drive_make_flow():
             "redirect_uris": [redirect_uri],
         }
     }
+
     flow = Flow.from_client_config(
         client_config,
         scopes=GOOGLE_DRIVE_SCOPES,
     )
-    
+
     flow.redirect_uri = redirect_uri
-    
     return flow
 
 
@@ -481,8 +481,7 @@ def _google_drive_bootstrap():
                 prompt="consent",
             )
 
-            # Запазваме OAuth state и PKCE code verifier,
-            # за да можем да ги използваме при връщането от Google.
+            # Запазваме OAuth state за проверка при връщането от Google.
             st.session_state["google_drive_oauth_state"] = state
             
 
