@@ -1,6 +1,6 @@
 # Изтеглете файла от линка по-горе или копирайте целия код отдолу:
 import streamlit as st
-APP_BUILD_MARKER = "GALLERY_BOTTOM_SINGLE_CLICK_V14"
+APP_BUILD_MARKER = "GALLERY_BOTTOM_SINGLE_CLICK_V15_PERFORMANCE"
 import pandas as pd
 import datetime
 import os
@@ -227,6 +227,38 @@ DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
 TRIP_PLAN_FILE = "trip_plan_2026.csv"
+
+
+# =========================================================
+# PERFORMANCE — FAST CSV READ CACHE
+# Streamlit reruns the script after every interaction. Cache repeated CSV
+# reads and invalidate automatically when a file changes on disk.
+# =========================================================
+@st.cache_data(show_spinner=False)
+def _read_csv_cached(_filename, _mtime_ns, _size):
+    return pd.read_csv(_filename, encoding="utf-8")
+
+
+def _read_csv_fast(filename, encoding="utf-8"):
+    _stat = os.stat(filename)
+    return _read_csv_cached(filename, int(_stat.st_mtime_ns), int(_stat.st_size))
+
+
+def _remove_trip_from_csv(filename, trip_id):
+    """Remove one trip from a CSV with one read + one write."""
+    if not os.path.exists(filename):
+        return False
+    try:
+        df = _read_csv_fast(filename)
+        if "trip_id" not in df.columns:
+            return False
+        mask = df["trip_id"].astype(str) != str(trip_id)
+        if bool(mask.all()):
+            return False
+        df.loc[mask].to_csv(filename, index=False, encoding="utf-8")
+        return True
+    except Exception:
+        return False
 
 
 # =========================================================
@@ -681,7 +713,7 @@ def get_ui_labels():
     labels = DEFAULT_UI_LABELS.copy()
     try:
         if os.path.exists(LABELS_FILE):
-            df = pd.read_csv(LABELS_FILE, encoding="utf-8")
+            df = _read_csv_fast(LABELS_FILE, encoding="utf-8")
             if not df.empty:
                 row = df.iloc[0]
                 for key in labels:
@@ -746,7 +778,7 @@ for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description",
 # само за пътувания без автомобил. Старите записи не се променят.
 try:
     if os.path.exists(SETTINGS_FILE):
-        _settings_migration = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        _settings_migration = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
         if "trip_finished" not in _settings_migration.columns:
             _settings_migration["trip_finished"] = "Не"
             _settings_migration.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
@@ -759,7 +791,7 @@ def get_emoji(cat):
 
 def get_trip_data(t_id):
     try:
-        df = pd.read_csv(DATA_FILE, encoding="utf-8")
+        df = _read_csv_fast(DATA_FILE, encoding="utf-8")
         r = df[df["trip_id"] == t_id].copy()
         if "liters" not in r.columns: r["liters"] = 0.0
         if "current_km" not in r.columns: r["current_km"] = 0.0
@@ -770,7 +802,7 @@ def get_trip_data(t_id):
 def get_trip_settings(t_id):
     d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": "", "trip_finished": "Не"}
     try:
-        df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        df = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
         if not f.empty:
             res = f.iloc[0].to_dict()
@@ -811,19 +843,19 @@ def get_unique_trip_id(base_id):
         if os.path.exists(DATA_FILE):
             existing_ids.update(
                 str(x).strip()
-                for x in pd.read_csv(DATA_FILE, encoding="utf-8")["trip_id"].dropna().unique()
+                for x in _read_csv_fast(DATA_FILE, encoding="utf-8")["trip_id"].dropna().unique()
             )
 
         if os.path.exists(SETTINGS_FILE):
             existing_ids.update(
                 str(x).strip()
-                for x in pd.read_csv(SETTINGS_FILE, encoding="utf-8")["trip_id"].dropna().unique()
+                for x in _read_csv_fast(SETTINGS_FILE, encoding="utf-8")["trip_id"].dropna().unique()
             )
 
         if os.path.exists(CATEGORY_BUDGETS_FILE):
             existing_ids.update(
                 str(x).strip()
-                for x in pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")["trip_id"].dropna().unique()
+                for x in _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")["trip_id"].dropna().unique()
             )
     except Exception:
         existing_ids = set()
@@ -856,7 +888,7 @@ def rename_trip(old_id, new_name):
         for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, TRIP_PLAN_FILE, CATEGORY_BUDGETS_FILE]:
             if os.path.exists(file_name):
                 try:
-                    df_tmp = pd.read_csv(file_name, encoding="utf-8")
+                    df_tmp = _read_csv_fast(file_name, encoding="utf-8")
                     if "trip_id" in df_tmp.columns:
                         all_ids.update(
                             str(x).strip()
@@ -883,7 +915,7 @@ def rename_trip(old_id, new_name):
                 continue
 
             try:
-                df_tmp = pd.read_csv(file_name, encoding="utf-8")
+                df_tmp = _read_csv_fast(file_name, encoding="utf-8")
                 if "trip_id" in df_tmp.columns:
                     df_tmp.loc[df_tmp["trip_id"].astype(str) == old_id, "trip_id"] = new_id
 
@@ -926,7 +958,7 @@ def rename_trip(old_id, new_name):
 
 def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d="", trip_finished=None):
     try:
-        df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        df = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
         old_rows = df[df["trip_id"] == t_id]
         old_finished = str(old_rows.iloc[0].get("trip_finished", "Не")) if not old_rows.empty else "Не"
         df = df[df["trip_id"] != t_id]
@@ -944,7 +976,7 @@ def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d="", trip_f
 
 def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
-        df = pd.read_csv(DATA_FILE, encoding="utf-8")
+        df = _read_csv_fast(DATA_FILE, encoding="utf-8")
         if "current_km" not in df.columns: df["current_km"] = 0.0
         row = {"trip_id": t_id, "date": datetime.datetime.now().strftime("%d.%m %H:%M"), "amount": float(amt), "category": cat, "description": desc if desc else "Без описание", "type": "deposit" if is_dep else "expense", "liters": float(lit), "current_km": float(c_km)}
         pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(DATA_FILE, index=False, encoding="utf-8")
@@ -1182,7 +1214,7 @@ def get_category_budgets(t_id):
     try:
         if not os.path.exists(CATEGORY_BUDGETS_FILE):
             return result
-        df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+        df = _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")
         if df.empty or not {"trip_id", "category", "budget"}.issubset(df.columns):
             return result
         rows = df[df["trip_id"].astype(str) == str(t_id)]
@@ -1201,7 +1233,7 @@ def get_global_budget(t_id):
     try:
         if not os.path.exists(CATEGORY_BUDGETS_FILE):
             return 0.0
-        df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+        df = _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")
         if df.empty or not {"trip_id", "category", "budget"}.issubset(df.columns):
             return 0.0
         rows = df[(df["trip_id"].astype(str) == str(t_id)) & (df["category"].astype(str) == "__GLOBAL__")]
@@ -1215,7 +1247,7 @@ def save_global_budget(t_id, amount):
     try:
         columns = ["trip_id", "category", "budget"]
         if os.path.exists(CATEGORY_BUDGETS_FILE):
-            df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+            df = _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")
             if not set(columns).issubset(df.columns):
                 df = pd.DataFrame(columns=columns)
         else:
@@ -1235,7 +1267,7 @@ def save_category_budgets(t_id, budgets):
     try:
         columns = ["trip_id", "category", "budget"]
         if os.path.exists(CATEGORY_BUDGETS_FILE):
-            df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+            df = _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")
             if not set(columns).issubset(df.columns):
                 df = pd.DataFrame(columns=columns)
         else:
@@ -1273,7 +1305,7 @@ def save_budget_config(t_id, mode, total_amount=None, budgets=None):
     try:
         columns = ["trip_id", "category", "budget"]
         if os.path.exists(CATEGORY_BUDGETS_FILE):
-            df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+            df = _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")
             if not set(columns).issubset(df.columns):
                 df = pd.DataFrame(columns=columns)
         else:
@@ -1340,7 +1372,7 @@ def get_trip_plan(t_id):
     try:
         if not os.path.exists(TRIP_PLAN_FILE):
             return pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"])
-        df = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        df = _read_csv_fast(TRIP_PLAN_FILE, encoding="utf-8")
         if df.empty:
             return df
         df = df[df["trip_id"].astype(str) == str(t_id)].copy()
@@ -1355,7 +1387,7 @@ def add_trip_plan_item(t_id, title):
     try:
         if not title.strip():
             return False
-        df = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        df = _read_csv_fast(TRIP_PLAN_FILE, encoding="utf-8")
         if df.empty:
             df = pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"])
         new_id = f"{t_id}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}"
@@ -1374,7 +1406,7 @@ def update_trip_plan(df_plan):
 
 def delete_trip_plan_item(item_id):
     try:
-        df = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        df = _read_csv_fast(TRIP_PLAN_FILE, encoding="utf-8")
         df = df[df["item_id"].astype(str) != str(item_id)]
         df.to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
         return True
@@ -1383,14 +1415,14 @@ def delete_trip_plan_item(item_id):
 
 def get_map_points(t_id):
     try:
-        df = pd.read_csv(MAP_FILE, encoding="utf-8")
+        df = _read_csv_fast(MAP_FILE, encoding="utf-8")
         return df[df["trip_id"] == t_id].copy()
     except: 
         return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
 
 def add_map_point(t_id, lat, lon, title, color="blue"):
     try:
-        df = pd.read_csv(MAP_FILE, encoding="utf-8")
+        df = _read_csv_fast(MAP_FILE, encoding="utf-8")
         row = {"trip_id": t_id, "lat": float(lat), "lon": float(lon), "title": str(title), "color": str(color)}
         pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(MAP_FILE, index=False, encoding="utf-8")
         return True
@@ -1643,7 +1675,7 @@ def get_finished_trip_ids():
 
     try:
         if os.path.exists(SETTINGS_FILE):
-            df_settings = pd.read_csv(
+            df_settings = _read_csv_fast(
                 SETTINGS_FILE,
                 encoding="utf-8"
             )
@@ -1700,7 +1732,7 @@ def get_finished_trip_ids():
 
 def _navigate_fuel(direction, trip_id):
     try:
-        df_nav = pd.read_csv(DATA_FILE, encoding="utf-8")
+        df_nav = _read_csv_fast(DATA_FILE, encoding="utf-8")
         df_nav = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт")].copy()
 
         # Зареждане е или нормален запис с литри, или ръчно добавено
@@ -1730,7 +1762,7 @@ def _navigate_fuel(direction, trip_id):
 
 def _toggle_plan_item(item_id):
     try:
-        df_plan = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        df_plan = _read_csv_fast(TRIP_PLAN_FILE, encoding="utf-8")
         mask = df_plan["item_id"].astype(str) == str(item_id)
         if mask.any():
             current = bool(df_plan.loc[mask, "done"].iloc[0])
@@ -1773,15 +1805,15 @@ if st.session_state["current_trip"] is None:
     # Пътуване се счита за съществуващо и без разход:
     # пазим го в SETTINGS_FILE още при създаването, а бюджетът е отделно в CATEGORY_BUDGETS_FILE.
     _trip_ids_data = (
-        list(pd.read_csv(DATA_FILE)["trip_id"].dropna().unique())
+        list(_read_csv_fast(DATA_FILE)["trip_id"].dropna().unique())
         if os.path.exists(DATA_FILE) else []
     )
     _trip_ids_settings = (
-        list(pd.read_csv(SETTINGS_FILE)["trip_id"].dropna().unique())
+        list(_read_csv_fast(SETTINGS_FILE)["trip_id"].dropna().unique())
         if os.path.exists(SETTINGS_FILE) else []
     )
     _trip_ids_budget = (
-        list(pd.read_csv(CATEGORY_BUDGETS_FILE)["trip_id"].dropna().unique())
+        list(_read_csv_fast(CATEGORY_BUDGETS_FILE)["trip_id"].dropna().unique())
         if os.path.exists(CATEGORY_BUDGETS_FILE) else []
     )
     existing = list(dict.fromkeys(
@@ -2248,20 +2280,14 @@ if st.session_state["current_trip"] is None:
         with c_tr1:
             if st.button("✔️ ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary", key=f"home_confirm_delete_{_home_trip_id}"):
                 try:
-                    if os.path.exists(DATA_FILE):
-                        pd.read_csv(DATA_FILE, encoding="utf-8")[lambda d: d["trip_id"] != _home_trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(SETTINGS_FILE):
-                        pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != _home_trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(TRIP_PLAN_FILE):
-                        pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")[lambda d: d["trip_id"] != _home_trip_id].to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(CATEGORY_BUDGETS_FILE):
-                        df_budget_delete = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
-                        if "trip_id" in df_budget_delete.columns:
-                            df_budget_delete[df_budget_delete["trip_id"].astype(str) != str(_home_trip_id)].to_csv(CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(MAP_FILE):
-                        df_map_delete = pd.read_csv(MAP_FILE, encoding="utf-8")
-                        if "trip_id" in df_map_delete.columns:
-                            df_map_delete[df_map_delete["trip_id"].astype(str) != str(_home_trip_id)].to_csv(MAP_FILE, index=False, encoding="utf-8")
+                    for _delete_file in (
+                        DATA_FILE,
+                        SETTINGS_FILE,
+                        TRIP_PLAN_FILE,
+                        CATEGORY_BUDGETS_FILE,
+                        MAP_FILE,
+                    ):
+                        _remove_trip_from_csv(_delete_file, _home_trip_id)
                 except Exception:
                     pass
                 st.session_state["current_trip"] = None
@@ -2271,7 +2297,6 @@ if st.session_state["current_trip"] is None:
         with c_tr2:
             if st.button("✖️ ОТКАЗ", use_container_width=True, key=f"home_cancel_delete_{_home_trip_id}"):
                 st.session_state["home_trip_pending_delete"] = None
-                google_drive_sync()
                 st.rerun()
 
     # Бърз разход — първи и най-лесен за достигане.
@@ -2515,29 +2540,30 @@ if st.session_state["current_trip"] is None:
                 "rgba(255,255,255,0.06) 100%)"
             )
 
-            _home_trip_bg = (
-                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
-                f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
-                f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
-                f"linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
-            ) if _budget > 0 else (
-                "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
-                "radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
-                "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
-            )
-            _home_trip_hover_bg = (
-                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
-                f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
-                f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
-                f"linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
-            ) if _budget > 0 else (
-                "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
-                "radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
-                "linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
-            )
-
             # Един контейнер и един бутон за всяко пътуване.
             with st.container():
+                _home_trip_bg = (
+                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
+                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                    f"linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+                ) if _budget > 0 else (
+                    "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
+                    "radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                    "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+                )
+                _home_trip_hover_bg = (
+                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
+                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                    f"linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+                ) if _budget > 0 else (
+                    "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
+                    "radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                    "linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+                )
+
+
                 st.markdown(
                     f"""
                     <style>
@@ -2640,6 +2666,7 @@ if st.session_state["current_trip"] is None:
                     unsafe_allow_html=True
                 )
 
+
                 _remaining_card = max(0.0, _budget - _spent) if _budget > 0 else 0.0
                 if _budget > 0:
                     _label = (
@@ -2657,7 +2684,7 @@ if st.session_state["current_trip"] is None:
                         f"Без зададен бюджет"
                     )
 
-    
+
                 # =========================================================
                 # 1 CLICK = OPEN — PURE HTML LINK
                 # No Streamlit button/link_button is used for trip cards.
@@ -2904,7 +2931,7 @@ if st.session_state["current_trip"] is None:
 
         if os.path.exists(SETTINGS_FILE):
             try:
-                _quick_settings_df = pd.read_csv(
+                _quick_settings_df = _read_csv_fast(
                     SETTINGS_FILE,
                     encoding="utf-8"
                 )
@@ -3494,11 +3521,11 @@ if st.session_state["current_trip"] is None:
     _home_map_points = []
     try:
         if os.path.exists(MAP_FILE):
-            _mp_home = pd.read_csv(MAP_FILE, encoding="utf-8")
+            _mp_home = _read_csv_fast(MAP_FILE, encoding="utf-8")
             _valid_home_trip_ids = set()
             if os.path.exists(SETTINGS_FILE):
                 try:
-                    _settings_home = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                    _settings_home = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
                     if "trip_id" in _settings_home.columns:
                         _valid_home_trip_ids = {
                             str(x).strip() for x in _settings_home["trip_id"].dropna().tolist()
@@ -3622,7 +3649,7 @@ if st.session_state["current_trip"] is None:
                 </style>
                 """, unsafe_allow_html=True)
                 try:
-                    df_recent = pd.read_csv(DATA_FILE, encoding="utf-8")
+                    df_recent = _read_csv_fast(DATA_FILE, encoding="utf-8")
                     if df_recent.empty:
                         st.info("Все още няма записани разходи.")
                     else:
@@ -3782,8 +3809,8 @@ if st.session_state["current_trip"] is None:
 
             all_trips_computed = []
             try:
-                df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
-                df_all_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                df_all_data = _read_csv_fast(DATA_FILE, encoding="utf-8")
+                df_all_settings = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
                 unique_trips = df_all_data["trip_id"].dropna().unique()
 
                 for t in unique_trips:
@@ -4456,7 +4483,7 @@ else:
             st.write("Сигурни ли сте, че искате да изтриете този разход?")
             idx = st.session_state["delete_idx"]
             try:
-                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                df_all = _read_csv_fast(DATA_FILE, encoding="utf-8")
                 r = df_all.loc[idx]
                 display_category = get_display_category(r['category'])
                 st.markdown(f"**{get_emoji(r['category'])} {display_category}** — <span style='color:#ff4b4b; font-weight:bold;'>{r['amount']:.2f} EUR</span><br><small>{r['description']}</small>", unsafe_allow_html=True)
@@ -4466,7 +4493,7 @@ else:
             with c_del1:
                 if st.button("✔️ ДА, ИЗТРИЙ", use_container_width=True, type="primary"):
                     try:
-                        df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                        df_all = _read_csv_fast(DATA_FILE, encoding="utf-8")
                         df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
                     except: 
                         pass
@@ -4486,29 +4513,21 @@ else:
         with c_tr1:
             if st.button("✔️ ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
                 try:
-                    pd.read_csv(DATA_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
-                    pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(TRIP_PLAN_FILE):
-                        pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(CATEGORY_BUDGETS_FILE):
-                        df_budget_delete = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
-                        df_budget_delete[df_budget_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
-                            CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8"
-                        )
-                    if os.path.exists(MAP_FILE):
-                        df_map_delete = pd.read_csv(MAP_FILE, encoding="utf-8")
-                        if "trip_id" in df_map_delete.columns:
-                            df_map_delete[df_map_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
-                                MAP_FILE, index=False, encoding="utf-8"
-                            )
-                except: 
+                    for _delete_file in (
+                        DATA_FILE,
+                        SETTINGS_FILE,
+                        TRIP_PLAN_FILE,
+                        CATEGORY_BUDGETS_FILE,
+                        MAP_FILE,
+                    ):
+                        _remove_trip_from_csv(_delete_file, trip_id)
+                except Exception:
                     pass
                 st.session_state["current_trip"] = None
                 google_drive_sync()
                 st.rerun()
         with c_tr2:
             if st.button("✖️ ОТКАЗ", use_container_width=True): 
-                google_drive_sync()
                 st.rerun()
 
     df_trip = get_trip_data(trip_id)
@@ -4559,7 +4578,6 @@ else:
     if st.button("🔙 КЪМ ГЛАВНО МЕНЮ", use_container_width=True): 
         st.session_state["current_trip"] = None
         st.session_state["edit_unlocked_trip"] = None
-        google_drive_sync()
         st.rerun()
 
     v_id = st.session_state["form_version"]
@@ -4992,7 +5010,7 @@ else:
         _manual_no_cost_liters = 0.0
         
         try:
-            _df_manual = pd.read_csv(DATA_FILE, encoding="utf-8")
+            _df_manual = _read_csv_fast(DATA_FILE, encoding="utf-8")
         
             _df_manual = _df_manual[
                 (_df_manual["trip_id"].astype(str) == str(trip_id)) &
@@ -5078,7 +5096,7 @@ else:
         
                 # 2. Премахваме и двата вида ръчни записи
                 try:
-                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                    df_all = _read_csv_fast(DATA_FILE, encoding="utf-8")
         
                     manual_mask = (
                         (df_all["trip_id"].astype(str) == str(trip_id)) &
@@ -5890,7 +5908,7 @@ else:
         """, unsafe_allow_html=True)
         
         try:
-            df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+            df_all = _read_csv_fast(DATA_FILE, encoding="utf-8")
             df_trip_rows = df_all[df_all["trip_id"] == trip_id]
             
             if df_trip_rows.empty:
@@ -5965,7 +5983,7 @@ else:
         """, unsafe_allow_html=True)
         
         try:
-            df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+            df_all = _read_csv_fast(DATA_FILE, encoding="utf-8")
             df_trip_rows = df_all[df_all["trip_id"] == trip_id]
             
             if df_trip_rows.empty:
@@ -5999,7 +6017,7 @@ else:
                     with col_del:
                         st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
                         if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True, disabled=trip_locked):
-                            df_fresh = pd.read_csv(DATA_FILE, encoding="utf-8")
+                            df_fresh = _read_csv_fast(DATA_FILE, encoding="utf-8")
                             target_row = df_fresh.loc[idx]
                             desc_str = str(target_row["description"])
                             
@@ -7037,7 +7055,7 @@ else:
                 st.rerun()
     def _delete_map_point(idx):
         try:
-            df_map = pd.read_csv(MAP_FILE, encoding="utf-8")
+            df_map = _read_csv_fast(MAP_FILE, encoding="utf-8")
             if idx in df_map.index:
                 df_map = df_map.drop(index=idx)
                 df_map.to_csv(MAP_FILE, index=False, encoding="utf-8")
@@ -7316,7 +7334,7 @@ else:
             except Exception:
                 return False
 
-            _df_map = pd.read_csv(MAP_FILE, encoding="utf-8")
+            _df_map = _read_csv_fast(MAP_FILE, encoding="utf-8")
             if _row_index not in _df_map.index:
                 return False
 
@@ -7436,7 +7454,7 @@ else:
     _fav_rename_row = st.session_state.get("fav_rename_row")
     if _fav_rename_row is not None:
         try:
-            _rename_df = pd.read_csv(MAP_FILE, encoding="utf-8")
+            _rename_df = _read_csv_fast(MAP_FILE, encoding="utf-8")
             _fav_rename_row = int(_fav_rename_row)
             if _fav_rename_row in _rename_df.index and str(_rename_df.loc[_fav_rename_row, "trip_id"]) == str(trip_id):
                 _old_title = str(_rename_df.loc[_fav_rename_row, "title"] or "").strip()
@@ -7469,7 +7487,6 @@ else:
                     if st.button("Отказ", use_container_width=True, key="fav_rename_cancel_btn"):
                         st.session_state.pop("fav_rename_row", None)
                         st.session_state.pop("fav_rename_value", None)
-                        google_drive_sync()
                         st.rerun()
             else:
                 st.session_state.pop("fav_rename_row", None)
@@ -7789,7 +7806,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
         _admin_trip_ids = []
         if os.path.exists(SETTINGS_FILE):
             try:
-                _admin_settings_df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                _admin_settings_df = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
                 if "trip_id" in _admin_settings_df.columns:
                     _admin_trip_ids = list(dict.fromkeys(
                         str(x).strip()
