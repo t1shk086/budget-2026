@@ -479,124 +479,58 @@ def _google_drive_upload_all(service, folder_id):
 
 def _google_drive_bootstrap():
     """Authenticate once and load existing Drive data before local files initialize."""
-
-    if st.session_state.get(
-        "google_drive_bootstrapped"
-    ):
+    if st.session_state.get("google_drive_bootstrapped"):
         return True
 
-    # =========================================================
-    # GOOGLE OAUTH CALLBACK
-    # =========================================================
-
+    # One-time callback from Google.
     code = st.query_params.get("code")
-
     if code:
-
         try:
             state = st.query_params.get("state")
-
-            expected_state = st.session_state.get(
-                "google_drive_oauth_state"
-            )
+            expected_state = st.session_state.get("google_drive_oauth_state")
 
             if expected_state and state != expected_state:
-                st.error(
-                    "❌ Невалиден OAuth state. "
-                    "Опитай свързването отново."
-                )
+                st.error("❌ Невалиден OAuth state. Опитай свързването отново.")
                 st.stop()
 
-            # ВАЖНО:
-            # Тук НЕ използваме code_verifier.
-            #
-            # Flow-ът е създаден с:
-            # autogenerate_code_verifier=False
-            #
-            # Следователно Google не очаква PKCE verifier
-            # при обмена на authorization code.
-
             flow = _google_drive_make_flow()
-
-            flow.fetch_token(
-                code=code
-            )
+            flow.fetch_token(code=code)
 
             token = flow.credentials
-
             refresh_token = token.refresh_token
 
-            # Премахваме OAuth параметрите от URL-а.
             st.query_params.clear()
 
             if refresh_token:
+                st.session_state["google_drive_refresh_token_new"] = refresh_token
 
-                st.session_state[
-                    "google_drive_refresh_token_new"
-                ] = refresh_token
+                if not _google_drive_secret("google_drive", "refresh_token"):
+                    st.session_state["google_drive_show_refresh_token"] = True
 
-                if not _google_drive_secret(
-                    "google_drive",
-                    "refresh_token",
-                ):
-                    st.session_state[
-                        "google_drive_show_refresh_token"
-                    ] = True
-
-            st.session_state[
-                "google_drive_token"
-            ] = {
+            st.session_state["google_drive_token"] = {
                 "token": token.token,
                 "refresh_token": refresh_token,
             }
 
-            st.session_state.pop(
-                "google_drive_oauth_state",
-                None,
-            )
-
         except Exception as exc:
-
-            st.error(
-                f"❌ Google авторизацията не успя: {exc}"
-            )
-
+            st.error(f"❌ Google авторизацията не успя: {exc}")
             st.stop()
-
-    # =========================================================
-    # EXISTING REFRESH TOKEN
-    # =========================================================
 
     refresh_token = _google_drive_secret(
         "google_drive",
-        "refresh_token",
+        "refresh_token"
     )
 
-    token_info = st.session_state.get(
-        "google_drive_token"
-    )
+    token_info = st.session_state.get("google_drive_token")
 
-    # =========================================================
-    # SHOW NEW REFRESH TOKEN
-    # =========================================================
-
-    if (
-        st.session_state.get(
-            "google_drive_show_refresh_token"
-        )
-        and not refresh_token
-    ):
-
+    if st.session_state.get("google_drive_show_refresh_token") and not refresh_token:
         new_refresh_token = st.session_state.get(
             "google_drive_refresh_token_new",
-            "",
+            ""
         )
 
         if new_refresh_token:
-
-            st.success(
-                "✅ Google Drive е свързан за тази сесия."
-            )
+            st.success("✅ Google Drive е свързан за тази сесия.")
 
             st.warning(
                 "Еднократно копирай refresh token-а в "
@@ -608,105 +542,137 @@ def _google_drive_bootstrap():
             st.text_area(
                 "Refresh token",
                 value=new_refresh_token,
-                height=110,
+                height=110
             )
 
             st.info(
-                "След като го запазиш в Secrets, "
-                "презареди приложението. "
-                "Оттам нататък Drive ще се използва "
-                "автоматично и при рестарт."
+                "След като го запазиш в Secrets, презареди приложението. "
+                "Оттам нататък Drive ще се използва автоматично и при рестарт."
             )
 
-    # =========================================================
-    # CONNECT TO GOOGLE DRIVE
-    # =========================================================
-
     try:
-
         if refresh_token:
-
-            service = (
-                _google_drive_get_service_from_refresh_token(
-                    refresh_token
-                )
+            service = _google_drive_get_service_from_refresh_token(
+                refresh_token
             )
 
         elif token_info:
-
-            service, _ = (
-                _google_drive_get_service_from_token(
-                    token_info
-                )
+            service, _ = _google_drive_get_service_from_token(
+                token_info
             )
 
         else:
-
             flow = _google_drive_make_flow()
 
-            authorization_url, state = (
-                flow.authorization_url(
-                    access_type="offline",
-                    include_granted_scopes="true",
-                    prompt="consent",
-                )
+            authorization_url, state = flow.authorization_url(
+                access_type="offline",
+                include_granted_scopes="true",
+                prompt="consent",
             )
 
-            # Запазваме само state.
-            # НЕ пазим code_verifier, защото PKCE е изключен.
-            st.session_state[
-                "google_drive_oauth_state"
-            ] = state
+            st.session_state["google_drive_oauth_state"] = state
 
-            st.markdown(
-                "### ☁️ Свързване с Google Drive"
-            )
+            st.markdown("### ☁️ Свързване с Google Drive")
 
             st.write(
-                "За да запазваме данните автоматично "
-                "при рестарт, първо разреши достъп "
-                "до Google Drive."
+                "За да запазваме данните автоматично при рестарт, "
+                "първо разреши достъп до Google Drive."
             )
 
             st.link_button(
                 "🔐 Свържи Google Drive",
                 authorization_url,
-                use_container_width=True,
+                use_container_width=True
             )
 
             st.info(
-                "След разрешението ще се върнеш "
-                "автоматично в Travel Manager."
+                "След разрешението ще се върнеш автоматично "
+                "в Travel Manager."
             )
 
             st.stop()
 
+        # ---------------------------------------------------------
+        # ВАЖНОТО: намираме/създаваме папката и я запомняме
+        # ---------------------------------------------------------
+        folder_id = _google_drive_find_or_create_folder(service)
+
+        st.session_state["google_drive_folder_id"] = folder_id
+
+        # Ако вече има данни в Drive, първо ги сваляме.
+        if not st.session_state.get("google_drive_data_loaded"):
+
+            file_map = _google_drive_file_map(
+                service,
+                folder_id
+            )
+
+            if any(
+                name in file_map
+                for name in GOOGLE_DRIVE_FILES
+            ):
+                _google_drive_download_all(
+                    service,
+                    folder_id
+                )
+
+            st.session_state["google_drive_data_loaded"] = True
+
+        # ---------------------------------------------------------
+        # ВАЖНОТО: това липсваше и затова sync() не правеше нищо
+        # ---------------------------------------------------------
+        st.session_state["google_drive_service_ready"] = True
+        st.session_state["google_drive_bootstrapped"] = True
+
+        return True
+
     except Exception as exc:
-
         st.error(
-            f"❌ Google Drive не можа да бъде свързан: {exc}"
+            f"❌ Google Drive не можа да бъде достъпен: {exc}"
         )
-
         st.stop()
 
 def google_drive_sync():
     """Upload changed CSV files after the app has finished processing the current action."""
+
     if not st.session_state.get("google_drive_service_ready"):
         return
+
     try:
-        refresh_token = _google_drive_secret("google_drive", "refresh_token")
-        token_info = st.session_state.get("google_drive_token")
+        refresh_token = _google_drive_secret(
+            "google_drive",
+            "refresh_token"
+        )
+
+        token_info = st.session_state.get(
+            "google_drive_token"
+        )
+
         if refresh_token:
-            service = _google_drive_get_service_from_refresh_token(refresh_token)
+            service = _google_drive_get_service_from_refresh_token(
+                refresh_token
+            )
+
         elif token_info:
-            service, _ = _google_drive_get_service_from_token(token_info)
+            service, _ = _google_drive_get_service_from_token(
+                token_info
+            )
+
         else:
             return
-        folder_id = st.session_state.get("google_drive_folder_id")
+
+        folder_id = st.session_state.get(
+            "google_drive_folder_id"
+        )
+
         if folder_id:
-            _google_drive_upload_all(service, folder_id)
+            _google_drive_upload_all(
+                service,
+                folder_id
+            )
+
     except Exception:
-        # Cloud backup must never break the Travel Manager UI.
+        # Google Drive backup никога не трябва да чупи приложението.
         pass
 
 
