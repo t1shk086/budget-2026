@@ -1201,6 +1201,12 @@ def _safe_map_coord(value, minimum, maximum):
 
 
 def get_map_points(t_id):
+    """Return ALL saved points for a trip.
+
+    Invalid/missing coordinates are kept here so old saved places do not
+    disappear from the favourites list. The actual map renderer filters
+    invalid coordinates before sending anything to Folium.
+    """
     try:
         df = pd.read_csv(MAP_FILE, encoding="utf-8")
         if df.empty or "trip_id" not in df.columns:
@@ -1210,24 +1216,21 @@ def get_map_points(t_id):
         if df.empty:
             return df
 
-        df["lat"] = pd.to_numeric(df.get("lat"), errors="coerce")
-        df["lon"] = pd.to_numeric(df.get("lon"), errors="coerce")
-        df = df[df["lat"].notna() & df["lon"].notna()].copy()
-        df = df[
-            df["lat"].apply(lambda x: math.isfinite(float(x)) and -90 <= float(x) <= 90)
-            & df["lon"].apply(lambda x: math.isfinite(float(x)) and -180 <= float(x) <= 180)
-        ].copy()
-
+        if "lat" not in df.columns:
+            df["lat"] = float("nan")
+        if "lon" not in df.columns:
+            df["lon"] = float("nan")
         if "title" not in df.columns:
             df["title"] = "Запазено място"
         else:
             df["title"] = df["title"].apply(
                 lambda x: _clean_map_text(x, "Запазено място")
             )
-
         if "color" not in df.columns:
             df["color"] = "green"
 
+        df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
+        df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
         return df
     except Exception:
         return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
@@ -7466,15 +7469,19 @@ else:
             else:
                 _fav_pin_color = "green"
 
+            _fav_lat = _safe_map_coord(_fav_row.get("lat"), -90, 90)
+            _fav_lon = _safe_map_coord(_fav_row.get("lon"), -180, 180)
+            if _fav_lat is not None and _fav_lon is not None:
+                _fav_coords = f"📍 {_fav_lat:.5f}, {_fav_lon:.5f}"
+            else:
+                _fav_coords = "📍 Координатите липсват"
+
             _items.append({
                 "id": str(_fav_idx),
                 "title": _fav_title,
                 "desc": _fav_desc,
                 "pin_color": _fav_pin_color,
-                "coords": (
-                    f"📍 {float(_fav_row.get('lat')):.5f}, "
-                    f"{float(_fav_row.get('lon')):.5f}"
-                ),
+                "coords": _fav_coords,
             })
 
         return _tm_fav_component(
