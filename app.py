@@ -2515,6 +2515,27 @@ if st.session_state["current_trip"] is None:
                 "rgba(255,255,255,0.06) 100%)"
             )
 
+            _home_trip_bg = (
+                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
+                f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                f"linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+            ) if _budget > 0 else (
+                "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
+                "radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+            )
+            _home_trip_hover_bg = (
+                f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
+                f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                f"linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+            ) if _budget > 0 else (
+                "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
+                "radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                "linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+            )
+
             # Един контейнер и един бутон за всяко пътуване.
             with st.container():
                 st.markdown(
@@ -2636,27 +2657,7 @@ if st.session_state["current_trip"] is None:
                         f"Без зададен бюджет"
                     )
 
-                _home_trip_bg = (
-                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
-                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
-                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
-                    f"linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
-                ) if _budget > 0 else (
-                    "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
-                    "radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
-                    "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
-                )
-                _home_trip_hover_bg = (
-                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
-                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
-                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
-                    f"linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
-                ) if _budget > 0 else (
-                    "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
-                    "radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
-                    "linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
-                )
-
+    
                 # =========================================================
                 # 1 CLICK = OPEN — PURE HTML LINK
                 # No Streamlit button/link_button is used for trip cards.
