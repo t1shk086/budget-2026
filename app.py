@@ -280,8 +280,8 @@ def _google_drive_make_flow():
     flow = Flow.from_client_config(
         client_config,
         scopes=GOOGLE_DRIVE_SCOPES,
+        autogenerate_code_verifier=False,
     )
-
     flow.redirect_uri = redirect_uri
     return flow
 
