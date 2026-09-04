@@ -1,5 +1,6 @@
 # Изтеглете файла от линка по-горе или копирайте целия код отдолу:
 import streamlit as st
+APP_BUILD_MARKER = "GALLERY_BOTTOM_SINGLE_CLICK_V14"
 import pandas as pd
 import datetime
 import os
@@ -12,7 +13,7 @@ import html
 import textwrap
 import streamlit.components.v1 as components
 import re
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 import requests
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
@@ -427,7 +428,8 @@ def _google_drive_upload_all(service, folder_id):
     import hashlib as _hashlib
     from googleapiclient.http import MediaFileUpload
 
-    file_map = _google_drive_file_map(service, folder_id)
+    # Cached Drive file IDs: do not list the folder on every UI click.
+    file_map = dict(st.session_state.get("google_drive_file_map", {}) or {})
 
     uploaded = 0
 
@@ -606,6 +608,7 @@ def _google_drive_bootstrap():
                 service,
                 folder_id
             )
+            st.session_state["google_drive_file_map"] = dict(file_map)
 
             if any(
                 name in file_map
@@ -621,6 +624,7 @@ def _google_drive_bootstrap():
         # ---------------------------------------------------------
         # ВАЖНОТО: това липсваше и затова sync() не правеше нищо
         # ---------------------------------------------------------
+        st.session_state["google_drive_service"] = service
         st.session_state["google_drive_service_ready"] = True
         st.session_state["google_drive_bootstrapped"] = True
 
@@ -639,26 +643,12 @@ def google_drive_sync():
         return
 
     try:
-        refresh_token = _google_drive_secret(
-            "google_drive",
-            "refresh_token"
-        )
-
-        token_info = st.session_state.get(
-            "google_drive_token"
-        )
-
-        if refresh_token:
-            service = _google_drive_get_service_from_refresh_token(
-                refresh_token
-            )
-
-        elif token_info:
-            service, _ = _google_drive_get_service_from_token(
-                token_info
-            )
-
-        else:
+        # Reuse the authenticated Drive client. Re-authentication on every
+        # click was causing the noticeable delay after Drive was connected.
+        service = st.session_state.get("google_drive_service")
+        if service is None:
+            service = _google_drive_ready_service()
+        if service is None:
             return
 
         folder_id = st.session_state.get(
@@ -1090,15 +1080,22 @@ def _google_drive_delete_photo(service, file_id):
 def _google_drive_ready_service():
     if not st.session_state.get("google_drive_service_ready"):
         return None
+
+    cached_service = st.session_state.get("google_drive_service")
+    if cached_service is not None:
+        return cached_service
+
     refresh_token = _google_drive_secret("google_drive", "refresh_token")
     token_info = st.session_state.get("google_drive_token")
     if refresh_token:
-        return _google_drive_get_service_from_refresh_token(refresh_token)
+        service = _google_drive_get_service_from_refresh_token(refresh_token)
+        st.session_state["google_drive_service"] = service
+        return service
     if token_info:
         service, _ = _google_drive_get_service_from_token(token_info)
+        st.session_state["google_drive_service"] = service
         return service
     return None
-
 
 def show_trip_gallery(trip_id):
     st.markdown("""
@@ -1131,27 +1128,45 @@ def show_trip_gallery(trip_id):
     if uploaded_files and st.button("☁️ КАЧИ СНИМКИТЕ", use_container_width=True, type="primary", key=f"upload_trip_gallery_{trip_id}"):
         count = _google_drive_upload_trip_photos(service, trip_id, uploaded_files)
         if count:
+            st.session_state.pop(f"gallery_meta_{trip_id}", None)
+            st.session_state.pop(f"gallery_bytes_{trip_id}", None)
             st.success(f"✅ Качени снимки: {count}")
             st.rerun()
         else:
             st.error("❌ Снимките не успяха да се качат.")
 
+    # Photo metadata and bytes are cached per session. Without this cache the
+    # trip page made a Drive list + one Drive download request for every photo
+    # on every Streamlit rerun, which made the page feel extremely slow.
+    _gallery_meta_key = f"gallery_meta_{trip_id}"
+    _gallery_bytes_key = f"gallery_bytes_{trip_id}"
     try:
-        photos = _google_drive_list_trip_photos(service, trip_id)
+        photos = st.session_state.get(_gallery_meta_key)
+        if photos is None:
+            photos = _google_drive_list_trip_photos(service, trip_id)
+            st.session_state[_gallery_meta_key] = photos
     except Exception:
         photos = []
+
     if not photos:
         st.caption("Все още няма снимки за това пътуване. Добави първите от бутона по-горе.")
         return
+
+    _gallery_bytes = st.session_state.setdefault(_gallery_bytes_key, {})
 
     for start in range(0, len(photos), 3):
         cols = st.columns(3)
         for col, photo in zip(cols, photos[start:start + 3]):
             with col:
                 try:
-                    st.image(_google_drive_download_photo(service, photo["id"]), use_container_width=True, caption=str(photo.get("name", "Снимка")))
-                    if st.button("🗑️ Изтрий", use_container_width=True, key=f"delete_gallery_photo_{trip_id}_{photo['id']}"):
-                        if _google_drive_delete_photo(service, photo["id"]):
+                    _photo_id = photo["id"]
+                    if _photo_id not in _gallery_bytes:
+                        _gallery_bytes[_photo_id] = _google_drive_download_photo(service, _photo_id)
+                    st.image(_gallery_bytes[_photo_id], use_container_width=True, caption=str(photo.get("name", "Снимка")))
+                    if st.button("🗑️ Изтрий", use_container_width=True, key=f"delete_gallery_photo_{trip_id}_{_photo_id}"):
+                        if _google_drive_delete_photo(service, _photo_id):
+                            _gallery_bytes.pop(_photo_id, None)
+                            st.session_state.pop(_gallery_meta_key, None)
                             st.rerun()
                         else:
                             st.error("Снимката не можа да бъде изтрита.")
@@ -1582,206 +1597,30 @@ def _render_task_swipe(items):
 # HOME TRIPS — swipe left to reveal delete, without changing
 # the existing trip-card design. Tap/click still opens the trip.
 # =========================================================
-_HOME_TRIP_HTML = """
-<div id="tm-home-trip-root"></div>
-"""
-
-_HOME_TRIP_CSS = """
-#tm-home-trip-root { width:100%; margin:0; padding:0; }
-.tm-home-trip { position:relative; overflow:hidden; width:100%; min-height:108px; border-radius:16px; }
-.tm-home-trip-delete { position:absolute; right:0; top:0; bottom:0; width:76px; display:none; align-items:center; justify-content:center; background:#3a171b; color:#ff7777; font-size:11px; font-weight:700; cursor:pointer; user-select:none; -webkit-user-select:none; z-index:0; pointer-events:auto; }
-.tm-home-trip-row { position:relative; z-index:2; width:100%; min-height:108px; box-sizing:border-box; padding:14px 16px 24px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.085); border-left:3px solid rgba(0,242,254,.42); background:var(--tm-card-bg); box-shadow:0 8px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.025); color:#fff; text-align:left; font-family:inherit; font-size:14px; font-weight:500; line-height:1.45; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; touch-action:pan-y; user-select:none; -webkit-user-select:none; cursor:pointer; }
-.tm-home-trip-row:hover { border-color:rgba(0,242,254,.24); border-left-color:rgba(0,242,254,.82); background:var(--tm-card-hover-bg); box-shadow:0 12px 30px rgba(0,0,0,.30), 0 0 18px rgba(0,242,254,.055); transform:translateY(-2px); }
-.tm-home-trip-content { width:100%; white-space:pre-wrap; }
-.tm-home-trip-title { font-size:14px; font-weight:800; line-height:1.35; }
-.tm-home-trip-spent { font-size:14px; font-weight:700; }
-.tm-home-trip-pct { font-size:14px; font-weight:700; }
-.tm-home-trip-remaining { font-size:14px; font-weight:700; }
-@media(max-width:640px) {
-    .tm-home-trip { min-height:102px; }
-    .tm-home-trip-row { min-height:102px; padding:12px 14px 23px 14px; border-radius:16px; font-size:14px; }
-}
-"""
-
-_HOME_TRIP_JS = r"""
-export default function(component) {
-    const { parentElement, data, setTriggerValue } = component;
-    const root = parentElement.querySelector('#tm-home-trip-root');
-    const item = data?.item || {};
-    const id = String(item.id ?? '');
-    const openText = String(item.open_text ?? '');
-    const title = String(item.title ?? '');
-    const status = String(item.status ?? '');
-    const dates = String(item.dates ?? '');
-    const spent = String(item.spent ?? '');
-    const budget = String(item.budget ?? '');
-    const pct = String(item.pct ?? '');
-    const remaining = String(item.remaining ?? '');
-    const hasBudget = !!item.has_budget;
-    const gradient = String(item.gradient ?? '');
-    const hoverGradient = String(item.hover_gradient ?? gradient);
-
-    function esc(value) {
-        return String(value ?? '').replace(/[&<>\"']/g, function(c) {
-            return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];
-        });
-    }
-
-    function emit(action) {
-        setTriggerValue('action', {
-            action: action,
-            id: id,
-            event_id: String(Date.now()) + '_' + Math.random().toString(36).slice(2)
-        });
-    }
-
-    root.innerHTML = '';
-    const card = document.createElement('div');
-    card.className = 'tm-home-trip';
-    card.innerHTML =
-        '<div class="tm-home-trip-row" style="--tm-card-bg:' + esc(gradient) + ';--tm-card-hover-bg:' + esc(hoverGradient) + '">' +
-        '<div class="tm-home-trip-content">' +
-        '<div>🚙  <span class="tm-home-trip-title">' + esc(title) + '</span></div>' +
-        '<div>' + esc(status) + (dates ? ' · ' + esc(dates) : '') + '</div>' +
-        (hasBudget
-            ? '<br><div><span class="tm-home-trip-spent">€' + esc(spent) + '</span> / €' + esc(budget) + '    <span class="tm-home-trip-pct">' + esc(pct) + '%</span></div>' +
-              '<div>💳 Остават <span class="tm-home-trip-remaining">€' + esc(remaining) + '</span></div>'
-            : '<br><div>Без зададен бюджет</div>') +
-        '</div></div>';
-
-    const row = card.querySelector('.tm-home-trip-row');
-    let del = null;
-    let sx = 0, sy = 0, dx = 0, moved = false, dragging = false;
-    let open = false;
-
-    function createDeleteLayer() {
-        if (del) return;
-        del = document.createElement('div');
-        del.className = 'tm-home-trip-delete';
-        del.textContent = '🗑️ Изтрий';
-        del.addEventListener('click', function(e) {
-            e.stopPropagation();
-            emit('delete');
-        });
-        card.appendChild(del);
-    }
-
-    function showDeleteLayer() {
-        createDeleteLayer();
-        del.style.display = 'flex';
-    }
-
-    function removeDeleteLayer() {
-        if (del) {
-            del.remove();
-            del = null;
-        }
-        row.style.transform = 'translateX(0)';
-    }
-
-    row.addEventListener('pointerdown', function(e) {
-        sx = e.clientX;
-        sy = e.clientY;
-        dx = 0;
-        moved = false;
-        dragging = true;
-        try { row.setPointerCapture(e.pointerId); } catch (_) {}
-        row.style.transition = 'none';
-    });
-
-    row.addEventListener('pointermove', function(e) {
-        if (!dragging) return;
-        const tx = e.clientX - sx;
-        const ty = e.clientY - sy;
-        if (Math.abs(ty) > Math.abs(tx) && Math.abs(ty) > 8) return;
-        dx = tx;
-        if (tx < 0) {
-            moved = true;
-            if (tx < -10) showDeleteLayer();
-            row.style.transform = 'translateX(' + Math.max(-76, tx) + 'px)';
-        } else if (open) {
-            moved = true;
-            row.style.transform = 'translateX(' + Math.min(0, -76 + tx) + 'px)';
-        }
-    });
-
-    row.addEventListener('pointerup', function(e) {
-        if (!dragging) return;
-        dragging = false;
-        try { row.releasePointerCapture(e.pointerId); } catch (_) {}
-        row.style.transition = 'transform .16s ease';
-        if (dx < -35) {
-            open = true;
-            showDeleteLayer();
-            row.style.transform = 'translateX(-76px)';
-        } else if (dx > 35 && open) {
-            open = false;
-            row.style.transform = 'translateX(0)';
-            removeDeleteLayer();
-        }
-        dx = 0;
-    });
-
-    row.addEventListener('pointercancel', function() {
-        dragging = false;
-        dx = 0;
-        moved = false;
-        row.style.transition = 'transform .16s ease';
-        removeDeleteLayer();
-    });
-
-    row.addEventListener('click', function(e) {
-        if (moved) {
-            moved = false;
-            return;
-        }
-        if (open) {
-            open = false;
-            row.style.transform = 'translateX(0)';
-            removeDeleteLayer();
-            return;
-        }
-        emit('open');
-    });
-
-    removeDeleteLayer();
-    root.appendChild(card);
-}
-"""
-
-_tm_home_trip_component = st.components.v2.component(
-    name="pixelapp_home_trip_swipe_v2",
-    html=_HOME_TRIP_HTML,
-    css=_HOME_TRIP_CSS,
-    js=_HOME_TRIP_JS,
-)
-
-def _handle_home_trip_swipe_action():
-    try:
-        for _k, _state in list(st.session_state.items()):
-            if not str(_k).startswith("tmHomeTripSwipe_"):
-                continue
-            _event = getattr(_state, "action", None)
-            if not isinstance(_event, dict):
-                continue
-            _action = str(_event.get("action", ""))
-            _item_id = str(_event.get("id", ""))
-            if not _item_id:
-                continue
-            if _action == "open":
-                st.session_state["current_trip"] = _item_id
-                return
-            if _action == "delete":
-                st.session_state["home_trip_pending_delete"] = _item_id
-                return
-    except Exception:
-        pass
-
-
-
+# Legacy swipe/touch home-trip component removed in V12.
+# Trip cards now use only native Streamlit buttons: one click = open.
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
+
+# =========================================================
+# DEPLOYMENT BUILD: V13 - HTML trip links + cached Drive client
+# =========================================================
+# DIRECT TRIP NAVIGATION — 1 CLICK, WITHOUT FOCUS/SELECTION
+# A normal Streamlit button can first receive browser focus on some
+# touch/mouse combinations.  Trip cards therefore use a real link
+# with an internal query parameter.  The click navigates immediately;
+# on the next run we convert the parameter into current_trip.
+# =========================================================
+_open_trip_param = st.query_params.get("open_trip")
+if _open_trip_param:
+    _open_trip_param = unquote(str(_open_trip_param))
+    if _open_trip_param.strip():
+        st.session_state["current_trip"] = _open_trip_param.strip()
+        try:
+            st.query_params.pop("open_trip", None)
+        except Exception:
+            pass
 
 # Временно отключване на заключването на приключено пътуване.
 # end_km и статусът „Приключено“ НЕ се променят.
@@ -2740,6 +2579,33 @@ if st.session_state["current_trip"] is None:
                         margin-left:0 !important;
                         padding-left:0 !important;
                     }}
+                    /* HTML card used for navigation: no Streamlit focus state */
+                    a.tm-trip-open-card {{
+                        display:block !important;
+                        width:100% !important;
+                        min-height:148px !important;
+                        box-sizing:border-box !important;
+                        padding:16px 18px 28px 18px !important;
+                        border-radius:20px !important;
+                        border:1px solid rgba(255,255,255,.085) !important;
+                        border-left:3px solid rgba(0,242,254,.42) !important;
+                        background:{_home_trip_bg} !important;
+                        box-shadow:0 8px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.025) !important;
+                        color:#fff !important;
+                        text-decoration:none !important;
+                    }}
+                    a.tm-trip-open-card:hover, a.tm-trip-open-card:focus {{
+                        border-color:rgba(0,242,254,.24) !important;
+                        border-left-color:rgba(0,242,254,.82) !important;
+                        background:{_home_trip_hover_bg} !important;
+                        box-shadow:0 12px 30px rgba(0,0,0,.30), 0 0 18px rgba(0,242,254,.055) !important;
+                        transform:translateY(-2px) !important;
+                        outline:none !important;
+                    }}
+                    .tm-trip-open-title {{ color:#fff !important; font-size:15px !important; font-weight:800 !important; line-height:1.52 !important; }}
+                    .tm-trip-open-status {{ color:#fff !important; font-size:15px !important; font-weight:500 !important; line-height:1.52 !important; margin-top:2px !important; }}
+                    .tm-trip-open-spacer {{ height:12px !important; }}
+                    .tm-trip-open-budget {{ color:#fff !important; font-size:15px !important; font-weight:500 !important; line-height:1.52 !important; }}
                     @media(max-width:640px) {{
                         {_card_selector} button {{
                             min-height:140px !important;
@@ -2791,42 +2657,31 @@ if st.session_state["current_trip"] is None:
                     "linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
                 )
 
-                _trip_swipe_state = _tm_home_trip_component(
-                    data={
-                        "item": {
-                            "id": _trip_id,
-                            "title": _trip_name,
-                            "status": f"{_status_dot}  {_status_text}",
-                            "dates": _trip_dates_line,
-                            "spent": f"{_spent:,.2f}",
-                            "budget": f"{_budget:,.2f}",
-                            "pct": f"{_pct:.0f}",
-                            "remaining": f"{_remaining_card:,.0f}",
-                            "has_budget": _budget > 0,
-                            "gradient": _home_trip_bg,
-                            "hover_gradient": _home_trip_hover_bg,
-                        }
-                    },
-                    key=f"tmHomeTripSwipe_{_safe_key}",
-                    on_action_change=lambda: None,
+                # =========================================================
+                # 1 CLICK = OPEN — PURE HTML LINK
+                # No Streamlit button/link_button is used for trip cards.
+                # This removes the focus/highlight state seen on first click.
+                # =========================================================
+                _trip_open_url = "?open_trip=" + quote(_trip_id, safe="")
+                _remaining_text = (
+                    f"€{_spent:,.2f} / €{_budget:,.2f}    {_pct:.0f}%<br>"
+                    f"💳 Остават €{_remaining_card:,.0f}"
+                    if _budget > 0
+                    else "Без зададен бюджет"
+                )
+                _trip_dates_html = f" · {_trip_dates_line}" if _trip_dates_line else ""
+                st.markdown(
+                    f"""
+                    <a class="tm-trip-open-card" href="{_trip_open_url}" target="_self" aria-label="Отвори пътуване {_trip_name}">
+                        <div class="tm-trip-open-title">🚙 &nbsp;{_trip_name}</div>
+                        <div class="tm-trip-open-status">{_status_dot} &nbsp;{_status_text}{_trip_dates_html}</div>
+                        <div class="tm-trip-open-spacer"></div>
+                        <div class="tm-trip-open-budget">{_remaining_text}</div>
+                    </a>
+                    """,
+                    unsafe_allow_html=True,
                 )
 
-                # Обработваме събитието от картата директно в нормалния поток,
-                # а не в callback. Това е важно за мобилните touch събития:
-                # едно натискане трябва веднага да отвори пътуването.
-                _trip_event = getattr(_trip_swipe_state, "action", None)
-                if isinstance(_trip_event, dict):
-                    _trip_action = str(_trip_event.get("action", ""))
-                    _trip_event_id = str(_trip_event.get("id", ""))
-                    if _trip_event_id == str(_trip_id):
-                        if _trip_action == "open":
-                            st.session_state["current_trip"] = _trip_id
-                            google_drive_sync()
-                            st.rerun()
-                        elif _trip_action == "delete":
-                            st.session_state["home_trip_pending_delete"] = _trip_id
-                            google_drive_sync()
-                            st.rerun()
 
         if st.session_state.get("home_trip_pending_delete"):
             confirm_delete_home_trip_dialog(st.session_state["home_trip_pending_delete"])
@@ -4705,9 +4560,6 @@ else:
         st.session_state["edit_unlocked_trip"] = None
         google_drive_sync()
         st.rerun()
-
-    # 📸 Галерията е част от конкретното пътуване.
-    show_trip_gallery(trip_id)
 
     v_id = st.session_state["form_version"]
     st.markdown('<div id="target_sum_box" style="position: relative; scroll-margin-top: 30px;"></div>', unsafe_allow_html=True)
@@ -7705,6 +7557,9 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
 
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("---")
+    
+    # 📸 ГАЛЕРИЯ — най-долу в страницата, непосредствено преди административните инструменти.
+    show_trip_gallery(trip_id)
     
     if "show_admin_panel" not in st.session_state:
         st.session_state["show_admin_panel"] = False
