@@ -6972,8 +6972,8 @@ else:
             _pt_color = "green"
 
         folium.Marker(
-            location=[pt["lat"], pt["lon"]],
-            popup=pt["title"],
+            location=[float(_lat), float(_lon)],
+            popup=_pt_title,
             icon=folium.Icon(color=_pt_color, icon="info-sign")
         ).add_to(m)
     
