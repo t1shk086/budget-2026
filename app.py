@@ -964,6 +964,200 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
 
 
 # =========================================================
+# =========================================================
+# GOOGLE DRIVE — СНИМКИ / ГАЛЕРИЯ НА ПЪТУВАНИЯТА
+# =========================================================
+GOOGLE_DRIVE_PHOTOS_FOLDER_NAME = "Photos"
+
+
+def _google_drive_get_or_create_child_folder(service, parent_id, folder_name):
+    """Find or create a folder directly inside parent_id."""
+    safe_name = str(folder_name).replace("'", "\\'")
+    q = (
+        "name = '" + safe_name + "' "
+        "and mimeType = 'application/vnd.google-apps.folder' "
+        "and trashed = false "
+        "and '" + parent_id + "' in parents"
+    )
+    result = service.files().list(q=q, spaces="drive", fields="files(id,name)", pageSize=10).execute()
+    found = result.get("files", [])
+    if found:
+        return found[0]["id"]
+    folder = service.files().create(
+        body={"name": str(folder_name), "mimeType": "application/vnd.google-apps.folder", "parents": [parent_id]},
+        fields="id",
+    ).execute()
+    return folder["id"]
+
+
+def _google_drive_get_trip_photos_folder(service, trip_id, create=True):
+    """Return Drive folder id for one trip's photos."""
+    root_id = st.session_state.get("google_drive_folder_id")
+    if not root_id:
+        return None
+    safe_root_name = GOOGLE_DRIVE_PHOTOS_FOLDER_NAME.replace("'", "\\'")
+    q = (
+        "name = '" + safe_root_name + "' "
+        "and mimeType = 'application/vnd.google-apps.folder' "
+        "and trashed = false "
+        "and '" + root_id + "' in parents"
+    )
+    result = service.files().list(q=q, spaces="drive", fields="files(id,name)", pageSize=10).execute()
+    photos_root = result.get("files", [])
+    if photos_root:
+        photos_root_id = photos_root[0]["id"]
+    elif create:
+        photos_root_id = _google_drive_get_or_create_child_folder(service, root_id, GOOGLE_DRIVE_PHOTOS_FOLDER_NAME)
+    else:
+        return None
+
+    trip_folder_name = str(trip_id).strip() or "Без име"
+    if create:
+        return _google_drive_get_or_create_child_folder(service, photos_root_id, trip_folder_name)
+
+    safe_name = trip_folder_name.replace("'", "\\'")
+    q = (
+        "name = '" + safe_name + "' "
+        "and mimeType = 'application/vnd.google-apps.folder' "
+        "and trashed = false "
+        "and '" + photos_root_id + "' in parents"
+    )
+    result = service.files().list(q=q, spaces="drive", fields="files(id,name)", pageSize=10).execute()
+    folders = result.get("files", [])
+    return folders[0]["id"] if folders else None
+
+
+def _google_drive_list_trip_photos(service, trip_id):
+    folder_id = _google_drive_get_trip_photos_folder(service, trip_id, create=False)
+    if not folder_id:
+        return []
+    result = service.files().list(
+        q=("'" + folder_id + "' in parents and trashed = false and mimeType contains 'image/'"),
+        spaces="drive",
+        fields="files(id,name,mimeType,createdTime,size)",
+        orderBy="createdTime desc",
+        pageSize=100,
+    ).execute()
+    return result.get("files", [])
+
+
+def _google_drive_upload_trip_photos(service, trip_id, uploaded_files):
+    from googleapiclient.http import MediaIoBaseUpload
+    if not uploaded_files:
+        return 0
+    folder_id = _google_drive_get_trip_photos_folder(service, trip_id, create=True)
+    if not folder_id:
+        return 0
+    existing = {str(item.get("name", "")) for item in _google_drive_list_trip_photos(service, trip_id)}
+    uploaded_count = 0
+    for uploaded in uploaded_files:
+        try:
+            original_name = str(uploaded.name or "photo.jpg").strip()
+            base_name = original_name
+            if base_name in existing:
+                stem, ext = os.path.splitext(base_name)
+                counter = 2
+                while f"{stem} ({counter}){ext}" in existing:
+                    counter += 1
+                base_name = f"{stem} ({counter}){ext}"
+            media = MediaIoBaseUpload(io.BytesIO(uploaded.getvalue()), mimetype=uploaded.type or "image/jpeg", resumable=False)
+            service.files().create(body={"name": base_name, "parents": [folder_id]}, media_body=media, fields="id,name").execute()
+            existing.add(base_name)
+            uploaded_count += 1
+        except Exception:
+            pass
+    return uploaded_count
+
+
+def _google_drive_download_photo(service, file_id):
+    from googleapiclient.http import MediaIoBaseDownload
+    buffer = io.BytesIO()
+    downloader = MediaIoBaseDownload(buffer, service.files().get_media(fileId=file_id))
+    done = False
+    while not done:
+        _, done = downloader.next_chunk()
+    return buffer.getvalue()
+
+
+def _google_drive_delete_photo(service, file_id):
+    try:
+        service.files().delete(fileId=file_id).execute()
+        return True
+    except Exception:
+        return False
+
+
+def _google_drive_ready_service():
+    if not st.session_state.get("google_drive_service_ready"):
+        return None
+    refresh_token = _google_drive_secret("google_drive", "refresh_token")
+    token_info = st.session_state.get("google_drive_token")
+    if refresh_token:
+        return _google_drive_get_service_from_refresh_token(refresh_token)
+    if token_info:
+        service, _ = _google_drive_get_service_from_token(token_info)
+        return service
+    return None
+
+
+def show_trip_gallery(trip_id):
+    st.markdown("""
+    <style>
+        .tm-gallery-shell { margin:18px 0 22px 0; padding:16px; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012)); box-shadow:4px 4px 14px rgba(0,0,0,.20); }
+        .tm-gallery-title { color:#fff; font-size:14px; font-weight:800; letter-spacing:.5px; margin-bottom:3px; }
+        .tm-gallery-subtitle { color:#7e8494; font-size:11px; line-height:1.4; }
+    </style>
+    <div class="tm-gallery-shell">
+        <div class="tm-gallery-title">📸 ГАЛЕРИЯ НА ПЪТУВАНЕТО</div>
+        <div class="tm-gallery-subtitle">Снимките се пазят в Google Drive и остават налични след рестарт на приложението.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    try:
+        service = _google_drive_ready_service()
+    except Exception:
+        service = None
+    if service is None:
+        st.info("☁️ Google Drive все още не е готов. Галерията ще се активира след свързването с Drive.")
+        return
+
+    uploaded_files = st.file_uploader(
+        "Добави снимки към това пътуване",
+        type=["jpg", "jpeg", "png", "webp"],
+        accept_multiple_files=True,
+        key=f"trip_gallery_uploader_{trip_id}",
+        label_visibility="collapsed",
+    )
+    if uploaded_files and st.button("☁️ КАЧИ СНИМКИТЕ", use_container_width=True, type="primary", key=f"upload_trip_gallery_{trip_id}"):
+        count = _google_drive_upload_trip_photos(service, trip_id, uploaded_files)
+        if count:
+            st.success(f"✅ Качени снимки: {count}")
+            st.rerun()
+        else:
+            st.error("❌ Снимките не успяха да се качат.")
+
+    try:
+        photos = _google_drive_list_trip_photos(service, trip_id)
+    except Exception:
+        photos = []
+    if not photos:
+        st.caption("Все още няма снимки за това пътуване. Добави първите от бутона по-горе.")
+        return
+
+    for start in range(0, len(photos), 3):
+        cols = st.columns(3)
+        for col, photo in zip(cols, photos[start:start + 3]):
+            with col:
+                try:
+                    st.image(_google_drive_download_photo(service, photo["id"]), use_container_width=True, caption=str(photo.get("name", "Снимка")))
+                    if st.button("🗑️ Изтрий", use_container_width=True, key=f"delete_gallery_photo_{trip_id}_{photo['id']}"):
+                        if _google_drive_delete_photo(service, photo["id"]):
+                            st.rerun()
+                        else:
+                            st.error("Снимката не можа да бъде изтрита.")
+                except Exception:
+                    st.caption("Снимката не може да бъде заредена.")
+
 # БЮДЖЕТИ ПО КАТЕГОРИИ
 # =========================================================
 CATEGORY_BUDGETS_FILE = "trip_category_budgets_2026.csv"
@@ -4511,6 +4705,9 @@ else:
         st.session_state["edit_unlocked_trip"] = None
         google_drive_sync()
         st.rerun()
+
+    # 📸 Галерията е част от конкретното пътуване.
+    show_trip_gallery(trip_id)
 
     v_id = st.session_state["form_version"]
     st.markdown('<div id="target_sum_box" style="position: relative; scroll-margin-top: 30px;"></div>', unsafe_allow_html=True)
