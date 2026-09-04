@@ -1444,11 +1444,37 @@ def delete_trip_plan_item(item_id):
         return False
 
 def get_map_points(t_id):
+    """Return map points with a stable schema even when an older CSV is used.
+
+    Older versions of the app can have a map CSV without title/color (or even
+    with only a subset of the columns).  Every caller expects these columns,
+    so normalize the frame here instead of crashing with KeyError during a
+    normal page render.
+    """
+    _columns = ["trip_id", "lat", "lon", "title", "color"]
     try:
+        if not os.path.exists(MAP_FILE):
+            return pd.DataFrame(columns=_columns)
+
         df = _read_csv_fast(MAP_FILE, encoding="utf-8")
-        return df[df["trip_id"] == t_id].copy()
-    except: 
-        return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
+        if df is None or df.empty:
+            return pd.DataFrame(columns=_columns)
+
+        # Legacy files may use different/missing columns. Add what the UI needs.
+        for _col in _columns:
+            if _col not in df.columns:
+                if _col == "color":
+                    df[_col] = "blue"
+                elif _col == "title":
+                    df[_col] = ""
+                else:
+                    df[_col] = ""
+
+        _trip_series = df["trip_id"].astype(str).str.strip()
+        _wanted_trip = str(t_id).strip()
+        return df.loc[_trip_series == _wanted_trip, _columns].copy()
+    except Exception:
+        return pd.DataFrame(columns=_columns)
 
 def add_map_point(t_id, lat, lon, title, color="blue"):
     try:
