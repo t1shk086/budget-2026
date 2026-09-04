@@ -2825,6 +2825,41 @@ if st.session_state["current_trip"] is None:
 
             except Exception:
                 pass
+                            except Exception:
+                pass
+
+        # Последна активност — взема най-новия запис от всички разходи
+        try:
+            _df_last = pd.read_csv(DATA_FILE, encoding="utf-8")
+
+            if not _df_last.empty and "date" in _df_last.columns:
+                _df_last["_activity_date"] = pd.to_datetime(
+                    _df_last["date"],
+                    dayfirst=True,
+                    errors="coerce"
+                )
+
+                _df_last = _df_last.dropna(subset=["_activity_date"])
+
+                if not _df_last.empty:
+                    _last = _df_last.loc[
+                        _df_last["_activity_date"].idxmax()
+                    ]
+
+                    _last_activity_date = _last["_activity_date"]
+                    _last_activity = (
+                        str(_last.get("trip_id", "")).replace("_", " "),
+                        float(_last.get("amount", 0.0) or 0.0),
+                        str(_last.get("category", "Разход")),
+                        str(
+                            _last.get(
+                                "description",
+                                "Без описание"
+                            ) or "Без описание"
+                        )
+                    )
+        except Exception:
+            pass
 
         st.markdown("""
             <style>
