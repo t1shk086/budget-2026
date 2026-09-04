@@ -6907,12 +6907,41 @@ else:
     df_points = get_map_points(trip_id)
     st.markdown(f"<div class='tm-modern-map-shell'><div class='tm-map-meta-row'><div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'><span>📍 Запазени места от това пътуване - </span><span class='tm-map-count'>{len(df_points)} {'място' if len(df_points)==1 else 'места'}</span></div>", unsafe_allow_html=True)
     
-    if "map_current_trip_id" not in st.session_state or st.session_state["map_current_trip_id"] != trip_id:
+    # ---------------------------------------------------------
+    # SAFE MAP COORDINATES
+    # Не допускаме празни/невалидни координати да чупят Folium.
+    # ---------------------------------------------------------
+    if not df_points.empty:
+        df_points["lat"] = pd.to_numeric(df_points["lat"], errors="coerce")
+        df_points["lon"] = pd.to_numeric(df_points["lon"], errors="coerce")
+
+        # Оставяме само реални координати
+        df_points = df_points.dropna(subset=["lat", "lon"]).copy()
+
+        # Допълнителна защита срещу невалидни GPS стойности
+        df_points = df_points[
+            df_points["lat"].between(-90, 90)
+            & df_points["lon"].between(-180, 180)
+        ].copy()
+
+    if (
+        "map_current_trip_id" not in st.session_state
+        or st.session_state["map_current_trip_id"] != trip_id
+    ):
         st.session_state["map_current_trip_id"] = trip_id
+
         if not df_points.empty:
-            st.session_state["stable_lat"] = float(df_points["lat"].mean())
-            st.session_state["stable_lon"] = float(df_points["lon"].mean())
-            st.session_state["stable_zoom"] = 8
+            _map_lat = pd.to_numeric(df_points["lat"], errors="coerce").mean()
+            _map_lon = pd.to_numeric(df_points["lon"], errors="coerce").mean()
+
+            if pd.notna(_map_lat) and pd.notna(_map_lon):
+                st.session_state["stable_lat"] = float(_map_lat)
+                st.session_state["stable_lon"] = float(_map_lon)
+                st.session_state["stable_zoom"] = 8
+            else:
+                st.session_state["stable_lat"] = 42.7339
+                st.session_state["stable_lon"] = 25.4858
+                st.session_state["stable_zoom"] = 6
         else:
             st.session_state["stable_lat"] = 42.7339
             st.session_state["stable_lon"] = 25.4858
@@ -6926,7 +6955,15 @@ else:
     folium.LatLngPopup().add_to(m)
     
     for _, pt in df_points.iterrows():
-        # Един и същ цвят за pin-а на картата и малкия pin във "Любими места".
+        _lat = pd.to_numeric(pt.get("lat"), errors="coerce")
+        _lon = pd.to_numeric(pt.get("lon"), errors="coerce")
+
+        if pd.isna(_lat) or pd.isna(_lon):
+            continue
+
+        if not (-90 <= float(_lat) <= 90 and -180 <= float(_lon) <= 180):
+            continue
+
         _pt_title = str(pt.get("title", "") or "").strip()
         if _pt_title.lower().startswith("3b:"):
             _pt_after = _pt_title.split(":", 1)[1].strip()
