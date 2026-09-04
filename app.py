@@ -281,11 +281,17 @@ def _google_drive_make_flow():
         }
     }
 
+    # За този Web OAuth flow НЕ използваме автоматичен PKCE.
+    # Така callback-ът не зависи от st.session_state
+    # след връщането от Google.
     flow = Flow.from_client_config(
         client_config,
         scopes=GOOGLE_DRIVE_SCOPES,
+        autogenerate_code_verifier=False,
     )
+
     flow.redirect_uri = redirect_uri
+
     return flow
 
 
@@ -301,6 +307,7 @@ def _google_drive_get_service_from_token(token_info):
         client_secret=_google_drive_secret("auth", "client_secret"),
         scopes=GOOGLE_DRIVE_SCOPES,
     )
+
     return build("drive", "v3", credentials=creds), creds
 
 
@@ -312,10 +319,16 @@ def _google_drive_get_service_from_refresh_token(refresh_token):
 
     if not creds.valid:
         from google.auth.transport.requests import Request
+
         creds.refresh(Request())
 
         from googleapiclient.discovery import build
-        service = build("drive", "v3", credentials=creds)
+
+        service = build(
+            "drive",
+            "v3",
+            credentials=creds,
+        )
 
     return service
 
@@ -383,10 +396,16 @@ def _google_drive_download_all(service, folder_id):
         if not file_id:
             continue
 
-        request = service.files().get_media(fileId=file_id)
+        request = service.files().get_media(
+            fileId=file_id
+        )
 
         buffer = BytesIO()
-        downloader = MediaIoBaseDownload(buffer, request)
+
+        downloader = MediaIoBaseDownload(
+            buffer,
+            request,
+        )
 
         done = False
 
@@ -394,7 +413,10 @@ def _google_drive_download_all(service, folder_id):
             _, done = downloader.next_chunk()
 
         Path = __import__("pathlib").Path
-        Path(file_name).write_bytes(buffer.getvalue())
+
+        Path(file_name).write_bytes(
+            buffer.getvalue()
+        )
 
         downloaded += 1
 
@@ -410,11 +432,14 @@ def _google_drive_upload_all(service, folder_id):
     uploaded = 0
 
     for file_name in GOOGLE_DRIVE_FILES:
+
         if not os.path.exists(file_name):
             continue
 
         with open(file_name, "rb") as _f:
-            digest = _hashlib.sha256(_f.read()).hexdigest()
+            digest = _hashlib.sha256(
+                _f.read()
+            ).hexdigest()
 
         marker_key = f"_drive_hash_{file_name}"
 
@@ -428,11 +453,14 @@ def _google_drive_upload_all(service, folder_id):
         )
 
         if file_name in file_map:
+
             service.files().update(
                 fileId=file_map[file_name],
                 media_body=media,
             ).execute()
+
         else:
+
             service.files().create(
                 body={
                     "name": file_name,
@@ -443,6 +471,7 @@ def _google_drive_upload_all(service, folder_id):
             ).execute()
 
         st.session_state[marker_key] = digest
+
         uploaded += 1
 
     return uploaded
@@ -451,17 +480,22 @@ def _google_drive_upload_all(service, folder_id):
 def _google_drive_bootstrap():
     """Authenticate once and load existing Drive data before local files initialize."""
 
-    if st.session_state.get("google_drive_bootstrapped"):
+    if st.session_state.get(
+        "google_drive_bootstrapped"
+    ):
         return True
 
-    # ---------------------------------------------------------
-    # One-time callback from Google
-    # ---------------------------------------------------------
+    # =========================================================
+    # GOOGLE OAUTH CALLBACK
+    # =========================================================
+
     code = st.query_params.get("code")
 
     if code:
+
         try:
             state = st.query_params.get("state")
+
             expected_state = st.session_state.get(
                 "google_drive_oauth_state"
             )
@@ -473,32 +507,30 @@ def _google_drive_bootstrap():
                 )
                 st.stop()
 
-            # Вземаме същия PKCE verifier,
-            # който е създаден при изпращането към Google.
-            code_verifier = st.session_state.get(
-                "google_drive_code_verifier"
-            )
-
-            if not code_verifier:
-                st.error(
-                    "❌ Липсва OAuth code verifier. "
-                    "Започни свързването с Google Drive отначало."
-                )
-                st.stop()
+            # ВАЖНО:
+            # Тук НЕ използваме code_verifier.
+            #
+            # Flow-ът е създаден с:
+            # autogenerate_code_verifier=False
+            #
+            # Следователно Google не очаква PKCE verifier
+            # при обмена на authorization code.
 
             flow = _google_drive_make_flow()
 
             flow.fetch_token(
-                code=code,
-                code_verifier=code_verifier,
+                code=code
             )
 
             token = flow.credentials
+
             refresh_token = token.refresh_token
 
+            # Премахваме OAuth параметрите от URL-а.
             st.query_params.clear()
 
             if refresh_token:
+
                 st.session_state[
                     "google_drive_refresh_token_new"
                 ] = refresh_token
@@ -511,16 +543,12 @@ def _google_drive_bootstrap():
                         "google_drive_show_refresh_token"
                     ] = True
 
-            st.session_state["google_drive_token"] = {
+            st.session_state[
+                "google_drive_token"
+            ] = {
                 "token": token.token,
                 "refresh_token": refresh_token,
             }
-
-            # OAuth flow-ът приключи успешно.
-            st.session_state.pop(
-                "google_drive_code_verifier",
-                None,
-            )
 
             st.session_state.pop(
                 "google_drive_oauth_state",
@@ -528,14 +556,17 @@ def _google_drive_bootstrap():
             )
 
         except Exception as exc:
+
             st.error(
                 f"❌ Google авторизацията не успя: {exc}"
             )
+
             st.stop()
 
-    # ---------------------------------------------------------
-    # Existing credentials
-    # ---------------------------------------------------------
+    # =========================================================
+    # EXISTING REFRESH TOKEN
+    # =========================================================
+
     refresh_token = _google_drive_secret(
         "google_drive",
         "refresh_token",
@@ -545,21 +576,24 @@ def _google_drive_bootstrap():
         "google_drive_token"
     )
 
-    # ---------------------------------------------------------
-    # Show refresh token if it was obtained for the first time
-    # ---------------------------------------------------------
+    # =========================================================
+    # SHOW NEW REFRESH TOKEN
+    # =========================================================
+
     if (
         st.session_state.get(
             "google_drive_show_refresh_token"
         )
         and not refresh_token
     ):
+
         new_refresh_token = st.session_state.get(
             "google_drive_refresh_token_new",
             "",
         )
 
         if new_refresh_token:
+
             st.success(
                 "✅ Google Drive е свързан за тази сесия."
             )
@@ -584,37 +618,45 @@ def _google_drive_bootstrap():
                 "автоматично и при рестарт."
             )
 
-    # ---------------------------------------------------------
-    # Connect / restore Google Drive
-    # ---------------------------------------------------------
+    # =========================================================
+    # CONNECT TO GOOGLE DRIVE
+    # =========================================================
+
     try:
+
         if refresh_token:
-            service = _google_drive_get_service_from_refresh_token(
-                refresh_token
+
+            service = (
+                _google_drive_get_service_from_refresh_token(
+                    refresh_token
+                )
             )
 
         elif token_info:
-            service, _ = _google_drive_get_service_from_token(
-                token_info
+
+            service, _ = (
+                _google_drive_get_service_from_token(
+                    token_info
+                )
             )
 
         else:
+
             flow = _google_drive_make_flow()
 
-            authorization_url, state = flow.authorization_url(
-                access_type="offline",
-                include_granted_scopes="true",
-                prompt="consent",
+            authorization_url, state = (
+                flow.authorization_url(
+                    access_type="offline",
+                    include_granted_scopes="true",
+                    prompt="consent",
+                )
             )
 
-            # Запазваме OAuth state и PKCE verifier.
+            # Запазваме само state.
+            # НЕ пазим code_verifier, защото PKCE е изключен.
             st.session_state[
                 "google_drive_oauth_state"
             ] = state
-
-            st.session_state[
-                "google_drive_code_verifier"
-            ] = flow.code_verifier
 
             st.markdown(
                 "### ☁️ Свързване с Google Drive"
@@ -640,9 +682,11 @@ def _google_drive_bootstrap():
             st.stop()
 
     except Exception as exc:
+
         st.error(
             f"❌ Google Drive не можа да бъде свързан: {exc}"
         )
+
         st.stop()
 
 def google_drive_sync():
