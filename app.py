@@ -4,7 +4,6 @@ import pandas as pd
 import datetime
 import os
 import hashlib
-import math
 import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
@@ -634,13 +633,15 @@ def _google_drive_bootstrap():
         st.stop()
 
 def google_drive_sync(force=False):
-    """Upload changed CSV files only when explicitly requested."""
+    """Sync changed CSV files to Google Drive only when explicitly requested."""
 
+    # По договорената логика Drive НЕ се вика при всяко действие/rerun.
+    # Реален upload има само при изрично force=True.
     if not force:
-        return
+        return 0
 
     if not st.session_state.get("google_drive_service_ready"):
-        return
+        return 0
 
     try:
         refresh_token = _google_drive_secret(
@@ -663,21 +664,23 @@ def google_drive_sync(force=False):
             )
 
         else:
-            return
+            return 0
 
         folder_id = st.session_state.get(
             "google_drive_folder_id"
         )
 
         if folder_id:
-            _google_drive_upload_all(
+            return _google_drive_upload_all(
                 service,
                 folder_id
             )
 
+        return 0
+
     except Exception:
         # Google Drive backup никога не трябва да чупи приложението.
-        pass
+        return -1
 
 
 # Настройки само за имената на бутоните. Каноничните категории в данните НЕ се променят.
@@ -1176,87 +1179,20 @@ def delete_trip_plan_item(item_id):
     except Exception:
         return False
 
-def _clean_map_text(value, fallback=""):
-    """Return a human-readable map text; never expose pandas NaN as text."""
-    try:
-        if pd.isna(value):
-            return fallback
-    except Exception:
-        pass
-    text = str(value).strip()
-    if text.lower() in {"nan", "none", "null", "nat"}:
-        return fallback
-    return text or fallback
-
-
-def _safe_map_coord(value, minimum, maximum):
-    """Return a finite coordinate within bounds, otherwise None."""
-    try:
-        value = float(value)
-    except (TypeError, ValueError):
-        return None
-    if not math.isfinite(value) or not (minimum <= value <= maximum):
-        return None
-    return value
-
-
 def get_map_points(t_id):
-    """Return ALL saved points for a trip.
-
-    Invalid/missing coordinates are kept here so old saved places do not
-    disappear from the favourites list. The actual map renderer filters
-    invalid coordinates before sending anything to Folium.
-    """
     try:
         df = pd.read_csv(MAP_FILE, encoding="utf-8")
-        if df.empty or "trip_id" not in df.columns:
-            return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
-
-        df = df[df["trip_id"].astype(str).str.strip() == str(t_id).strip()].copy()
-        if df.empty:
-            return df
-
-        if "lat" not in df.columns:
-            df["lat"] = float("nan")
-        if "lon" not in df.columns:
-            df["lon"] = float("nan")
-        if "title" not in df.columns:
-            df["title"] = "Запазено място"
-        else:
-            df["title"] = df["title"].apply(
-                lambda x: _clean_map_text(x, "Запазено място")
-            )
-        if "color" not in df.columns:
-            df["color"] = "green"
-
-        df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
-        df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
-        return df
-    except Exception:
+        return df[df["trip_id"] == t_id].copy()
+    except: 
         return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
-
 
 def add_map_point(t_id, lat, lon, title, color="blue"):
     try:
-        safe_lat = _safe_map_coord(lat, -90, 90)
-        safe_lon = _safe_map_coord(lon, -180, 180)
-        if safe_lat is None or safe_lon is None:
-            return False
-
         df = pd.read_csv(MAP_FILE, encoding="utf-8")
-        clean_title = _clean_map_text(title, "Запазено място")
-        row = {
-            "trip_id": str(t_id).strip(),
-            "lat": safe_lat,
-            "lon": safe_lon,
-            "title": clean_title,
-            "color": _clean_map_text(color, "blue"),
-        }
-        pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(
-            MAP_FILE, index=False, encoding="utf-8"
-        )
+        row = {"trip_id": t_id, "lat": float(lat), "lon": float(lon), "title": str(title), "color": str(color)}
+        pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(MAP_FILE, index=False, encoding="utf-8")
         return True
-    except Exception:
+    except: 
         return False
 
 
@@ -3516,18 +3452,34 @@ if st.session_state["current_trip"] is None:
     try:
         if os.path.exists(MAP_FILE):
             _mp_home = pd.read_csv(MAP_FILE, encoding="utf-8")
-            if not _mp_home.empty:
-                for _, _mpr in _mp_home.iterrows():
-                    _mtid = _clean_map_text(_mpr.get("trip_id", ""), "")
-                    _lat = _safe_map_coord(_mpr.get("lat"), -90, 90)
-                    _lon = _safe_map_coord(_mpr.get("lon"), -180, 180)
-                    if not _mtid or _lat is None or _lon is None:
+            for _, _mpr in _mp_home.iterrows():
+                try:
+                    _mtid_raw = _mpr.get("trip_id", "")
+                    _mtid = "" if pd.isna(_mtid_raw) else str(_mtid_raw).strip()
+                    if not _mtid or _mtid.lower() in {"none", "nan", "null"}:
                         continue
-                    _title = _clean_map_text(
-                        _mpr.get("title", "Запазено място"),
-                        "Запазено място"
-                    )
+
+                    _lat = pd.to_numeric(_mpr.get("lat"), errors="coerce")
+                    _lon = pd.to_numeric(_mpr.get("lon"), errors="coerce")
+                    if pd.isna(_lat) or pd.isna(_lon):
+                        continue
+                    _lat = float(_lat)
+                    _lon = float(_lon)
+                    if not (
+                        pd.notna(_lat) and pd.notna(_lon)
+                        and -90 <= _lat <= 90
+                        and -180 <= _lon <= 180
+                    ):
+                        continue
+
+                    _title_raw = _mpr.get("title", "Място")
+                    _title = "Място" if pd.isna(_title_raw) else str(_title_raw).strip()
+                    if not _title or _title.lower() == "nan":
+                        _title = "Място"
+
                     _home_map_points.append((_lat, _lon, _title, _mtid))
+                except Exception:
+                    continue
     except Exception:
         _home_map_points = []
 
@@ -3550,38 +3502,23 @@ if st.session_state["current_trip"] is None:
             control_scale=True,
         )
         for _lat, _lon, _title, _mtid in _home_map_points:
-            _display_trip = get_trip_display_name(_mtid)
             folium.Marker(
                 [_lat, _lon],
-                tooltip=_display_trip,
-                popup=(
-                    f"<b>{html.escape(_title)}</b><br>"
-                    f"{html.escape(_display_trip)}"
-                ),
+                tooltip=get_trip_display_name(_mtid),
+                popup=f"<b>{html.escape(_title)}</b><br>{html.escape(get_trip_display_name(_mtid))}",
                 icon=folium.Icon(color="green", icon="map-marker", prefix="fa"),
             ).add_to(_home_map)
 
         if len(_home_map_points) > 1:
             _home_map.fit_bounds(
                 [
-                    [
-                        min(p[0] for p in _home_map_points),
-                        min(p[1] for p in _home_map_points),
-                    ],
-                    [
-                        max(p[0] for p in _home_map_points),
-                        max(p[1] for p in _home_map_points),
-                    ],
+                    [min(p[0] for p in _home_map_points), min(p[1] for p in _home_map_points)],
+                    [max(p[0] for p in _home_map_points), max(p[1] for p in _home_map_points)],
                 ],
                 padding=(20, 20),
             )
 
-        st_folium(
-            _home_map,
-            use_container_width=True,
-            height=300,
-            key="home_my_places_map_1237"
-        )
+        st_folium(_home_map, use_container_width=True, height=300, key="home_my_places_map_1237")
     else:
         st.markdown(
             "<div class='tm-home-extra'><div class='tm-home-extra-sub'>Няма записани места за показване.</div></div>",
@@ -6991,38 +6928,33 @@ else:
     # ---------------------------------------------------------
     # SAFE MAP COORDINATES
     # Не допускаме празни/невалидни координати да чупят Folium.
+    # ВАЖНО: df_points остава пълният списък за интерфейса;
+    # df_points_map е отделно копие само за рисуване на картата.
     # ---------------------------------------------------------
-    if not df_points.empty:
-        df_points["lat"] = pd.to_numeric(df_points["lat"], errors="coerce")
-        df_points["lon"] = pd.to_numeric(df_points["lon"], errors="coerce")
-
-        # Оставяме само реални координати
-        df_points = df_points.dropna(subset=["lat", "lon"]).copy()
-
-        # Допълнителна защита срещу невалидни GPS стойности
-        df_points = df_points[
-            df_points["lat"].between(-90, 90)
-            & df_points["lon"].between(-180, 180)
+    df_points_map = df_points.copy()
+    if not df_points_map.empty:
+        df_points_map["lat"] = pd.to_numeric(df_points_map["lat"], errors="coerce")
+        df_points_map["lon"] = pd.to_numeric(df_points_map["lon"], errors="coerce")
+        df_points_map = df_points_map.dropna(subset=["lat", "lon"]).copy()
+        df_points_map = df_points_map[
+            df_points_map["lat"].between(-90, 90)
+            & df_points_map["lon"].between(-180, 180)
         ].copy()
 
-    if (
+    _map_is_new_trip = (
         "map_current_trip_id" not in st.session_state
         or st.session_state["map_current_trip_id"] != trip_id
-    ):
+    )
+    if _map_is_new_trip:
         st.session_state["map_current_trip_id"] = trip_id
+        st.session_state["trip_map_needs_fit"] = True
 
-        if not df_points.empty:
-            _map_lat = pd.to_numeric(df_points["lat"], errors="coerce").mean()
-            _map_lon = pd.to_numeric(df_points["lon"], errors="coerce").mean()
-
-            if pd.notna(_map_lat) and pd.notna(_map_lon):
-                st.session_state["stable_lat"] = float(_map_lat)
-                st.session_state["stable_lon"] = float(_map_lon)
-                st.session_state["stable_zoom"] = 8
-            else:
-                st.session_state["stable_lat"] = 42.7339
-                st.session_state["stable_lon"] = 25.4858
-                st.session_state["stable_zoom"] = 6
+        if not df_points_map.empty:
+            _map_lat = float(df_points_map["lat"].mean())
+            _map_lon = float(df_points_map["lon"].mean())
+            st.session_state["stable_lat"] = _map_lat
+            st.session_state["stable_lon"] = _map_lon
+            st.session_state["stable_zoom"] = 8
         else:
             st.session_state["stable_lat"] = 42.7339
             st.session_state["stable_lon"] = 25.4858
@@ -7055,7 +6987,7 @@ else:
     m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
     folium.LatLngPopup().add_to(m)
     
-    for _, pt in df_points.iterrows():
+    for _, pt in df_points_map.iterrows():
         _lat = pd.to_numeric(pt.get("lat"), errors="coerce")
         _lon = pd.to_numeric(pt.get("lon"), errors="coerce")
 
@@ -7078,6 +7010,18 @@ else:
             icon=folium.Icon(color=_pt_color, icon="info-sign")
         ).add_to(m)
     
+    if st.session_state.get("trip_map_needs_fit", False) and len(df_points_map) > 1:
+        m.fit_bounds(
+            [
+                [float(df_points_map["lat"].min()), float(df_points_map["lon"].min())],
+                [float(df_points_map["lat"].max()), float(df_points_map["lon"].max())],
+            ],
+            padding=(20, 20),
+        )
+        st.session_state["trip_map_needs_fit"] = False
+    elif st.session_state.get("trip_map_needs_fit", False):
+        st.session_state["trip_map_needs_fit"] = False
+
     points_count = len(df_points)
     click_state = "active" if "active_click" in st.session_state and st.session_state["active_click"] is not None else "idle"
     dynamic_map_key = f"folium_map_{trip_id}_{points_count}_{click_state}"
@@ -7099,7 +7043,6 @@ else:
             if map_data.get("zoom") is not None:
                 st.session_state["stable_zoom"] = map_data["zoom"]
             st.session_state["active_click"] = new_click
-            google_drive_sync()
             st.rerun()
             
     if "active_click" in st.session_state and st.session_state["active_click"] is not None and not trip_locked:
@@ -7412,10 +7355,8 @@ else:
                 return False
 
             if _action == "show":
-                _lat = _safe_map_coord(_df_map.loc[_row_index, "lat"], -90, 90)
-                _lon = _safe_map_coord(_df_map.loc[_row_index, "lon"], -180, 180)
-                if _lat is None or _lon is None:
-                    return False
+                _lat = float(_df_map.loc[_row_index, "lat"])
+                _lon = float(_df_map.loc[_row_index, "lon"])
                 st.session_state["stable_lat"] = _lat
                 st.session_state["stable_lon"] = _lon
                 st.session_state["stable_zoom"] = 13
@@ -7446,10 +7387,10 @@ else:
     def _render_favorites_swipe(df_points):
         _items = []
         for _fav_idx, _fav_row in df_points.iterrows():
-            _fav_title = _clean_map_text(
-                _fav_row.get("title", "Запазено място"),
-                "Запазено място"
-            )
+            _fav_title_raw = _fav_row.get("title", "Място")
+            _fav_title = "Място" if pd.isna(_fav_title_raw) else str(_fav_title_raw).strip()
+            if not _fav_title or _fav_title.lower() == "nan":
+                _fav_title = "Място"
             # Три независими визуални типа:
             # 1) търсено място в 3b, 2) ръчно запазено място, 3) GPS „Моята локация“.
             _fav_desc = UI_LABELS.get("saved_place_label", "Запазено място")
@@ -7469,19 +7410,17 @@ else:
             else:
                 _fav_pin_color = "green"
 
-            _fav_lat = _safe_map_coord(_fav_row.get("lat"), -90, 90)
-            _fav_lon = _safe_map_coord(_fav_row.get("lon"), -180, 180)
-            if _fav_lat is not None and _fav_lon is not None:
-                _fav_coords = f"📍 {_fav_lat:.5f}, {_fav_lon:.5f}"
-            else:
-                _fav_coords = "📍 Координатите липсват"
-
             _items.append({
                 "id": str(_fav_idx),
                 "title": _fav_title,
                 "desc": _fav_desc,
                 "pin_color": _fav_pin_color,
-                "coords": _fav_coords,
+                "coords": (
+                    f"📍 {float(_fav_row.get('lat')):.5f}, {float(_fav_row.get('lon')):.5f}"
+                    if pd.notna(pd.to_numeric(_fav_row.get("lat"), errors="coerce"))
+                    and pd.notna(pd.to_numeric(_fav_row.get("lon"), errors="coerce"))
+                    else "📍 Координатите липсват"
+                ),
             })
 
         return _tm_fav_component(
@@ -7675,6 +7614,32 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
             </div>
         """, unsafe_allow_html=True)
         
+        # =====================================================
+        # GOOGLE DRIVE — РЪЧНА СИНХРОНИЗАЦИЯ
+        # =====================================================
+        st.markdown("##### ☁️ Google Drive")
+        st.caption("Качва само променените CSV файлове. Не сваля и не изпраща архив по e-mail.")
+        if st.button(
+            "☁️ Синхронизирай с Google Drive",
+            use_container_width=True,
+            type="primary",
+            key="manual_google_drive_sync_btn"
+        ):
+            _sync_result = google_drive_sync(force=True)
+            if _sync_result == -1:
+                st.error("❌ Google Drive синхронизацията не успя.")
+            elif _sync_result == 0:
+                if st.session_state.get("google_drive_service_ready"):
+                    st.success("✅ Google Drive е актуален — няма нови промени за качване.")
+                else:
+                    st.warning("⚠️ Google Drive не е свързан в тази сесия.")
+            elif _sync_result == 1:
+                st.success("✅ 1 файл е синхронизиран с Google Drive.")
+            else:
+                st.success(f"✅ {_sync_result} файла са синхронизирани с Google Drive.")
+
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
         col_backup1, col_backup2 = st.columns(2)
         
    
@@ -7722,9 +7687,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                     file_name="PixelApp_Data_Backup.zip",
                     mime="application/zip",
                     use_container_width=True,
-                    key="download_all_csv_backup_btn",
-                    on_click=google_drive_sync,
-                    args=(True,),
+                    key="download_all_csv_backup_btn"
                 )
 
                 # =====================================================
@@ -7846,7 +7809,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         st.success("🎉 Данните са възстановени успешно!")
                         st.session_state["show_admin_panel"] = False
                         st.session_state["current_trip"] = None
-                        google_drive_sync()
+                        google_drive_sync(force=True)
                         st.rerun()
 
         st.markdown("---")
