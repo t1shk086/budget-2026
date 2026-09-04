@@ -2825,8 +2825,6 @@ if st.session_state["current_trip"] is None:
 
             except Exception:
                 pass
-                            except Exception:
-                pass
 
         # Последна активност — взема най-новия запис от всички разходи
         try:
