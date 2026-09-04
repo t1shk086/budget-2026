@@ -3458,14 +3458,39 @@ if st.session_state["current_trip"] is None:
                     _valid_home_trip_ids = set()
             for _, _mpr in _mp_home.iterrows():
                 try:
+                try:
                     _mtid = str(_mpr.get("trip_id", "")).strip()
-                    _lat = float(_mpr.get("lat"))
-                    _lon = float(_mpr.get("lon"))
+
                     if not _mtid or _mtid.lower() in {"none", "nan", "null"}:
                         continue
+
                     if _valid_home_trip_ids and _mtid not in _valid_home_trip_ids:
                         continue
-                    _home_map_points.append((_lat, _lon, str(_mpr.get("title", "Място")), _mtid))
+
+                    _lat_raw = _mpr.get("lat")
+                    _lon_raw = _mpr.get("lon")
+
+                    # Пропускаме места без валидни координати.
+                    if pd.isna(_lat_raw) or pd.isna(_lon_raw):
+                        continue
+
+                    _lat = float(_lat_raw)
+                    _lon = float(_lon_raw)
+
+                    # Допълнителна защита срещу nan/inf.
+                    if not pd.notna(_lat) or not pd.notna(_lon):
+                        continue
+
+                    if _lat != _lat or _lon != _lon:
+                        continue
+
+                    if abs(_lat) > 90 or abs(_lon) > 180:
+                        continue
+
+                    _home_map_points.append(
+                        (_lat, _lon, str(_mpr.get("title", "Място")), _mtid)
+                    )
+
                 except Exception:
                     continue
     except Exception:
