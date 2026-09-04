@@ -2822,20 +2822,7 @@ if st.session_state["current_trip"] is None:
                             pd.to_numeric(_hs_df["amount"], errors="coerce").fillna(0).sum()
                         )
 
-                    if "date" in _hs_df.columns:
-                        for _idx, _row in _hs_df.iterrows():
-                            try:
-                                _d = pd.to_datetime(_row["date"], dayfirst=True, errors="coerce")
-                                if pd.notna(_d) and (_last_activity_date is None or _d > _last_activity_date):
-                                    _last_activity_date = _d
-                                    _last_activity = (
-                                        str(_home_tid).replace("_", " "),
-                                        float(_row.get("amount", 0.0) or 0.0),
-                                        str(_row.get("category", "Разход")),
-                                        str(_row.get("description", "Без описание") or "Без описание")
-                                    )
-                            except Exception:
-                                pass
+
             except Exception:
                 pass
 
