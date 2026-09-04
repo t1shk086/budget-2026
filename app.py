@@ -6946,10 +6946,30 @@ else:
             st.session_state["stable_lat"] = 42.7339
             st.session_state["stable_lon"] = 25.4858
             st.session_state["stable_zoom"] = 6
+    # FINAL SAFETY CHECK - Folium не приема NaN координати
+    try:
+        _safe_lat = float(st.session_state.get("stable_lat", 42.7339))
+    except Exception:
+        _safe_lat = 42.7339
 
+    try:
+        _safe_lon = float(st.session_state.get("stable_lon", 25.4858))
+    except Exception:
+        _safe_lon = 25.4858
+
+    if pd.isna(_safe_lat) or not (-90 <= _safe_lat <= 90):
+        _safe_lat = 42.7339
+
+    if pd.isna(_safe_lon) or not (-180 <= _safe_lon <= 180):
+        _safe_lon = 25.4858
+
+    try:
+        _safe_zoom = int(st.session_state.get("stable_zoom", 6))
+    except Exception:
+        _safe_zoom = 6
     m = folium.Map(
-        location=[st.session_state["stable_lat"], st.session_state["stable_lon"]], 
-        zoom_start=st.session_state["stable_zoom"]
+        location=[_safe_lat, _safe_lon],
+        zoom_start=_safe_zoom
     )
     m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
     folium.LatLngPopup().add_to(m)
