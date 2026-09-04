@@ -260,11 +260,15 @@ def _google_drive_make_flow():
     client_id = _google_drive_secret("auth", "client_id")
     client_secret = _google_drive_secret("auth", "client_secret")
     redirect_uri = _google_drive_secret(
-        "auth", "redirect_uri", "https://pixeltravelapp.streamlit.app/?google_drive_oauth=1"
+        "auth",
+        "redirect_uri",
+        "https://pixeltravelapp.streamlit.app/?google_drive_oauth=1",
     )
 
     if not client_id or not client_secret:
-        raise RuntimeError("Липсват auth.client_id или auth.client_secret в Streamlit Secrets.")
+        raise RuntimeError(
+            "Липсват auth.client_id или auth.client_secret в Streamlit Secrets."
+        )
 
     client_config = {
         "web": {
@@ -280,7 +284,6 @@ def _google_drive_make_flow():
     flow = Flow.from_client_config(
         client_config,
         scopes=GOOGLE_DRIVE_SCOPES,
-        autogenerate_code_verifier=False,
     )
     flow.redirect_uri = redirect_uri
     return flow
@@ -306,27 +309,35 @@ def _google_drive_get_service_from_refresh_token(refresh_token):
         "token": None,
         "refresh_token": refresh_token,
     })
+
     if not creds.valid:
         from google.auth.transport.requests import Request
         creds.refresh(Request())
+
         from googleapiclient.discovery import build
         service = build("drive", "v3", credentials=creds)
+
     return service
 
 
 def _google_drive_find_or_create_folder(service):
     q = (
-        "name = '" + GOOGLE_DRIVE_FOLDER_NAME.replace("'", "\\'") + "' "
+        "name = '"
+        + GOOGLE_DRIVE_FOLDER_NAME.replace("'", "\\'")
+        + "' "
         "and mimeType = 'application/vnd.google-apps.folder' "
         "and trashed = false"
     )
+
     result = service.files().list(
         q=q,
         spaces="drive",
         fields="files(id,name)",
         pageSize=10,
     ).execute()
+
     files_found = result.get("files", [])
+
     if files_found:
         return files_found[0]["id"]
 
@@ -337,6 +348,7 @@ def _google_drive_find_or_create_folder(service):
         },
         fields="id",
     ).execute()
+
     return folder["id"]
 
 
@@ -350,7 +362,11 @@ def _google_drive_file_map(service, folder_id):
         fields="files(id,name)",
         pageSize=100,
     ).execute()
-    return {f["name"]: f["id"] for f in result.get("files", [])}
+
+    return {
+        f["name"]: f["id"]
+        for f in result.get("files", [])
+    }
 
 
 def _google_drive_download_all(service, folder_id):
@@ -358,20 +374,30 @@ def _google_drive_download_all(service, folder_id):
     from googleapiclient.http import MediaIoBaseDownload
 
     file_map = _google_drive_file_map(service, folder_id)
+
     downloaded = 0
+
     for file_name in GOOGLE_DRIVE_FILES:
         file_id = file_map.get(file_name)
+
         if not file_id:
             continue
+
         request = service.files().get_media(fileId=file_id)
+
         buffer = BytesIO()
         downloader = MediaIoBaseDownload(buffer, request)
+
         done = False
+
         while not done:
             _, done = downloader.next_chunk()
+
         Path = __import__("pathlib").Path
         Path(file_name).write_bytes(buffer.getvalue())
+
         downloaded += 1
+
     return downloaded
 
 
@@ -380,15 +406,27 @@ def _google_drive_upload_all(service, folder_id):
     from googleapiclient.http import MediaFileUpload
 
     file_map = _google_drive_file_map(service, folder_id)
+
     uploaded = 0
+
     for file_name in GOOGLE_DRIVE_FILES:
         if not os.path.exists(file_name):
             continue
-        digest = _hashlib.sha256(open(file_name, "rb").read()).hexdigest()
+
+        with open(file_name, "rb") as _f:
+            digest = _hashlib.sha256(_f.read()).hexdigest()
+
         marker_key = f"_drive_hash_{file_name}"
+
         if st.session_state.get(marker_key) == digest:
             continue
-        media = MediaFileUpload(file_name, mimetype="text/csv", resumable=False)
+
+        media = MediaFileUpload(
+            file_name,
+            mimetype="text/csv",
+            resumable=False,
+        )
+
         if file_name in file_map:
             service.files().update(
                 fileId=file_map[file_name],
@@ -396,38 +434,64 @@ def _google_drive_upload_all(service, folder_id):
             ).execute()
         else:
             service.files().create(
-                body={"name": file_name, "parents": [folder_id]},
+                body={
+                    "name": file_name,
+                    "parents": [folder_id],
+                },
                 media_body=media,
                 fields="id",
             ).execute()
+
         st.session_state[marker_key] = digest
         uploaded += 1
+
     return uploaded
 
 
 def _google_drive_bootstrap():
     """Authenticate once and load existing Drive data before local files initialize."""
+
     if st.session_state.get("google_drive_bootstrapped"):
         return True
 
-    # One-time callback from Google.
+    # ---------------------------------------------------------
+    # One-time callback from Google
+    # ---------------------------------------------------------
     code = st.query_params.get("code")
+
     if code:
         try:
             state = st.query_params.get("state")
-            expected_state = st.session_state.get("google_drive_oauth_state")
+            expected_state = st.session_state.get(
+                "google_drive_oauth_state"
+            )
 
             if expected_state and state != expected_state:
-                st.error("❌ Невалиден OAuth state. Опитай свързването отново.")
+                st.error(
+                    "❌ Невалиден OAuth state. "
+                    "Опитай свързването отново."
+                )
                 st.stop()
 
-            # Вземаме същия PKCE verifier, който беше създаден
-            # при първоначалното изпращане към Google.
+            # Вземаме същия PKCE verifier,
+            # който е създаден при изпращането към Google.
+            code_verifier = st.session_state.get(
+                "google_drive_code_verifier"
+            )
 
+            if not code_verifier:
+                st.error(
+                    "❌ Липсва OAuth code verifier. "
+                    "Започни свързването с Google Drive отначало."
+                )
+                st.stop()
 
             flow = _google_drive_make_flow()
 
-            flow.fetch_token(code=code)
+            flow.fetch_token(
+                code=code,
+                code_verifier=code_verifier,
+            )
 
             token = flow.credentials
             refresh_token = token.refresh_token
@@ -435,43 +499,105 @@ def _google_drive_bootstrap():
             st.query_params.clear()
 
             if refresh_token:
-                st.session_state["google_drive_refresh_token_new"] = refresh_token
+                st.session_state[
+                    "google_drive_refresh_token_new"
+                ] = refresh_token
 
-                # Streamlit Secrets cannot be modified by the running app.
-                # Show the token once so the user can save it in Secrets.
-                if not _google_drive_secret("google_drive", "refresh_token"):
-                    st.session_state["google_drive_show_refresh_token"] = True
+                if not _google_drive_secret(
+                    "google_drive",
+                    "refresh_token",
+                ):
+                    st.session_state[
+                        "google_drive_show_refresh_token"
+                    ] = True
 
             st.session_state["google_drive_token"] = {
                 "token": token.token,
                 "refresh_token": refresh_token,
             }
 
-            # OAuth flow-ът приключи успешно — verifier/state вече не са нужни.
-           
-            st.session_state.pop("google_drive_oauth_state", None)
+            # OAuth flow-ът приключи успешно.
+            st.session_state.pop(
+                "google_drive_code_verifier",
+                None,
+            )
+
+            st.session_state.pop(
+                "google_drive_oauth_state",
+                None,
+            )
 
         except Exception as exc:
-            st.error(f"❌ Google авторизацията не успя: {exc}")
+            st.error(
+                f"❌ Google авторизацията не успя: {exc}"
+            )
             st.stop()
 
-    refresh_token = _google_drive_secret("google_drive", "refresh_token")
-    token_info = st.session_state.get("google_drive_token")
+    # ---------------------------------------------------------
+    # Existing credentials
+    # ---------------------------------------------------------
+    refresh_token = _google_drive_secret(
+        "google_drive",
+        "refresh_token",
+    )
 
-    if st.session_state.get("google_drive_show_refresh_token") and not refresh_token:
-        new_refresh_token = st.session_state.get("google_drive_refresh_token_new", "")
+    token_info = st.session_state.get(
+        "google_drive_token"
+    )
+
+    # ---------------------------------------------------------
+    # Show refresh token if it was obtained for the first time
+    # ---------------------------------------------------------
+    if (
+        st.session_state.get(
+            "google_drive_show_refresh_token"
+        )
+        and not refresh_token
+    ):
+        new_refresh_token = st.session_state.get(
+            "google_drive_refresh_token_new",
+            "",
+        )
+
         if new_refresh_token:
-            st.success("✅ Google Drive е свързан за тази сесия.")
-            st.warning("Еднократно копирай refresh token-а в Streamlit → Settings → Secrets → [google_drive] → refresh_token. Не го изпращай в чата.")
-            st.text_area("Refresh token", value=new_refresh_token, height=110)
-            st.info("След като го запазиш в Secrets, презареди приложението. Оттам нататък Drive ще се използва автоматично и при рестарт.")
+            st.success(
+                "✅ Google Drive е свързан за тази сесия."
+            )
 
+            st.warning(
+                "Еднократно копирай refresh token-а в "
+                "Streamlit → Settings → Secrets → "
+                "[google_drive] → refresh_token. "
+                "Не го изпращай в чата."
+            )
 
+            st.text_area(
+                "Refresh token",
+                value=new_refresh_token,
+                height=110,
+            )
+
+            st.info(
+                "След като го запазиш в Secrets, "
+                "презареди приложението. "
+                "Оттам нататък Drive ще се използва "
+                "автоматично и при рестарт."
+            )
+
+    # ---------------------------------------------------------
+    # Connect / restore Google Drive
+    # ---------------------------------------------------------
     try:
         if refresh_token:
-            service = _google_drive_get_service_from_refresh_token(refresh_token)
+            service = _google_drive_get_service_from_refresh_token(
+                refresh_token
+            )
+
         elif token_info:
-            service, _ = _google_drive_get_service_from_token(token_info)
+            service, _ = _google_drive_get_service_from_token(
+                token_info
+            )
+
         else:
             flow = _google_drive_make_flow()
 
@@ -481,27 +607,43 @@ def _google_drive_bootstrap():
                 prompt="consent",
             )
 
-            # Запазваме OAuth state за проверка при връщането от Google.
-            st.session_state["google_drive_oauth_state"] = state
-            
+            # Запазваме OAuth state и PKCE verifier.
+            st.session_state[
+                "google_drive_oauth_state"
+            ] = state
 
-            st.markdown("### ☁️ Свързване с Google Drive")
-            st.write(
-                "За да запазваме данните автоматично при рестарт, "
-                "първо разреши достъп до Google Drive."
+            st.session_state[
+                "google_drive_code_verifier"
+            ] = flow.code_verifier
+
+            st.markdown(
+                "### ☁️ Свързване с Google Drive"
             )
+
+            st.write(
+                "За да запазваме данните автоматично "
+                "при рестарт, първо разреши достъп "
+                "до Google Drive."
+            )
+
             st.link_button(
                 "🔐 Свържи Google Drive",
                 authorization_url,
                 use_container_width=True,
             )
-            st.info("След разрешението ще се върнеш автоматично в Travel Manager.")
+
+            st.info(
+                "След разрешението ще се върнеш "
+                "автоматично в Travel Manager."
+            )
+
             st.stop()
 
     except Exception as exc:
-        st.error(f"❌ Google Drive не можа да бъде свързан: {exc}")
+        st.error(
+            f"❌ Google Drive не можа да бъде свързан: {exc}"
+        )
         st.stop()
-
 
 def google_drive_sync():
     """Upload changed CSV files after the app has finished processing the current action."""
