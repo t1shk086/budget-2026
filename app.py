@@ -1,5 +1,6 @@
 # Изтеглете файла от линка по-горе или копирайте целия код отдолу:
 import streamlit as st
+APP_BUILD_MARKER = "GALLERY_BOTTOM_SINGLE_CLICK_V15_PERFORMANCE"
 import pandas as pd
 import datetime
 import os
@@ -12,7 +13,7 @@ import html
 import textwrap
 import streamlit.components.v1 as components
 import re
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 import requests
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
@@ -229,6 +230,38 @@ TRIP_PLAN_FILE = "trip_plan_2026.csv"
 
 
 # =========================================================
+# PERFORMANCE — FAST CSV READ CACHE
+# Streamlit reruns the script after every interaction. Cache repeated CSV
+# reads and invalidate automatically when a file changes on disk.
+# =========================================================
+@st.cache_data(show_spinner=False)
+def _read_csv_cached(_filename, _mtime_ns, _size):
+    return pd.read_csv(_filename, encoding="utf-8")
+
+
+def _read_csv_fast(filename, encoding="utf-8"):
+    _stat = os.stat(filename)
+    return _read_csv_cached(filename, int(_stat.st_mtime_ns), int(_stat.st_size))
+
+
+def _remove_trip_from_csv(filename, trip_id):
+    """Remove one trip from a CSV with one read + one write."""
+    if not os.path.exists(filename):
+        return False
+    try:
+        df = _read_csv_fast(filename)
+        if "trip_id" not in df.columns:
+            return False
+        mask = df["trip_id"].astype(str) != str(trip_id)
+        if bool(mask.all()):
+            return False
+        df.loc[mask].to_csv(filename, index=False, encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+
+# =========================================================
 # GOOGLE DRIVE — PERSISTENT DATA STORAGE
 # =========================================================
 # Данните остават в Google Drive при рестарт/redeploy на Streamlit.
@@ -427,7 +460,8 @@ def _google_drive_upload_all(service, folder_id):
     import hashlib as _hashlib
     from googleapiclient.http import MediaFileUpload
 
-    file_map = _google_drive_file_map(service, folder_id)
+    # Cached Drive file IDs: do not list the folder on every UI click.
+    file_map = dict(st.session_state.get("google_drive_file_map", {}) or {})
 
     uploaded = 0
 
@@ -606,6 +640,7 @@ def _google_drive_bootstrap():
                 service,
                 folder_id
             )
+            st.session_state["google_drive_file_map"] = dict(file_map)
 
             if any(
                 name in file_map
@@ -621,6 +656,7 @@ def _google_drive_bootstrap():
         # ---------------------------------------------------------
         # ВАЖНОТО: това липсваше и затова sync() не правеше нищо
         # ---------------------------------------------------------
+        st.session_state["google_drive_service"] = service
         st.session_state["google_drive_service_ready"] = True
         st.session_state["google_drive_bootstrapped"] = True
 
@@ -639,26 +675,12 @@ def google_drive_sync():
         return
 
     try:
-        refresh_token = _google_drive_secret(
-            "google_drive",
-            "refresh_token"
-        )
-
-        token_info = st.session_state.get(
-            "google_drive_token"
-        )
-
-        if refresh_token:
-            service = _google_drive_get_service_from_refresh_token(
-                refresh_token
-            )
-
-        elif token_info:
-            service, _ = _google_drive_get_service_from_token(
-                token_info
-            )
-
-        else:
+        # Reuse the authenticated Drive client. Re-authentication on every
+        # click was causing the noticeable delay after Drive was connected.
+        service = st.session_state.get("google_drive_service")
+        if service is None:
+            service = _google_drive_ready_service()
+        if service is None:
             return
 
         folder_id = st.session_state.get(
@@ -691,7 +713,7 @@ def get_ui_labels():
     labels = DEFAULT_UI_LABELS.copy()
     try:
         if os.path.exists(LABELS_FILE):
-            df = pd.read_csv(LABELS_FILE, encoding="utf-8")
+            df = _read_csv_fast(LABELS_FILE, encoding="utf-8")
             if not df.empty:
                 row = df.iloc[0]
                 for key in labels:
@@ -756,7 +778,7 @@ for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description",
 # само за пътувания без автомобил. Старите записи не се променят.
 try:
     if os.path.exists(SETTINGS_FILE):
-        _settings_migration = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        _settings_migration = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
         if "trip_finished" not in _settings_migration.columns:
             _settings_migration["trip_finished"] = "Не"
             _settings_migration.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
@@ -769,18 +791,48 @@ def get_emoji(cat):
 
 def get_trip_data(t_id):
     try:
-        df = pd.read_csv(DATA_FILE, encoding="utf-8")
-        r = df[df["trip_id"] == t_id].copy()
-        if "liters" not in r.columns: r["liters"] = 0.0
-        if "current_km" not in r.columns: r["current_km"] = 0.0
+        df = _read_csv_fast(DATA_FILE, encoding="utf-8")
+        r = df[df["trip_id"].astype(str) == str(t_id)].copy()
+
+        # Backward compatibility: older budget_data CSV files may not have
+        # the "type" column.  Normalize the schema here so every caller can
+        # safely use r["type"] without KeyError.
+        if "type" not in r.columns:
+            r["type"] = "expense"
+            if "category" in r.columns:
+                r.loc[
+                    r["category"].astype(str).str.strip().eq("Депозит/Резервация"),
+                    "type"
+                ] = "deposit"
+
+        if "trip_id" not in r.columns:
+            r["trip_id"] = str(t_id)
+        if "date" not in r.columns:
+            r["date"] = ""
+        if "amount" not in r.columns:
+            r["amount"] = 0.0
+        if "category" not in r.columns:
+            r["category"] = "Други"
+        if "description" not in r.columns:
+            r["description"] = ""
+        if "liters" not in r.columns:
+            r["liters"] = 0.0
+        if "current_km" not in r.columns:
+            r["current_km"] = 0.0
+
         return r
-    except: 
-        return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters","current_km"])
+    except Exception:
+        return pd.DataFrame(
+            columns=[
+                "trip_id","date","amount","category","description",
+                "type","liters","current_km"
+            ]
+        )
 
 def get_trip_settings(t_id):
     d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": "", "trip_finished": "Не"}
     try:
-        df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        df = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
         f = df[df["trip_id"] == t_id]
         if not f.empty:
             res = f.iloc[0].to_dict()
@@ -821,19 +873,19 @@ def get_unique_trip_id(base_id):
         if os.path.exists(DATA_FILE):
             existing_ids.update(
                 str(x).strip()
-                for x in pd.read_csv(DATA_FILE, encoding="utf-8")["trip_id"].dropna().unique()
+                for x in _read_csv_fast(DATA_FILE, encoding="utf-8")["trip_id"].dropna().unique()
             )
 
         if os.path.exists(SETTINGS_FILE):
             existing_ids.update(
                 str(x).strip()
-                for x in pd.read_csv(SETTINGS_FILE, encoding="utf-8")["trip_id"].dropna().unique()
+                for x in _read_csv_fast(SETTINGS_FILE, encoding="utf-8")["trip_id"].dropna().unique()
             )
 
         if os.path.exists(CATEGORY_BUDGETS_FILE):
             existing_ids.update(
                 str(x).strip()
-                for x in pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")["trip_id"].dropna().unique()
+                for x in _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")["trip_id"].dropna().unique()
             )
     except Exception:
         existing_ids = set()
@@ -866,7 +918,7 @@ def rename_trip(old_id, new_name):
         for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, TRIP_PLAN_FILE, CATEGORY_BUDGETS_FILE]:
             if os.path.exists(file_name):
                 try:
-                    df_tmp = pd.read_csv(file_name, encoding="utf-8")
+                    df_tmp = _read_csv_fast(file_name, encoding="utf-8")
                     if "trip_id" in df_tmp.columns:
                         all_ids.update(
                             str(x).strip()
@@ -893,7 +945,7 @@ def rename_trip(old_id, new_name):
                 continue
 
             try:
-                df_tmp = pd.read_csv(file_name, encoding="utf-8")
+                df_tmp = _read_csv_fast(file_name, encoding="utf-8")
                 if "trip_id" in df_tmp.columns:
                     df_tmp.loc[df_tmp["trip_id"].astype(str) == old_id, "trip_id"] = new_id
 
@@ -936,7 +988,7 @@ def rename_trip(old_id, new_name):
 
 def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d="", trip_finished=None):
     try:
-        df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        df = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
         old_rows = df[df["trip_id"] == t_id]
         old_finished = str(old_rows.iloc[0].get("trip_finished", "Не")) if not old_rows.empty else "Не"
         df = df[df["trip_id"] != t_id]
@@ -954,7 +1006,7 @@ def save_trip_settings(t_id, c_t, t_f, s_k, e_k, m_f=0.0, s_d="", e_d="", trip_f
 
 def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
     try:
-        df = pd.read_csv(DATA_FILE, encoding="utf-8")
+        df = _read_csv_fast(DATA_FILE, encoding="utf-8")
         if "current_km" not in df.columns: df["current_km"] = 0.0
         row = {"trip_id": t_id, "date": datetime.datetime.now().strftime("%d.%m %H:%M"), "amount": float(amt), "category": cat, "description": desc if desc else "Без описание", "type": "deposit" if is_dep else "expense", "liters": float(lit), "current_km": float(c_km)}
         pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(DATA_FILE, index=False, encoding="utf-8")
@@ -1090,15 +1142,22 @@ def _google_drive_delete_photo(service, file_id):
 def _google_drive_ready_service():
     if not st.session_state.get("google_drive_service_ready"):
         return None
+
+    cached_service = st.session_state.get("google_drive_service")
+    if cached_service is not None:
+        return cached_service
+
     refresh_token = _google_drive_secret("google_drive", "refresh_token")
     token_info = st.session_state.get("google_drive_token")
     if refresh_token:
-        return _google_drive_get_service_from_refresh_token(refresh_token)
+        service = _google_drive_get_service_from_refresh_token(refresh_token)
+        st.session_state["google_drive_service"] = service
+        return service
     if token_info:
         service, _ = _google_drive_get_service_from_token(token_info)
+        st.session_state["google_drive_service"] = service
         return service
     return None
-
 
 def show_trip_gallery(trip_id):
     st.markdown("""
@@ -1131,27 +1190,45 @@ def show_trip_gallery(trip_id):
     if uploaded_files and st.button("☁️ КАЧИ СНИМКИТЕ", use_container_width=True, type="primary", key=f"upload_trip_gallery_{trip_id}"):
         count = _google_drive_upload_trip_photos(service, trip_id, uploaded_files)
         if count:
+            st.session_state.pop(f"gallery_meta_{trip_id}", None)
+            st.session_state.pop(f"gallery_bytes_{trip_id}", None)
             st.success(f"✅ Качени снимки: {count}")
             st.rerun()
         else:
             st.error("❌ Снимките не успяха да се качат.")
 
+    # Photo metadata and bytes are cached per session. Without this cache the
+    # trip page made a Drive list + one Drive download request for every photo
+    # on every Streamlit rerun, which made the page feel extremely slow.
+    _gallery_meta_key = f"gallery_meta_{trip_id}"
+    _gallery_bytes_key = f"gallery_bytes_{trip_id}"
     try:
-        photos = _google_drive_list_trip_photos(service, trip_id)
+        photos = st.session_state.get(_gallery_meta_key)
+        if photos is None:
+            photos = _google_drive_list_trip_photos(service, trip_id)
+            st.session_state[_gallery_meta_key] = photos
     except Exception:
         photos = []
+
     if not photos:
         st.caption("Все още няма снимки за това пътуване. Добави първите от бутона по-горе.")
         return
+
+    _gallery_bytes = st.session_state.setdefault(_gallery_bytes_key, {})
 
     for start in range(0, len(photos), 3):
         cols = st.columns(3)
         for col, photo in zip(cols, photos[start:start + 3]):
             with col:
                 try:
-                    st.image(_google_drive_download_photo(service, photo["id"]), use_container_width=True, caption=str(photo.get("name", "Снимка")))
-                    if st.button("🗑️ Изтрий", use_container_width=True, key=f"delete_gallery_photo_{trip_id}_{photo['id']}"):
-                        if _google_drive_delete_photo(service, photo["id"]):
+                    _photo_id = photo["id"]
+                    if _photo_id not in _gallery_bytes:
+                        _gallery_bytes[_photo_id] = _google_drive_download_photo(service, _photo_id)
+                    st.image(_gallery_bytes[_photo_id], use_container_width=True, caption=str(photo.get("name", "Снимка")))
+                    if st.button("🗑️ Изтрий", use_container_width=True, key=f"delete_gallery_photo_{trip_id}_{_photo_id}"):
+                        if _google_drive_delete_photo(service, _photo_id):
+                            _gallery_bytes.pop(_photo_id, None)
+                            st.session_state.pop(_gallery_meta_key, None)
                             st.rerun()
                         else:
                             st.error("Снимката не можа да бъде изтрита.")
@@ -1167,7 +1244,7 @@ def get_category_budgets(t_id):
     try:
         if not os.path.exists(CATEGORY_BUDGETS_FILE):
             return result
-        df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+        df = _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")
         if df.empty or not {"trip_id", "category", "budget"}.issubset(df.columns):
             return result
         rows = df[df["trip_id"].astype(str) == str(t_id)]
@@ -1186,7 +1263,7 @@ def get_global_budget(t_id):
     try:
         if not os.path.exists(CATEGORY_BUDGETS_FILE):
             return 0.0
-        df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+        df = _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")
         if df.empty or not {"trip_id", "category", "budget"}.issubset(df.columns):
             return 0.0
         rows = df[(df["trip_id"].astype(str) == str(t_id)) & (df["category"].astype(str) == "__GLOBAL__")]
@@ -1200,7 +1277,7 @@ def save_global_budget(t_id, amount):
     try:
         columns = ["trip_id", "category", "budget"]
         if os.path.exists(CATEGORY_BUDGETS_FILE):
-            df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+            df = _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")
             if not set(columns).issubset(df.columns):
                 df = pd.DataFrame(columns=columns)
         else:
@@ -1220,7 +1297,7 @@ def save_category_budgets(t_id, budgets):
     try:
         columns = ["trip_id", "category", "budget"]
         if os.path.exists(CATEGORY_BUDGETS_FILE):
-            df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+            df = _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")
             if not set(columns).issubset(df.columns):
                 df = pd.DataFrame(columns=columns)
         else:
@@ -1258,7 +1335,7 @@ def save_budget_config(t_id, mode, total_amount=None, budgets=None):
     try:
         columns = ["trip_id", "category", "budget"]
         if os.path.exists(CATEGORY_BUDGETS_FILE):
-            df = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+            df = _read_csv_fast(CATEGORY_BUDGETS_FILE, encoding="utf-8")
             if not set(columns).issubset(df.columns):
                 df = pd.DataFrame(columns=columns)
         else:
@@ -1325,7 +1402,7 @@ def get_trip_plan(t_id):
     try:
         if not os.path.exists(TRIP_PLAN_FILE):
             return pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"])
-        df = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        df = _read_csv_fast(TRIP_PLAN_FILE, encoding="utf-8")
         if df.empty:
             return df
         df = df[df["trip_id"].astype(str) == str(t_id)].copy()
@@ -1340,7 +1417,7 @@ def add_trip_plan_item(t_id, title):
     try:
         if not title.strip():
             return False
-        df = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        df = _read_csv_fast(TRIP_PLAN_FILE, encoding="utf-8")
         if df.empty:
             df = pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"])
         new_id = f"{t_id}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}"
@@ -1359,7 +1436,7 @@ def update_trip_plan(df_plan):
 
 def delete_trip_plan_item(item_id):
     try:
-        df = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        df = _read_csv_fast(TRIP_PLAN_FILE, encoding="utf-8")
         df = df[df["item_id"].astype(str) != str(item_id)]
         df.to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
         return True
@@ -1367,15 +1444,48 @@ def delete_trip_plan_item(item_id):
         return False
 
 def get_map_points(t_id):
+    """Return map points with a stable schema even when an older CSV is used.
+
+    Older versions of the app can have a map CSV without title/color (or even
+    with only a subset of the columns).  Every caller expects these columns,
+    so normalize the frame here instead of crashing with KeyError during a
+    normal page render.
+    """
+    _columns = ["trip_id", "lat", "lon", "title", "color"]
     try:
-        df = pd.read_csv(MAP_FILE, encoding="utf-8")
-        return df[df["trip_id"] == t_id].copy()
-    except: 
-        return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
+        if not os.path.exists(MAP_FILE):
+            return pd.DataFrame(columns=_columns)
+
+        df = _read_csv_fast(MAP_FILE, encoding="utf-8")
+        if df is None or df.empty:
+            return pd.DataFrame(columns=_columns)
+
+        # Legacy files may use different/missing columns. Add what the UI needs.
+        for _col in _columns:
+            if _col not in df.columns:
+                if _col == "color":
+                    df[_col] = "blue"
+                elif _col == "title":
+                    df[_col] = ""
+                else:
+                    df[_col] = ""
+
+        # Legacy CSVs may contain coordinates as strings (including values
+        # imported through Google Drive). Normalize them before any numeric
+        # operation such as mean() or Folium marker placement.
+        df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
+        df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
+        df = df.dropna(subset=["lat", "lon"]).copy()
+
+        _trip_series = df["trip_id"].astype(str).str.strip()
+        _wanted_trip = str(t_id).strip()
+        return df.loc[_trip_series == _wanted_trip, _columns].copy()
+    except Exception:
+        return pd.DataFrame(columns=_columns)
 
 def add_map_point(t_id, lat, lon, title, color="blue"):
     try:
-        df = pd.read_csv(MAP_FILE, encoding="utf-8")
+        df = _read_csv_fast(MAP_FILE, encoding="utf-8")
         row = {"trip_id": t_id, "lat": float(lat), "lon": float(lon), "title": str(title), "color": str(color)}
         pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(MAP_FILE, index=False, encoding="utf-8")
         return True
@@ -1582,206 +1692,30 @@ def _render_task_swipe(items):
 # HOME TRIPS — swipe left to reveal delete, without changing
 # the existing trip-card design. Tap/click still opens the trip.
 # =========================================================
-_HOME_TRIP_HTML = """
-<div id="tm-home-trip-root"></div>
-"""
-
-_HOME_TRIP_CSS = """
-#tm-home-trip-root { width:100%; margin:0; padding:0; }
-.tm-home-trip { position:relative; overflow:hidden; width:100%; min-height:108px; border-radius:16px; }
-.tm-home-trip-delete { position:absolute; right:0; top:0; bottom:0; width:76px; display:none; align-items:center; justify-content:center; background:#3a171b; color:#ff7777; font-size:11px; font-weight:700; cursor:pointer; user-select:none; -webkit-user-select:none; z-index:0; pointer-events:auto; }
-.tm-home-trip-row { position:relative; z-index:2; width:100%; min-height:108px; box-sizing:border-box; padding:14px 16px 24px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.085); border-left:3px solid rgba(0,242,254,.42); background:var(--tm-card-bg); box-shadow:0 8px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.025); color:#fff; text-align:left; font-family:inherit; font-size:14px; font-weight:500; line-height:1.45; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; touch-action:pan-y; user-select:none; -webkit-user-select:none; cursor:pointer; }
-.tm-home-trip-row:hover { border-color:rgba(0,242,254,.24); border-left-color:rgba(0,242,254,.82); background:var(--tm-card-hover-bg); box-shadow:0 12px 30px rgba(0,0,0,.30), 0 0 18px rgba(0,242,254,.055); transform:translateY(-2px); }
-.tm-home-trip-content { width:100%; white-space:pre-wrap; }
-.tm-home-trip-title { font-size:14px; font-weight:800; line-height:1.35; }
-.tm-home-trip-spent { font-size:14px; font-weight:700; }
-.tm-home-trip-pct { font-size:14px; font-weight:700; }
-.tm-home-trip-remaining { font-size:14px; font-weight:700; }
-@media(max-width:640px) {
-    .tm-home-trip { min-height:102px; }
-    .tm-home-trip-row { min-height:102px; padding:12px 14px 23px 14px; border-radius:16px; font-size:14px; }
-}
-"""
-
-_HOME_TRIP_JS = r"""
-export default function(component) {
-    const { parentElement, data, setTriggerValue } = component;
-    const root = parentElement.querySelector('#tm-home-trip-root');
-    const item = data?.item || {};
-    const id = String(item.id ?? '');
-    const openText = String(item.open_text ?? '');
-    const title = String(item.title ?? '');
-    const status = String(item.status ?? '');
-    const dates = String(item.dates ?? '');
-    const spent = String(item.spent ?? '');
-    const budget = String(item.budget ?? '');
-    const pct = String(item.pct ?? '');
-    const remaining = String(item.remaining ?? '');
-    const hasBudget = !!item.has_budget;
-    const gradient = String(item.gradient ?? '');
-    const hoverGradient = String(item.hover_gradient ?? gradient);
-
-    function esc(value) {
-        return String(value ?? '').replace(/[&<>\"']/g, function(c) {
-            return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];
-        });
-    }
-
-    function emit(action) {
-        setTriggerValue('action', {
-            action: action,
-            id: id,
-            event_id: String(Date.now()) + '_' + Math.random().toString(36).slice(2)
-        });
-    }
-
-    root.innerHTML = '';
-    const card = document.createElement('div');
-    card.className = 'tm-home-trip';
-    card.innerHTML =
-        '<div class="tm-home-trip-row" style="--tm-card-bg:' + esc(gradient) + ';--tm-card-hover-bg:' + esc(hoverGradient) + '">' +
-        '<div class="tm-home-trip-content">' +
-        '<div>🚙  <span class="tm-home-trip-title">' + esc(title) + '</span></div>' +
-        '<div>' + esc(status) + (dates ? ' · ' + esc(dates) : '') + '</div>' +
-        (hasBudget
-            ? '<br><div><span class="tm-home-trip-spent">€' + esc(spent) + '</span> / €' + esc(budget) + '    <span class="tm-home-trip-pct">' + esc(pct) + '%</span></div>' +
-              '<div>💳 Остават <span class="tm-home-trip-remaining">€' + esc(remaining) + '</span></div>'
-            : '<br><div>Без зададен бюджет</div>') +
-        '</div></div>';
-
-    const row = card.querySelector('.tm-home-trip-row');
-    let del = null;
-    let sx = 0, sy = 0, dx = 0, moved = false, dragging = false;
-    let open = false;
-
-    function createDeleteLayer() {
-        if (del) return;
-        del = document.createElement('div');
-        del.className = 'tm-home-trip-delete';
-        del.textContent = '🗑️ Изтрий';
-        del.addEventListener('click', function(e) {
-            e.stopPropagation();
-            emit('delete');
-        });
-        card.appendChild(del);
-    }
-
-    function showDeleteLayer() {
-        createDeleteLayer();
-        del.style.display = 'flex';
-    }
-
-    function removeDeleteLayer() {
-        if (del) {
-            del.remove();
-            del = null;
-        }
-        row.style.transform = 'translateX(0)';
-    }
-
-    row.addEventListener('pointerdown', function(e) {
-        sx = e.clientX;
-        sy = e.clientY;
-        dx = 0;
-        moved = false;
-        dragging = true;
-        try { row.setPointerCapture(e.pointerId); } catch (_) {}
-        row.style.transition = 'none';
-    });
-
-    row.addEventListener('pointermove', function(e) {
-        if (!dragging) return;
-        const tx = e.clientX - sx;
-        const ty = e.clientY - sy;
-        if (Math.abs(ty) > Math.abs(tx) && Math.abs(ty) > 8) return;
-        dx = tx;
-        if (tx < 0) {
-            moved = true;
-            if (tx < -10) showDeleteLayer();
-            row.style.transform = 'translateX(' + Math.max(-76, tx) + 'px)';
-        } else if (open) {
-            moved = true;
-            row.style.transform = 'translateX(' + Math.min(0, -76 + tx) + 'px)';
-        }
-    });
-
-    row.addEventListener('pointerup', function(e) {
-        if (!dragging) return;
-        dragging = false;
-        try { row.releasePointerCapture(e.pointerId); } catch (_) {}
-        row.style.transition = 'transform .16s ease';
-        if (dx < -35) {
-            open = true;
-            showDeleteLayer();
-            row.style.transform = 'translateX(-76px)';
-        } else if (dx > 35 && open) {
-            open = false;
-            row.style.transform = 'translateX(0)';
-            removeDeleteLayer();
-        }
-        dx = 0;
-    });
-
-    row.addEventListener('pointercancel', function() {
-        dragging = false;
-        dx = 0;
-        moved = false;
-        row.style.transition = 'transform .16s ease';
-        removeDeleteLayer();
-    });
-
-    row.addEventListener('click', function(e) {
-        if (moved) {
-            moved = false;
-            return;
-        }
-        if (open) {
-            open = false;
-            row.style.transform = 'translateX(0)';
-            removeDeleteLayer();
-            return;
-        }
-        emit('open');
-    });
-
-    removeDeleteLayer();
-    root.appendChild(card);
-}
-"""
-
-_tm_home_trip_component = st.components.v2.component(
-    name="pixelapp_home_trip_swipe_v2",
-    html=_HOME_TRIP_HTML,
-    css=_HOME_TRIP_CSS,
-    js=_HOME_TRIP_JS,
-)
-
-def _handle_home_trip_swipe_action():
-    try:
-        for _k, _state in list(st.session_state.items()):
-            if not str(_k).startswith("tmHomeTripSwipe_"):
-                continue
-            _event = getattr(_state, "action", None)
-            if not isinstance(_event, dict):
-                continue
-            _action = str(_event.get("action", ""))
-            _item_id = str(_event.get("id", ""))
-            if not _item_id:
-                continue
-            if _action == "open":
-                st.session_state["current_trip"] = _item_id
-                return
-            if _action == "delete":
-                st.session_state["home_trip_pending_delete"] = _item_id
-                return
-    except Exception:
-        pass
-
-
-
+# Legacy swipe/touch home-trip component removed in V12.
+# Trip cards now use only native Streamlit buttons: one click = open.
 
 if "current_trip" not in st.session_state: st.session_state["current_trip"] = None
 if "form_version" not in st.session_state: st.session_state["form_version"] = 0
+
+# =========================================================
+# DEPLOYMENT BUILD: V13 - HTML trip links + cached Drive client
+# =========================================================
+# DIRECT TRIP NAVIGATION — 1 CLICK, WITHOUT FOCUS/SELECTION
+# A normal Streamlit button can first receive browser focus on some
+# touch/mouse combinations.  Trip cards therefore use a real link
+# with an internal query parameter.  The click navigates immediately;
+# on the next run we convert the parameter into current_trip.
+# =========================================================
+_open_trip_param = st.query_params.get("open_trip")
+if _open_trip_param:
+    _open_trip_param = unquote(str(_open_trip_param))
+    if _open_trip_param.strip():
+        st.session_state["current_trip"] = _open_trip_param.strip()
+        try:
+            st.query_params.pop("open_trip", None)
+        except Exception:
+            pass
 
 # Временно отключване на заключването на приключено пътуване.
 # end_km и статусът „Приключено“ НЕ се променят.
@@ -1804,7 +1738,7 @@ def get_finished_trip_ids():
 
     try:
         if os.path.exists(SETTINGS_FILE):
-            df_settings = pd.read_csv(
+            df_settings = _read_csv_fast(
                 SETTINGS_FILE,
                 encoding="utf-8"
             )
@@ -1861,7 +1795,7 @@ def get_finished_trip_ids():
 
 def _navigate_fuel(direction, trip_id):
     try:
-        df_nav = pd.read_csv(DATA_FILE, encoding="utf-8")
+        df_nav = _read_csv_fast(DATA_FILE, encoding="utf-8")
         df_nav = df_nav[(df_nav["trip_id"] == trip_id) & (df_nav["category"] == "Транспорт")].copy()
 
         # Зареждане е или нормален запис с литри, или ръчно добавено
@@ -1891,7 +1825,7 @@ def _navigate_fuel(direction, trip_id):
 
 def _toggle_plan_item(item_id):
     try:
-        df_plan = pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")
+        df_plan = _read_csv_fast(TRIP_PLAN_FILE, encoding="utf-8")
         mask = df_plan["item_id"].astype(str) == str(item_id)
         if mask.any():
             current = bool(df_plan.loc[mask, "done"].iloc[0])
@@ -1934,15 +1868,15 @@ if st.session_state["current_trip"] is None:
     # Пътуване се счита за съществуващо и без разход:
     # пазим го в SETTINGS_FILE още при създаването, а бюджетът е отделно в CATEGORY_BUDGETS_FILE.
     _trip_ids_data = (
-        list(pd.read_csv(DATA_FILE)["trip_id"].dropna().unique())
+        list(_read_csv_fast(DATA_FILE)["trip_id"].dropna().unique())
         if os.path.exists(DATA_FILE) else []
     )
     _trip_ids_settings = (
-        list(pd.read_csv(SETTINGS_FILE)["trip_id"].dropna().unique())
+        list(_read_csv_fast(SETTINGS_FILE)["trip_id"].dropna().unique())
         if os.path.exists(SETTINGS_FILE) else []
     )
     _trip_ids_budget = (
-        list(pd.read_csv(CATEGORY_BUDGETS_FILE)["trip_id"].dropna().unique())
+        list(_read_csv_fast(CATEGORY_BUDGETS_FILE)["trip_id"].dropna().unique())
         if os.path.exists(CATEGORY_BUDGETS_FILE) else []
     )
     existing = list(dict.fromkeys(
@@ -2409,20 +2343,14 @@ if st.session_state["current_trip"] is None:
         with c_tr1:
             if st.button("✔️ ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary", key=f"home_confirm_delete_{_home_trip_id}"):
                 try:
-                    if os.path.exists(DATA_FILE):
-                        pd.read_csv(DATA_FILE, encoding="utf-8")[lambda d: d["trip_id"] != _home_trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(SETTINGS_FILE):
-                        pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != _home_trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(TRIP_PLAN_FILE):
-                        pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")[lambda d: d["trip_id"] != _home_trip_id].to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(CATEGORY_BUDGETS_FILE):
-                        df_budget_delete = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
-                        if "trip_id" in df_budget_delete.columns:
-                            df_budget_delete[df_budget_delete["trip_id"].astype(str) != str(_home_trip_id)].to_csv(CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(MAP_FILE):
-                        df_map_delete = pd.read_csv(MAP_FILE, encoding="utf-8")
-                        if "trip_id" in df_map_delete.columns:
-                            df_map_delete[df_map_delete["trip_id"].astype(str) != str(_home_trip_id)].to_csv(MAP_FILE, index=False, encoding="utf-8")
+                    for _delete_file in (
+                        DATA_FILE,
+                        SETTINGS_FILE,
+                        TRIP_PLAN_FILE,
+                        CATEGORY_BUDGETS_FILE,
+                        MAP_FILE,
+                    ):
+                        _remove_trip_from_csv(_delete_file, _home_trip_id)
                 except Exception:
                     pass
                 st.session_state["current_trip"] = None
@@ -2432,7 +2360,6 @@ if st.session_state["current_trip"] is None:
         with c_tr2:
             if st.button("✖️ ОТКАЗ", use_container_width=True, key=f"home_cancel_delete_{_home_trip_id}"):
                 st.session_state["home_trip_pending_delete"] = None
-                google_drive_sync()
                 st.rerun()
 
     # Бърз разход — първи и най-лесен за достигане.
@@ -2678,6 +2605,28 @@ if st.session_state["current_trip"] is None:
 
             # Един контейнер и един бутон за всяко пътуване.
             with st.container():
+                _home_trip_bg = (
+                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
+                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                    f"linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+                ) if _budget > 0 else (
+                    "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
+                    "radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                    "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+                )
+                _home_trip_hover_bg = (
+                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
+                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                    f"linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+                ) if _budget > 0 else (
+                    "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
+                    "radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                    "linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+                )
+
+
                 st.markdown(
                     f"""
                     <style>
@@ -2740,6 +2689,33 @@ if st.session_state["current_trip"] is None:
                         margin-left:0 !important;
                         padding-left:0 !important;
                     }}
+                    /* HTML card used for navigation: no Streamlit focus state */
+                    a.tm-trip-open-card {{
+                        display:block !important;
+                        width:100% !important;
+                        min-height:148px !important;
+                        box-sizing:border-box !important;
+                        padding:16px 18px 28px 18px !important;
+                        border-radius:20px !important;
+                        border:1px solid rgba(255,255,255,.085) !important;
+                        border-left:3px solid rgba(0,242,254,.42) !important;
+                        background:{_home_trip_bg} !important;
+                        box-shadow:0 8px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.025) !important;
+                        color:#fff !important;
+                        text-decoration:none !important;
+                    }}
+                    a.tm-trip-open-card:hover, a.tm-trip-open-card:focus {{
+                        border-color:rgba(0,242,254,.24) !important;
+                        border-left-color:rgba(0,242,254,.82) !important;
+                        background:{_home_trip_hover_bg} !important;
+                        box-shadow:0 12px 30px rgba(0,0,0,.30), 0 0 18px rgba(0,242,254,.055) !important;
+                        transform:translateY(-2px) !important;
+                        outline:none !important;
+                    }}
+                    .tm-trip-open-title {{ color:#fff !important; font-size:15px !important; font-weight:800 !important; line-height:1.52 !important; }}
+                    .tm-trip-open-status {{ color:#fff !important; font-size:15px !important; font-weight:500 !important; line-height:1.52 !important; margin-top:2px !important; }}
+                    .tm-trip-open-spacer {{ height:12px !important; }}
+                    .tm-trip-open-budget {{ color:#fff !important; font-size:15px !important; font-weight:500 !important; line-height:1.52 !important; }}
                     @media(max-width:640px) {{
                         {_card_selector} button {{
                             min-height:140px !important;
@@ -2752,6 +2728,7 @@ if st.session_state["current_trip"] is None:
                     """,
                     unsafe_allow_html=True
                 )
+
 
                 _remaining_card = max(0.0, _budget - _spent) if _budget > 0 else 0.0
                 if _budget > 0:
@@ -2770,63 +2747,32 @@ if st.session_state["current_trip"] is None:
                         f"Без зададен бюджет"
                     )
 
-                _home_trip_bg = (
-                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
-                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
-                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
-                    f"linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
-                ) if _budget > 0 else (
-                    "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
-                    "radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
-                    "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+
+                # =========================================================
+                # 1 CLICK = OPEN — PURE HTML LINK
+                # No Streamlit button/link_button is used for trip cards.
+                # This removes the focus/highlight state seen on first click.
+                # =========================================================
+                _trip_open_url = "?open_trip=" + quote(_trip_id, safe="")
+                _remaining_text = (
+                    f"€{_spent:,.2f} / €{_budget:,.2f}    {_pct:.0f}%<br>"
+                    f"💳 Остават €{_remaining_card:,.0f}"
+                    if _budget > 0
+                    else "Без зададен бюджет"
                 )
-                _home_trip_hover_bg = (
-                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
-                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
-                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
-                    f"linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
-                ) if _budget > 0 else (
-                    "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
-                    "radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
-                    "linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+                _trip_dates_html = f" · {_trip_dates_line}" if _trip_dates_line else ""
+                st.markdown(
+                    f"""
+                    <a class="tm-trip-open-card" href="{_trip_open_url}" target="_self" aria-label="Отвори пътуване {_trip_name}">
+                        <div class="tm-trip-open-title">🚙 &nbsp;{_trip_name}</div>
+                        <div class="tm-trip-open-status">{_status_dot} &nbsp;{_status_text}{_trip_dates_html}</div>
+                        <div class="tm-trip-open-spacer"></div>
+                        <div class="tm-trip-open-budget">{_remaining_text}</div>
+                    </a>
+                    """,
+                    unsafe_allow_html=True,
                 )
 
-                _trip_swipe_state = _tm_home_trip_component(
-                    data={
-                        "item": {
-                            "id": _trip_id,
-                            "title": _trip_name,
-                            "status": f"{_status_dot}  {_status_text}",
-                            "dates": _trip_dates_line,
-                            "spent": f"{_spent:,.2f}",
-                            "budget": f"{_budget:,.2f}",
-                            "pct": f"{_pct:.0f}",
-                            "remaining": f"{_remaining_card:,.0f}",
-                            "has_budget": _budget > 0,
-                            "gradient": _home_trip_bg,
-                            "hover_gradient": _home_trip_hover_bg,
-                        }
-                    },
-                    key=f"tmHomeTripSwipe_{_safe_key}",
-                    on_action_change=lambda: None,
-                )
-
-                # Обработваме събитието от картата директно в нормалния поток,
-                # а не в callback. Това е важно за мобилните touch събития:
-                # едно натискане трябва веднага да отвори пътуването.
-                _trip_event = getattr(_trip_swipe_state, "action", None)
-                if isinstance(_trip_event, dict):
-                    _trip_action = str(_trip_event.get("action", ""))
-                    _trip_event_id = str(_trip_event.get("id", ""))
-                    if _trip_event_id == str(_trip_id):
-                        if _trip_action == "open":
-                            st.session_state["current_trip"] = _trip_id
-                            google_drive_sync()
-                            st.rerun()
-                        elif _trip_action == "delete":
-                            st.session_state["home_trip_pending_delete"] = _trip_id
-                            google_drive_sync()
-                            st.rerun()
 
         if st.session_state.get("home_trip_pending_delete"):
             confirm_delete_home_trip_dialog(st.session_state["home_trip_pending_delete"])
@@ -3048,7 +2994,7 @@ if st.session_state["current_trip"] is None:
 
         if os.path.exists(SETTINGS_FILE):
             try:
-                _quick_settings_df = pd.read_csv(
+                _quick_settings_df = _read_csv_fast(
                     SETTINGS_FILE,
                     encoding="utf-8"
                 )
@@ -3638,11 +3584,11 @@ if st.session_state["current_trip"] is None:
     _home_map_points = []
     try:
         if os.path.exists(MAP_FILE):
-            _mp_home = pd.read_csv(MAP_FILE, encoding="utf-8")
+            _mp_home = _read_csv_fast(MAP_FILE, encoding="utf-8")
             _valid_home_trip_ids = set()
             if os.path.exists(SETTINGS_FILE):
                 try:
-                    _settings_home = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                    _settings_home = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
                     if "trip_id" in _settings_home.columns:
                         _valid_home_trip_ids = {
                             str(x).strip() for x in _settings_home["trip_id"].dropna().tolist()
@@ -3766,7 +3712,7 @@ if st.session_state["current_trip"] is None:
                 </style>
                 """, unsafe_allow_html=True)
                 try:
-                    df_recent = pd.read_csv(DATA_FILE, encoding="utf-8")
+                    df_recent = _read_csv_fast(DATA_FILE, encoding="utf-8")
                     if df_recent.empty:
                         st.info("Все още няма записани разходи.")
                     else:
@@ -3926,8 +3872,8 @@ if st.session_state["current_trip"] is None:
 
             all_trips_computed = []
             try:
-                df_all_data = pd.read_csv(DATA_FILE, encoding="utf-8")
-                df_all_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                df_all_data = _read_csv_fast(DATA_FILE, encoding="utf-8")
+                df_all_settings = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
                 unique_trips = df_all_data["trip_id"].dropna().unique()
 
                 for t in unique_trips:
@@ -4600,7 +4546,7 @@ else:
             st.write("Сигурни ли сте, че искате да изтриете този разход?")
             idx = st.session_state["delete_idx"]
             try:
-                df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                df_all = _read_csv_fast(DATA_FILE, encoding="utf-8")
                 r = df_all.loc[idx]
                 display_category = get_display_category(r['category'])
                 st.markdown(f"**{get_emoji(r['category'])} {display_category}** — <span style='color:#ff4b4b; font-weight:bold;'>{r['amount']:.2f} EUR</span><br><small>{r['description']}</small>", unsafe_allow_html=True)
@@ -4610,7 +4556,7 @@ else:
             with c_del1:
                 if st.button("✔️ ДА, ИЗТРИЙ", use_container_width=True, type="primary"):
                     try:
-                        df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                        df_all = _read_csv_fast(DATA_FILE, encoding="utf-8")
                         df_all.drop(idx).to_csv(DATA_FILE, index=False, encoding="utf-8")
                     except: 
                         pass
@@ -4630,29 +4576,21 @@ else:
         with c_tr1:
             if st.button("✔️ ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
                 try:
-                    pd.read_csv(DATA_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
-                    pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(TRIP_PLAN_FILE):
-                        pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(CATEGORY_BUDGETS_FILE):
-                        df_budget_delete = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
-                        df_budget_delete[df_budget_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
-                            CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8"
-                        )
-                    if os.path.exists(MAP_FILE):
-                        df_map_delete = pd.read_csv(MAP_FILE, encoding="utf-8")
-                        if "trip_id" in df_map_delete.columns:
-                            df_map_delete[df_map_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
-                                MAP_FILE, index=False, encoding="utf-8"
-                            )
-                except: 
+                    for _delete_file in (
+                        DATA_FILE,
+                        SETTINGS_FILE,
+                        TRIP_PLAN_FILE,
+                        CATEGORY_BUDGETS_FILE,
+                        MAP_FILE,
+                    ):
+                        _remove_trip_from_csv(_delete_file, trip_id)
+                except Exception:
                     pass
                 st.session_state["current_trip"] = None
                 google_drive_sync()
                 st.rerun()
         with c_tr2:
             if st.button("✖️ ОТКАЗ", use_container_width=True): 
-                google_drive_sync()
                 st.rerun()
 
     df_trip = get_trip_data(trip_id)
@@ -4703,11 +4641,7 @@ else:
     if st.button("🔙 КЪМ ГЛАВНО МЕНЮ", use_container_width=True): 
         st.session_state["current_trip"] = None
         st.session_state["edit_unlocked_trip"] = None
-        google_drive_sync()
         st.rerun()
-
-    # 📸 Галерията е част от конкретното пътуване.
-    show_trip_gallery(trip_id)
 
     v_id = st.session_state["form_version"]
     st.markdown('<div id="target_sum_box" style="position: relative; scroll-margin-top: 30px;"></div>', unsafe_allow_html=True)
@@ -5139,7 +5073,7 @@ else:
         _manual_no_cost_liters = 0.0
         
         try:
-            _df_manual = pd.read_csv(DATA_FILE, encoding="utf-8")
+            _df_manual = _read_csv_fast(DATA_FILE, encoding="utf-8")
         
             _df_manual = _df_manual[
                 (_df_manual["trip_id"].astype(str) == str(trip_id)) &
@@ -5225,7 +5159,7 @@ else:
         
                 # 2. Премахваме и двата вида ръчни записи
                 try:
-                    df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+                    df_all = _read_csv_fast(DATA_FILE, encoding="utf-8")
         
                     manual_mask = (
                         (df_all["trip_id"].astype(str) == str(trip_id)) &
@@ -6037,7 +5971,7 @@ else:
         """, unsafe_allow_html=True)
         
         try:
-            df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+            df_all = _read_csv_fast(DATA_FILE, encoding="utf-8")
             df_trip_rows = df_all[df_all["trip_id"] == trip_id]
             
             if df_trip_rows.empty:
@@ -6112,7 +6046,7 @@ else:
         """, unsafe_allow_html=True)
         
         try:
-            df_all = pd.read_csv(DATA_FILE, encoding="utf-8")
+            df_all = _read_csv_fast(DATA_FILE, encoding="utf-8")
             df_trip_rows = df_all[df_all["trip_id"] == trip_id]
             
             if df_trip_rows.empty:
@@ -6146,7 +6080,7 @@ else:
                     with col_del:
                         st.markdown('<div class="expense-delete-wrapper">', unsafe_allow_html=True)
                         if st.button("🗑️", key=f"quick_del_{idx}", use_container_width=True, disabled=trip_locked):
-                            df_fresh = pd.read_csv(DATA_FILE, encoding="utf-8")
+                            df_fresh = _read_csv_fast(DATA_FILE, encoding="utf-8")
                             target_row = df_fresh.loc[idx]
                             desc_str = str(target_row["description"])
                             
@@ -7184,7 +7118,7 @@ else:
                 st.rerun()
     def _delete_map_point(idx):
         try:
-            df_map = pd.read_csv(MAP_FILE, encoding="utf-8")
+            df_map = _read_csv_fast(MAP_FILE, encoding="utf-8")
             if idx in df_map.index:
                 df_map = df_map.drop(index=idx)
                 df_map.to_csv(MAP_FILE, index=False, encoding="utf-8")
@@ -7463,7 +7397,7 @@ else:
             except Exception:
                 return False
 
-            _df_map = pd.read_csv(MAP_FILE, encoding="utf-8")
+            _df_map = _read_csv_fast(MAP_FILE, encoding="utf-8")
             if _row_index not in _df_map.index:
                 return False
 
@@ -7583,7 +7517,7 @@ else:
     _fav_rename_row = st.session_state.get("fav_rename_row")
     if _fav_rename_row is not None:
         try:
-            _rename_df = pd.read_csv(MAP_FILE, encoding="utf-8")
+            _rename_df = _read_csv_fast(MAP_FILE, encoding="utf-8")
             _fav_rename_row = int(_fav_rename_row)
             if _fav_rename_row in _rename_df.index and str(_rename_df.loc[_fav_rename_row, "trip_id"]) == str(trip_id):
                 _old_title = str(_rename_df.loc[_fav_rename_row, "title"] or "").strip()
@@ -7616,7 +7550,6 @@ else:
                     if st.button("Отказ", use_container_width=True, key="fav_rename_cancel_btn"):
                         st.session_state.pop("fav_rename_row", None)
                         st.session_state.pop("fav_rename_value", None)
-                        google_drive_sync()
                         st.rerun()
             else:
                 st.session_state.pop("fav_rename_row", None)
@@ -7705,6 +7638,9 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
 
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("---")
+    
+    # 📸 ГАЛЕРИЯ — най-долу в страницата, непосредствено преди административните инструменти.
+    show_trip_gallery(trip_id)
     
     if "show_admin_panel" not in st.session_state:
         st.session_state["show_admin_panel"] = False
@@ -7933,7 +7869,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
         _admin_trip_ids = []
         if os.path.exists(SETTINGS_FILE):
             try:
-                _admin_settings_df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                _admin_settings_df = _read_csv_fast(SETTINGS_FILE, encoding="utf-8")
                 if "trip_id" in _admin_settings_df.columns:
                     _admin_trip_ids = list(dict.fromkeys(
                         str(x).strip()
