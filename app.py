@@ -13,6 +13,7 @@ import textwrap
 import streamlit.components.v1 as components
 import re
 from urllib.parse import quote
+import requests
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
