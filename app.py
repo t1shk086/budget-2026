@@ -503,6 +503,11 @@ def _google_drive_bootstrap():
             st.info("След разрешението ще се върнеш автоматично в Travel Manager.")
             st.stop()
 
+    except Exception as exc:
+        st.error(f"❌ Google Drive не можа да бъде свързан: {exc}")
+        st.stop()
+
+
 def google_drive_sync():
     """Upload changed CSV files after the app has finished processing the current action."""
     if not st.session_state.get("google_drive_service_ready"):
