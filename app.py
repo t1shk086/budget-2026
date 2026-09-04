@@ -259,7 +259,7 @@ def _google_drive_make_flow():
     client_id = _google_drive_secret("auth", "client_id")
     client_secret = _google_drive_secret("auth", "client_secret")
     redirect_uri = _google_drive_secret(
-        "auth", "redirect_uri", "https://pixeltravelapp.streamlit.app/oauth2callback"
+        "auth", "redirect_uri", "https://pixeltravelapp.streamlit.app/?google_drive_oauth=1"
     )
 
     if not client_id or not client_secret:
