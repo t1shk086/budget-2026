@@ -276,8 +276,13 @@ def _google_drive_make_flow():
             "redirect_uris": [redirect_uri],
         }
     }
-    flow = Flow.from_client_config(client_config, scopes=GOOGLE_DRIVE_SCOPES)
+    flow = Flow.from_client_config(
+        client_config,
+        scopes=GOOGLE_DRIVE_SCOPES,
+    )
+    
     flow.redirect_uri = redirect_uri
+    
     return flow
 
 
@@ -418,21 +423,11 @@ def _google_drive_bootstrap():
 
             # Вземаме същия PKCE verifier, който беше създаден
             # при първоначалното изпращане към Google.
-            code_verifier = st.session_state.get("google_drive_code_verifier")
 
-            if not code_verifier:
-                st.error(
-                    "❌ Липсва OAuth code verifier. "
-                    "Започни свързването с Google Drive отначало."
-                )
-                st.stop()
 
             flow = _google_drive_make_flow()
 
-            flow.fetch_token(
-                code=code,
-                code_verifier=code_verifier,
-            )
+            flow.fetch_token(code=code)
 
             token = flow.credentials
             refresh_token = token.refresh_token
@@ -453,7 +448,7 @@ def _google_drive_bootstrap():
             }
 
             # OAuth flow-ът приключи успешно — verifier/state вече не са нужни.
-            st.session_state.pop("google_drive_code_verifier", None)
+           
             st.session_state.pop("google_drive_oauth_state", None)
 
         except Exception as exc:
@@ -489,7 +484,7 @@ def _google_drive_bootstrap():
             # Запазваме OAuth state и PKCE code verifier,
             # за да можем да ги използваме при връщането от Google.
             st.session_state["google_drive_oauth_state"] = state
-            st.session_state["google_drive_code_verifier"] = flow.code_verifier
+            
 
             st.markdown("### ☁️ Свързване с Google Drive")
             st.write(
