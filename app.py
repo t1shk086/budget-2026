@@ -14,6 +14,9 @@ import streamlit.components.v1 as components
 import re
 from urllib.parse import quote
 import requests
+import base64
+import uuid
+from pathlib import Path
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -226,6 +229,10 @@ DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
 TRIP_PLAN_FILE = "trip_plan_2026.csv"
+PHOTOS_DIR = "Photos"
+MAX_GALLERY_PHOTOS = 5
+GALLERY_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+os.makedirs(PHOTOS_DIR, exist_ok=True)
 
 
 # =========================================================
@@ -423,6 +430,151 @@ def _google_drive_download_all(service, folder_id):
     return downloaded
 
 
+
+def _google_drive_find_or_create_photos_folder(service):
+    """Find/create the separate Photos folder in Google Drive."""
+    q = (
+        "name = 'Photos' "
+        "and mimeType = 'application/vnd.google-apps.folder' "
+        "and trashed = false"
+    )
+    result = service.files().list(q=q, spaces="drive", fields="files(id,name)", pageSize=20).execute()
+    files_found = result.get("files", [])
+    if files_found:
+        return files_found[0]["id"]
+    folder = service.files().create(
+        body={"name": "Photos", "mimeType": "application/vnd.google-apps.folder"},
+        fields="id",
+    ).execute()
+    return folder["id"]
+
+
+def _google_drive_find_files_in_folder(service, folder_id):
+    result = service.files().list(
+        q=("'" + folder_id + "' in parents and trashed = false"),
+        spaces="drive", fields="files(id,name,mimeType)", pageSize=1000
+    ).execute()
+    return result.get("files", [])
+
+
+def _gallery_trip_prefix(trip_id):
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", str(trip_id).strip())
+    return f"{safe}__gallery__"
+
+
+def _gallery_local_files(trip_id):
+    prefix = _gallery_trip_prefix(trip_id)
+    result = []
+    try:
+        for name in sorted(os.listdir(PHOTOS_DIR)):
+            path = os.path.join(PHOTOS_DIR, name)
+            if os.path.isfile(path) and name.startswith(prefix) and Path(name).suffix.lower() in GALLERY_EXTENSIONS:
+                result.append(path)
+    except Exception:
+        pass
+    return result[:MAX_GALLERY_PHOTOS]
+
+
+def _gallery_save_uploads(trip_id, uploads):
+    """Save up to five photos locally. Drive upload is manual."""
+    try:
+        existing = _gallery_local_files(trip_id)
+        room = max(0, MAX_GALLERY_PHOTOS - len(existing))
+        saved = 0
+        for upload in list(uploads)[:room]:
+            raw = upload.getvalue()
+            if not raw:
+                continue
+            ext = Path(str(getattr(upload, "name", ""))).suffix.lower()
+            if ext not in GALLERY_EXTENSIONS:
+                ext = ".jpg"
+            name = f"{_gallery_trip_prefix(trip_id)}{uuid.uuid4().hex}{ext}"
+            with open(os.path.join(PHOTOS_DIR, name), "wb") as f:
+                f.write(raw)
+            saved += 1
+        return saved
+    except Exception:
+        return 0
+
+
+def _gallery_delete_local(path):
+    try:
+        if path and os.path.exists(path):
+            os.remove(path)
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def _gallery_sync_to_drive(service):
+    photos_folder_id = _google_drive_find_or_create_photos_folder(service)
+    remote_files = {
+        str(f.get("name", "")): f
+        for f in _google_drive_find_files_in_folder(service, photos_folder_id)
+        if "__gallery__" in str(f.get("name", ""))
+    }
+    local = {}
+    try:
+        for name in os.listdir(PHOTOS_DIR):
+            path = os.path.join(PHOTOS_DIR, name)
+            if os.path.isfile(path) and "__gallery__" in name and Path(name).suffix.lower() in GALLERY_EXTENSIONS:
+                local[name] = path
+    except Exception:
+        pass
+
+    from googleapiclient.http import MediaFileUpload
+    mime_map = {".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".png":"image/png", ".webp":"image/webp"}
+    uploaded = 0
+    for name, path in local.items():
+        if name in remote_files:
+            continue
+        media = MediaFileUpload(path, mimetype=mime_map.get(Path(path).suffix.lower(), "image/jpeg"), resumable=False)
+        service.files().create(body={"name": name, "parents": [photos_folder_id]}, media_body=media, fields="id").execute()
+        uploaded += 1
+
+    deleted = 0
+    for name, meta in remote_files.items():
+        if name not in local:
+            try:
+                service.files().delete(fileId=meta["id"]).execute()
+                deleted += 1
+            except Exception:
+                pass
+    return uploaded, deleted
+
+
+def _google_drive_download_photos(service):
+    """Restore managed gallery photos from the separate Photos folder."""
+    try:
+        photos_folder_id = _google_drive_find_or_create_photos_folder(service)
+        managed = [
+            f for f in _google_drive_find_files_in_folder(service, photos_folder_id)
+            if "__gallery__" in str(f.get("name", ""))
+            and Path(str(f.get("name", ""))).suffix.lower() in GALLERY_EXTENSIONS
+        ]
+        from io import BytesIO
+        from googleapiclient.http import MediaIoBaseDownload
+        restored = 0
+        for meta in managed:
+            name = str(meta["name"])
+            path = os.path.join(PHOTOS_DIR, name)
+            if os.path.exists(path):
+                continue
+            request = service.files().get_media(fileId=meta["id"])
+            buf = BytesIO()
+            downloader = MediaIoBaseDownload(buf, request)
+            done = False
+            while not done:
+                _, done = downloader.next_chunk()
+            with open(path, "wb") as f:
+                f.write(buf.getvalue())
+            restored += 1
+        return restored
+    except Exception:
+        return 0
+
+
 def _google_drive_upload_all(service, folder_id):
     import hashlib as _hashlib
     from googleapiclient.http import MediaFileUpload
@@ -618,6 +770,10 @@ def _google_drive_bootstrap():
 
             st.session_state["google_drive_data_loaded"] = True
 
+        if not st.session_state.get("google_drive_photos_loaded"):
+            _google_drive_download_photos(service)
+            st.session_state["google_drive_photos_loaded"] = True
+
         # ---------------------------------------------------------
         # ВАЖНОТО: това липсваше и затова sync() не правеше нищо
         # ---------------------------------------------------------
@@ -632,55 +788,27 @@ def _google_drive_bootstrap():
         )
         st.stop()
 
-def google_drive_sync(force=False):
-    """Sync changed CSV files to Google Drive only when explicitly requested."""
-
-    # По договорената логика Drive НЕ се вика при всяко действие/rerun.
-    # Реален upload има само при изрично force=True.
-    if not force:
+def google_drive_sync(force=False, include_photos=True):
+    """Manual Google Drive sync. Normal app actions stay local for speed."""
+    if not force or not st.session_state.get("google_drive_service_ready"):
         return 0
-
-    if not st.session_state.get("google_drive_service_ready"):
-        return 0
-
     try:
-        refresh_token = _google_drive_secret(
-            "google_drive",
-            "refresh_token"
-        )
-
-        token_info = st.session_state.get(
-            "google_drive_token"
-        )
-
+        refresh_token = _google_drive_secret("google_drive", "refresh_token")
+        token_info = st.session_state.get("google_drive_token")
         if refresh_token:
-            service = _google_drive_get_service_from_refresh_token(
-                refresh_token
-            )
-
+            service = _google_drive_get_service_from_refresh_token(refresh_token)
         elif token_info:
-            service, _ = _google_drive_get_service_from_token(
-                token_info
-            )
-
+            service, _ = _google_drive_get_service_from_token(token_info)
         else:
             return 0
-
-        folder_id = st.session_state.get(
-            "google_drive_folder_id"
-        )
-
-        if folder_id:
-            return _google_drive_upload_all(
-                service,
-                folder_id
-            )
-
-        return 0
-
+        folder_id = st.session_state.get("google_drive_folder_id")
+        if not folder_id:
+            return 0
+        csv_uploaded = _google_drive_upload_all(service, folder_id)
+        photo_result = _gallery_sync_to_drive(service) if include_photos else (0, 0)
+        return csv_uploaded, photo_result
     except Exception:
-        # Google Drive backup никога не трябва да чупи приложението.
-        return -1
+        return 0
 
 
 # Настройки само за имената на бутоните. Каноничните категории в данните НЕ се променят.
@@ -3452,32 +3580,27 @@ if st.session_state["current_trip"] is None:
     try:
         if os.path.exists(MAP_FILE):
             _mp_home = pd.read_csv(MAP_FILE, encoding="utf-8")
+            _valid_home_trip_ids = set()
+            if os.path.exists(SETTINGS_FILE):
+                try:
+                    _settings_home = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                    if "trip_id" in _settings_home.columns:
+                        _valid_home_trip_ids = {
+                            str(x).strip() for x in _settings_home["trip_id"].dropna().tolist()
+                            if str(x).strip() and str(x).strip().lower() not in {"none", "nan", "null"}
+                        }
+                except Exception:
+                    _valid_home_trip_ids = set()
             for _, _mpr in _mp_home.iterrows():
                 try:
-                    _mtid_raw = _mpr.get("trip_id", "")
-                    _mtid = "" if pd.isna(_mtid_raw) else str(_mtid_raw).strip()
+                    _mtid = str(_mpr.get("trip_id", "")).strip()
+                    _lat = float(_mpr.get("lat"))
+                    _lon = float(_mpr.get("lon"))
                     if not _mtid or _mtid.lower() in {"none", "nan", "null"}:
                         continue
-
-                    _lat = pd.to_numeric(_mpr.get("lat"), errors="coerce")
-                    _lon = pd.to_numeric(_mpr.get("lon"), errors="coerce")
-                    if pd.isna(_lat) or pd.isna(_lon):
+                    if _valid_home_trip_ids and _mtid not in _valid_home_trip_ids:
                         continue
-                    _lat = float(_lat)
-                    _lon = float(_lon)
-                    if not (
-                        pd.notna(_lat) and pd.notna(_lon)
-                        and -90 <= _lat <= 90
-                        and -180 <= _lon <= 180
-                    ):
-                        continue
-
-                    _title_raw = _mpr.get("title", "Място")
-                    _title = "Място" if pd.isna(_title_raw) else str(_title_raw).strip()
-                    if not _title or _title.lower() == "nan":
-                        _title = "Място"
-
-                    _home_map_points.append((_lat, _lon, _title, _mtid))
+                    _home_map_points.append((_lat, _lon, str(_mpr.get("title", "Място")), _mtid))
                 except Exception:
                     continue
     except Exception:
@@ -3495,8 +3618,12 @@ if st.session_state["current_trip"] is None:
     )
 
     if _home_map_points:
+        _map_center = (
+            sum(p[0] for p in _home_map_points) / len(_home_map_points),
+            sum(p[1] for p in _home_map_points) / len(_home_map_points),
+        )
         _home_map = folium.Map(
-            location=[_home_map_points[0][0], _home_map_points[0][1]],
+            location=_map_center,
             zoom_start=6,
             tiles="OpenStreetMap",
             control_scale=True,
@@ -3508,16 +3635,6 @@ if st.session_state["current_trip"] is None:
                 popup=f"<b>{html.escape(_title)}</b><br>{html.escape(get_trip_display_name(_mtid))}",
                 icon=folium.Icon(color="green", icon="map-marker", prefix="fa"),
             ).add_to(_home_map)
-
-        if len(_home_map_points) > 1:
-            _home_map.fit_bounds(
-                [
-                    [min(p[0] for p in _home_map_points), min(p[1] for p in _home_map_points)],
-                    [max(p[0] for p in _home_map_points), max(p[1] for p in _home_map_points)],
-                ],
-                padding=(20, 20),
-            )
-
         st_folium(_home_map, use_container_width=True, height=300, key="home_my_places_map_1237")
     else:
         st.markdown(
@@ -6928,33 +7045,38 @@ else:
     # ---------------------------------------------------------
     # SAFE MAP COORDINATES
     # Не допускаме празни/невалидни координати да чупят Folium.
-    # ВАЖНО: df_points остава пълният списък за интерфейса;
-    # df_points_map е отделно копие само за рисуване на картата.
     # ---------------------------------------------------------
-    df_points_map = df_points.copy()
-    if not df_points_map.empty:
-        df_points_map["lat"] = pd.to_numeric(df_points_map["lat"], errors="coerce")
-        df_points_map["lon"] = pd.to_numeric(df_points_map["lon"], errors="coerce")
-        df_points_map = df_points_map.dropna(subset=["lat", "lon"]).copy()
-        df_points_map = df_points_map[
-            df_points_map["lat"].between(-90, 90)
-            & df_points_map["lon"].between(-180, 180)
+    if not df_points.empty:
+        df_points["lat"] = pd.to_numeric(df_points["lat"], errors="coerce")
+        df_points["lon"] = pd.to_numeric(df_points["lon"], errors="coerce")
+
+        # Оставяме само реални координати
+        df_points = df_points.dropna(subset=["lat", "lon"]).copy()
+
+        # Допълнителна защита срещу невалидни GPS стойности
+        df_points = df_points[
+            df_points["lat"].between(-90, 90)
+            & df_points["lon"].between(-180, 180)
         ].copy()
 
-    _map_is_new_trip = (
+    if (
         "map_current_trip_id" not in st.session_state
         or st.session_state["map_current_trip_id"] != trip_id
-    )
-    if _map_is_new_trip:
+    ):
         st.session_state["map_current_trip_id"] = trip_id
-        st.session_state["trip_map_needs_fit"] = True
 
-        if not df_points_map.empty:
-            _map_lat = float(df_points_map["lat"].mean())
-            _map_lon = float(df_points_map["lon"].mean())
-            st.session_state["stable_lat"] = _map_lat
-            st.session_state["stable_lon"] = _map_lon
-            st.session_state["stable_zoom"] = 8
+        if not df_points.empty:
+            _map_lat = pd.to_numeric(df_points["lat"], errors="coerce").mean()
+            _map_lon = pd.to_numeric(df_points["lon"], errors="coerce").mean()
+
+            if pd.notna(_map_lat) and pd.notna(_map_lon):
+                st.session_state["stable_lat"] = float(_map_lat)
+                st.session_state["stable_lon"] = float(_map_lon)
+                st.session_state["stable_zoom"] = 8
+            else:
+                st.session_state["stable_lat"] = 42.7339
+                st.session_state["stable_lon"] = 25.4858
+                st.session_state["stable_zoom"] = 6
         else:
             st.session_state["stable_lat"] = 42.7339
             st.session_state["stable_lon"] = 25.4858
@@ -6987,7 +7109,7 @@ else:
     m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
     folium.LatLngPopup().add_to(m)
     
-    for _, pt in df_points_map.iterrows():
+    for _, pt in df_points.iterrows():
         _lat = pd.to_numeric(pt.get("lat"), errors="coerce")
         _lon = pd.to_numeric(pt.get("lon"), errors="coerce")
 
@@ -7010,18 +7132,6 @@ else:
             icon=folium.Icon(color=_pt_color, icon="info-sign")
         ).add_to(m)
     
-    if st.session_state.get("trip_map_needs_fit", False) and len(df_points_map) > 1:
-        m.fit_bounds(
-            [
-                [float(df_points_map["lat"].min()), float(df_points_map["lon"].min())],
-                [float(df_points_map["lat"].max()), float(df_points_map["lon"].max())],
-            ],
-            padding=(20, 20),
-        )
-        st.session_state["trip_map_needs_fit"] = False
-    elif st.session_state.get("trip_map_needs_fit", False):
-        st.session_state["trip_map_needs_fit"] = False
-
     points_count = len(df_points)
     click_state = "active" if "active_click" in st.session_state and st.session_state["active_click"] is not None else "idle"
     dynamic_map_key = f"folium_map_{trip_id}_{points_count}_{click_state}"
@@ -7043,6 +7153,7 @@ else:
             if map_data.get("zoom") is not None:
                 st.session_state["stable_zoom"] = map_data["zoom"]
             st.session_state["active_click"] = new_click
+            google_drive_sync()
             st.rerun()
             
     if "active_click" in st.session_state and st.session_state["active_click"] is not None and not trip_locked:
@@ -7387,10 +7498,7 @@ else:
     def _render_favorites_swipe(df_points):
         _items = []
         for _fav_idx, _fav_row in df_points.iterrows():
-            _fav_title_raw = _fav_row.get("title", "Място")
-            _fav_title = "Място" if pd.isna(_fav_title_raw) else str(_fav_title_raw).strip()
-            if not _fav_title or _fav_title.lower() == "nan":
-                _fav_title = "Място"
+            _fav_title = str(_fav_row.get("title", "Място") or "Място").strip()
             # Три независими визуални типа:
             # 1) търсено място в 3b, 2) ръчно запазено място, 3) GPS „Моята локация“.
             _fav_desc = UI_LABELS.get("saved_place_label", "Запазено място")
@@ -7415,12 +7523,7 @@ else:
                 "title": _fav_title,
                 "desc": _fav_desc,
                 "pin_color": _fav_pin_color,
-                "coords": (
-                    f"📍 {float(_fav_row.get('lat')):.5f}, {float(_fav_row.get('lon')):.5f}"
-                    if pd.notna(pd.to_numeric(_fav_row.get("lat"), errors="coerce"))
-                    and pd.notna(pd.to_numeric(_fav_row.get("lon"), errors="coerce"))
-                    else "📍 Координатите липсват"
-                ),
+                "coords": f"📍 {float(_fav_row.get('lat', 0) or 0):.5f}, {float(_fav_row.get('lon', 0) or 0):.5f}",
             })
 
         return _tm_fav_component(
@@ -7516,6 +7619,138 @@ else:
         except Exception:
             st.session_state.pop("fav_rename_row", None)
             st.session_state.pop("fav_rename_value", None)
+
+    # =========================================================
+    # 📸 СПОМЕНИ ОТ ПЪТУВАНЕТО — collapsed by default
+    # =========================================================
+    _gallery_key = f"show_trip_gallery_{trip_id}"
+    if _gallery_key not in st.session_state:
+        st.session_state[_gallery_key] = False
+
+    _trip_gallery_files = _gallery_local_files(trip_id)
+    _gallery_count = len(_trip_gallery_files)
+
+    st.markdown("""
+    <style>
+        .tm-memory-card{margin-top:12px;padding:10px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));}
+        .tm-memory-title{color:#fff;font-size:13px;font-weight:900;}
+        .tm-memory-sub{color:#7e8494;font-size:10px;margin-top:2px;}
+        .tm-memory-mini-row{display:flex;gap:6px;margin-top:8px;overflow:hidden;}
+        .tm-memory-mini{width:62px;height:44px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.08);}
+    </style>
+    """, unsafe_allow_html=True)
+
+    _mini_html = ""
+    for _mini_path in _trip_gallery_files[:2]:
+        try:
+            with open(_mini_path, "rb") as _mf:
+                _mini_b64 = base64.b64encode(_mf.read()).decode("ascii")
+            _mini_ext = Path(_mini_path).suffix.lower().replace(".", "") or "jpeg"
+            if _mini_ext == "jpg": _mini_ext = "jpeg"
+            _mini_html += f"<img class='tm-memory-mini' src='data:image/{_mini_ext};base64,{_mini_b64}'>"
+        except Exception:
+            pass
+
+    _mini_section = f"<div class='tm-memory-mini-row'>{_mini_html}</div>" if _mini_html else ""
+    st.markdown(
+        f"<div class='tm-memory-card'><div class='tm-memory-title'>📸 Спомени от пътуването</div><div class='tm-memory-sub'>{_gallery_count}/{MAX_GALLERY_PHOTOS} снимки · фотоалбум</div>{_mini_section}</div>",
+        unsafe_allow_html=True,
+    )
+
+    if st.button(
+        "📸 Отвори фотоалбума" if not st.session_state[_gallery_key] else "📕 Скрий фотоалбума",
+        use_container_width=True,
+        key=f"toggle_gallery_{trip_id}",
+    ):
+        st.session_state[_gallery_key] = not st.session_state[_gallery_key]
+        st.rerun()
+
+    if st.session_state[_gallery_key]:
+        if len(_trip_gallery_files) < MAX_GALLERY_PHOTOS:
+            _uploads = st.file_uploader(
+                "Добави снимки към това пътуване",
+                type=["jpg","jpeg","png","webp"],
+                accept_multiple_files=True,
+                key=f"gallery_upload_{trip_id}",
+                label_visibility="collapsed",
+            )
+            if _uploads and st.button("➕ Запази снимките", use_container_width=True, key=f"save_gallery_uploads_{trip_id}"):
+                _saved = _gallery_save_uploads(trip_id, _uploads)
+                if _saved:
+                    st.success(f"✅ Добавени са {_saved} снимки. Натисни ☁️ Sync, за да ги качиш в Photos.")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Няма свободни места или снимките не можаха да бъдат записани.")
+        else:
+            st.caption(f"Максимумът от {MAX_GALLERY_PHOTOS} снимки е достигнат.")
+
+        _gallery_items = []
+        for _gidx, _gpath in enumerate(_trip_gallery_files):
+            try:
+                with open(_gpath, "rb") as _gf:
+                    _gb64 = base64.b64encode(_gf.read()).decode("ascii")
+                _gext = Path(_gpath).suffix.lower().replace(".", "") or "jpeg"
+                if _gext == "jpg": _gext = "jpeg"
+                _gallery_items.append({"id":str(_gidx),"name":os.path.basename(_gpath),"src":f"data:image/{_gext};base64,{_gb64}"})
+            except Exception:
+                pass
+
+        if _gallery_items:
+            _GALLERY_HTML = '<div id="tm-gallery-root"></div>'
+            _GALLERY_CSS = """
+            #tm-gallery-root{width:100%;}
+            .tm-gallery-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px;}
+            .tm-gallery-item{overflow:hidden;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#14171d;cursor:pointer;}
+            .tm-gallery-item img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;transition:transform .18s ease;}
+            .tm-gallery-item:hover img{transform:scale(1.025);}
+            .tm-gallery-modal{position:fixed;inset:0;background:rgba(0,0,0,.90);z-index:99999;display:none;align-items:center;justify-content:center;padding:18px;}
+            .tm-gallery-modal.open{display:flex;}
+            .tm-gallery-modal img{max-width:96vw;max-height:88vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.55);}
+            .tm-gallery-close,.tm-gallery-prev,.tm-gallery-next{position:absolute;border:0;border-radius:12px;background:rgba(255,255,255,.10);color:#fff;cursor:pointer;}
+            .tm-gallery-close{top:14px;right:14px;width:38px;height:38px;font-size:20px;}
+            .tm-gallery-prev,.tm-gallery-next{top:50%;transform:translateY(-50%);width:40px;height:40px;font-size:22px;}
+            .tm-gallery-prev{left:12px}.tm-gallery-next{right:12px}
+            @media(max-width:640px){.tm-gallery-grid{gap:7px}.tm-gallery-prev{left:7px}.tm-gallery-next{right:7px}}
+            """
+            _GALLERY_JS = """
+            export default function(component){
+                const {parentElement,data}=component;
+                const root=parentElement.querySelector('#tm-gallery-root');
+                const items=Array.isArray(data?.items)?data.items:[];
+                root.innerHTML='';
+                const grid=document.createElement('div');grid.className='tm-gallery-grid';
+                const modal=document.createElement('div');modal.className='tm-gallery-modal';
+                const big=document.createElement('img');
+                const close=document.createElement('button');close.className='tm-gallery-close';close.textContent='×';
+                const prev=document.createElement('button');prev.className='tm-gallery-prev';prev.textContent='‹';
+                const next=document.createElement('button');next.className='tm-gallery-next';next.textContent='›';
+                modal.appendChild(big);modal.appendChild(close);modal.appendChild(prev);modal.appendChild(next);root.appendChild(grid);root.appendChild(modal);
+                let pos=0;
+                function openAt(i){if(!items.length)return;pos=(i+items.length)%items.length;big.src=items[pos].src;modal.classList.add('open');}
+                function closeModal(){modal.classList.remove('open');}
+                items.forEach(function(item,i){const card=document.createElement('div');card.className='tm-gallery-item';const img=document.createElement('img');img.src=item.src;card.appendChild(img);card.addEventListener('click',function(){openAt(i)});grid.appendChild(card);});
+                close.addEventListener('click',function(e){e.stopPropagation();closeModal()});
+                prev.addEventListener('click',function(e){e.stopPropagation();openAt(pos-1)});
+                next.addEventListener('click',function(e){e.stopPropagation();openAt(pos+1)});
+                modal.addEventListener('click',function(e){if(e.target===modal)closeModal()});
+                document.addEventListener('keydown',function(e){if(!modal.classList.contains('open'))return;if(e.key==='Escape')closeModal();if(e.key==='ArrowLeft')openAt(pos-1);if(e.key==='ArrowRight')openAt(pos+1);});
+            }
+            """
+            _gallery_component = st.components.v2.component(name="pixelapp_memory_gallery_v1", html=_GALLERY_HTML, css=_GALLERY_CSS, js=_GALLERY_JS)
+            _gallery_component(data={"items":_gallery_items}, key=f"trip_gallery_component_{trip_id}_{_gallery_count}")
+
+            _delete_choice = st.selectbox(
+                "Избери снимка за изтриване",
+                range(len(_trip_gallery_files)),
+                format_func=lambda i: f"Снимка {i+1}",
+                key=f"gallery_delete_select_{trip_id}_{_gallery_count}",
+            )
+            if st.button("🗑️ Изтрий избраната снимка", use_container_width=True, key=f"gallery_delete_btn_{trip_id}"):
+                if _gallery_delete_local(_trip_gallery_files[int(_delete_choice)]):
+                    st.success("✅ Снимката е изтрита локално. При следващия ☁️ Sync ще бъде премахната и от Photos в Drive.")
+                    st.rerun()
+        else:
+            st.markdown("<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма снимки. Добави до 5 спомена от това пътуване.</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
@@ -7614,31 +7849,16 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
             </div>
         """, unsafe_allow_html=True)
         
-        # =====================================================
-        # GOOGLE DRIVE — РЪЧНА СИНХРОНИЗАЦИЯ
-        # =====================================================
-        st.markdown("##### ☁️ Google Drive")
-        st.caption("Качва само променените CSV файлове. Не сваля и не изпраща архив по e-mail.")
-        if st.button(
-            "☁️ Синхронизирай с Google Drive",
-            use_container_width=True,
-            type="primary",
-            key="manual_google_drive_sync_btn"
-        ):
-            _sync_result = google_drive_sync(force=True)
-            if _sync_result == -1:
-                st.error("❌ Google Drive синхронизацията не успя.")
-            elif _sync_result == 0:
-                if st.session_state.get("google_drive_service_ready"):
-                    st.success("✅ Google Drive е актуален — няма нови промени за качване.")
-                else:
-                    st.warning("⚠️ Google Drive не е свързан в тази сесия.")
-            elif _sync_result == 1:
-                st.success("✅ 1 файл е синхронизиран с Google Drive.")
+        if st.button("☁️ Синхронизирай с Google Drive", use_container_width=True, type="primary", key="manual_google_drive_sync_btn"):
+            _sync_result = google_drive_sync(force=True, include_photos=True)
+            if _sync_result:
+                try:
+                    _csv_count, (_photo_up, _photo_del) = _sync_result
+                    st.success(f"☁️ Drive синхронизацията завърши. CSV: {_csv_count} | Снимки качени: {_photo_up} | Изтрити: {_photo_del}")
+                except Exception:
+                    st.success("☁️ Google Drive е синхронизиран успешно.")
             else:
-                st.success(f"✅ {_sync_result} файла са синхронизирани с Google Drive.")
-
-        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+                st.warning("⚠️ Google Drive не беше синхронизиран. Провери връзката.")
 
         col_backup1, col_backup2 = st.columns(2)
         
@@ -7809,7 +8029,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         st.success("🎉 Данните са възстановени успешно!")
                         st.session_state["show_admin_panel"] = False
                         st.session_state["current_trip"] = None
-                        google_drive_sync(force=True)
+                        google_drive_sync()
                         st.rerun()
 
         st.markdown("---")
