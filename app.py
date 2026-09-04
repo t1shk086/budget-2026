@@ -13,7 +13,6 @@ import textwrap
 import streamlit.components.v1 as components
 import re
 from urllib.parse import quote
-import requests
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -227,455 +226,6 @@ MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
 TRIP_PLAN_FILE = "trip_plan_2026.csv"
 
-
-# =========================================================
-# GOOGLE DRIVE — PERSISTENT DATA STORAGE
-# =========================================================
-# Данните остават в Google Drive при рестарт/redeploy на Streamlit.
-# Първоначално се прави еднократна Google авторизация. След това
-# refresh token-ът се пази в Streamlit Secrets и не се иска повторно
-# разрешение при всеки рестарт.
-GOOGLE_DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive"]
-GOOGLE_DRIVE_FOLDER_NAME = "PixelApp_Data"
-GOOGLE_DRIVE_FILES = [
-    DATA_FILE,
-    SETTINGS_FILE,
-    MAP_FILE,
-    TRIP_PLAN_FILE,
-    LABELS_FILE,
-    "trip_category_budgets_2026.csv",
-]
-
-
-def _google_drive_secret(section, key, default=""):
-    try:
-        return str(st.secrets.get(section, {}).get(key, default) or default).strip()
-    except Exception:
-        return default
-
-
-def _google_drive_make_flow():
-    from google_auth_oauthlib.flow import Flow
-
-    client_id = _google_drive_secret("auth", "client_id")
-    client_secret = _google_drive_secret("auth", "client_secret")
-    redirect_uri = _google_drive_secret(
-        "auth",
-        "redirect_uri",
-        "https://pixeltravelapp.streamlit.app/?google_drive_oauth=1",
-    )
-
-    if not client_id or not client_secret:
-        raise RuntimeError(
-            "Липсват auth.client_id или auth.client_secret в Streamlit Secrets."
-        )
-
-    client_config = {
-        "web": {
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "redirect_uris": [redirect_uri],
-        }
-    }
-
-    # За този Web OAuth flow НЕ използваме автоматичен PKCE.
-    # Така callback-ът не зависи от st.session_state
-    # след връщането от Google.
-    flow = Flow.from_client_config(
-        client_config,
-        scopes=GOOGLE_DRIVE_SCOPES,
-        autogenerate_code_verifier=False,
-    )
-
-    flow.redirect_uri = redirect_uri
-
-    return flow
-
-
-def _google_drive_get_service_from_token(token_info):
-    from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
-
-    creds = Credentials(
-        token=token_info.get("token"),
-        refresh_token=token_info.get("refresh_token"),
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=_google_drive_secret("auth", "client_id"),
-        client_secret=_google_drive_secret("auth", "client_secret"),
-        scopes=GOOGLE_DRIVE_SCOPES,
-    )
-
-    return build("drive", "v3", credentials=creds), creds
-
-
-def _google_drive_get_service_from_refresh_token(refresh_token):
-    service, creds = _google_drive_get_service_from_token({
-        "token": None,
-        "refresh_token": refresh_token,
-    })
-
-    if not creds.valid:
-        from google.auth.transport.requests import Request
-
-        creds.refresh(Request())
-
-        from googleapiclient.discovery import build
-
-        service = build(
-            "drive",
-            "v3",
-            credentials=creds,
-        )
-
-    return service
-
-
-def _google_drive_find_or_create_folder(service):
-    q = (
-        "name = '"
-        + GOOGLE_DRIVE_FOLDER_NAME.replace("'", "\\'")
-        + "' "
-        "and mimeType = 'application/vnd.google-apps.folder' "
-        "and trashed = false"
-    )
-
-    result = service.files().list(
-        q=q,
-        spaces="drive",
-        fields="files(id,name)",
-        pageSize=10,
-    ).execute()
-
-    files_found = result.get("files", [])
-
-    if files_found:
-        return files_found[0]["id"]
-
-    folder = service.files().create(
-        body={
-            "name": GOOGLE_DRIVE_FOLDER_NAME,
-            "mimeType": "application/vnd.google-apps.folder",
-        },
-        fields="id",
-    ).execute()
-
-    return folder["id"]
-
-
-def _google_drive_file_map(service, folder_id):
-    result = service.files().list(
-        q=(
-            "'" + folder_id + "' in parents "
-            "and trashed = false"
-        ),
-        spaces="drive",
-        fields="files(id,name)",
-        pageSize=100,
-    ).execute()
-
-    return {
-        f["name"]: f["id"]
-        for f in result.get("files", [])
-    }
-
-
-def _google_drive_download_all(service, folder_id):
-    from io import BytesIO
-    from googleapiclient.http import MediaIoBaseDownload
-
-    file_map = _google_drive_file_map(service, folder_id)
-
-    downloaded = 0
-
-    for file_name in GOOGLE_DRIVE_FILES:
-        file_id = file_map.get(file_name)
-
-        if not file_id:
-            continue
-
-        request = service.files().get_media(
-            fileId=file_id
-        )
-
-        buffer = BytesIO()
-
-        downloader = MediaIoBaseDownload(
-            buffer,
-            request,
-        )
-
-        done = False
-
-        while not done:
-            _, done = downloader.next_chunk()
-
-        Path = __import__("pathlib").Path
-
-        Path(file_name).write_bytes(
-            buffer.getvalue()
-        )
-
-        downloaded += 1
-
-    return downloaded
-
-
-def _google_drive_upload_all(service, folder_id):
-    import hashlib as _hashlib
-    from googleapiclient.http import MediaFileUpload
-
-    file_map = _google_drive_file_map(service, folder_id)
-
-    uploaded = 0
-
-    for file_name in GOOGLE_DRIVE_FILES:
-
-        if not os.path.exists(file_name):
-            continue
-
-        with open(file_name, "rb") as _f:
-            digest = _hashlib.sha256(
-                _f.read()
-            ).hexdigest()
-
-        marker_key = f"_drive_hash_{file_name}"
-
-        if st.session_state.get(marker_key) == digest:
-            continue
-
-        media = MediaFileUpload(
-            file_name,
-            mimetype="text/csv",
-            resumable=False,
-        )
-
-        if file_name in file_map:
-
-            service.files().update(
-                fileId=file_map[file_name],
-                media_body=media,
-            ).execute()
-
-        else:
-
-            service.files().create(
-                body={
-                    "name": file_name,
-                    "parents": [folder_id],
-                },
-                media_body=media,
-                fields="id",
-            ).execute()
-
-        st.session_state[marker_key] = digest
-
-        uploaded += 1
-
-    return uploaded
-
-
-def _google_drive_bootstrap():
-    """Authenticate once and load existing Drive data before local files initialize."""
-    if st.session_state.get("google_drive_bootstrapped"):
-        return True
-
-    # One-time callback from Google.
-    code = st.query_params.get("code")
-    if code:
-        try:
-            state = st.query_params.get("state")
-            expected_state = st.session_state.get("google_drive_oauth_state")
-
-            if expected_state and state != expected_state:
-                st.error("❌ Невалиден OAuth state. Опитай свързването отново.")
-                st.stop()
-
-            flow = _google_drive_make_flow()
-            flow.fetch_token(code=code)
-
-            token = flow.credentials
-            refresh_token = token.refresh_token
-
-            st.query_params.clear()
-
-            if refresh_token:
-                st.session_state["google_drive_refresh_token_new"] = refresh_token
-
-                if not _google_drive_secret("google_drive", "refresh_token"):
-                    st.session_state["google_drive_show_refresh_token"] = True
-
-            st.session_state["google_drive_token"] = {
-                "token": token.token,
-                "refresh_token": refresh_token,
-            }
-
-        except Exception as exc:
-            st.error(f"❌ Google авторизацията не успя: {exc}")
-            st.stop()
-
-    refresh_token = _google_drive_secret(
-        "google_drive",
-        "refresh_token"
-    )
-
-    token_info = st.session_state.get("google_drive_token")
-
-    if st.session_state.get("google_drive_show_refresh_token") and not refresh_token:
-        new_refresh_token = st.session_state.get(
-            "google_drive_refresh_token_new",
-            ""
-        )
-
-        if new_refresh_token:
-            st.success("✅ Google Drive е свързан за тази сесия.")
-
-            st.warning(
-                "Еднократно копирай refresh token-а в "
-                "Streamlit → Settings → Secrets → "
-                "[google_drive] → refresh_token. "
-                "Не го изпращай в чата."
-            )
-
-            st.text_area(
-                "Refresh token",
-                value=new_refresh_token,
-                height=110
-            )
-
-            st.info(
-                "След като го запазиш в Secrets, презареди приложението. "
-                "Оттам нататък Drive ще се използва автоматично и при рестарт."
-            )
-
-    try:
-        if refresh_token:
-            service = _google_drive_get_service_from_refresh_token(
-                refresh_token
-            )
-
-        elif token_info:
-            service, _ = _google_drive_get_service_from_token(
-                token_info
-            )
-
-        else:
-            flow = _google_drive_make_flow()
-
-            authorization_url, state = flow.authorization_url(
-                access_type="offline",
-                include_granted_scopes="true",
-                prompt="consent",
-            )
-
-            st.session_state["google_drive_oauth_state"] = state
-
-            st.markdown("### ☁️ Свързване с Google Drive")
-
-            st.write(
-                "За да запазваме данните автоматично при рестарт, "
-                "първо разреши достъп до Google Drive."
-            )
-
-            st.link_button(
-                "🔐 Свържи Google Drive",
-                authorization_url,
-                use_container_width=True
-            )
-
-            st.info(
-                "След разрешението ще се върнеш автоматично "
-                "в Travel Manager."
-            )
-
-            st.stop()
-
-        # ---------------------------------------------------------
-        # ВАЖНОТО: намираме/създаваме папката и я запомняме
-        # ---------------------------------------------------------
-        folder_id = _google_drive_find_or_create_folder(service)
-
-        st.session_state["google_drive_folder_id"] = folder_id
-
-        # Ако вече има данни в Drive, първо ги сваляме.
-        if not st.session_state.get("google_drive_data_loaded"):
-
-            file_map = _google_drive_file_map(
-                service,
-                folder_id
-            )
-
-            if any(
-                name in file_map
-                for name in GOOGLE_DRIVE_FILES
-            ):
-                _google_drive_download_all(
-                    service,
-                    folder_id
-                )
-
-            st.session_state["google_drive_data_loaded"] = True
-
-        # ---------------------------------------------------------
-        # ВАЖНОТО: това липсваше и затова sync() не правеше нищо
-        # ---------------------------------------------------------
-        st.session_state["google_drive_service_ready"] = True
-        st.session_state["google_drive_bootstrapped"] = True
-
-        return True
-
-    except Exception as exc:
-        st.error(
-            f"❌ Google Drive не можа да бъде достъпен: {exc}"
-        )
-        st.stop()
-
-def google_drive_sync():
-    """Upload changed CSV files after the app has finished processing the current action."""
-
-    if not st.session_state.get("google_drive_service_ready"):
-        return
-
-    try:
-        refresh_token = _google_drive_secret(
-            "google_drive",
-            "refresh_token"
-        )
-
-        token_info = st.session_state.get(
-            "google_drive_token"
-        )
-
-        if refresh_token:
-            service = _google_drive_get_service_from_refresh_token(
-                refresh_token
-            )
-
-        elif token_info:
-            service, _ = _google_drive_get_service_from_token(
-                token_info
-            )
-
-        else:
-            return
-
-        folder_id = st.session_state.get(
-            "google_drive_folder_id"
-        )
-
-        if folder_id:
-            _google_drive_upload_all(
-                service,
-                folder_id
-            )
-
-    except Exception:
-        # Google Drive backup никога не трябва да чупи приложението.
-        pass
-
-
 # Настройки само за имената на бутоните. Каноничните категории в данните НЕ се променят.
 DEFAULT_UI_LABELS = {
     "pet": "Куче",
@@ -738,8 +288,6 @@ def get_display_category(category):
     for canonical, label in sorted(replacements.items(), key=lambda item: len(item[0]), reverse=True):
         category_text = category_text.replace(canonical, label)
     return category_text
-
-_google_drive_bootstrap()
 
 if not os.path.exists(MAP_FILE):
     pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
@@ -2233,18 +1781,15 @@ if st.session_state["current_trip"] is None:
                     pass
                 st.session_state["current_trip"] = None
                 st.session_state["home_trip_pending_delete"] = None
-                google_drive_sync()
                 st.rerun()
         with c_tr2:
             if st.button("✖️ ОТКАЗ", use_container_width=True, key=f"home_cancel_delete_{_home_trip_id}"):
                 st.session_state["home_trip_pending_delete"] = None
-                google_drive_sync()
                 st.rerun()
 
     # Бърз разход — първи и най-лесен за достигане.
     if st.button("➕  Бърз Разход\nДобави разход за секунди", use_container_width=True, type="primary", key="quick_expense_top_btn"):
         st.session_state["open_quick_expense"] = True
-        google_drive_sync()
         st.rerun()
 
     # Диалогът за ново пътуване е дефиниран преди бутона, за да няма нова страница.
@@ -2290,7 +1835,6 @@ if st.session_state["current_trip"] is None:
             except:
                 pass
             st.session_state["current_trip"] = target_id
-            google_drive_sync()
             st.rerun()
 
     # Ново пътуване — над списъка, но след основното действие.
@@ -2627,11 +2171,9 @@ if st.session_state["current_trip"] is None:
                     if _trip_event_id == str(_trip_id):
                         if _trip_action == "open":
                             st.session_state["current_trip"] = _trip_id
-                            google_drive_sync()
                             st.rerun()
                         elif _trip_action == "delete":
                             st.session_state["home_trip_pending_delete"] = _trip_id
-                            google_drive_sync()
                             st.rerun()
 
         if st.session_state.get("home_trip_pending_delete"):
@@ -3394,7 +2936,6 @@ if st.session_state["current_trip"] is None:
                     st.success(
                         "✅ Зареждането е записано успешно."
                     )
-                    google_drive_sync()
                     st.rerun()
 
                 else:
@@ -3417,7 +2958,6 @@ if st.session_state["current_trip"] is None:
                 st.success(
                     "✅ Разходът е записан успешно."
                 )
-                google_drive_sync()
                 st.rerun()
 
             else:
@@ -3459,37 +2999,13 @@ if st.session_state["current_trip"] is None:
             for _, _mpr in _mp_home.iterrows():
                 try:
                     _mtid = str(_mpr.get("trip_id", "")).strip()
-
+                    _lat = float(_mpr.get("lat"))
+                    _lon = float(_mpr.get("lon"))
                     if not _mtid or _mtid.lower() in {"none", "nan", "null"}:
                         continue
-
                     if _valid_home_trip_ids and _mtid not in _valid_home_trip_ids:
                         continue
-
-                    _lat_raw = _mpr.get("lat")
-                    _lon_raw = _mpr.get("lon")
-
-                    # Пропускаме места без валидни координати.
-                    if pd.isna(_lat_raw) or pd.isna(_lon_raw):
-                        continue
-
-                    _lat = float(_lat_raw)
-                    _lon = float(_lon_raw)
-
-                    # Допълнителна защита срещу nan/inf.
-                    if not pd.notna(_lat) or not pd.notna(_lon):
-                        continue
-
-                    if _lat != _lat or _lon != _lon:
-                        continue
-
-                    if abs(_lat) > 90 or abs(_lon) > 180:
-                        continue
-
-                    _home_map_points.append(
-                        (_lat, _lon, str(_mpr.get("title", "Място")), _mtid)
-                    )
-
+                    _home_map_points.append((_lat, _lon, str(_mpr.get("title", "Място")), _mtid))
                 except Exception:
                     continue
     except Exception:
@@ -3626,7 +3142,6 @@ if st.session_state["current_trip"] is None:
 
                 st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
                 if st.button("❌ Затвори", use_container_width=True, key="close_recent_expenses_btn"):
-                    google_drive_sync()
                     st.rerun()
             recent_expenses_modal()
 
@@ -3980,7 +3495,6 @@ if st.session_state["current_trip"] is None:
             st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
             if st.button("❌ Затвори", key="bottom_modal_close_btn", use_container_width=True):
                 st.session_state["stable_comparison_toggle"] = False
-                google_drive_sync()
                 st.rerun()
 
         show_global_analytics_dialog()
@@ -4445,12 +3959,10 @@ else:
                     except: 
                         pass
                     st.session_state["delete_idx"] = None
-                    google_drive_sync()
                     st.rerun()
             with c_del2:
                 if st.button("✖️ ОТКАЗ", use_container_width=True): 
                     st.session_state["delete_idx"] = None
-                    google_drive_sync()
                     st.rerun()
 
     @st.dialog("🚨 Изтриване на цялото пътуване")
@@ -4478,11 +3990,9 @@ else:
                 except: 
                     pass
                 st.session_state["current_trip"] = None
-                google_drive_sync()
                 st.rerun()
         with c_tr2:
             if st.button("✖️ ОТКАЗ", use_container_width=True): 
-                google_drive_sync()
                 st.rerun()
 
     df_trip = get_trip_data(trip_id)
@@ -4533,7 +4043,6 @@ else:
     if st.button("🔙 КЪМ ГЛАВНО МЕНЮ", use_container_width=True): 
         st.session_state["current_trip"] = None
         st.session_state["edit_unlocked_trip"] = None
-        google_drive_sync()
         st.rerun()
 
     v_id = st.session_state["form_version"]
@@ -4601,7 +4110,6 @@ else:
             
             if add_expense(trip_id, amount, category, full_desc, is_dep, lit, ckm): 
                 st.session_state["form_version"] += 1
-                google_drive_sync()
                 st.rerun()
 
     if o_input.strip() and s_input and s_input > 0:
@@ -4634,13 +4142,11 @@ else:
                         else:
                             if add_expense(trip_id, s_input, kat, desc, is_d): 
                                 st.session_state["form_version"] += 1
-                                google_drive_sync()
                                 st.rerun()
             
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("❌ ОКОНЧАТЕЛЕН ОТКАЗ / НАЗАД", use_container_width=True):
                 st.session_state["form_version"] += 1
-                google_drive_sync()
                 st.rerun()
             st.markdown("---")
             st.stop()
@@ -5021,7 +4527,6 @@ else:
             
             save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, s_d_str, e_d_str)
             st.session_state["form_version"] += 1
-            google_drive_sync()
             st.rerun()
             
         # Автоматизирано нулиране на литри И премахване на паричните записи от хронологията
@@ -5078,7 +4583,6 @@ else:
                     pass
         
                 st.session_state["form_version"] += 1
-                google_drive_sync()
                 st.rerun()
 
     @st.dialog("🏁 Край на пътуването")
@@ -5091,7 +4595,6 @@ else:
                 m_fuel, st_date, en_date, "Да"
             )
             st.session_state["form_version"] += 1
-            google_drive_sync()
             st.rerun()
             return
 
@@ -5108,7 +4611,6 @@ else:
                     m_fuel, st_date, en_date, "Не"
                 )
                 st.session_state["form_version"] += 1
-                google_drive_sync()
                 st.rerun()
             else:
                 st.error(f"Трябва да са над {s_km:.0f} км!")
@@ -5131,7 +4633,6 @@ else:
                     key=f"relock_trip_{trip_id}"
                 ):
                     lock_trip_editing(trip_id)
-                    google_drive_sync()
                     st.rerun()
             else:
                 st.button(
@@ -5160,7 +4661,6 @@ else:
                     key=f"relock_trip_no_car_{trip_id}"
                 ):
                     lock_trip_editing(trip_id)
-                    google_drive_sync()
                     st.rerun()
 
 
@@ -5263,7 +4763,6 @@ else:
                             st.warning("⚠️ Въведете сума за бюджета.")
                         elif save_budget_config(trip_id, "global", total_amount=total_budget_input):
                             st.success("✅ Общият бюджет е записан.")
-                            google_drive_sync()
                             st.rerun()
                         else:
                             st.error("❌ Бюджетът не можа да бъде записан.")
@@ -5293,7 +4792,6 @@ else:
                             st.warning("⚠️ Въведете поне една сума за бюджет.")
                         elif save_budget_config(trip_id, "category", budgets=inputs):
                             st.success("✅ Бюджетите по категории са записани.")
-                            google_drive_sync()
                             st.rerun()
                         else:
                             st.error("❌ Бюджетите не можаха да бъдат записани.")
@@ -5906,7 +5404,6 @@ else:
             
         st.markdown("---")
         if st.button("❌ Затвори", use_container_width=True, key="close_cat_popup_btn"):
-            google_drive_sync()
             st.rerun()
 
     if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
@@ -5990,7 +5487,6 @@ else:
                             df_fresh = df_fresh.drop(idx)
                             df_fresh.to_csv(DATA_FILE, index=False, encoding="utf-8")
                             st.session_state["form_version"] += 1
-                            google_drive_sync()
                             st.rerun()
                         st.markdown('</div>', unsafe_allow_html=True)
         except Exception as e:
@@ -5998,7 +5494,6 @@ else:
         
         st.markdown("---")
         if st.button("❌ Затвори", use_container_width=True, key="close_hronologia_popup_btn"):
-            google_drive_sync()
             st.rerun()
 
 
@@ -6282,7 +5777,6 @@ else:
         st.markdown("<br>", unsafe_allow_html=True)
         # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
         if st.button("❌ Затвори", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
-            google_drive_sync()
             st.rerun()
 
     # === ПОДРЕДБА НА СТАНДАРТНИТЕ БУТОНИ НА ЕКРАНА ===
@@ -6758,7 +6252,7 @@ else:
                 _lat,
                 _lon,
                 _location_title_3b,
-                "red"
+                "purple"
             ):
                 st.session_state["tmCurrentLocation3bLastEvent"] = _event_id
                 st.session_state[f"planned_3b_results_{trip_id}"] = []
@@ -6816,18 +6310,16 @@ else:
                         float(_pending_3b["lat"]),
                         float(_pending_3b["lon"]),
                         f"3b: 📍 {_manual_3b_name}",
-                        "red"
+                        "purple"
                     ):
                         st.session_state.pop("tmCurrentLocation3bPending", None)
                         st.session_state.pop("tmCurrentLocation3bManualName", None)
                         st.session_state[f"planned_3b_results_{trip_id}"] = []
-                        google_drive_sync()
                         st.rerun()
         with _manual_3b_cols[1]:
             if st.button("✖ ОТКАЖИ", key="tmCurrentLocation3bCancelManual"):
                 st.session_state.pop("tmCurrentLocation3bPending", None)
                 st.session_state.pop("tmCurrentLocation3bManualName", None)
-                google_drive_sync()
                 st.rerun()
 
     _3b_points = get_map_points(trip_id)
@@ -6879,7 +6371,6 @@ else:
                 ):
                     if _add_3b_stop(trip_id, _3b_place):
                         st.session_state[f"planned_3b_results_{trip_id}"] = []
-                        google_drive_sync()
                         st.rerun()
 
     if not _3b_stops.empty:
@@ -6931,94 +6422,29 @@ else:
     df_points = get_map_points(trip_id)
     st.markdown(f"<div class='tm-modern-map-shell'><div class='tm-map-meta-row'><div style='color:#7e8494;font-size:12px;margin-top:12px;margin-bottom:4px;'><span>📍 Запазени места от това пътуване - </span><span class='tm-map-count'>{len(df_points)} {'място' if len(df_points)==1 else 'места'}</span></div>", unsafe_allow_html=True)
     
-    # ---------------------------------------------------------
-    # SAFE MAP COORDINATES
-    # Не допускаме празни/невалидни координати да чупят Folium.
-    # ---------------------------------------------------------
-    if not df_points.empty:
-        df_points["lat"] = pd.to_numeric(df_points["lat"], errors="coerce")
-        df_points["lon"] = pd.to_numeric(df_points["lon"], errors="coerce")
-
-        # Оставяме само реални координати
-        df_points = df_points.dropna(subset=["lat", "lon"]).copy()
-
-        # Допълнителна защита срещу невалидни GPS стойности
-        df_points = df_points[
-            df_points["lat"].between(-90, 90)
-            & df_points["lon"].between(-180, 180)
-        ].copy()
-
-    if (
-        "map_current_trip_id" not in st.session_state
-        or st.session_state["map_current_trip_id"] != trip_id
-    ):
+    if "map_current_trip_id" not in st.session_state or st.session_state["map_current_trip_id"] != trip_id:
         st.session_state["map_current_trip_id"] = trip_id
-
         if not df_points.empty:
-            _map_lat = pd.to_numeric(df_points["lat"], errors="coerce").mean()
-            _map_lon = pd.to_numeric(df_points["lon"], errors="coerce").mean()
-
-            if pd.notna(_map_lat) and pd.notna(_map_lon):
-                st.session_state["stable_lat"] = float(_map_lat)
-                st.session_state["stable_lon"] = float(_map_lon)
-                st.session_state["stable_zoom"] = 8
-            else:
-                st.session_state["stable_lat"] = 42.7339
-                st.session_state["stable_lon"] = 25.4858
-                st.session_state["stable_zoom"] = 6
+            st.session_state["stable_lat"] = float(df_points["lat"].mean())
+            st.session_state["stable_lon"] = float(df_points["lon"].mean())
+            st.session_state["stable_zoom"] = 8
         else:
             st.session_state["stable_lat"] = 42.7339
             st.session_state["stable_lon"] = 25.4858
             st.session_state["stable_zoom"] = 6
-    # FINAL SAFETY CHECK - Folium не приема NaN координати
-    try:
-        _safe_lat = float(st.session_state.get("stable_lat", 42.7339))
-    except Exception:
-        _safe_lat = 42.7339
 
-    try:
-        _safe_lon = float(st.session_state.get("stable_lon", 25.4858))
-    except Exception:
-        _safe_lon = 25.4858
-
-    if pd.isna(_safe_lat) or not (-90 <= _safe_lat <= 90):
-        _safe_lat = 42.7339
-
-    if pd.isna(_safe_lon) or not (-180 <= _safe_lon <= 180):
-        _safe_lon = 25.4858
-
-    try:
-        _safe_zoom = int(st.session_state.get("stable_zoom", 6))
-    except Exception:
-        _safe_zoom = 6
     m = folium.Map(
-        location=[_safe_lat, _safe_lon],
-        zoom_start=_safe_zoom
+        location=[st.session_state["stable_lat"], st.session_state["stable_lon"]], 
+        zoom_start=st.session_state["stable_zoom"]
     )
     m.get_root().html.add_child(folium.Element("<script>document.documentElement.lang = 'bg';</script>"))
     folium.LatLngPopup().add_to(m)
     
-    for _, pt in df_points.iterrows():
-        _lat = pd.to_numeric(pt.get("lat"), errors="coerce")
-        _lon = pd.to_numeric(pt.get("lon"), errors="coerce")
-
-        if pd.isna(_lat) or pd.isna(_lon):
-            continue
-
-        if not (-90 <= float(_lat) <= 90 and -180 <= float(_lon) <= 180):
-            continue
-
-        _pt_title = str(pt.get("title", "") or "").strip()
-        if _pt_title.lower().startswith("3b:"):
-            _pt_after = _pt_title.split(":", 1)[1].strip()
-            _pt_color = "red" if "📍" in _pt_after else "purple"
-        else:
-            _pt_color = "green"
-
+    for _, pt in df_points.iterrows(): 
         folium.Marker(
-            location=[float(_lat), float(_lon)],
-            popup=_pt_title,
-            icon=folium.Icon(color=_pt_color, icon="info-sign")
+            location=[pt["lat"], pt["lon"]], 
+            popup=pt["title"], 
+            icon=folium.Icon(color=pt["color"], icon="info-sign")
         ).add_to(m)
     
     points_count = len(df_points)
@@ -7042,7 +6468,6 @@ else:
             if map_data.get("zoom") is not None:
                 st.session_state["stable_zoom"] = map_data["zoom"]
             st.session_state["active_click"] = new_click
-            google_drive_sync()
             st.rerun()
             
     if "active_click" in st.session_state and st.session_state["active_click"] is not None and not trip_locked:
@@ -7052,19 +6477,16 @@ else:
         with c_m1: 
             title_in = st.text_input("Име на новата спирка:", placeholder="напр. Хотел...", key="map_title_click")
         with c_m2: 
-            color_in = "green"
-            st.markdown("<div style='color:#7e8494;font-size:11px;padding-top:8px;'>🟢 Ръчно добавено</div>", unsafe_allow_html=True)
+            color_in = st.selectbox("Цвят:", ["blue", "green", "red", "purple", "orange"], key="map_color_click")
         cb1, cb2 = st.columns([0.7, 0.3])
         with cb1:
             if st.button("💾 Запис", use_container_width=True, type="primary") and title_in:
                 if add_map_point(trip_id, click_coords["lat"], click_coords["lng"], title_in, color_in): 
                     st.session_state["active_click"] = None
-                    google_drive_sync()
                     st.rerun()
         with cb2:
             if st.button("❌ Отказ", use_container_width=True): 
                 st.session_state["active_click"] = None
-                google_drive_sync()
                 st.rerun()
     def _delete_map_point(idx):
         try:
@@ -7121,11 +6543,7 @@ else:
         user-select:none; -webkit-user-select:none;
         cursor:pointer; touch-action:pan-y;
     }
-    .tm-fav-icon {
-        width:22px; flex:0 0 22px; text-align:center;
-        display:flex; align-items:center; justify-content:center;
-    }
-    .tm-fav-icon svg { width:17px; height:20px; display:block; }
+    .tm-fav-icon { width:22px; flex:0 0 22px; text-align:center; font-size:15px; }
     .tm-fav-content { min-width:0; flex:1; }
     .tm-fav-name {
         color:#fff; font-size:12.5px; line-height:1.25;
@@ -7173,13 +6591,6 @@ else:
             const title = String(item.title ?? 'Място');
             const desc = String(item.desc ?? 'Запазено място');
             const coords = String(item.coords ?? '');
-            const pinColor = ['red', 'purple', 'green'].includes(String(item.pin_color ?? ''))
-                ? String(item.pin_color)
-                : 'green';
-
-            const pinSvg = '<svg viewBox="0 0 24 24" aria-hidden="true">' +
-                '<path fill="' + pinColor + '" d="M12 2C7.58 2 4 5.58 4 10c0 5.5 8 12 8 12s8-6.5 8-12c0-4.42-3.58-8-8-8zm0 11.2A3.2 3.2 0 1 1 12 6.8a3.2 3.2 0 0 1 0 6.4z"/>' +
-                '</svg>';
 
             const fav = document.createElement('div');
             fav.className = 'tm-fav';
@@ -7189,7 +6600,7 @@ else:
                 '<div class="tm-fav-delete">🗑️ Изтрий</div>' +
                 '<div class="tm-fav-edit">✏️ Промени</div>' +
                 '<div class="tm-fav-row">' +
-                    '<div class="tm-fav-icon">' + pinSvg + '</div>' +
+                    '<div class="tm-fav-icon">📍</div>' +
                     '<div class="tm-fav-content">' +
                         '<div class="tm-fav-name">' + esc(title) + '</div>' +
                         '<div class="tm-fav-desc">' + esc(desc) + '</div>' +
@@ -7401,17 +6812,10 @@ else:
                         _fav_desc = UI_LABELS.get("planned_stops_label", "3b")
                     _fav_title = _fav_right
 
-            if str(_fav_row.get("title", "") or "").strip().lower().startswith("3b:"):
-                _fav_after = str(_fav_row.get("title", "") or "").split(":", 1)[1].strip()
-                _fav_pin_color = "red" if "📍" in _fav_after else "purple"
-            else:
-                _fav_pin_color = "green"
-
             _items.append({
                 "id": str(_fav_idx),
                 "title": _fav_title,
                 "desc": _fav_desc,
-                "pin_color": _fav_pin_color,
                 "coords": f"📍 {float(_fav_row.get('lat', 0) or 0):.5f}, {float(_fav_row.get('lon', 0) or 0):.5f}",
             })
 
@@ -7457,7 +6861,6 @@ else:
         if _apply_fav_swipe_action(_fav_event):
             # Вече сме извън callback-а, затова rerun е валиден и
             # интерфейсът се обновява веднага след едно натискане.
-            google_drive_sync()
             st.rerun()
 
     # ---------------------------------------------------------
@@ -7494,13 +6897,11 @@ else:
                             _rename_df.to_csv(MAP_FILE, index=False, encoding="utf-8")
                             st.session_state.pop("fav_rename_row", None)
                             st.session_state.pop("fav_rename_value", None)
-                            google_drive_sync()
                             st.rerun()
                 with _rc2:
                     if st.button("Отказ", use_container_width=True, key="fav_rename_cancel_btn"):
                         st.session_state.pop("fav_rename_row", None)
                         st.session_state.pop("fav_rename_value", None)
-                        google_drive_sync()
                         st.rerun()
             else:
                 st.session_state.pop("fav_rename_row", None)
@@ -7575,7 +6976,6 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
     with bottom_cols[0]:
         if st.button("🔙 КЪМ ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
             st.session_state["current_trip"] = None
-            google_drive_sync()
             st.rerun()
             
     with bottom_cols[1]:
@@ -7595,7 +6995,6 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
 
     if st.button("🛠️ Административни Инструменти", use_container_width=True, key="toggle_admin_panel_btn"):
         st.session_state["show_admin_panel"] = not st.session_state["show_admin_panel"]
-        google_drive_sync()
         st.rerun()
 
     if st.session_state["show_admin_panel"]:
@@ -7775,7 +7174,6 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         st.success("🎉 Данните са възстановени успешно!")
                         st.session_state["show_admin_panel"] = False
                         st.session_state["current_trip"] = None
-                        google_drive_sync()
                         st.rerun()
 
         st.markdown("---")
@@ -7791,7 +7189,6 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 st.success(f"✏️ В момента е отключено: **{finished_trip_labels[current_unlocked_admin]}**")
                 if st.button("🔒 ЗАКЛЮЧИ РЕДАКЦИЯТА", use_container_width=True, type="primary", key="admin_relock_finished_trip_btn"):
                     lock_trip_editing(current_unlocked_admin)
-                    google_drive_sync()
                     st.rerun()
             else:
                 admin_finished_choice = st.selectbox(
@@ -7804,7 +7201,6 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                     st.session_state["edit_unlocked_trip"] = str(admin_finished_choice)
                     st.session_state["current_trip"] = str(admin_finished_choice)
                     st.session_state["show_admin_panel"] = False
-                    google_drive_sync()
                     st.rerun()
         else:
             st.info("Няма приключени пътувания за отключване.")
@@ -7868,7 +7264,6 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                     if ok_rename:
                         st.success(f"✅ Пътуването е преименувано на „{get_trip_display_name(rename_result)}“.")
                         st.session_state["show_admin_panel"] = False
-                        google_drive_sync()
                         st.rerun()
                     else:
                         st.error(f"❌ Преименуването не успя: {rename_result}")
@@ -7959,12 +7354,6 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 new_my_location_label or "Моята локация",
             ):
                 st.success("✅ Настройките са запазени.")
-                google_drive_sync()
                 st.rerun()
             else:
                 st.error("❌ Неуспешно запазване на имената на категориите.")
-
-# =========================================================
-# GOOGLE DRIVE — FINAL SYNC FOR THIS RERUN
-# =========================================================
-google_drive_sync()
