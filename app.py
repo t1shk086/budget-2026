@@ -792,12 +792,42 @@ def get_emoji(cat):
 def get_trip_data(t_id):
     try:
         df = _read_csv_fast(DATA_FILE, encoding="utf-8")
-        r = df[df["trip_id"] == t_id].copy()
-        if "liters" not in r.columns: r["liters"] = 0.0
-        if "current_km" not in r.columns: r["current_km"] = 0.0
+        r = df[df["trip_id"].astype(str) == str(t_id)].copy()
+
+        # Backward compatibility: older budget_data CSV files may not have
+        # the "type" column.  Normalize the schema here so every caller can
+        # safely use r["type"] without KeyError.
+        if "type" not in r.columns:
+            r["type"] = "expense"
+            if "category" in r.columns:
+                r.loc[
+                    r["category"].astype(str).str.strip().eq("Депозит/Резервация"),
+                    "type"
+                ] = "deposit"
+
+        if "trip_id" not in r.columns:
+            r["trip_id"] = str(t_id)
+        if "date" not in r.columns:
+            r["date"] = ""
+        if "amount" not in r.columns:
+            r["amount"] = 0.0
+        if "category" not in r.columns:
+            r["category"] = "Други"
+        if "description" not in r.columns:
+            r["description"] = ""
+        if "liters" not in r.columns:
+            r["liters"] = 0.0
+        if "current_km" not in r.columns:
+            r["current_km"] = 0.0
+
         return r
-    except: 
-        return pd.DataFrame(columns=["trip_id","date","amount","category","description","type","liters","current_km"])
+    except Exception:
+        return pd.DataFrame(
+            columns=[
+                "trip_id","date","amount","category","description",
+                "type","liters","current_km"
+            ]
+        )
 
 def get_trip_settings(t_id):
     d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": "", "trip_finished": "Не"}
