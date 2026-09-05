@@ -684,40 +684,141 @@ def _gallery_delete_local(path):
 
 
 def _gallery_sync_to_drive(service):
-    photos_folder_id = _google_drive_find_or_create_photos_folder(service)
-    remote_files = {
-        str(f.get("name", "")): f
-        for f in _google_drive_find_files_in_folder(service, photos_folder_id)
-        if "__gallery__" in str(f.get("name", ""))
-    }
-    local = {}
+    """
+    Синхронизира галерията с Google Drive.
+
+    Правило:
+    - локално съществува + в Drive липсва -> качва
+    - локално липсва + в Drive съществува -> изтрива от Drive
+    - и на двете места съществува -> нищо не прави
+
+    ВАЖНО:
+    Първо обработваме изтриванията, за да не може стара снимка
+    от Drive да бъде върната обратно при същия sync.
+    """
     try:
-        for name in os.listdir(PHOTOS_DIR):
-            path = os.path.join(PHOTOS_DIR, name)
-            if os.path.isfile(path) and "__gallery__" in name and Path(name).suffix.lower() in GALLERY_EXTENSIONS:
-                local[name] = path
-    except Exception:
-        pass
+        photos_folder_id = _google_drive_find_or_create_photos_folder(service)
 
-    from googleapiclient.http import MediaFileUpload
-    mime_map = {".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".png":"image/png", ".webp":"image/webp"}
-    uploaded = 0
-    for name, path in local.items():
-        if name in remote_files:
-            continue
-        media = MediaFileUpload(path, mimetype=mime_map.get(Path(path).suffix.lower(), "image/jpeg"), resumable=False)
-        service.files().create(body={"name": name, "parents": [photos_folder_id]}, media_body=media, fields="id").execute()
-        uploaded += 1
+        # ---------------------------------------------------------
+        # 1. Списък на снимките в GOOGLE DRIVE
+        # ---------------------------------------------------------
+        remote_files = {
+            str(f.get("name", "")): f
+            for f in _google_drive_find_files_in_folder(
+                service,
+                photos_folder_id
+            )
+            if (
+                "__gallery__" in str(f.get("name", ""))
+                and Path(
+                    str(f.get("name", ""))
+                ).suffix.lower() in GALLERY_EXTENSIONS
+            )
+        }
 
-    deleted = 0
-    for name, meta in remote_files.items():
-        if name not in local:
+        # ---------------------------------------------------------
+        # 2. Списък на снимките ЛОКАЛНО
+        # ---------------------------------------------------------
+        local = {}
+
+        try:
+            for name in os.listdir(PHOTOS_DIR):
+                path = os.path.join(
+                    PHOTOS_DIR,
+                    name
+                )
+
+                if (
+                    os.path.isfile(path)
+                    and "__gallery__" in name
+                    and Path(name).suffix.lower()
+                    in GALLERY_EXTENSIONS
+                ):
+                    local[name] = path
+
+        except Exception:
+            pass
+
+        uploaded = 0
+        deleted = 0
+        delete_failed = 0
+
+        # ---------------------------------------------------------
+        # 3. ПЪРВО ИЗТРИВАМЕ ОТ DRIVE ТОВА,
+        #    КОЕТО ВЕЧЕ ГО НЯМА ЛОКАЛНО
+        # ---------------------------------------------------------
+        for name, meta in remote_files.items():
+
+            if name in local:
+                continue
+
             try:
-                service.files().delete(fileId=meta["id"]).execute()
+                file_id = meta.get("id")
+
+                if not file_id:
+                    delete_failed += 1
+                    continue
+
+                service.files().delete(
+                    fileId=file_id
+                ).execute()
+
                 deleted += 1
+
+            except Exception:
+                # Не крием логическия проблем от брояча.
+                delete_failed += 1
+
+        # ---------------------------------------------------------
+        # 4. СЛЕД ИЗТРИВАНИЯТА КАЧВАМЕ САМО НОВИТЕ
+        # ---------------------------------------------------------
+        from googleapiclient.http import MediaFileUpload
+
+        mime_map = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".webp": "image/webp",
+        }
+
+        # Важно:
+        # След изтриването НЕ използваме стария remote_files
+        # като основание да възстановяваме снимки.
+        for name, path in local.items():
+
+            if name in remote_files:
+                continue
+
+            try:
+                media = MediaFileUpload(
+                    path,
+                    mimetype=mime_map.get(
+                        Path(path).suffix.lower(),
+                        "image/jpeg"
+                    ),
+                    resumable=False,
+                )
+
+                service.files().create(
+                    body={
+                        "name": name,
+                        "parents": [
+                            photos_folder_id
+                        ],
+                    },
+                    media_body=media,
+                    fields="id",
+                ).execute()
+
+                uploaded += 1
+
             except Exception:
                 pass
-    return uploaded, deleted
+
+        return uploaded, deleted, delete_failed
+
+    except Exception:
+        return 0, 0, 0
 
 
 def _google_drive_download_photos(service):
@@ -981,7 +1082,11 @@ def google_drive_sync(force=False, include_photos=True):
         if not folder_id:
             return 0
         csv_uploaded = _google_drive_upload_all(service, folder_id)
-        photo_result = _gallery_sync_to_drive(service) if include_photos else (0, 0)
+        photo_result = (
+    _gallery_sync_to_drive(service)
+    if include_photos
+    else (0, 0, 0)
+)
         return csv_uploaded, photo_result
     except Exception:
         return 0
