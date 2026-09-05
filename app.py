@@ -8482,6 +8482,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
             key="fallback_home_trigger_btn"
         ):
             st.session_state["current_trip"] = None
+            st.session_state["page"] = "home"
             st.session_state["_scroll_to_top_after_rerun"] = True
     
             google_drive_sync()
