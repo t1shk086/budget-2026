@@ -822,32 +822,151 @@ def _gallery_sync_to_drive(service):
 
 
 def _google_drive_download_photos(service):
-    """Restore managed gallery photos from the separate Photos folder."""
+    """Restore only gallery photos belonging to existing trips.
+    Old orphaned photos are removed from Google Drive.
+    """
     try:
         photos_folder_id = _google_drive_find_or_create_photos_folder(service)
+
         managed = [
-            f for f in _google_drive_find_files_in_folder(service, photos_folder_id)
+            f for f in _google_drive_find_files_in_folder(
+                service,
+                photos_folder_id
+            )
             if "__gallery__" in str(f.get("name", ""))
-            and Path(str(f.get("name", ""))).suffix.lower() in GALLERY_EXTENSIONS
+            and Path(
+                str(f.get("name", ""))
+            ).suffix.lower() in GALLERY_EXTENSIONS
         ]
+
+        # ---------------------------------------------------------
+        # 1. Вземаме всички реално съществуващи trip_id
+        # ---------------------------------------------------------
+        existing_trip_ids = set()
+
+        try:
+            if os.path.exists(SETTINGS_FILE):
+                df_settings = pd.read_csv(
+                    SETTINGS_FILE,
+                    encoding="utf-8"
+                )
+
+                if "trip_id" in df_settings.columns:
+                    existing_trip_ids = {
+                        str(x).strip()
+                        for x in df_settings["trip_id"].dropna()
+                        if str(x).strip()
+                    }
+        except Exception:
+            existing_trip_ids = set()
+
+        # За допълнителна сигурност вземаме и trip_id от основните данни
+        try:
+            if os.path.exists(DATA_FILE):
+                df_data = pd.read_csv(
+                    DATA_FILE,
+                    encoding="utf-8"
+                )
+
+                if "trip_id" in df_data.columns:
+                    existing_trip_ids.update(
+                        str(x).strip()
+                        for x in df_data["trip_id"].dropna()
+                        if str(x).strip()
+                    )
+        except Exception:
+            pass
+
         from io import BytesIO
         from googleapiclient.http import MediaIoBaseDownload
+
         restored = 0
+        deleted_orphans = 0
+
+        # ---------------------------------------------------------
+        # 2. Проверяваме всяка снимка
+        # ---------------------------------------------------------
         for meta in managed:
-            name = str(meta["name"])
-            path = os.path.join(PHOTOS_DIR, name)
+            name = str(meta.get("name", ""))
+
+            # Името е приблизително:
+            # trip_id__gallery__UUID.ext
+            photo_trip_id = None
+
+            if "__gallery__" in name:
+                photo_trip_id = name.split(
+                    "__gallery__",
+                    1
+                )[0].strip()
+
+            # -----------------------------------------------------
+            # Стара снимка от вече изтрито пътуване
+            # -----------------------------------------------------
+            if (
+                not photo_trip_id
+                or photo_trip_id not in existing_trip_ids
+            ):
+                try:
+                    service.files().delete(
+                        fileId=meta["id"]
+                    ).execute()
+
+                    deleted_orphans += 1
+                except Exception:
+                    pass
+
+                # Ако случайно е останала и локално — махаме я
+                try:
+                    local_orphan = os.path.join(
+                        PHOTOS_DIR,
+                        name
+                    )
+
+                    if os.path.exists(local_orphan):
+                        os.remove(local_orphan)
+                except Exception:
+                    pass
+
+                continue
+
+            # -----------------------------------------------------
+            # 3. Валидна снимка → сваляме я локално
+            # -----------------------------------------------------
+            path = os.path.join(
+                PHOTOS_DIR,
+                name
+            )
+
             if os.path.exists(path):
                 continue
-            request = service.files().get_media(fileId=meta["id"])
-            buf = BytesIO()
-            downloader = MediaIoBaseDownload(buf, request)
-            done = False
-            while not done:
-                _, done = downloader.next_chunk()
-            with open(path, "wb") as f:
-                f.write(buf.getvalue())
-            restored += 1
+
+            try:
+                request = service.files().get_media(
+                    fileId=meta["id"]
+                )
+
+                buf = BytesIO()
+
+                downloader = MediaIoBaseDownload(
+                    buf,
+                    request
+                )
+
+                done = False
+
+                while not done:
+                    _, done = downloader.next_chunk()
+
+                with open(path, "wb") as f:
+                    f.write(buf.getvalue())
+
+                restored += 1
+
+            except Exception:
+                pass
+
         return restored
+
     except Exception:
         return 0
 
