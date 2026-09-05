@@ -2337,7 +2337,19 @@ def _add_plan_item_and_clear(t_id, widget_key):
 
 if "open_quick_expense" not in st.session_state:
     st.session_state["open_quick_expense"] = False
+st.markdown(
+    "<div id='app_top_anchor' style='scroll-margin-top: 0;'></div>",
+    unsafe_allow_html=True
+)
 
+if st.session_state["current_trip"] is None:
+    st.session_state["edit_unlocked_trip"] = None
+    st.markdown("""
+    <div class="tm-home-header">
+        <div class="tm-home-brand">🐾 <span>PixelApp</span></div>
+        <div class="tm-home-brand-sub">Travel Manager</div>
+    </div>
+    """, unsafe_allow_html=True)
 if st.session_state["current_trip"] is None:
     st.session_state["edit_unlocked_trip"] = None
     st.markdown("""
@@ -8483,9 +8495,6 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
         ):
             st.session_state["current_trip"] = None
             st.session_state["page"] = "home"
-            st.session_state["_scroll_to_top_after_rerun"] = True
-    
-            google_drive_sync()
             st.rerun()
             
     with bottom_cols[1]:
