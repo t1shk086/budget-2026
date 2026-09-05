@@ -4924,28 +4924,176 @@ else:
         st.error(f"ВНИМАНИЕ! Изтриване на пътуването до {str(trip_id).replace('_', ' ')}?")
         c_tr1, c_tr2 = st.columns(2)
         with c_tr1:
-            if st.button("✔️ ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
-                try:
-                    pd.read_csv(DATA_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(DATA_FILE, index=False, encoding="utf-8")
-                    pd.read_csv(SETTINGS_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(TRIP_PLAN_FILE):
-                        pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")[lambda d: d["trip_id"] != trip_id].to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
-                    if os.path.exists(CATEGORY_BUDGETS_FILE):
-                        df_budget_delete = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
-                        df_budget_delete[df_budget_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
-                            CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8"
+if st.button("✔️ ДА, ИЗТРИЙ ВСИЧКО", use_container_width=True, type="primary"):
+    try:
+        # ---------------------------------------------------------
+        # 1. Изтриваме всички снимки на това пътуване локално
+        # ---------------------------------------------------------
+        _trip_prefix = _gallery_trip_prefix(trip_id)
+
+        try:
+            for _photo_name in os.listdir(PHOTOS_DIR):
+                if not _photo_name.startswith(_trip_prefix):
+                    continue
+
+                _photo_path = os.path.join(
+                    PHOTOS_DIR,
+                    _photo_name
+                )
+
+                if os.path.isfile(_photo_path):
+                    try:
+                        os.remove(_photo_path)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        # ---------------------------------------------------------
+        # 2. Изтриваме снимките на това пътуване и от Google Drive
+        # ---------------------------------------------------------
+        try:
+            if st.session_state.get("google_drive_service_ready"):
+                _refresh_token = _google_drive_secret(
+                    "google_drive",
+                    "refresh_token"
+                )
+                _token_info = st.session_state.get(
+                    "google_drive_token"
+                )
+
+                _drive_service = None
+
+                if _refresh_token:
+                    _drive_service = (
+                        _google_drive_get_service_from_refresh_token(
+                            _refresh_token
                         )
-                    if os.path.exists(MAP_FILE):
-                        df_map_delete = pd.read_csv(MAP_FILE, encoding="utf-8")
-                        if "trip_id" in df_map_delete.columns:
-                            df_map_delete[df_map_delete["trip_id"].astype(str) != str(trip_id)].to_csv(
-                                MAP_FILE, index=False, encoding="utf-8"
-                            )
-                except: 
-                    pass
-                st.session_state["current_trip"] = None
-                google_drive_sync()
-                st.rerun()
+                    )
+                elif _token_info:
+                    _drive_service, _ = (
+                        _google_drive_get_service_from_token(
+                            _token_info
+                        )
+                    )
+
+                if _drive_service is not None:
+                    _photos_folder_id = (
+                        _google_drive_find_or_create_photos_folder(
+                            _drive_service
+                        )
+                    )
+
+                    _trip_photos = (
+                        _google_drive_find_files_in_folder(
+                            _drive_service,
+                            _photos_folder_id
+                        )
+                    )
+
+                    for _photo_meta in _trip_photos:
+                        _photo_name = str(
+                            _photo_meta.get("name", "")
+                        )
+
+                        if (
+                            _photo_name.startswith(_trip_prefix)
+                            and "__gallery__" in _photo_name
+                        ):
+                            try:
+                                _drive_service.files().delete(
+                                    fileId=_photo_meta["id"]
+                                ).execute()
+                            except Exception:
+                                pass
+
+        except Exception:
+            pass
+
+        # ---------------------------------------------------------
+        # 3. Изтриваме данните за самото пътуване
+        # ---------------------------------------------------------
+        try:
+            pd.read_csv(DATA_FILE, encoding="utf-8")[
+                lambda d: d["trip_id"] != trip_id
+            ].to_csv(
+                DATA_FILE,
+                index=False,
+                encoding="utf-8"
+            )
+
+            pd.read_csv(SETTINGS_FILE, encoding="utf-8")[
+                lambda d: d["trip_id"] != trip_id
+            ].to_csv(
+                SETTINGS_FILE,
+                index=False,
+                encoding="utf-8"
+            )
+
+            if os.path.exists(TRIP_PLAN_FILE):
+                pd.read_csv(TRIP_PLAN_FILE, encoding="utf-8")[
+                    lambda d: d["trip_id"] != trip_id
+                ].to_csv(
+                    TRIP_PLAN_FILE,
+                    index=False,
+                    encoding="utf-8"
+                )
+
+            if os.path.exists(CATEGORY_BUDGETS_FILE):
+                df_budget_delete = pd.read_csv(
+                    CATEGORY_BUDGETS_FILE,
+                    encoding="utf-8"
+                )
+
+                df_budget_delete[
+                    df_budget_delete["trip_id"].astype(str)
+                    != str(trip_id)
+                ].to_csv(
+                    CATEGORY_BUDGETS_FILE,
+                    index=False,
+                    encoding="utf-8"
+                )
+
+            if os.path.exists(MAP_FILE):
+                df_map_delete = pd.read_csv(
+                    MAP_FILE,
+                    encoding="utf-8"
+                )
+
+                if "trip_id" in df_map_delete.columns:
+                    df_map_delete[
+                        df_map_delete["trip_id"].astype(str)
+                        != str(trip_id)
+                    ].to_csv(
+                        MAP_FILE,
+                        index=False,
+                        encoding="utf-8"
+                    )
+
+        except Exception:
+            pass
+
+        # ---------------------------------------------------------
+        # 4. Изчистваме кеша за CSV файловете
+        # ---------------------------------------------------------
+        for _cache_key in list(st.session_state.keys()):
+            if str(_cache_key).startswith("_pixel_csv_cache::"):
+                st.session_state.pop(_cache_key, None)
+
+        # ---------------------------------------------------------
+        # 5. Изчистваме избраното пътуване
+        # ---------------------------------------------------------
+        st.session_state["current_trip"] = None
+
+        # Не е необходимо тук да качваме снимките отново.
+        # Те вече са изтрити локално и от Drive.
+        google_drive_sync()
+
+        st.rerun()
+
+    except Exception:
+        st.session_state["current_trip"] = None
+        st.rerun()
         with c_tr2:
             if st.button("✖️ ОТКАЗ", use_container_width=True): 
                 google_drive_sync()
