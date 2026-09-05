@@ -2912,7 +2912,13 @@ if st.session_state["current_trip"] is None:
     existing = sorted(existing, key=_trip_sort_key)
 
     if existing:
-        st.markdown(f"<div class='tm-home-trips-title'><span>Моите пътувания</span><span class='tm-home-trips-count'>{len(existing)} пътувания</span></div>", unsafe_allow_html=True)
+        st.markdown(
+    f"<div id='my_trips_top' class='tm-home-trips-title'>"
+    f"<span>Моите пътувания</span>"
+    f"<span class='tm-home-trips-count'>{len(existing)} пътувания</span>"
+    f"</div>",
+    unsafe_allow_html=True
+)
 
         for _trip in existing:
             _trip_id = str(_trip)
@@ -8448,6 +8454,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
         ):
             st.session_state["current_trip"] = None
             st.session_state["page"] = "home"
+            st.session_state["_scroll_to_my_trips"] = True
             st.rerun()
             
     with bottom_cols[1]:
