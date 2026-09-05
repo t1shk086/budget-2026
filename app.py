@@ -7718,32 +7718,25 @@ else:
         st.session_state[_gallery_key] = not st.session_state[_gallery_key]
         st.rerun()
 
-if st.session_state.get(_gallery_key):
-    if len(_trip_gallery_files) < MAX_GALLERY_PHOTOS:
-        # Използване на форма
-        with st.form(key=f"gallery_form_{trip_id}"):
+    if st.session_state[_gallery_key]:
+        if len(_trip_gallery_files) < MAX_GALLERY_PHOTOS:
             _uploads = st.file_uploader(
                 "Добави снимки към това пътуване",
-                type=["jpg", "jpeg", "png", "webp"],
+                type=["jpg","jpeg","png","webp"],
                 accept_multiple_files=True,
                 key=f"gallery_upload_{trip_id}",
                 label_visibility="collapsed",
             )
-            
-            submit_button = st.form_submit_button("➕ Запази снимките", use_container_width=True)
-
-        if submit_button:
-            if _uploads:
+            if _uploads and st.button("➕ Запази снимките", use_container_width=True, key=f"save_gallery_uploads_{trip_id}"):
                 _saved = _gallery_save_uploads(trip_id, _uploads)
                 if _saved:
                     st.success(f"✅ Добавени са {_saved} снимки. Натисни ☁️ Sync, за да ги качиш в Photos.")
                     st.rerun()
                 else:
                     st.warning("⚠️ Няма свободни места или снимките не можаха да бъдат записани.")
-            else:
-                st.warning("⚠️ Моля, изберете поне един файл преди запис.")
-    else:
-        st.caption(f"Максимумът от {MAX_GALLERY_PHOTOS} снимки е достигнат.")
+        else:
+            st.caption(f"Максимумът от {MAX_GALLERY_PHOTOS} снимки е достигнат.")
+
         _gallery_items = []
         for _gidx, _gpath in enumerate(_trip_gallery_files):
             try:
