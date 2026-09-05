@@ -8282,7 +8282,3 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
             else:
                 st.error("❌ Неуспешно запазване на имената на категориите.")
 
-# =========================================================
-# GOOGLE DRIVE — FINAL SYNC FOR THIS RERUN
-# =========================================================
-google_drive_sync()
