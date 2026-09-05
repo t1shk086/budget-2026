@@ -8848,3 +8848,46 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
             else:
                 st.error("❌ Неуспешно запазване на имената на категориите.")
 
+if (
+    st.session_state.get("current_trip") is None
+    and st.session_state.pop("_scroll_to_top_after_rerun", False)
+):
+    components.html(
+        """
+        <script>
+        setTimeout(function () {
+            try {
+                const win = window.parent;
+
+                win.scrollTo({
+                    top: 0,
+                    left: 0,
+                    behavior: "instant"
+                });
+
+                win.document.documentElement.scrollTop = 0;
+                win.document.body.scrollTop = 0;
+
+                const app = win.document.querySelector(
+                    '[data-testid="stAppViewContainer"]'
+                );
+
+                if (app) {
+                    app.scrollTop = 0;
+                }
+
+                const main = win.document.querySelector(
+                    'section.main'
+                );
+
+                if (main) {
+                    main.scrollTop = 0;
+                }
+            } catch (e) {
+                console.log("Home scroll error:", e);
+            }
+        }, 300);
+        </script>
+        """,
+        height=0,
+    )
