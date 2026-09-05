@@ -7762,7 +7762,6 @@ else:
                 data={"items": _gallery_items},
                 key=f"trip_gallery_component_{_gallery_safe_id}_{_gallery_count}"
             )
-
             _delete_choice = st.selectbox(
                 "Избери снимка за изтриване",
                 range(len(_trip_gallery_files)),
