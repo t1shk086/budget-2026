@@ -458,7 +458,12 @@ def _google_drive_find_files_in_folder(service, folder_id):
 
 
 def _gallery_trip_prefix(trip_id):
-    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", str(trip_id).strip())
+    safe = re.sub(
+        r"[^\w.-]+",
+        "_",
+        str(trip_id).strip(),
+        flags=re.UNICODE
+    )
     return f"{safe}__gallery__"
 
 
