@@ -230,7 +230,7 @@ MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
 TRIP_PLAN_FILE = "trip_plan_2026.csv"
 PHOTOS_DIR = "Photos"
-MAX_GALLERY_PHOTOS = 10
+MAX_GALLERY_PHOTOS = 5
 GALLERY_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 os.makedirs(PHOTOS_DIR, exist_ok=True)
 
