@@ -2305,6 +2305,44 @@ st.markdown(
 
 if st.session_state["current_trip"] is None:
     st.session_state["edit_unlocked_trip"] = None
+
+    # Връщане от пътуване -> Home най-отгоре
+    if st.session_state.pop("_return_home_top", False):
+        components.html(
+            """
+            <script>
+            (function () {
+                function scrollHomeTop() {
+                    try {
+                        const doc = window.parent.document;
+
+                        window.parent.scrollTo(0, 0);
+
+                        [
+                            '[data-testid="stAppViewContainer"]',
+                            '[data-testid="stMain"]',
+                            'section.main',
+                            'main',
+                            'html',
+                            'body'
+                        ].forEach(function(selector) {
+                            const el = doc.querySelector(selector);
+                            if (el) el.scrollTop = 0;
+                        });
+                    } catch (e) {}
+                }
+
+                scrollHomeTop();
+                requestAnimationFrame(scrollHomeTop);
+                setTimeout(scrollHomeTop, 100);
+                setTimeout(scrollHomeTop, 300);
+                setTimeout(scrollHomeTop, 600);
+            })();
+            </script>
+            """,
+            height=0
+        )
+
     st.markdown("""
     <div class="tm-home-header">
         <div class="tm-home-brand">🐾 <span>PixelApp</span></div>
@@ -8447,14 +8485,9 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
     bottom_cols = st.columns(2)
     
     with bottom_cols[0]:
-        if st.button(
-            "🔙 КЪМ ГЛАВНО МЕНЮ",
-            use_container_width=True,
-            key="fallback_home_trigger_btn"
-        ):
+        if st.button("🔙 КЪМ ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
+            st.session_state["_return_home_top"] = True
             st.session_state["current_trip"] = None
-            st.session_state["page"] = "home"
-            st.session_state["_scroll_to_my_trips"] = True
             st.rerun()
             
     with bottom_cols[1]:
