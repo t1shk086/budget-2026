@@ -7893,7 +7893,7 @@ else:
         if len(_trip_gallery_files) < MAX_GALLERY_PHOTOS:
             _uploads = st.file_uploader(
                 "Добави снимки към това пътуване",
-                type=["jpg", "jpeg", "png", "webp"],
+                type="image/*",
                 accept_multiple_files=True,
                 key=f"gallery_upload_{trip_id}",
                 label_visibility="visible",
