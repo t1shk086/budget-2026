@@ -2302,14 +2302,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-if st.session_state["current_trip"] is None:
-    st.session_state["edit_unlocked_trip"] = None
-    st.markdown("""
-    <div class="tm-home-header">
-        <div class="tm-home-brand">🐾 <span>PixelApp</span></div>
-        <div class="tm-home-brand-sub">Travel Manager</div>
-    </div>
-    """, unsafe_allow_html=True)
+
 if st.session_state["current_trip"] is None:
     st.session_state["edit_unlocked_trip"] = None
     st.markdown("""
