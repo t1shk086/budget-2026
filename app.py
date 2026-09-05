@@ -8436,9 +8436,26 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
     bottom_cols = st.columns(2)
     
     with bottom_cols[0]:
-        if st.button("🔙 КЪМ ГЛАВНО МЕНЮ", use_container_width=True, key="fallback_home_trigger_btn"):
+        if st.button(
+            "🔙 КЪМ ГЛАВНО МЕНЮ",
+            use_container_width=True,
+            key="fallback_home_trigger_btn"
+        ):
             st.session_state["current_trip"] = None
+            st.session_state["page"] = "home"
+    
             google_drive_sync()
+    
+            st.markdown(
+                """
+                <script>
+                    window.parent.scrollTo(0, 0);
+                    window.scrollTo(0, 0);
+                </script>
+                """,
+                unsafe_allow_html=True
+            )
+    
             st.rerun()
             
     with bottom_cols[1]:
