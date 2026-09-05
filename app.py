@@ -7800,7 +7800,7 @@ else:
                     st.success("✅ Снимката е изтрита локално. При следващия ☁️ Sync ще бъде премахната и от Photos в Drive.")
                     st.rerun()
         else:
-            st.markdown("<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма снимки. Добави до 10 спомена от това пътуване.</div>", unsafe_allow_html=True)
+            st.markdown("<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма снимки. Добави до 5 спомена от това пътуване.</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
