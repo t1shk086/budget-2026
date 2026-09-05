@@ -7758,6 +7758,8 @@ else:
             """
             _gallery_component = st.components.v2.component(name="pixelapp_memory_gallery_v1", html=_GALLERY_HTML, css=_GALLERY_CSS, js=_GALLERY_JS)
             _gallery_safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", str(trip_id))
+            _gallery_safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", str(trip_id))
+            
             _gallery_component(
                 data={"items": _gallery_items},
                 key=f"trip_gallery_component_{_gallery_safe_id}_{_gallery_count}"
