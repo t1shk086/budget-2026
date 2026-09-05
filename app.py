@@ -2432,23 +2432,42 @@ if st.session_state["current_trip"] is None:
     if st.button("✈️  Ново Пътуване\nСъздай ново приключение", use_container_width=True, key="new_trip_home_btn"):
         create_trip_modal()
 
-    # Sort trips: active/upcoming first by start date, completed last by most recent start date.
+    # Подреждане по реален календарен статус:
+    # 1) Активни → 2) Предстоящи → 3) Приключили.
+    # Активно е пътуване, чийто период включва днешната дата,
+    # освен ако вече не е маркирано ръчно като приключило.
     def _trip_sort_key(tid):
         stg = get_trip_settings(str(tid))
-        start = str(stg.get("start_date", "") or "").strip()
+        start_s = str(stg.get("start_date", "") or "").strip()
+        end_s = str(stg.get("end_date", "") or "").strip()
+        car_trip = str(stg.get("car_trip", "Не")) == "Да"
         finished = (
             float(stg.get("end_km", 0.0) or 0.0) > 0.0
-            if str(stg.get("car_trip", "Не")) == "Да"
+            if car_trip
             else str(stg.get("trip_finished", "Не")).strip().lower() in ["да", "yes", "true", "1"]
         )
-        try:
-            d = datetime.datetime.strptime(start, "%d.%m.%Y").date()
-        except Exception:
-            d = datetime.date.max
+
         today = datetime.date.today()
-        if not finished:
-            return (0, 0 if d >= today else 1, d)
-        return (1, 0, -d.toordinal() if d != datetime.date.max else 0)
+        try:
+            start_d = datetime.datetime.strptime(start_s, "%d.%m.%Y").date()
+        except Exception:
+            start_d = None
+        try:
+            end_d = datetime.datetime.strptime(end_s, "%d.%m.%Y").date()
+        except Exception:
+            end_d = None
+
+        if finished or (end_d is not None and today > end_d):
+            # Приключили: най-скорошно приключилото първо.
+            return (2, -(end_d or start_d or datetime.date.min).toordinal())
+
+        if start_d is not None and today < start_d:
+            # Предстоящи: най-близкото започващо първо.
+            return (1, start_d.toordinal())
+
+        # Активни: това, което приключва най-скоро, е първо.
+        active_end = end_d or datetime.date.max
+        return (0, active_end.toordinal(), (start_d or datetime.date.min).toordinal())
 
     existing = sorted(existing, key=_trip_sort_key)
 
@@ -7718,19 +7737,24 @@ else:
         if _gallery_items:
             _GALLERY_HTML = '<div id="tm-gallery-root"></div>'
             _GALLERY_CSS = """
-            #tm-gallery-root{width:100%;}
-            .tm-gallery-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px;}
-            .tm-gallery-item{overflow:hidden;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#14171d;cursor:pointer;}
-            .tm-gallery-item img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;transition:transform .18s ease;}
-            .tm-gallery-item:hover img{transform:scale(1.025);}
-            .tm-gallery-modal{position:fixed;inset:0;background:rgba(0,0,0,.90);z-index:99999;display:none;align-items:center;justify-content:center;padding:18px;}
+            #tm-gallery-root{width:100%;padding:2px 0 4px;}
+            .tm-gallery-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:8px;margin-top:10px;}
+            .tm-gallery-item{position:relative;overflow:hidden;min-height:120px;border-radius:18px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.015));cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.22);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;}
+            .tm-gallery-item:first-child{grid-column:1 / -1;min-height:210px;}
+            .tm-gallery-item img{display:block;width:100%;height:100%;min-height:120px;aspect-ratio:1/1;object-fit:cover;transition:transform .35s ease,filter .25s ease;}
+            .tm-gallery-item:first-child img{aspect-ratio:16/8;min-height:210px;}
+            .tm-gallery-item:hover{transform:translateY(-2px);border-color:rgba(0,242,254,.28);box-shadow:0 12px 28px rgba(0,0,0,.32),0 0 18px rgba(0,242,254,.05);}
+            .tm-gallery-item:hover img{transform:scale(1.035);filter:saturate(1.04);}
+            .tm-gallery-badge{position:absolute;left:10px;bottom:10px;padding:5px 9px;border-radius:999px;background:rgba(5,10,14,.68);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px);color:rgba(255,255,255,.92);font-size:10px;font-weight:700;letter-spacing:.2px;}
+            .tm-gallery-modal{position:fixed;inset:0;background:rgba(3,6,9,.94);backdrop-filter:blur(12px);z-index:99999;display:none;align-items:center;justify-content:center;padding:18px;}
             .tm-gallery-modal.open{display:flex;}
-            .tm-gallery-modal img{max-width:96vw;max-height:88vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.55);}
-            .tm-gallery-close,.tm-gallery-prev,.tm-gallery-next{position:absolute;border:0;border-radius:12px;background:rgba(255,255,255,.10);color:#fff;cursor:pointer;}
-            .tm-gallery-close{top:14px;right:14px;width:38px;height:38px;font-size:20px;}
-            .tm-gallery-prev,.tm-gallery-next{top:50%;transform:translateY(-50%);width:40px;height:40px;font-size:22px;}
+            .tm-gallery-modal img{max-width:94vw;max-height:82vh;object-fit:contain;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.65);}
+            .tm-gallery-close,.tm-gallery-prev,.tm-gallery-next{position:absolute;border:1px solid rgba(255,255,255,.13);border-radius:14px;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);color:#fff;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.28);}
+            .tm-gallery-close{top:14px;right:14px;width:40px;height:40px;font-size:22px;line-height:1;}
+            .tm-gallery-prev,.tm-gallery-next{top:50%;transform:translateY(-50%);width:42px;height:42px;font-size:24px;line-height:1;}
             .tm-gallery-prev{left:12px}.tm-gallery-next{right:12px}
-            @media(max-width:640px){.tm-gallery-grid{gap:7px}.tm-gallery-prev{left:7px}.tm-gallery-next{right:7px}}
+            .tm-gallery-counter{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.48);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.88);font-size:11px;font-weight:700;backdrop-filter:blur(8px);}
+            @media(max-width:640px){.tm-gallery-grid{gap:7px}.tm-gallery-item{min-height:110px;border-radius:16px}.tm-gallery-item:first-child{min-height:185px}.tm-gallery-item:first-child img{min-height:185px}.tm-gallery-prev{left:7px}.tm-gallery-next{right:7px}.tm-gallery-modal{padding:10px}.tm-gallery-modal img{max-width:96vw;max-height:78vh;border-radius:14px}}
             """
             _GALLERY_JS = """
             export default function(component){
@@ -7741,14 +7765,16 @@ else:
                 const grid=document.createElement('div');grid.className='tm-gallery-grid';
                 const modal=document.createElement('div');modal.className='tm-gallery-modal';
                 const big=document.createElement('img');
-                const close=document.createElement('button');close.className='tm-gallery-close';close.textContent='×';
-                const prev=document.createElement('button');prev.className='tm-gallery-prev';prev.textContent='‹';
-                const next=document.createElement('button');next.className='tm-gallery-next';next.textContent='›';
-                modal.appendChild(big);modal.appendChild(close);modal.appendChild(prev);modal.appendChild(next);root.appendChild(grid);root.appendChild(modal);
+                const close=document.createElement('button');close.className='tm-gallery-close';close.textContent='×';close.setAttribute('aria-label','Затвори');
+                const prev=document.createElement('button');prev.className='tm-gallery-prev';prev.textContent='‹';prev.setAttribute('aria-label','Предишна');
+                const next=document.createElement('button');next.className='tm-gallery-next';next.textContent='›';next.setAttribute('aria-label','Следваща');
+                const counter=document.createElement('div');counter.className='tm-gallery-counter';
+                modal.appendChild(big);modal.appendChild(close);modal.appendChild(prev);modal.appendChild(next);modal.appendChild(counter);root.appendChild(grid);root.appendChild(modal);
                 let pos=0;
-                function openAt(i){if(!items.length)return;pos=(i+items.length)%items.length;big.src=items[pos].src;modal.classList.add('open');}
+                function updateCounter(){counter.textContent=(pos+1)+' / '+items.length;}
+                function openAt(i){if(!items.length)return;pos=(i+items.length)%items.length;big.src=items[pos].src;big.alt=items[pos].name||('Снимка '+(pos+1));updateCounter();modal.classList.add('open');}
                 function closeModal(){modal.classList.remove('open');}
-                items.forEach(function(item,i){const card=document.createElement('div');card.className='tm-gallery-item';const img=document.createElement('img');img.src=item.src;card.appendChild(img);card.addEventListener('click',function(){openAt(i)});grid.appendChild(card);});
+                items.forEach(function(item,i){const card=document.createElement('div');card.className='tm-gallery-item';const img=document.createElement('img');img.src=item.src;img.alt=item.name||('Снимка '+(i+1));card.appendChild(img);const badge=document.createElement('div');badge.className='tm-gallery-badge';badge.textContent=(i+1)+' / '+items.length;card.appendChild(badge);card.addEventListener('click',function(){openAt(i)});grid.appendChild(card);});
                 close.addEventListener('click',function(e){e.stopPropagation();closeModal()});
                 prev.addEventListener('click',function(e){e.stopPropagation();openAt(pos-1)});
                 next.addEventListener('click',function(e){e.stopPropagation();openAt(pos+1)});
