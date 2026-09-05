@@ -233,7 +233,47 @@ PHOTOS_DIR = "Photos"
 MAX_GALLERY_PHOTOS = 10
 GALLERY_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 os.makedirs(PHOTOS_DIR, exist_ok=True)
+# =========================================================
+# FAST CSV SESSION CACHE
+# =========================================================
 
+def _csv_cache_read(path):
+    """
+    Чете CSV веднъж за текущата Streamlit сесия.
+    Ако файлът се промени, кешът автоматично се обновява.
+    """
+    cache_key = f"_pixel_csv_cache::{path}"
+
+    try:
+        mtime_ns = os.stat(path).st_mtime_ns
+    except OSError:
+        mtime_ns = -1
+
+    cached = st.session_state.get(cache_key)
+
+    if (
+        cached is not None
+        and cached.get("mtime_ns") == mtime_ns
+    ):
+        return cached["df"].copy()
+
+    if mtime_ns < 0:
+        df = pd.DataFrame()
+    else:
+        try:
+            df = pd.read_csv(
+                path,
+                encoding="utf-8"
+            )
+        except Exception:
+            df = pd.DataFrame()
+
+    st.session_state[cache_key] = {
+        "mtime_ns": mtime_ns,
+        "df": df,
+    }
+
+    return df.copy()
 
 # =========================================================
 # GOOGLE DRIVE — PERSISTENT DATA STORAGE
@@ -481,23 +521,154 @@ def _gallery_local_files(trip_id):
 
 
 def _gallery_save_uploads(trip_id, uploads):
-    """Save up to five photos locally. Drive upload is manual."""
+    """Save photos locally and immediately upload new photos to Google Drive."""
     try:
         existing = _gallery_local_files(trip_id)
-        room = max(0, MAX_GALLERY_PHOTOS - len(existing))
+
+        room = max(
+            0,
+            MAX_GALLERY_PHOTOS - len(existing)
+        )
+
         saved = 0
+
+        # -------------------------------------------------
+        # Google Drive service
+        # -------------------------------------------------
+        drive_service = None
+
+        if st.session_state.get("google_drive_service_ready"):
+            try:
+                refresh_token = _google_drive_secret(
+                    "google_drive",
+                    "refresh_token"
+                )
+
+                token_info = st.session_state.get(
+                    "google_drive_token"
+                )
+
+                if refresh_token:
+                    drive_service = (
+                        _google_drive_get_service_from_refresh_token(
+                            refresh_token
+                        )
+                    )
+
+                elif token_info:
+                    drive_service, _ = (
+                        _google_drive_get_service_from_token(
+                            token_info
+                        )
+                    )
+
+            except Exception:
+                drive_service = None
+
+        # -------------------------------------------------
+        # Photos folder
+        # -------------------------------------------------
+        photos_folder_id = None
+
+        if drive_service is not None:
+            try:
+                photos_folder_id = (
+                    _google_drive_find_or_create_photos_folder(
+                        drive_service
+                    )
+                )
+            except Exception:
+                photos_folder_id = None
+
+        from googleapiclient.http import MediaFileUpload
+
+        mime_map = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".webp": "image/webp",
+        }
+
+        # -------------------------------------------------
+        # Save + upload
+        # -------------------------------------------------
         for upload in list(uploads)[:room]:
+
             raw = upload.getvalue()
+
             if not raw:
                 continue
-            ext = Path(str(getattr(upload, "name", ""))).suffix.lower()
+
+            ext = Path(
+                str(
+                    getattr(
+                        upload,
+                        "name",
+                        ""
+                    )
+                )
+            ).suffix.lower()
+
             if ext not in GALLERY_EXTENSIONS:
                 ext = ".jpg"
-            name = f"{_gallery_trip_prefix(trip_id)}{uuid.uuid4().hex}{ext}"
-            with open(os.path.join(PHOTOS_DIR, name), "wb") as f:
+
+            name = (
+                f"{_gallery_trip_prefix(trip_id)}"
+                f"{uuid.uuid4().hex}"
+                f"{ext}"
+            )
+
+            local_path = os.path.join(
+                PHOTOS_DIR,
+                name
+            )
+
+            # -----------------------------
+            # 1. Save locally
+            # -----------------------------
+            with open(
+                local_path,
+                "wb"
+            ) as f:
                 f.write(raw)
+
             saved += 1
+
+            # -----------------------------
+            # 2. Upload immediately
+            # -----------------------------
+            if (
+                drive_service is not None
+                and photos_folder_id
+            ):
+                try:
+                    media = MediaFileUpload(
+                        local_path,
+                        mimetype=mime_map.get(
+                            ext,
+                            "image/jpeg"
+                        ),
+                        resumable=False,
+                    )
+
+                    drive_service.files().create(
+                        body={
+                            "name": name,
+                            "parents": [
+                                photos_folder_id
+                            ],
+                        },
+                        media_body=media,
+                        fields="id",
+                    ).execute()
+
+                except Exception:
+                    # Оставяме локалния файл.
+                    # Следващият sync ще го качи.
+                    pass
+
         return saved
+
     except Exception:
         return 0
 
@@ -909,7 +1080,7 @@ def get_emoji(cat):
 
 def get_trip_data(t_id):
     try:
-        df = pd.read_csv(DATA_FILE, encoding="utf-8")
+        df = _csv_cache_read(DATA_FILE)
         r = df[df["trip_id"] == t_id].copy()
         if "liters" not in r.columns: r["liters"] = 0.0
         if "current_km" not in r.columns: r["current_km"] = 0.0
@@ -920,7 +1091,7 @@ def get_trip_data(t_id):
 def get_trip_settings(t_id):
     d = {"car_trip": "Не", "track_fuel": "Добави впоследствие", "start_km": 0.0, "end_km": 0.0, "manual_fuel": 0.0, "start_date": "", "end_date": "", "trip_finished": "Не"}
     try:
-        df = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+        df = _csv_cache_read(SETTINGS_FILE)
         f = df[df["trip_id"] == t_id]
         if not f.empty:
             res = f.iloc[0].to_dict()
