@@ -7895,7 +7895,7 @@ else:
                 "Добави снимки към това пътуване",
                 type="image/*",
                 accept_multiple_files=True,
-                key=f"gallery_upload_{trip_id}",
+                key=f"gallery_upload_{trip_id}_{st.session_state.get('gallery_upload_version', 0)}",
                 label_visibility="collapsed",
             )
             
@@ -7908,11 +7908,16 @@ else:
             
                 if _saved:
                     st.success(f"✅ Добавени са {_saved} снимки.")
-                    st.rerun()
-                else:
-                    st.warning(
-                        "⚠️ Няма свободни места или снимките не можаха да бъдат записани."
+            
+                    st.session_state["gallery_upload_version"] = (
+                        st.session_state.get("gallery_upload_version", 0) + 1
                     )
+
+        st.rerun()
+    else:
+        st.warning(
+            "⚠️ Няма свободни места или снимките не можаха да бъдат записани."
+        )
         else:
             st.caption(f"Максимумът от {MAX_GALLERY_PHOTOS} снимки е достигнат.")
 
