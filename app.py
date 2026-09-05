@@ -7896,7 +7896,8 @@ else:
                 type=["jpg", "jpeg", "png", "webp"],
                 accept_multiple_files=True,
                 key=f"gallery_upload_{trip_id}",
-                label_visibility="collapsed",
+                label_visibility="visible",
+                help="На телефон избери снимки от Галерията.",
             )
 
             # -------------------------------------------------
