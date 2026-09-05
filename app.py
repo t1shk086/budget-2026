@@ -19,47 +19,7 @@ import uuid
 from pathlib import Path
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
-# =========================================================
-# RETURN TO TOP AFTER NAVIGATION
-# =========================================================
-if st.session_state.pop("_scroll_to_top_after_rerun", False):
-    components.html(
-        """
-        <script>
-        setTimeout(function() {
-            try {
-                window.parent.scrollTo({
-                    top: 0,
-                    left: 0,
-                    behavior: "instant"
-                });
 
-                window.parent.document.documentElement.scrollTop = 0;
-                window.parent.document.body.scrollTop = 0;
-
-                const app = window.parent.document.querySelector(
-                    '[data-testid="stAppViewContainer"]'
-                );
-
-                if (app) {
-                    app.scrollTop = 0;
-                }
-
-                const main = window.parent.document.querySelector(
-                    'section.main'
-                );
-
-                if (main) {
-                    main.scrollTop = 0;
-                }
-            } catch (e) {
-                console.log("Scroll-to-top error:", e);
-            }
-        }, 400);
-        </script>
-        """,
-        height=0,
-    )
 # =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
 # =========================================================
@@ -8495,6 +8455,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
         ):
             st.session_state["current_trip"] = None
             st.session_state["page"] = "home"
+            st.session_state["_scroll_to_top_after_rerun"] = True
             st.rerun()
             
     with bottom_cols[1]:
