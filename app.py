@@ -7893,18 +7893,64 @@ else:
         if len(_trip_gallery_files) < MAX_GALLERY_PHOTOS:
             _uploads = st.file_uploader(
                 "Добави снимки към това пътуване",
-                type=["jpg","jpeg","png","webp"],
+                type=["jpg", "jpeg", "png", "webp"],
                 accept_multiple_files=True,
                 key=f"gallery_upload_{trip_id}",
                 label_visibility="collapsed",
             )
-            if _uploads and st.button("➕ Запази снимките", use_container_width=True, key=f"save_gallery_uploads_{trip_id}"):
-                _saved = _gallery_save_uploads(trip_id, _uploads)
-                if _saved:
-                    st.success(f"✅ Добавени са {_saved} снимки. Натисни ☁️ Sync, за да ги качиш в Photos.")
-                    st.rerun()
-                else:
-                    st.warning("⚠️ Няма свободни места или снимките не можаха да бъдат записани.")
+
+            # -------------------------------------------------
+            # MOBILE-SAFE GALLERY UPLOAD
+            # Записва снимките веднага след избора им.
+            # Не разчита на отделен бутон, който при mobile
+            # понякога се губи при rerun на Streamlit.
+            # -------------------------------------------------
+            if _uploads:
+                _gallery_upload_signature = tuple(
+                    (
+                        str(getattr(_u, "name", "")),
+                        int(getattr(_u, "size", 0) or 0),
+                    )
+                    for _u in _uploads
+                )
+
+                _gallery_upload_state_key = (
+                    f"_gallery_uploaded_signature_{trip_id}"
+                )
+
+                if (
+                    st.session_state.get(_gallery_upload_state_key)
+                    != _gallery_upload_signature
+                ):
+                    _saved = _gallery_save_uploads(
+                        trip_id,
+                        _uploads,
+                    )
+
+                    if _saved:
+                        st.session_state[
+                            _gallery_upload_state_key
+                        ] = _gallery_upload_signature
+
+                        # Изчистваме uploader-а след успешен запис,
+                        # за да може следващото mobile качване
+                        # да бъде разпознато като ново.
+                        st.session_state.pop(
+                            f"gallery_upload_{trip_id}",
+                            None,
+                        )
+
+                        st.rerun()
+
+                    else:
+                        st.session_state[
+                            _gallery_upload_state_key
+                        ] = _gallery_upload_signature
+
+                        st.warning(
+                            "⚠️ Няма свободни места или снимките "
+                            "не можаха да бъдат записани."
+                        )
         else:
             st.caption(f"Максимумът от {MAX_GALLERY_PHOTOS} снимки е достигнат.")
 
