@@ -973,6 +973,22 @@ def get_unique_trip_id(base_id):
     except Exception:
         existing_ids = set()
 
+    # ВАЖНО: галерията има собствено файлово пространство.
+    # Ако старо пътуване е било преименувано, неговите снимки може да
+    # носят старото ID. Не позволяваме ново пътуване да получи такова ID,
+    # иначе може да наследи старата галерия.
+    try:
+        if os.path.isdir(PHOTOS_DIR):
+            gallery_marker = "__gallery__"
+            for _photo_name in os.listdir(PHOTOS_DIR):
+                if gallery_marker not in str(_photo_name):
+                    continue
+                _gallery_id = str(_photo_name).split(gallery_marker, 1)[0].strip()
+                if _gallery_id:
+                    existing_ids.add(_gallery_id)
+    except Exception:
+        pass
+
     if base_id not in existing_ids:
         return base_id
 
@@ -1021,6 +1037,25 @@ def rename_trip(old_id, new_name):
                 new_id = f"{base_id}__{n}"
         else:
             new_id = base_id
+
+        # Галерията е вързана към вътрешното ID. При преименуване
+        # прехвърляме и имената на снимките, за да не останат вързани
+        # към старото ID и по-късно да бъдат показани от друго пътуване.
+        try:
+            old_gallery_prefix = _gallery_trip_prefix(old_id)
+            new_gallery_prefix = _gallery_trip_prefix(new_id)
+            if os.path.isdir(PHOTOS_DIR):
+                for _photo_name in list(os.listdir(PHOTOS_DIR)):
+                    if not str(_photo_name).startswith(old_gallery_prefix):
+                        continue
+                    _old_photo_path = os.path.join(PHOTOS_DIR, _photo_name)
+                    if not os.path.isfile(_old_photo_path):
+                        continue
+                    _new_photo_name = new_gallery_prefix + str(_photo_name)[len(old_gallery_prefix):]
+                    _new_photo_path = os.path.join(PHOTOS_DIR, _new_photo_name)
+                    os.replace(_old_photo_path, _new_photo_path)
+        except Exception:
+            pass
 
         # Променяме trip_id във всички файлове, без да закачаме другите данни.
         for file_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, TRIP_PLAN_FILE, CATEGORY_BUDGETS_FILE]:
