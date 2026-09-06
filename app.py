@@ -3504,7 +3504,7 @@ if st.session_state["current_trip"] is None:
     else:
         st.markdown("<div style='text-align:center; padding:20px; color:#aaa; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-top:10px;'>Все още нямате записани почивки. Създайте първото си приключение по-горе!</div>", unsafe_allow_html=True)
 
-    @st.dialog("➕ Бърз разход", width="large")
+    @st.dialog("➕ Бърз разход - само за АКТИВНИ пътувания", width="large")
     def quick_expense_modal():
 
         # Бърз Разход показва само АКТИВНИТЕ пътувания.
