@@ -3198,7 +3198,24 @@ if st.session_state["current_trip"] is None:
                 )
 
                 _remaining_card = max(0.0, _budget - _spent) if _budget > 0 else 0.0
-                if _budget > 0:
+
+                # =========================================================
+                # ПРИКЛЮЧЕНО ПЪТУВАНЕ
+                # =========================================================
+                # Приключените пътувания показват само реално изхарченото.
+                # Сумата остава динамична и се преизчислява от текущите
+                # expense/deposit записи, така че корекциите от
+                # "Инструменти за корекции" се отразяват автоматично.
+                if _status_text == "Приключено":
+                    _label = (
+                        f"🚙  **{_trip_name}**\n"
+                        f"{_status_dot}  {_status_text}"
+                        f"{f' · {_trip_dates_line}' if _trip_dates_line else ''}\n\n"
+                        f"💰 Общо изхарчено: **€{_spent:,.2f}**"
+                    )
+
+                elif _budget > 0:
+                    # АКТИВНИ И ПРЕДСТОЯЩИ — без промяна
                     _label = (
                         f"🚙  **{_trip_name}**\n"
                         f"{_status_dot}  {_status_text}"
@@ -3206,7 +3223,9 @@ if st.session_state["current_trip"] is None:
                         f"**€{_spent:,.2f}** / €{_budget:,.2f}    **{_pct:.0f}%**\n"
                         f"💳 Остават **€{_remaining_card:,.0f}**"
                     )
+
                 else:
+                    # АКТИВНИ И ПРЕДСТОЯЩИ БЕЗ БЮДЖЕТ — без промяна
                     _label = (
                         f"🚙  **{_trip_name}**\n"
                         f"{_status_dot}  {_status_text}"
@@ -3214,12 +3233,38 @@ if st.session_state["current_trip"] is None:
                         f"Без зададен бюджет"
                     )
 
-                _home_trip_bg = (
-                    f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
-                    f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
-                    f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
-                    f"linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
-                ) if _budget > 0 else (
+                if _status_text == "Приключено":
+                    _home_trip_bg = (
+                        "radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                        "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+                    )
+                    _home_trip_hover_bg = (
+                        "radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                        "linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+                    )
+
+                else:
+                    _home_trip_bg = (
+                        f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                        f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
+                        f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                        f"linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+                    ) if _budget > 0 else (
+                        "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
+                        "radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
+                        "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
+                    )
+
+                    _home_trip_hover_bg = (
+                        f"linear-gradient(90deg, #4facfe 0%, #00f2fe {_bar_pct:.1f}%, "
+                        f"rgba(255,255,255,0.12) {_bar_pct:.1f}%, rgba(255,255,255,0.12) 100%) bottom / 100% 7px no-repeat, "
+                        f"radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                        f"linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+                    ) if _budget > 0 else (
+                        "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
+                        "radial-gradient(circle at 92% 8%, rgba(0,242,254,.11), transparent 34%), "
+                        "linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.022))"
+                    )
                     "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 100%) bottom / 100% 7px no-repeat, "
                     "radial-gradient(circle at 92% 8%, rgba(0,242,254,.08), transparent 34%), "
                     "linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.014))"
