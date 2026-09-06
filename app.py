@@ -3559,8 +3559,51 @@ if st.session_state["current_trip"] is None:
                             else _quick_finished_manual
                         )
 
-                        # Само активните попадат в списъка.
-                        if not _quick_finished:
+                        # Само РЕАЛНО АКТИВНИТЕ пътувания попадат в
+                        # "Бърз разход".
+                        #
+                        # Предстоящите пътувания не трябва да се показват.
+                        _quick_start_date = str(
+                            _quick_row.get("start_date", "")
+                        ).strip()
+
+                        _quick_end_date = str(
+                            _quick_row.get("end_date", "")
+                        ).strip()
+
+                        _quick_start_d = None
+                        _quick_end_d = None
+
+                        try:
+                            if _quick_start_date and _quick_start_date.lower() != "nan":
+                                _quick_start_d = datetime.datetime.strptime(
+                                    _quick_start_date,
+                                    "%d.%m.%Y"
+                                ).date()
+
+                            if _quick_end_date and _quick_end_date.lower() != "nan":
+                                _quick_end_d = datetime.datetime.strptime(
+                                    _quick_end_date,
+                                    "%d.%m.%Y"
+                                ).date()
+                        except Exception:
+                            pass
+
+                        _quick_today = datetime.date.today()
+
+                        _quick_is_active = (
+                            not _quick_finished
+                            and (
+                                _quick_start_d is None
+                                or _quick_today >= _quick_start_d
+                            )
+                            and (
+                                _quick_end_d is None
+                                or _quick_today <= _quick_end_d
+                            )
+                        )
+
+                        if _quick_is_active:
                             existing_quick.append(_quick_tid)
 
                     existing_quick = list(
