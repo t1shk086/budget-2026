@@ -3686,7 +3686,7 @@ if st.session_state["current_trip"] is None:
 
         with c1:
             amount = st.number_input(
-                "Сума (EUR)",
+                "Сума",
                 min_value=0.01,
                 value=None,
                 step=1.00,
