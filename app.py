@@ -1994,6 +1994,7 @@ export default function(component) {
     const pct = String(item.pct ?? '');
     const remaining = String(item.remaining ?? '');
     const hasBudget = !!item.has_budget;
+    const isCompleted = status.includes('Приключено');
     const gradient = String(item.gradient ?? '');
     const hoverGradient = String(item.hover_gradient ?? gradient);
 
@@ -2019,10 +2020,12 @@ export default function(component) {
         '<div class="tm-home-trip-content">' +
         '<div>🚙  <span class="tm-home-trip-title">' + esc(title) + '</span></div>' +
         '<div>' + esc(status) + (dates ? ' · ' + esc(dates) : '') + '</div>' +
-        (hasBudget
-            ? '<br><div><span class="tm-home-trip-spent">€' + esc(spent) + '</span> / €' + esc(budget) + '    <span class="tm-home-trip-pct">' + esc(pct) + '%</span></div>' +
-              '<div>💳 Остават <span class="tm-home-trip-remaining">€' + esc(remaining) + '</span></div>'
-            : '<br><div>Без зададен бюджет</div>') +
+        (isCompleted
+            ? '<br><div>💰 Общо изхарчено: <span class="tm-home-trip-spent">€' + esc(spent) + '</span></div>'
+            : hasBudget
+                ? '<br><div><span class="tm-home-trip-spent">€' + esc(spent) + '</span> / €' + esc(budget) + '    <span class="tm-home-trip-pct">' + esc(pct) + '%</span></div>' +
+                  '<div>💳 Остават <span class="tm-home-trip-remaining">€' + esc(remaining) + '</span></div>'
+                : '<br><div>Без зададен бюджет</div>') +
         '</div></div>';
 
     const row = card.querySelector('.tm-home-trip-row');
