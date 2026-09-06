@@ -2021,7 +2021,7 @@ export default function(component) {
         '<div>🚙  <span class="tm-home-trip-title">' + esc(title) + '</span></div>' +
         '<div>' + esc(status) + (dates ? ' · ' + esc(dates) : '') + '</div>' +
         (isCompleted
-            ? '<br><div>💰 Общо изхарчено: <span class="tm-home-trip-spent">€' + esc(spent) + '</span></div>'
+            ? '<br><div>💰 Общо разходи: <span class="tm-home-trip-spent">€' + esc(spent) + '</span></div>'
             : hasBudget
                 ? '<br><div><span class="tm-home-trip-spent">€' + esc(spent) + '</span> / €' + esc(budget) + '    <span class="tm-home-trip-pct">' + esc(pct) + '%</span></div>' +
                   '<div>💳 Остават <span class="tm-home-trip-remaining">€' + esc(remaining) + '</span></div>'
