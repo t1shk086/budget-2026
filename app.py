@@ -8342,28 +8342,45 @@ else:
 
     st.markdown("""
     <style>
-        .tm-memory-card{margin-top:12px;padding:10px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));}
+        .tm-memory-card{margin-top:12px;padding:12px 12px 13px;border-radius:16px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));}
         .tm-memory-title{color:#fff;font-size:13px;font-weight:900;}
         .tm-memory-sub{color:#7e8494;font-size:10px;margin-top:2px;}
-        .tm-memory-mini-row{display:flex;gap:6px;margin-top:8px;overflow:hidden;}
-        .tm-memory-mini{width:62px;height:44px;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.08);}
+        .tm-memory-mini-row{display:flex;gap:8px;margin-top:10px;overflow-x:auto;overflow-y:hidden;padding:1px 1px 3px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+        .tm-memory-mini-row::-webkit-scrollbar{display:none;}
+        .tm-memory-thumb{position:relative;flex:0 0 108px;height:72px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.03);box-shadow:0 5px 14px rgba(0,0,0,.18);}
+        .tm-memory-mini{display:block;width:100%;height:100%;object-fit:cover;}
+        .tm-memory-more{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(3,8,12,.35),rgba(3,8,12,.76));color:#fff;font-size:16px;font-weight:900;text-shadow:0 1px 5px rgba(0,0,0,.5);}
+        .tm-memory-count-pill{margin-left:auto;color:#7e8494;font-size:10px;font-weight:700;}
+        .tm-memory-head{display:flex;align-items:center;gap:8px;}
+        @media(max-width:640px){.tm-memory-card{padding:11px 10px 12px}.tm-memory-thumb{flex-basis:96px;height:66px}.tm-memory-mini-row{gap:7px;}}
     </style>
     """, unsafe_allow_html=True)
 
     _mini_html = ""
-    for _mini_path in _trip_gallery_files[:2]:
+    _mini_limit = 4
+    for _mini_idx, _mini_path in enumerate(_trip_gallery_files[:_mini_limit]):
         try:
             with open(_mini_path, "rb") as _mf:
                 _mini_b64 = base64.b64encode(_mf.read()).decode("ascii")
             _mini_ext = Path(_mini_path).suffix.lower().replace(".", "") or "jpeg"
             if _mini_ext == "jpg": _mini_ext = "jpeg"
-            _mini_html += f"<img class='tm-memory-mini' src='data:image/{_mini_ext};base64,{_mini_b64}'>"
+            _mini_more = (_gallery_count > _mini_limit and _mini_idx == _mini_limit - 1)
+            _mini_overlay = f"<div class='tm-memory-more'>+{_gallery_count - (_mini_limit - 1)}</div>" if _mini_more else ""
+            _mini_html += (
+                f"<div class='tm-memory-thumb'>"
+                f"<img class='tm-memory-mini' src='data:image/{_mini_ext};base64,{_mini_b64}'>"
+                f"{_mini_overlay}</div>"
+            )
         except Exception:
             pass
 
     _mini_section = f"<div class='tm-memory-mini-row'>{_mini_html}</div>" if _mini_html else ""
     st.markdown(
-        f"<div class='tm-memory-card'><div class='tm-memory-title'>📸 Спомени от пътуването</div><div class='tm-memory-sub'>{_gallery_count}/{MAX_GALLERY_PHOTOS} снимки · фотоалбум</div>{_mini_section}</div>",
+        f"<div class='tm-memory-card'>"
+        f"<div class='tm-memory-head'><div><div class='tm-memory-title'>📸 Спомени от пътуването</div>"
+        f"<div class='tm-memory-sub'>Фотоалбум</div></div>"
+        f"<div class='tm-memory-count-pill'>{_gallery_count}/{MAX_GALLERY_PHOTOS}</div></div>"
+        f"{_mini_section}</div>",
         unsafe_allow_html=True,
     )
 
