@@ -8331,174 +8331,201 @@ else:
             st.session_state.pop("fav_rename_value", None)
 
     # =========================================================
-    # 📸 СПОМЕНИ ОТ ПЪТУВАНЕТО — collapsed by default
+    # 📸 СПОМЕНИ ОТ ПЪТУВАНЕТО — компактни тъмбове + viewer
     # =========================================================
-    _gallery_key = f"show_trip_gallery_{trip_id}"
-    if _gallery_key not in st.session_state:
-        st.session_state[_gallery_key] = True
-
     _trip_gallery_files = _gallery_local_files(trip_id)
     _gallery_count = len(_trip_gallery_files)
 
-    st.markdown("""
-    <style>
-        .tm-memory-card{margin-top:12px;padding:12px 12px 13px;border-radius:16px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));}
-        .tm-memory-title{color:#fff;font-size:13px;font-weight:900;}
-        .tm-memory-sub{color:#7e8494;font-size:10px;margin-top:2px;}
-        .tm-memory-mini-row{display:flex;gap:8px;margin-top:10px;overflow-x:auto;overflow-y:hidden;padding:1px 1px 3px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
-        .tm-memory-mini-row::-webkit-scrollbar{display:none;}
-        .tm-memory-thumb{position:relative;flex:0 0 108px;height:72px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.03);box-shadow:0 5px 14px rgba(0,0,0,.18);}
-        .tm-memory-mini{display:block;width:100%;height:100%;object-fit:cover;}
-        .tm-memory-more{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(3,8,12,.35),rgba(3,8,12,.76));color:#fff;font-size:16px;font-weight:900;text-shadow:0 1px 5px rgba(0,0,0,.5);}
-        .tm-memory-count-pill{margin-left:auto;color:#7e8494;font-size:10px;font-weight:700;}
-        .tm-memory-head{display:flex;align-items:center;gap:8px;}
-        @media(max-width:640px){.tm-memory-card{padding:11px 10px 12px}.tm-memory-thumb{flex-basis:96px;height:66px}.tm-memory-mini-row{gap:7px;}}
-    </style>
-    """, unsafe_allow_html=True)
-
-    _mini_html = ""
-    _mini_limit = 4
-    for _mini_idx, _mini_path in enumerate(_trip_gallery_files[:_mini_limit]):
+    _memory_items = []
+    for _midx, _mpath in enumerate(_trip_gallery_files):
         try:
-            with open(_mini_path, "rb") as _mf:
-                _mini_b64 = base64.b64encode(_mf.read()).decode("ascii")
-            _mini_ext = Path(_mini_path).suffix.lower().replace(".", "") or "jpeg"
-            if _mini_ext == "jpg": _mini_ext = "jpeg"
-            _mini_more = (_gallery_count > _mini_limit and _mini_idx == _mini_limit - 1)
-            _mini_overlay = f"<div class='tm-memory-more'>+{_gallery_count - (_mini_limit - 1)}</div>" if _mini_more else ""
-            _mini_html += (
-                f"<div class='tm-memory-thumb'>"
-                f"<img class='tm-memory-mini' src='data:image/{_mini_ext};base64,{_mini_b64}'>"
-                f"{_mini_overlay}</div>"
-            )
+            with open(_mpath, "rb") as _mf:
+                _mb64 = base64.b64encode(_mf.read()).decode("ascii")
+            _mext = Path(_mpath).suffix.lower().replace(".", "") or "jpeg"
+            if _mext == "jpg":
+                _mext = "jpeg"
+            _memory_items.append({
+                "id": str(_midx),
+                "name": os.path.basename(_mpath),
+                "src": f"data:image/{_mext};base64,{_mb64}",
+            })
         except Exception:
             pass
 
-    _mini_section = f"<div class='tm-memory-mini-row'>{_mini_html}</div>" if _mini_html else ""
-    st.markdown(
-        f"<div class='tm-memory-card'>"
-        f"<div class='tm-memory-head'><div><div class='tm-memory-title'>📸 Спомени от пътуването</div>"
-        f"<div class='tm-memory-sub'>Фотоалбум</div></div>"
-        f"<div class='tm-memory-count-pill'>{_gallery_count}/{MAX_GALLERY_PHOTOS}</div></div>"
-        f"{_mini_section}</div>",
-        unsafe_allow_html=True,
+    _MEMORY_HTML = '<div id="tm-memory-root"></div>'
+    _MEMORY_CSS = """
+    #tm-memory-root{width:100%;padding:0;margin:12px 0 0;}
+    .tm-memory-card{padding:11px 12px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012));}
+    .tm-memory-head{display:flex;align-items:center;gap:8px;}
+    .tm-memory-title{color:#fff;font-size:13px;font-weight:900;}
+    .tm-memory-sub{color:#7e8494;font-size:10px;margin-top:2px;}
+    .tm-memory-count{margin-left:auto;color:#7e8494;font-size:10px;font-weight:700;}
+    .tm-memory-row{display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding:1px 1px 3px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+    .tm-memory-row::-webkit-scrollbar{display:none;}
+    .tm-memory-thumb{position:relative;flex:0 0 108px;height:72px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.03);cursor:pointer;box-shadow:0 5px 14px rgba(0,0,0,.18);transition:transform .16s ease,border-color .16s ease;}
+    .tm-memory-thumb:hover{transform:translateY(-1px);border-color:rgba(0,242,254,.30);}
+    .tm-memory-thumb:active{transform:scale(.98);}
+    .tm-memory-thumb img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;}
+    .tm-memory-more{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,8,12,.58);color:#fff;font-size:17px;font-weight:900;pointer-events:none;}
+    .tm-memory-empty{padding:12px;color:#7f8994;font-size:11px;text-align:center;}
+    .tm-memory-modal{position:fixed;inset:0;z-index:999999;background:rgba(2,5,8,.96);display:none;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;}
+    .tm-memory-modal.open{display:flex;}
+    .tm-memory-modal-img{max-width:94vw;max-height:88vh;object-fit:contain;border-radius:14px;box-shadow:0 20px 70px rgba(0,0,0,.65);user-select:none;-webkit-user-drag:none;}
+    .tm-memory-close,.tm-memory-prev,.tm-memory-next{position:absolute;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.09);color:#fff;backdrop-filter:blur(10px);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;}
+    .tm-memory-close{top:14px;right:14px;width:42px;height:42px;border-radius:13px;font-size:25px;}
+    .tm-memory-prev,.tm-memory-next{top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:14px;font-size:30px;line-height:1;}
+    .tm-memory-prev{left:12px}.tm-memory-next{right:12px}
+    .tm-memory-counter{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.52);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.9);font-size:11px;font-weight:700;z-index:2;}
+    @media(max-width:640px){
+        .tm-memory-card{padding:10px 9px 11px}
+        .tm-memory-thumb{flex-basis:96px;height:66px}
+        .tm-memory-prev{left:6px}.tm-memory-next{right:6px}
+        .tm-memory-modal-img{max-width:96vw;max-height:82vh}
+    }
+    """
+
+    _MEMORY_JS = """
+    export default function(component){
+        const {parentElement,data}=component;
+        const root=parentElement.querySelector('#tm-memory-root');
+        const items=Array.isArray(data?.items)?data.items:[];
+        root.innerHTML='';
+
+        const card=document.createElement('div');
+        card.className='tm-memory-card';
+
+        const head=document.createElement('div');
+        head.className='tm-memory-head';
+        const title=document.createElement('div');
+        title.innerHTML='<div class="tm-memory-title">📸 Спомени от пътуването</div><div class="tm-memory-sub">Натисни снимка за преглед</div>';
+        const count=document.createElement('div');
+        count.className='tm-memory-count';
+        count.textContent=items.length+'/10';
+        head.appendChild(title);
+        head.appendChild(count);
+        card.appendChild(head);
+
+        const modal=document.createElement('div');
+        modal.className='tm-memory-modal';
+        const big=document.createElement('img');
+        big.className='tm-memory-modal-img';
+        const close=document.createElement('button');
+        close.className='tm-memory-close'; close.type='button'; close.textContent='×';
+        const prev=document.createElement('button');
+        prev.className='tm-memory-prev'; prev.type='button'; prev.textContent='‹';
+        const next=document.createElement('button');
+        next.className='tm-memory-next'; next.type='button'; next.textContent='›';
+        const counter=document.createElement('div');
+        counter.className='tm-memory-counter';
+        modal.append(big,close,prev,next,counter);
+
+        let pos=0;
+        function update(){
+            if(!items.length)return;
+            big.src=items[pos].src;
+            big.alt=items[pos].name||('Снимка '+(pos+1));
+            counter.textContent=(pos+1)+' / '+items.length;
+        }
+        function openAt(i){
+            if(!items.length)return;
+            pos=(i+items.length)%items.length;
+            update();
+            modal.classList.add('open');
+            document.body.style.overflow='hidden';
+        }
+        function closeModal(){
+            modal.classList.remove('open');
+            document.body.style.overflow='';
+        }
+
+        if(!items.length){
+            const empty=document.createElement('div');
+            empty.className='tm-memory-empty';
+            empty.textContent='Все още няма снимки. Добави до 10 спомена от това пътуване.';
+            card.appendChild(empty);
+        }else{
+            const row=document.createElement('div');
+            row.className='tm-memory-row';
+            const shown=Math.min(items.length,4);
+            for(let i=0;i<shown;i++){
+                const thumb=document.createElement('div');
+                thumb.className='tm-memory-thumb';
+                const img=document.createElement('img');
+                img.src=items[i].src;
+                img.alt=items[i].name||('Снимка '+(i+1));
+                thumb.appendChild(img);
+                if(items.length>4 && i===3){
+                    const more=document.createElement('div');
+                    more.className='tm-memory-more';
+                    more.textContent='+'+(items.length-3);
+                    thumb.appendChild(more);
+                }
+                thumb.addEventListener('click',function(e){
+                    e.preventDefault(); e.stopPropagation(); openAt(i);
+                });
+                row.appendChild(thumb);
+            }
+            card.appendChild(row);
+        }
+
+        close.addEventListener('click',function(e){e.stopPropagation();closeModal();});
+        prev.addEventListener('click',function(e){e.stopPropagation();openAt(pos-1);});
+        next.addEventListener('click',function(e){e.stopPropagation();openAt(pos+1);});
+        modal.addEventListener('click',function(e){if(e.target===modal)closeModal();});
+        document.addEventListener('keydown',function(e){
+            if(!modal.classList.contains('open'))return;
+            if(e.key==='Escape')closeModal();
+            else if(e.key==='ArrowLeft')openAt(pos-1);
+            else if(e.key==='ArrowRight')openAt(pos+1);
+        });
+
+        card.appendChild(modal);
+        root.appendChild(card);
+    }
+    """
+
+    _memory_component = st.components.v2.component(
+        name="pixelapp_memory_strip_v3",
+        html=_MEMORY_HTML,
+        css=_MEMORY_CSS,
+        js=_MEMORY_JS,
+    )
+    _memory_safe_id = re.sub(r"[^a-zA-Z0-9]", "-", str(trip_id))
+    _memory_component(
+        data={"items": _memory_items},
+        key=f"memorystrip-v3-{_memory_safe_id}-{_gallery_count}",
     )
 
-    # Фотоалбумът е отворен по подразбиране. Оставяме само един малък
-    # бутон за прибиране/показване, без големи контроли около снимките.
-    if st.button(
-        "📕 Скрий галерията" if st.session_state[_gallery_key] else "📸 Покажи галерията",
-        use_container_width=True,
-        key=f"toggle_gallery_{trip_id}",
-    ):
-        st.session_state[_gallery_key] = not st.session_state[_gallery_key]
-        st.rerun()
-
-    if st.session_state[_gallery_key]:
-        # Добавяне на снимки е прибрано в малък expander. Снимките се записват
-        # автоматично веднага след избиране — няма втори бутон „Запази“.
-        if len(_trip_gallery_files) < MAX_GALLERY_PHOTOS:
-            with st.expander("➕ Добави снимки", expanded=False):
-                _uploads = st.file_uploader(
-                    "Избери снимки",
-                    type="image/*",
-                    accept_multiple_files=True,
-                    key=f"gallery_upload_{trip_id}_{st.session_state.get('gallery_upload_version', 0)}",
-                )
-                if _uploads:
-                    _saved = _gallery_save_uploads(trip_id, _uploads)
-                    if _saved:
-                        st.success(f"✅ Добавени са {_saved} снимки.")
-                        st.session_state["gallery_upload_version"] = (
-                            st.session_state.get("gallery_upload_version", 0) + 1
-                        )
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ Няма свободни места или снимките не можаха да бъдат записани.")
-        else:
-            st.caption(f"Максимумът от {MAX_GALLERY_PHOTOS} снимки е достигнат.")
-
-        _gallery_items = []
-        for _gidx, _gpath in enumerate(_trip_gallery_files):
-            try:
-                with open(_gpath, "rb") as _gf:
-                    _gb64 = base64.b64encode(_gf.read()).decode("ascii")
-                _gext = Path(_gpath).suffix.lower().replace(".", "") or "jpeg"
-                if _gext == "jpg": _gext = "jpeg"
-                _gallery_items.append({"id":str(_gidx),"name":os.path.basename(_gpath),"src":f"data:image/{_gext};base64,{_gb64}"})
-            except Exception:
-                pass
-
-        if _gallery_items:
-            _GALLERY_HTML = '<div id="tm-gallery-root"></div>'
-            _GALLERY_CSS = """
-            #tm-gallery-root{width:100%;padding:2px 0 4px;}
-            .tm-gallery-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:8px;margin-top:10px;}
-            .tm-gallery-item{position:relative;overflow:hidden;min-height:120px;border-radius:18px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.015));cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.22);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;}
-            .tm-gallery-item:first-child{grid-column:1 / -1;min-height:210px;}
-            .tm-gallery-item img{display:block;width:100%;height:100%;min-height:120px;aspect-ratio:1/1;object-fit:cover;transition:transform .35s ease,filter .25s ease;}
-            .tm-gallery-item:first-child img{aspect-ratio:16/8;min-height:210px;}
-            .tm-gallery-item:hover{transform:translateY(-2px);border-color:rgba(0,242,254,.28);box-shadow:0 12px 28px rgba(0,0,0,.32),0 0 18px rgba(0,242,254,.05);}
-            .tm-gallery-item:hover img{transform:scale(1.035);filter:saturate(1.04);}
-            .tm-gallery-badge{position:absolute;left:10px;bottom:10px;padding:5px 9px;border-radius:999px;background:rgba(5,10,14,.68);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px);color:rgba(255,255,255,.92);font-size:10px;font-weight:700;letter-spacing:.2px;}
-            .tm-gallery-modal{position:fixed;inset:0;background:rgba(3,6,9,.94);backdrop-filter:blur(12px);z-index:99999;display:none;align-items:center;justify-content:center;padding:18px;}
-            .tm-gallery-modal.open{display:flex;}
-            .tm-gallery-modal img{max-width:94vw;max-height:82vh;object-fit:contain;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.65);}
-            .tm-gallery-close,.tm-gallery-prev,.tm-gallery-next{position:absolute;border:1px solid rgba(255,255,255,.13);border-radius:14px;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);color:#fff;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.28);}
-            .tm-gallery-close{top:14px;right:14px;width:40px;height:40px;font-size:22px;line-height:1;}
-            .tm-gallery-prev,.tm-gallery-next{top:50%;transform:translateY(-50%);width:42px;height:42px;font-size:24px;line-height:1;}
-            .tm-gallery-prev{left:12px}.tm-gallery-next{right:12px}
-            .tm-gallery-counter{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.48);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.88);font-size:11px;font-weight:700;backdrop-filter:blur(8px);}
-            @media(max-width:640px){.tm-gallery-grid{gap:7px}.tm-gallery-item{min-height:110px;border-radius:16px}.tm-gallery-item:first-child{min-height:185px}.tm-gallery-item:first-child img{min-height:185px}.tm-gallery-prev{left:7px}.tm-gallery-next{right:7px}.tm-gallery-modal{padding:10px}.tm-gallery-modal img{max-width:96vw;max-height:78vh;border-radius:14px}}
-            """
-            _GALLERY_JS = """
-            export default function(component){
-                const {parentElement,data}=component;
-                const root=parentElement.querySelector('#tm-gallery-root');
-                const items=Array.isArray(data?.items)?data.items:[];
-                root.innerHTML='';
-                const grid=document.createElement('div');grid.className='tm-gallery-grid';
-                const modal=document.createElement('div');modal.className='tm-gallery-modal';
-                const big=document.createElement('img');
-                const close=document.createElement('button');close.className='tm-gallery-close';close.textContent='×';close.setAttribute('aria-label','Затвори');
-                const prev=document.createElement('button');prev.className='tm-gallery-prev';prev.textContent='‹';prev.setAttribute('aria-label','Предишна');
-                const next=document.createElement('button');next.className='tm-gallery-next';next.textContent='›';next.setAttribute('aria-label','Следваща');
-                const counter=document.createElement('div');counter.className='tm-gallery-counter';
-                modal.appendChild(big);modal.appendChild(close);modal.appendChild(prev);modal.appendChild(next);modal.appendChild(counter);root.appendChild(grid);root.appendChild(modal);
-                let pos=0;
-                function updateCounter(){counter.textContent=(pos+1)+' / '+items.length;}
-                function openAt(i){if(!items.length)return;pos=(i+items.length)%items.length;big.src=items[pos].src;big.alt=items[pos].name||('Снимка '+(pos+1));updateCounter();modal.classList.add('open');}
-                function closeModal(){modal.classList.remove('open');}
-                items.forEach(function(item,i){const card=document.createElement('div');card.className='tm-gallery-item';const img=document.createElement('img');img.src=item.src;img.alt=item.name||('Снимка '+(i+1));card.appendChild(img);const badge=document.createElement('div');badge.className='tm-gallery-badge';badge.textContent=(i+1)+' / '+items.length;card.appendChild(badge);card.addEventListener('click',function(){openAt(i)});grid.appendChild(card);});
-                close.addEventListener('click',function(e){e.stopPropagation();closeModal()});
-                prev.addEventListener('click',function(e){e.stopPropagation();openAt(pos-1)});
-                next.addEventListener('click',function(e){e.stopPropagation();openAt(pos+1)});
-                modal.addEventListener('click',function(e){if(e.target===modal)closeModal()});
-                document.addEventListener('keydown',function(e){if(!modal.classList.contains('open'))return;if(e.key==='Escape')closeModal();if(e.key==='ArrowLeft')openAt(pos-1);if(e.key==='ArrowRight')openAt(pos+1);});
-            }
-            """
-            _gallery_component = st.components.v2.component(name="pixelapp_memory_gallery_v1", html=_GALLERY_HTML, css=_GALLERY_CSS, js=_GALLERY_JS)
-            _gallery_safe_id = re.sub(r"[^a-zA-Z0-9]", "-", str(trip_id))
-            
-            _gallery_component(
-                data={"items": _gallery_items},
-                key=f"gallerycomponent-{_gallery_safe_id}-{_gallery_count}"
+    # Добавяне/изтриване са отделно и са затворени по подразбиране.
+    if len(_trip_gallery_files) < MAX_GALLERY_PHOTOS:
+        with st.expander("➕ Добави снимки", expanded=False):
+            _uploads = st.file_uploader(
+                "Избери снимки",
+                type="image/*",
+                accept_multiple_files=True,
+                key=f"gallery_upload_{trip_id}_{st.session_state.get('gallery_upload_version', 0)}",
             )
-            # Управлението е прибрано под галерията, за да не стои постоянно
-            # между/около снимките.
-            with st.expander("🗑️ Управление на снимки", expanded=False):
-                _delete_choice = st.selectbox(
-                    "Избери снимка за изтриване",
-                    range(len(_trip_gallery_files)),
-                    format_func=lambda i: f"Снимка {i+1}",
-                    key=f"gallery_delete_select_{trip_id}_{_gallery_count}",
-                )
-                if st.button("🗑️ Изтрий снимката", use_container_width=True, key=f"gallery_delete_btn_{trip_id}"):
-                    if _gallery_delete_local(_trip_gallery_files[int(_delete_choice)]):
-                        st.success("✅ Снимката е изтрита локално. При следващия ☁️ Sync ще бъде премахната и от Photos в Drive.")
-                        st.rerun()
-        else:
-            st.markdown("<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма снимки. Добави до 10 спомена от това пътуване.</div>", unsafe_allow_html=True)
+            if _uploads:
+                _saved = _gallery_save_uploads(trip_id, _uploads)
+                if _saved:
+                    st.success(f"✅ Добавени са {_saved} снимки.")
+                    st.session_state["gallery_upload_version"] = st.session_state.get("gallery_upload_version", 0) + 1
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Няма свободни места или снимките не можаха да бъдат записани.")
+
+    if _trip_gallery_files:
+        with st.expander("🗑️ Управление на снимки", expanded=False):
+            _delete_choice = st.selectbox(
+                "Избери снимка за изтриване",
+                range(len(_trip_gallery_files)),
+                format_func=lambda i: f"Снимка {i+1}",
+                key=f"gallery_delete_select_{trip_id}_{_gallery_count}",
+            )
+            if st.button("🗑️ Изтрий снимката", use_container_width=True, key=f"gallery_delete_btn_{trip_id}"):
+                if _gallery_delete_local(_trip_gallery_files[int(_delete_choice)]):
+                    st.success("✅ Снимката е изтрита локално. При следващия ☁️ Sync ще бъде премахната и от Photos в Drive.")
+                    st.rerun()
 
     st.markdown("---")
     if st.button("❌ Изтрий цялото пътуване", type="primary", use_container_width=True, key="delete_whole_trip_final_btn"):
