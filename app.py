@@ -2021,7 +2021,7 @@ export default function(component) {
         '<div>🚙  <span class="tm-home-trip-title">' + esc(title) + '</span></div>' +
         '<div>' + esc(status) + (dates ? ' · ' + esc(dates) : '') + '</div>' +
         (isCompleted
-            ? '<br><div>💰 Общо разходи: <span class="tm-home-trip-spent">€' + esc(spent) + '</span></div>'
+            ? '<br><div>💰 Общо изхарчено: <span class="tm-home-trip-spent">€' + esc(spent) + '</span></div>'
             : hasBudget
                 ? '<br><div><span class="tm-home-trip-spent">€' + esc(spent) + '</span> / €' + esc(budget) + '    <span class="tm-home-trip-pct">' + esc(pct) + '%</span></div>' +
                   '<div>💳 Остават <span class="tm-home-trip-remaining">€' + esc(remaining) + '</span></div>'
@@ -8335,7 +8335,7 @@ else:
     # =========================================================
     _gallery_key = f"show_trip_gallery_{trip_id}"
     if _gallery_key not in st.session_state:
-        st.session_state[_gallery_key] = False
+        st.session_state[_gallery_key] = True
 
     _trip_gallery_files = _gallery_local_files(trip_id)
     _gallery_count = len(_trip_gallery_files)
@@ -8367,8 +8367,10 @@ else:
         unsafe_allow_html=True,
     )
 
+    # Фотоалбумът е отворен по подразбиране. Оставяме само един малък
+    # бутон за прибиране/показване, без големи контроли около снимките.
     if st.button(
-        "📸 Отвори фотоалбума" if not st.session_state[_gallery_key] else "📕 Скрий фотоалбума",
+        "📕 Скрий галерията" if st.session_state[_gallery_key] else "📸 Покажи галерията",
         use_container_width=True,
         key=f"toggle_gallery_{trip_id}",
     ):
@@ -8376,34 +8378,26 @@ else:
         st.rerun()
 
     if st.session_state[_gallery_key]:
+        # Добавяне на снимки е прибрано в малък expander. Снимките се записват
+        # автоматично веднага след избиране — няма втори бутон „Запази“.
         if len(_trip_gallery_files) < MAX_GALLERY_PHOTOS:
-            _uploads = st.file_uploader(
-                "Добави снимки към това пътуване",
-                type="image/*",
-                accept_multiple_files=True,
-                key=f"gallery_upload_{trip_id}_{st.session_state.get('gallery_upload_version', 0)}",
-                label_visibility="collapsed",
-            )
-            
-            if _uploads and st.button(
-                "➕ Запази снимките",
-                use_container_width=True,
-                key=f"save_gallery_uploads_{trip_id}",
-            ):
-                _saved = _gallery_save_uploads(trip_id, _uploads)
-            
-                if _saved:
-                    st.success(f"✅ Добавени са {_saved} снимки.")
-            
-                    st.session_state["gallery_upload_version"] = (
-                        st.session_state.get("gallery_upload_version", 0) + 1
-                    )
-            
-                    st.rerun()
-                else:
-                    st.warning(
-                        "⚠️ Няма свободни места или снимките не можаха да бъдат записани."
-                    )
+            with st.expander("➕ Добави снимки", expanded=False):
+                _uploads = st.file_uploader(
+                    "Избери снимки",
+                    type="image/*",
+                    accept_multiple_files=True,
+                    key=f"gallery_upload_{trip_id}_{st.session_state.get('gallery_upload_version', 0)}",
+                )
+                if _uploads:
+                    _saved = _gallery_save_uploads(trip_id, _uploads)
+                    if _saved:
+                        st.success(f"✅ Добавени са {_saved} снимки.")
+                        st.session_state["gallery_upload_version"] = (
+                            st.session_state.get("gallery_upload_version", 0) + 1
+                        )
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ Няма свободни места или снимките не можаха да бъдат записани.")
         else:
             st.caption(f"Максимумът от {MAX_GALLERY_PHOTOS} снимки е достигнат.")
 
@@ -8473,16 +8467,19 @@ else:
                 data={"items": _gallery_items},
                 key=f"gallerycomponent-{_gallery_safe_id}-{_gallery_count}"
             )
-            _delete_choice = st.selectbox(
-                "Избери снимка за изтриване",
-                range(len(_trip_gallery_files)),
-                format_func=lambda i: f"Снимка {i+1}",
-                key=f"gallery_delete_select_{trip_id}_{_gallery_count}",
-            )
-            if st.button("🗑️ Изтрий избраната снимка", use_container_width=True, key=f"gallery_delete_btn_{trip_id}"):
-                if _gallery_delete_local(_trip_gallery_files[int(_delete_choice)]):
-                    st.success("✅ Снимката е изтрита локално. При следващия ☁️ Sync ще бъде премахната и от Photos в Drive.")
-                    st.rerun()
+            # Управлението е прибрано под галерията, за да не стои постоянно
+            # между/около снимките.
+            with st.expander("🗑️ Управление на снимки", expanded=False):
+                _delete_choice = st.selectbox(
+                    "Избери снимка за изтриване",
+                    range(len(_trip_gallery_files)),
+                    format_func=lambda i: f"Снимка {i+1}",
+                    key=f"gallery_delete_select_{trip_id}_{_gallery_count}",
+                )
+                if st.button("🗑️ Изтрий снимката", use_container_width=True, key=f"gallery_delete_btn_{trip_id}"):
+                    if _gallery_delete_local(_trip_gallery_files[int(_delete_choice)]):
+                        st.success("✅ Снимката е изтрита локално. При следващия ☁️ Sync ще бъде премахната и от Photos в Drive.")
+                        st.rerun()
         else:
             st.markdown("<div style='border:1px solid rgba(255,255,255,.07);border-radius:16px;background:rgba(255,255,255,.02);padding:18px;color:#7f8994;font-size:11px;'>Все още няма снимки. Добави до 10 спомена от това пътуване.</div>", unsafe_allow_html=True)
 
