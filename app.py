@@ -23,7 +23,7 @@ st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 # =========================================================
 # ✨ ПРАЗНИЧЕН COUNTDOWN — лесна настройка
 # =========================================================
-COUNTDOWN_SECONDS = 10
+COUNTDOWN_SECONDS = 4
 
 
 # =========================================================
@@ -2413,19 +2413,64 @@ if st.session_state["current_trip"] is None:
             _cd_trip_name = str(_cd_trip_id).replace("_", " ").strip()
             _cd_seconds = max(0.5, float(COUNTDOWN_SECONDS))
 
-            components.html(f"""
+            _cd_ms = int(_cd_seconds * 1000)
+            st.markdown(f"""
             <style>
-                #tm-countdown-overlay {{ position:fixed; inset:0; z-index:9999999; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at center, rgba(16,38,55,.98), rgba(3,9,15,.99)); color:white; text-align:center; font-family:inherit; animation:tmCountdownFadeOut .55s ease {_cd_seconds}s forwards; pointer-events:none; }}
-                #tm-countdown-overlay .tm-cd-inner {{ padding:30px 24px; animation:tmCountdownPop .7s ease both; }}
-                #tm-countdown-overlay .tm-cd-small {{ font-size:16px; font-weight:700; letter-spacing:2px; opacity:.72; margin-bottom:12px; }}
-                #tm-countdown-overlay .tm-cd-days {{ font-size:clamp(58px, 15vw, 112px); line-height:.95; font-weight:950; letter-spacing:-3px; text-shadow:0 0 30px rgba(0,242,254,.28); }}
-                #tm-countdown-overlay .tm-cd-trip {{ margin-top:18px; font-size:22px; font-weight:800; }}
-                @keyframes tmCountdownPop {{ from {{ opacity:0; transform:scale(.88) translateY(10px); }} to {{ opacity:1; transform:scale(1) translateY(0); }} }}
-                @keyframes tmCountdownFadeOut {{ to {{ opacity:0; visibility:hidden; }} }}
+                #tm-countdown-overlay {{
+                    position:fixed;
+                    inset:0;
+                    z-index:9999999;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    background:radial-gradient(circle at center, rgba(16,38,55,.98), rgba(3,9,15,.99));
+                    color:white;
+                    text-align:center;
+                    font-family:inherit;
+                    pointer-events:none;
+                    animation:tmCountdownFadeOut .55s ease {_cd_seconds}s forwards;
+                }}
+                #tm-countdown-overlay .tm-cd-inner {{
+                    padding:30px 24px;
+                    animation:tmCountdownPop .7s ease both;
+                }}
+                #tm-countdown-overlay .tm-cd-small {{
+                    font-size:16px;
+                    font-weight:700;
+                    letter-spacing:2px;
+                    opacity:.72;
+                    margin-bottom:12px;
+                }}
+                #tm-countdown-overlay .tm-cd-days {{
+                    font-size:clamp(58px, 15vw, 112px);
+                    line-height:.95;
+                    font-weight:950;
+                    letter-spacing:-3px;
+                    text-shadow:0 0 30px rgba(0,242,254,.28);
+                }}
+                #tm-countdown-overlay .tm-cd-trip {{
+                    margin-top:18px;
+                    font-size:22px;
+                    font-weight:800;
+                }}
+                @keyframes tmCountdownPop {{
+                    from {{ opacity:0; transform:scale(.88) translateY(10px); }}
+                    to {{ opacity:1; transform:scale(1) translateY(0); }}
+                }}
+                @keyframes tmCountdownFadeOut {{
+                    0% {{ opacity:1; visibility:visible; }}
+                    85% {{ opacity:1; visibility:visible; }}
+                    100% {{ opacity:0; visibility:hidden; }}
+                }}
             </style>
-            <div id="tm-countdown-overlay"><div class="tm-cd-inner"><div class="tm-cd-small">✈️ СЛЕДВАЩО ПЪТУВАНЕ</div><div class="tm-cd-days">{html.escape(_cd_display_days)}</div><div class="tm-cd-trip">🚙 {html.escape(_cd_trip_name)}</div></div></div>
-            <script>setTimeout(function() {{ var el=document.getElementById('tm-countdown-overlay'); if(el) el.remove(); }}, {int((_cd_seconds + 0.7) * 1000)});</script>
-            """, height=0)
+            <div id="tm-countdown-overlay">
+                <div class="tm-cd-inner">
+                    <div class="tm-cd-small">✈️ СЛЕДВАЩО ПЪТУВАНЕ</div>
+                    <div class="tm-cd-days">{html.escape(_cd_display_days)}</div>
+                    <div class="tm-cd-trip">🚙 {html.escape(_cd_trip_name)}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
         st.session_state["_trip_countdown_seen"] = True
 
     # ---------------------------------------------------------
