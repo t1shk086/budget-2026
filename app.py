@@ -21,7 +21,7 @@ from pathlib import Path
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 # ✨ ПРАЗНИЧЕН COUNTDOWN — ЕДИНСТВЕНА НАСТРОЙКА ЗА ВРЕМЕТО
-COUNTDOWN_SECONDS = 10
+COUNTDOWN_SECONDS = 20
 
 # =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
