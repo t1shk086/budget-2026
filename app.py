@@ -2957,7 +2957,7 @@ if st.session_state["current_trip"] is None:
     # ПРАЗНИЧЕН COUNTDOWN — САМО ПРИ ПЪРВО ОТВАРЯНЕ НА HOME
     # Реални 10 секунди, като запазваме оригиналния дизайн.
     # =========================================================
-    COUNTDOWN_SECONDS = 3.5
+    COUNTDOWN_SECONDS = 10.0
 
     if not st.session_state.get("_trip_countdown_seen", False):
         _countdown_today = datetime.date.today()
@@ -3012,7 +3012,6 @@ if st.session_state["current_trip"] is None:
             <div id="tm-trip-countdown">
                 <div class="tm-countdown-glow"></div>
                 <div class="tm-countdown-card">
-                    <div class="tm-countdown-top">СЛЕДВАЩО ПЪТУВАНЕ</div>
                     <div class="tm-countdown-number">{html.escape(_countdown_number)}</div>
                     <div class="tm-countdown-days">{html.escape(_countdown_subtitle)}</div>
                     <div class="tm-countdown-trip">✈️ {html.escape(_countdown_name)}</div>
