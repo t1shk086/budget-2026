@@ -2,7 +2,7 @@
 import streamlit as st
 
 # ✨ ПРАЗНИЧЕН COUNTDOWN — лесна настройка
-COUNTDOWN_SECONDS = 10
+COUNTDOWN_SECONDS = 20
 import pandas as pd
 import datetime
 import os
