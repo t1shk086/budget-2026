@@ -2379,55 +2379,6 @@ if st.session_state["current_trip"] is None:
     ))
 
 
-    # =========================================================
-    # ✨ ПРАЗНИЧЕН ЕКРАН — ДО СЛЕДВАЩОТО ПЪТУВАНЕ
-    # =========================================================
-    if not st.session_state.get("_trip_countdown_seen", False):
-        _next_trip = None
-        try:
-            if os.path.exists(SETTINGS_FILE):
-                _cd_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
-                _cd_today = datetime.date.today()
-                _cd_candidates = []
-                for _, _cd_row in _cd_settings.iterrows():
-                    _cd_id = str(_cd_row.get("trip_id", "")).strip()
-                    _cd_start_raw = str(_cd_row.get("start_date", "")).strip()
-                    if not _cd_id or not _cd_start_raw or _cd_start_raw.lower() == "nan":
-                        continue
-                    try:
-                        _cd_start = datetime.datetime.strptime(_cd_start_raw, "%d.%m.%Y").date()
-                    except Exception:
-                        continue
-                    if _cd_start >= _cd_today:
-                        _cd_candidates.append((_cd_start, _cd_id))
-                if _cd_candidates:
-                    _cd_candidates.sort(key=lambda x: x[0])
-                    _next_trip = _cd_candidates[0]
-        except Exception:
-            _next_trip = None
-
-        if _next_trip:
-            _cd_start, _cd_trip_id = _next_trip
-            _cd_days = (_cd_start - datetime.date.today()).days
-            _cd_display_days = "ДНЕС" if _cd_days == 0 else ("1 ДЕН" if _cd_days == 1 else f"{_cd_days} ДНИ")
-            _cd_trip_name = str(_cd_trip_id).replace("_", " ").strip()
-            _cd_seconds = max(0.5, float(COUNTDOWN_SECONDS))
-
-            components.html(f"""
-            <style>
-                #tm-countdown-overlay {{ position:fixed; inset:0; z-index:9999999; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at center, rgba(16,38,55,.98), rgba(3,9,15,.99)); color:white; text-align:center; font-family:inherit; animation:tmCountdownFadeOut .55s ease {_cd_seconds}s forwards; pointer-events:none; }}
-                #tm-countdown-overlay .tm-cd-inner {{ padding:30px 24px; animation:tmCountdownPop .7s ease both; }}
-                #tm-countdown-overlay .tm-cd-small {{ font-size:16px; font-weight:700; letter-spacing:2px; opacity:.72; margin-bottom:12px; }}
-                #tm-countdown-overlay .tm-cd-days {{ font-size:clamp(58px, 15vw, 112px); line-height:.95; font-weight:950; letter-spacing:-3px; text-shadow:0 0 30px rgba(0,242,254,.28); }}
-                #tm-countdown-overlay .tm-cd-trip {{ margin-top:18px; font-size:22px; font-weight:800; }}
-                @keyframes tmCountdownPop {{ from {{ opacity:0; transform:scale(.88) translateY(10px); }} to {{ opacity:1; transform:scale(1) translateY(0); }} }}
-                @keyframes tmCountdownFadeOut {{ to {{ opacity:0; visibility:hidden; }} }}
-            </style>
-            <div id="tm-countdown-overlay"><div class="tm-cd-inner"><div class="tm-cd-small">✈️ СЛЕДВАЩО ПЪТУВАНЕ</div><div class="tm-cd-days">{html.escape(_cd_display_days)}</div><div class="tm-cd-trip">🚙 {html.escape(_cd_trip_name)}</div></div></div>
-            <script>setTimeout(function() {{ var el=document.getElementById('tm-countdown-overlay'); if(el) el.remove(); }}, {int((_cd_seconds + 0.7) * 1000)});</script>
-            """, height=0)
-        st.session_state["_trip_countdown_seen"] = True
-
     # ---------------------------------------------------------
     # НАЧАЛЕН ЕКРАН — запазваме визуалния език на приложението.
     # Бърз разход е първи, след него Ново пътуване, после пътуванията.
@@ -3087,12 +3038,14 @@ if st.session_state["current_trip"] is None:
                         overlay.classList.add("tm-countdown-hidden");
                         window.setTimeout(function() {{
                             if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-                        }}, 600);
+                        }}, 550);
                     }}, Math.max(0, seconds * 1000));
                 }})();
             </script>
             """
-            st.markdown(_countdown_html, unsafe_allow_html=True)
+            # Реален JavaScript таймер: компонентът има собствен DOM и setTimeout().
+            # Времето се управлява единствено от COUNTDOWN_SECONDS.
+            components.html(_countdown_html, height=620, scrolling=False)
 
         st.session_state["_trip_countdown_seen"] = True
 
