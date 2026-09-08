@@ -2956,12 +2956,11 @@ if st.session_state["current_trip"] is None:
     existing = sorted(existing, key=_trip_sort_key)
 
     # =========================================================
-    # ПРАЗНИЧЕН COUNTDOWN — САМО ПРИ ПЪРВО ОТВАРЯНЕ НА HOME
-    # Лек HTML/CSS overlay. Не променя данни, Drive sync или логика.
+    # ПРАЗНИЧЕН COUNTDOWN — REAL JAVASCRIPT TIMER
+    # Визията е запазена от първия работещ вариант.
+    # Единствената настройка за времето е COUNTDOWN_SECONDS най-отгоре.
     # =========================================================
-    _countdown_fade_delay = max(0.0, float(COUNTDOWN_SECONDS) - 0.55)
-
-    if not st.session_state.get("_trip_countdown_seen_controlled", False):
+    if not st.session_state.get("_trip_countdown_seen_js", False):
         _countdown_today = datetime.date.today()
         _countdown_next = None
         _countdown_next_date = None
@@ -2977,9 +2976,7 @@ if st.session_state["current_trip"] is None:
                 if _countdown_finished:
                     continue
 
-                _countdown_start_s = str(
-                    _countdown_settings.get("start_date", "") or ""
-                ).strip()
+                _countdown_start_s = str(_countdown_settings.get("start_date", "") or "").strip()
                 if not _countdown_start_s or _countdown_start_s.lower() == "nan":
                     continue
 
@@ -3010,17 +3007,14 @@ if st.session_state["current_trip"] is None:
                 _countdown_number = str(_countdown_days)
                 _countdown_subtitle = "дни до пътуването ✈️"
 
+            _countdown_ms = max(0, int(float(COUNTDOWN_SECONDS) * 1000))
             _countdown_html = f"""
-            <div id="tm-trip-countdown">
-                <div class="tm-countdown-glow"></div>
-                <div class="tm-countdown-card">
-                    <div class="tm-countdown-top">СЛЕДВАЩО ПЪТУВАНЕ</div>
-                    <div class="tm-countdown-number">{html.escape(_countdown_number)}</div>
-                    <div class="tm-countdown-days">{html.escape(_countdown_subtitle)}</div>
-                    <div class="tm-countdown-trip">✈️ {html.escape(_countdown_name)}</div>
-                </div>
-            </div>
+            <!doctype html>
+            <html>
+            <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
+                html, body {{ margin:0; padding:0; width:100%; height:100%; background:transparent; overflow:hidden; }}
                 #tm-trip-countdown {{
                     position:fixed;
                     inset:0;
@@ -3029,84 +3023,72 @@ if st.session_state["current_trip"] is None:
                     align-items:center;
                     justify-content:center;
                     padding:24px;
+                    box-sizing:border-box;
                     background:rgba(5,8,12,.96);
                     backdrop-filter:blur(12px);
                     -webkit-backdrop-filter:blur(12px);
-                    animation:tmCountdownFadeOut .55s ease {_countdown_fade_delay}s forwards;
                     pointer-events:none;
+                    opacity:1;
+                    visibility:visible;
+                    transition:opacity .55s ease, visibility 0s linear .55s;
                 }}
+                #tm-trip-countdown.tm-hide {{ opacity:0; visibility:hidden; }}
                 .tm-countdown-glow {{
                     position:absolute;
-                    width:260px;
-                    height:260px;
-                    border-radius:50%;
-                    background:rgba(0,242,254,.12);
-                    filter:blur(55px);
+                    width:260px; height:260px; border-radius:50%;
+                    background:rgba(0,242,254,.12); filter:blur(55px);
                     animation:tmCountdownPulse 1.8s ease-in-out infinite;
                 }}
                 .tm-countdown-card {{
-                    position:relative;
-                    width:min(92vw,430px);
+                    position:relative; width:min(92vw,430px);
                     padding:34px 24px 30px;
-                    border:1px solid rgba(255,255,255,.10);
-                    border-radius:26px;
+                    border:1px solid rgba(255,255,255,.10); border-radius:26px;
                     text-align:center;
                     background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
                     box-shadow:0 24px 80px rgba(0,0,0,.55),0 0 45px rgba(0,242,254,.08);
                     animation:tmCountdownIn .55s cubic-bezier(.2,.8,.2,1) both;
-                    font-family:inherit;
+                    font-family:Arial,sans-serif;
                 }}
-                .tm-countdown-top {{
-                    color:rgba(255,255,255,.58);
-                    font-size:11px;
-                    font-weight:800;
-                    letter-spacing:2.2px;
-                    margin-bottom:10px;
-                }}
-                .tm-countdown-number {{
-                    color:#fff;
-                    font-size:clamp(68px,18vw,108px);
-                    line-height:.92;
-                    font-weight:900;
-                    letter-spacing:-4px;
-                    text-shadow:0 0 28px rgba(0,242,254,.20);
-                }}
-                .tm-countdown-days {{
-                    margin-top:9px;
-                    color:rgba(255,255,255,.78);
-                    font-size:15px;
-                    font-weight:700;
-                }}
-                .tm-countdown-trip {{
-                    margin-top:25px;
-                    padding-top:17px;
-                    border-top:1px solid rgba(255,255,255,.08);
-                    color:#fff;
-                    font-size:17px;
-                    font-weight:800;
-                    overflow-wrap:anywhere;
-                }}
-                @keyframes tmCountdownIn {{
-                    from {{ opacity:0; transform:scale(.90) translateY(12px); }}
-                    to {{ opacity:1; transform:scale(1) translateY(0); }}
-                }}
-                @keyframes tmCountdownPulse {{
-                    0%,100% {{ transform:scale(.90); opacity:.65; }}
-                    50% {{ transform:scale(1.08); opacity:1; }}
-                }}
-                @keyframes tmCountdownFadeOut {{
-                    to {{ opacity:0; visibility:hidden; }}
-                }}
-                @media(max-width:640px) {{
-                    #tm-trip-countdown {{ padding:16px; }}
-                    .tm-countdown-card {{ padding:30px 20px 26px; border-radius:24px; }}
-                    .tm-countdown-trip {{ font-size:16px; }}
-                }}
+                .tm-countdown-top {{ color:rgba(255,255,255,.58); font-size:11px; font-weight:800; letter-spacing:2.2px; margin-bottom:10px; }}
+                .tm-countdown-number {{ color:#fff; font-size:clamp(68px,18vw,108px); line-height:.92; font-weight:900; letter-spacing:-4px; text-shadow:0 0 28px rgba(0,242,254,.20); }}
+                .tm-countdown-days {{ margin-top:9px; color:rgba(255,255,255,.78); font-size:15px; font-weight:700; }}
+                .tm-countdown-trip {{ margin-top:25px; padding-top:17px; border-top:1px solid rgba(255,255,255,.08); color:#fff; font-size:17px; font-weight:800; overflow-wrap:anywhere; }}
+                @keyframes tmCountdownIn {{ from {{ opacity:0; transform:scale(.90) translateY(12px); }} to {{ opacity:1; transform:scale(1) translateY(0); }} }}
+                @keyframes tmCountdownPulse {{ 0%,100% {{ transform:scale(.90); opacity:.65; }} 50% {{ transform:scale(1.08); opacity:1; }} }}
+                @media(max-width:640px) {{ #tm-trip-countdown {{ padding:16px; }} .tm-countdown-card {{ padding:30px 20px 26px; border-radius:24px; }} .tm-countdown-trip {{ font-size:16px; }} }}
             </style>
+            </head>
+            <body>
+                <div id="tm-trip-countdown">
+                    <div class="tm-countdown-glow"></div>
+                    <div class="tm-countdown-card">
+                        <div class="tm-countdown-top">СЛЕДВАЩО ПЪТУВАНЕ</div>
+                        <div class="tm-countdown-number">{html.escape(_countdown_number)}</div>
+                        <div class="tm-countdown-days">{html.escape(_countdown_subtitle)}</div>
+                        <div class="tm-countdown-trip">✈️ {html.escape(_countdown_name)}</div>
+                    </div>
+                </div>
+                <script>
+                    (function() {{
+                        var overlay = document.getElementById('tm-trip-countdown');
+                        var delay = { _countdown_ms };
+                        setTimeout(function() {{
+                            if (!overlay) return;
+                            overlay.classList.add('tm-hide');
+                            setTimeout(function() {{
+                                if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                            }}, 600);
+                        }}, delay);
+                    }})();
+                </script>
+            </body>
+            </html>
             """
-            st.markdown(_countdown_html, unsafe_allow_html=True)
 
-        st.session_state["_trip_countdown_seen_controlled"] = True
+            # 100vh-ish component viewport; the overlay itself is fixed inside it.
+            components.html(_countdown_html, height=760, scrolling=False)
+
+        st.session_state["_trip_countdown_seen_js"] = True
 
     if existing:
         st.markdown(
