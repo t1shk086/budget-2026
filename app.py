@@ -3507,9 +3507,9 @@ if st.session_state["current_trip"] is None:
         # за да не заема място в горната част на началния екран.
         if len(_home_completed_trips) > 1:
             _home_toggle_label = (
-                f"▲ Скрий останалите приключени ({len(_home_completed_trips) - 1})"
+                f"▲ Скрий останалите ({len(_home_completed_trips) - 1})"
                 if _home_show_all_completed
-                else f"▼ Виж всички приключени ({len(_home_completed_trips)})"
+                else f"▼ Виж всички ({len(_home_completed_trips)})"
             )
             if st.button(
                 _home_toggle_label,
