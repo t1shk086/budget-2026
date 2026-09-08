@@ -1,5 +1,8 @@
 # Изтеглете файла от линка по-горе или копирайте целия код отдолу:
 import streamlit as st
+
+# ✨ ПРАЗНИЧЕН COUNTDOWN — ЕДИНСТВЕНА НАСТРОЙКА ЗА ВРЕМЕТО
+COUNTDOWN_SECONDS = 10
 import pandas as pd
 import datetime
 import os
@@ -19,9 +22,6 @@ import uuid
 from pathlib import Path
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
-
-# ✨ ПРАЗНИЧЕН COUNTDOWN — ЕДИНСТВЕНА НАСТРОЙКА ЗА ВРЕМЕТО
-COUNTDOWN_SECONDS = 20
 
 # =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
@@ -2995,9 +2995,8 @@ if st.session_state["current_trip"] is None:
                 continue
 
         if _countdown_next is not None and _countdown_next_date is not None:
-            # Общото време включва и 0.55 сек. плавно изчезване.
-            _countdown_visible_seconds = max(0.0, float(COUNTDOWN_SECONDS) - 0.55)
             _countdown_days = (_countdown_next_date - _countdown_today).days
+            _countdown_fade_pct = max(0.0, min(100.0, ((float(COUNTDOWN_SECONDS) - 0.55) / float(COUNTDOWN_SECONDS)) * 100.0)) if COUNTDOWN_SECONDS > 0.55 else 0.0
             _countdown_name = get_trip_display_name(_countdown_next)
 
             if _countdown_days == 0:
@@ -3032,7 +3031,7 @@ if st.session_state["current_trip"] is None:
                     background:rgba(5,8,12,.96);
                     backdrop-filter:blur(12px);
                     -webkit-backdrop-filter:blur(12px);
-                    animation:tmCountdownFadeOut .55s ease {_countdown_visible_seconds}s forwards;
+                    animation:tmCountdownFadeOut {COUNTDOWN_SECONDS}s ease forwards;
                     pointer-events:none;
                 }}
                 .tm-countdown-glow {{
