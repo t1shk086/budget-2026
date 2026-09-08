@@ -2957,7 +2957,7 @@ if st.session_state["current_trip"] is None:
     # ПРАЗНИЧЕН COUNTDOWN — САМО ПРИ ПЪРВО ОТВАРЯНЕ НА HOME
     # Реални 10 секунди, като запазваме оригиналния дизайн.
     # =========================================================
-    COUNTDOWN_SECONDS = 10.0
+    COUNTDOWN_SECONDS = 4.0
 
     if not st.session_state.get("_trip_countdown_seen", False):
         _countdown_today = datetime.date.today()
