@@ -20,6 +20,9 @@ from pathlib import Path
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
+# ✨ ПРАЗНИЧЕН COUNTDOWN — ЕДИНСТВЕНА НАСТРОЙКА ЗА ВРЕМЕТО
+COUNTDOWN_SECONDS = 10
+
 # =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
 # =========================================================
@@ -2992,6 +2995,8 @@ if st.session_state["current_trip"] is None:
                 continue
 
         if _countdown_next is not None and _countdown_next_date is not None:
+            # Общото време включва и 0.55 сек. плавно изчезване.
+            _countdown_visible_seconds = max(0.0, float(COUNTDOWN_SECONDS) - 0.55)
             _countdown_days = (_countdown_next_date - _countdown_today).days
             _countdown_name = get_trip_display_name(_countdown_next)
 
@@ -3027,7 +3032,7 @@ if st.session_state["current_trip"] is None:
                     background:rgba(5,8,12,.96);
                     backdrop-filter:blur(12px);
                     -webkit-backdrop-filter:blur(12px);
-                    animation:tmCountdownFadeOut .55s ease 2.15s forwards;
+                    animation:tmCountdownFadeOut .55s ease {_countdown_visible_seconds}s forwards;
                     pointer-events:none;
                 }}
                 .tm-countdown-glow {{
