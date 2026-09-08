@@ -21,6 +21,12 @@ from pathlib import Path
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 # =========================================================
+# ✨ ПРАЗНИЧЕН COUNTDOWN — лесна настройка
+# =========================================================
+COUNTDOWN_SECONDS = 4
+
+
+# =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
 # =========================================================
 
@@ -2372,6 +2378,56 @@ if st.session_state["current_trip"] is None:
          if pd.notna(t) and str(t).strip() != ""]
     ))
 
+
+    # =========================================================
+    # ✨ ПРАЗНИЧЕН ЕКРАН — ДО СЛЕДВАЩОТО ПЪТУВАНЕ
+    # =========================================================
+    if not st.session_state.get("_trip_countdown_seen", False):
+        _next_trip = None
+        try:
+            if os.path.exists(SETTINGS_FILE):
+                _cd_settings = pd.read_csv(SETTINGS_FILE, encoding="utf-8")
+                _cd_today = datetime.date.today()
+                _cd_candidates = []
+                for _, _cd_row in _cd_settings.iterrows():
+                    _cd_id = str(_cd_row.get("trip_id", "")).strip()
+                    _cd_start_raw = str(_cd_row.get("start_date", "")).strip()
+                    if not _cd_id or not _cd_start_raw or _cd_start_raw.lower() == "nan":
+                        continue
+                    try:
+                        _cd_start = datetime.datetime.strptime(_cd_start_raw, "%d.%m.%Y").date()
+                    except Exception:
+                        continue
+                    if _cd_start >= _cd_today:
+                        _cd_candidates.append((_cd_start, _cd_id))
+                if _cd_candidates:
+                    _cd_candidates.sort(key=lambda x: x[0])
+                    _next_trip = _cd_candidates[0]
+        except Exception:
+            _next_trip = None
+
+        if _next_trip:
+            _cd_start, _cd_trip_id = _next_trip
+            _cd_days = (_cd_start - datetime.date.today()).days
+            _cd_display_days = "ДНЕС" if _cd_days == 0 else ("1 ДЕН" if _cd_days == 1 else f"{_cd_days} ДНИ")
+            _cd_trip_name = str(_cd_trip_id).replace("_", " ").strip()
+            _cd_seconds = max(0.5, float(COUNTDOWN_SECONDS))
+
+            components.html(f"""
+            <style>
+                #tm-countdown-overlay {{ position:fixed; inset:0; z-index:9999999; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at center, rgba(16,38,55,.98), rgba(3,9,15,.99)); color:white; text-align:center; font-family:inherit; animation:tmCountdownFadeOut .55s ease {_cd_seconds}s forwards; pointer-events:none; }}
+                #tm-countdown-overlay .tm-cd-inner {{ padding:30px 24px; animation:tmCountdownPop .7s ease both; }}
+                #tm-countdown-overlay .tm-cd-small {{ font-size:16px; font-weight:700; letter-spacing:2px; opacity:.72; margin-bottom:12px; }}
+                #tm-countdown-overlay .tm-cd-days {{ font-size:clamp(58px, 15vw, 112px); line-height:.95; font-weight:950; letter-spacing:-3px; text-shadow:0 0 30px rgba(0,242,254,.28); }}
+                #tm-countdown-overlay .tm-cd-trip {{ margin-top:18px; font-size:22px; font-weight:800; }}
+                @keyframes tmCountdownPop {{ from {{ opacity:0; transform:scale(.88) translateY(10px); }} to {{ opacity:1; transform:scale(1) translateY(0); }} }}
+                @keyframes tmCountdownFadeOut {{ to {{ opacity:0; visibility:hidden; }} }}
+            </style>
+            <div id="tm-countdown-overlay"><div class="tm-cd-inner"><div class="tm-cd-small">✈️ СЛЕДВАЩО ПЪТУВАНЕ</div><div class="tm-cd-days">{html.escape(_cd_display_days)}</div><div class="tm-cd-trip">🚙 {html.escape(_cd_trip_name)}</div></div></div>
+            <script>setTimeout(function() {{ var el=document.getElementById('tm-countdown-overlay'); if(el) el.remove(); }}, {int((_cd_seconds + 0.7) * 1000)});</script>
+            """, height=0)
+        st.session_state["_trip_countdown_seen"] = True
+
     # ---------------------------------------------------------
     # НАЧАЛЕН ЕКРАН — запазваме визуалния език на приложението.
     # Бърз разход е първи, след него Ново пътуване, после пътуванията.
@@ -2951,157 +3007,6 @@ if st.session_state["current_trip"] is None:
         return (0, active_end.toordinal(), (start_d or datetime.date.min).toordinal())
 
     existing = sorted(existing, key=_trip_sort_key)
-
-    # =========================================================
-    # ПРАЗНИЧЕН COUNTDOWN — САМО ПРИ ПЪРВО ОТВАРЯНЕ НА HOME
-    # Лек HTML/CSS overlay. Не променя данни, Drive sync или логика.
-    # =========================================================
-    if not st.session_state.get("_trip_countdown_seen", False):
-        _countdown_today = datetime.date.today()
-        _countdown_next = None
-        _countdown_next_date = None
-
-        for _countdown_tid in existing:
-            try:
-                _countdown_settings = get_trip_settings(str(_countdown_tid))
-                _countdown_finished = (
-                    str(_countdown_settings.get("trip_finished", "Не")).strip().lower()
-                    in ["да", "yes", "true", "1"]
-                ) or float(_countdown_settings.get("end_km", 0.0) or 0.0) > 0.0
-
-                if _countdown_finished:
-                    continue
-
-                _countdown_start_s = str(
-                    _countdown_settings.get("start_date", "") or ""
-                ).strip()
-                if not _countdown_start_s or _countdown_start_s.lower() == "nan":
-                    continue
-
-                _countdown_start = datetime.datetime.strptime(
-                    _countdown_start_s, "%d.%m.%Y"
-                ).date()
-
-                if _countdown_start >= _countdown_today and (
-                    _countdown_next_date is None
-                    or _countdown_start < _countdown_next_date
-                ):
-                    _countdown_next = str(_countdown_tid)
-                    _countdown_next_date = _countdown_start
-            except Exception:
-                continue
-
-        if _countdown_next is not None and _countdown_next_date is not None:
-            _countdown_days = (_countdown_next_date - _countdown_today).days
-            _countdown_name = get_trip_display_name(_countdown_next)
-
-            if _countdown_days == 0:
-                _countdown_number = "ДНЕС"
-                _countdown_subtitle = "Време е за пътуването ✈️"
-            elif _countdown_days == 1:
-                _countdown_number = "1"
-                _countdown_subtitle = "ден до пътуването ✈️"
-            else:
-                _countdown_number = str(_countdown_days)
-                _countdown_subtitle = "дни до пътуването ✈️"
-
-            _countdown_html = f"""
-            <div id="tm-trip-countdown">
-                <div class="tm-countdown-glow"></div>
-                <div class="tm-countdown-card">
-                    <div class="tm-countdown-top">СЛЕДВАЩО ПЪТУВАНЕ</div>
-                    <div class="tm-countdown-number">{html.escape(_countdown_number)}</div>
-                    <div class="tm-countdown-days">{html.escape(_countdown_subtitle)}</div>
-                    <div class="tm-countdown-trip">✈️ {html.escape(_countdown_name)}</div>
-                </div>
-            </div>
-            <style>
-                #tm-trip-countdown {{
-                    position:fixed;
-                    inset:0;
-                    z-index:9999999;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    padding:24px;
-                    background:rgba(5,8,12,.96);
-                    backdrop-filter:blur(12px);
-                    -webkit-backdrop-filter:blur(12px);
-                    animation:tmCountdownFadeOut .55s ease 6.65s forwards;
-                    pointer-events:none;
-                }}
-                .tm-countdown-glow {{
-                    position:absolute;
-                    width:260px;
-                    height:260px;
-                    border-radius:50%;
-                    background:rgba(0,242,254,.12);
-                    filter:blur(55px);
-                    animation:tmCountdownPulse 1.8s ease-in-out infinite;
-                }}
-                .tm-countdown-card {{
-                    position:relative;
-                    width:min(92vw,430px);
-                    padding:34px 24px 30px;
-                    border:1px solid rgba(255,255,255,.10);
-                    border-radius:26px;
-                    text-align:center;
-                    background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
-                    box-shadow:0 24px 80px rgba(0,0,0,.55),0 0 45px rgba(0,242,254,.08);
-                    animation:tmCountdownIn .55s cubic-bezier(.2,.8,.2,1) both;
-                    font-family:inherit;
-                }}
-                .tm-countdown-top {{
-                    color:rgba(255,255,255,.58);
-                    font-size:11px;
-                    font-weight:800;
-                    letter-spacing:2.2px;
-                    margin-bottom:10px;
-                }}
-                .tm-countdown-number {{
-                    color:#fff;
-                    font-size:clamp(68px,18vw,108px);
-                    line-height:.92;
-                    font-weight:900;
-                    letter-spacing:-4px;
-                    text-shadow:0 0 28px rgba(0,242,254,.20);
-                }}
-                .tm-countdown-days {{
-                    margin-top:9px;
-                    color:rgba(255,255,255,.78);
-                    font-size:15px;
-                    font-weight:700;
-                }}
-                .tm-countdown-trip {{
-                    margin-top:25px;
-                    padding-top:17px;
-                    border-top:1px solid rgba(255,255,255,.08);
-                    color:#fff;
-                    font-size:17px;
-                    font-weight:800;
-                    overflow-wrap:anywhere;
-                }}
-                @keyframes tmCountdownIn {{
-                    from {{ opacity:0; transform:scale(.90) translateY(12px); }}
-                    to {{ opacity:1; transform:scale(1) translateY(0); }}
-                }}
-                @keyframes tmCountdownPulse {{
-                    0%,100% {{ transform:scale(.90); opacity:.65; }}
-                    50% {{ transform:scale(1.08); opacity:1; }}
-                }}
-                @keyframes tmCountdownFadeOut {{
-                    to {{ opacity:0; visibility:hidden; }}
-                }}
-                @media(max-width:640px) {{
-                    #tm-trip-countdown {{ padding:16px; }}
-                    .tm-countdown-card {{ padding:30px 20px 26px; border-radius:24px; }}
-                    .tm-countdown-trip {{ font-size:16px; }}
-                }}
-            </style>
-            """
-            st.markdown(_countdown_html, unsafe_allow_html=True)
-
-        st.session_state["_trip_countdown_seen"] = True
 
     if existing:
         st.markdown(
