@@ -1,8 +1,5 @@
 # Изтеглете файла от линка по-горе или копирайте целия код отдолу:
 import streamlit as st
-
-# ✨ ПРАЗНИЧЕН COUNTDOWN — ЕДИНСТВЕНА НАСТРОЙКА ЗА ВРЕМЕТО
-COUNTDOWN_SECONDS = 10
 import pandas as pd
 import datetime
 import os
@@ -20,6 +17,7 @@ import requests
 import base64
 import uuid
 from pathlib import Path
+import time
 
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
@@ -2957,8 +2955,10 @@ if st.session_state["current_trip"] is None:
 
     # =========================================================
     # ПРАЗНИЧЕН COUNTDOWN — САМО ПРИ ПЪРВО ОТВАРЯНЕ НА HOME
-    # Лек HTML/CSS overlay. Не променя данни, Drive sync или логика.
+    # Реални 10 секунди, като запазваме оригиналния дизайн.
     # =========================================================
+    COUNTDOWN_SECONDS = 10.0
+
     if not st.session_state.get("_trip_countdown_seen", False):
         _countdown_today = datetime.date.today()
         _countdown_next = None
@@ -2996,7 +2996,6 @@ if st.session_state["current_trip"] is None:
 
         if _countdown_next is not None and _countdown_next_date is not None:
             _countdown_days = (_countdown_next_date - _countdown_today).days
-            _countdown_fade_pct = max(0.0, min(100.0, ((float(COUNTDOWN_SECONDS) - 0.55) / float(COUNTDOWN_SECONDS)) * 100.0)) if COUNTDOWN_SECONDS > 0.55 else 0.0
             _countdown_name = get_trip_display_name(_countdown_next)
 
             if _countdown_days == 0:
@@ -3031,7 +3030,7 @@ if st.session_state["current_trip"] is None:
                     background:rgba(5,8,12,.96);
                     backdrop-filter:blur(12px);
                     -webkit-backdrop-filter:blur(12px);
-                    animation:tmCountdownFadeOut {COUNTDOWN_SECONDS}s ease forwards;
+                    animation:tmCountdownFadeOut {COUNTDOWN_SECONDS:.2f}s linear forwards;
                     pointer-events:none;
                 }}
                 .tm-countdown-glow {{
@@ -3041,7 +3040,7 @@ if st.session_state["current_trip"] is None:
                     border-radius:50%;
                     background:rgba(0,242,254,.12);
                     filter:blur(55px);
-                    animation:tmCountdownPulse .1s ease-in-out infinite;
+                    animation:tmCountdownPulse 1.8s ease-in-out infinite;
                 }}
                 .tm-countdown-card {{
                     position:relative;
@@ -3052,7 +3051,7 @@ if st.session_state["current_trip"] is None:
                     text-align:center;
                     background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
                     box-shadow:0 24px 80px rgba(0,0,0,.55),0 0 45px rgba(0,242,254,.08);
-                    animation:tmCountdownIn .25s cubic-bezier(.2,.8,.2,1) both;
+                    animation:tmCountdownIn .55s cubic-bezier(.2,.8,.2,1) both;
                     font-family:inherit;
                 }}
                 .tm-countdown-top {{
@@ -3094,7 +3093,8 @@ if st.session_state["current_trip"] is None:
                     50% {{ transform:scale(1.08); opacity:1; }}
                 }}
                 @keyframes tmCountdownFadeOut {{
-                    to {{ opacity:0; visibility:hidden; }}
+                    0%,94% {{ opacity:1; visibility:visible; }}
+                    100% {{ opacity:0; visibility:hidden; }}
                 }}
                 @media(max-width:640px) {{
                     #tm-trip-countdown {{ padding:16px; }}
@@ -3105,6 +3105,9 @@ if st.session_state["current_trip"] is None:
             """
             st.markdown(_countdown_html, unsafe_allow_html=True)
 
+        # Важно: маркираме като "seen" едва след като е изтекло реалното време.
+        # Това пази логиката от моментно прерисуване на Streamlit.
+        time.sleep(COUNTDOWN_SECONDS)
         st.session_state["_trip_countdown_seen"] = True
 
     if existing:
