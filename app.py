@@ -3041,7 +3041,7 @@ if st.session_state["current_trip"] is None:
                     border-radius:50%;
                     background:rgba(0,242,254,.12);
                     filter:blur(55px);
-                    animation:tmCountdownPulse 1.8s ease-in-out infinite;
+                    animation:tmCountdownPulse 4s ease-in-out infinite;
                 }}
                 .tm-countdown-card {{
                     position:relative;
