@@ -3079,7 +3079,7 @@ if st.session_state["current_trip"] is None:
                     padding-top:17px;
                     border-top:1px solid rgba(255,255,255,.08);
                     color:#fff;
-                    font-size:17px;
+                    font-size:19px;
                     font-weight:800;
                     overflow-wrap:anywhere;
                 }}
