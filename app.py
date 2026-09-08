@@ -3000,13 +3000,13 @@ if st.session_state["current_trip"] is None:
 
             if _countdown_days == 0:
                 _countdown_number = "ДНЕС"
-                _countdown_subtitle = "Време е за пътуването ✈️"
+                _countdown_subtitle = "Време е за път!"
             elif _countdown_days == 1:
                 _countdown_number = "1"
-                _countdown_subtitle = "ден до пътуването ✈️"
+                _countdown_subtitle = "ден до пътуването!"
             else:
                 _countdown_number = str(_countdown_days)
-                _countdown_subtitle = "дни до пътуването ✈️"
+                _countdown_subtitle = "дни до пътуването!"
 
             _countdown_html = f"""
             <div id="tm-trip-countdown">
@@ -3014,7 +3014,7 @@ if st.session_state["current_trip"] is None:
                 <div class="tm-countdown-card">
                     <div class="tm-countdown-number">{html.escape(_countdown_number)}</div>
                     <div class="tm-countdown-days">{html.escape(_countdown_subtitle)}</div>
-                    <div class="tm-countdown-trip">{html.escape(_countdown_name)}</div>
+                    <div class="tm-countdown-trip">🚙 {html.escape(_countdown_name)}</div>
                 </div>
             </div>
             <style>
