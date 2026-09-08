@@ -1,8 +1,8 @@
 # Изтеглете файла от линка по-горе или копирайте целия код отдолу:
 import streamlit as st
 
-# ✨ ПРАЗНИЧЕН COUNTDOWN — лесна настройка
-COUNTDOWN_SECONDS = 20
+# ✨ ПРАЗНИЧЕН COUNTDOWN — единствената настройка за времето
+COUNTDOWN_SECONDS = 10
 import pandas as pd
 import datetime
 import os
@@ -2959,7 +2959,9 @@ if st.session_state["current_trip"] is None:
     # ПРАЗНИЧЕН COUNTDOWN — САМО ПРИ ПЪРВО ОТВАРЯНЕ НА HOME
     # Лек HTML/CSS overlay. Не променя данни, Drive sync или логика.
     # =========================================================
-    if not st.session_state.get("_trip_countdown_seen_v2", False):
+    _countdown_fade_delay = max(0.0, float(COUNTDOWN_SECONDS) - 0.55)
+
+    if not st.session_state.get("_trip_countdown_seen_controlled", False):
         _countdown_today = datetime.date.today()
         _countdown_next = None
         _countdown_next_date = None
@@ -3009,7 +3011,7 @@ if st.session_state["current_trip"] is None:
                 _countdown_subtitle = "дни до пътуването ✈️"
 
             _countdown_html = f"""
-            <div id="tm-trip-countdown" >
+            <div id="tm-trip-countdown">
                 <div class="tm-countdown-glow"></div>
                 <div class="tm-countdown-card">
                     <div class="tm-countdown-top">СЛЕДВАЩО ПЪТУВАНЕ</div>
@@ -3030,7 +3032,7 @@ if st.session_state["current_trip"] is None:
                     background:rgba(5,8,12,.96);
                     backdrop-filter:blur(12px);
                     -webkit-backdrop-filter:blur(12px);
-                    animation:tmCountdownFadeOut {COUNTDOWN_SECONDS}s ease forwards;
+                    animation:tmCountdownFadeOut .55s ease {_countdown_fade_delay}s forwards;
                     pointer-events:none;
                 }}
                 .tm-countdown-glow {{
@@ -3104,7 +3106,7 @@ if st.session_state["current_trip"] is None:
             """
             st.markdown(_countdown_html, unsafe_allow_html=True)
 
-        st.session_state["_trip_countdown_seen_v2"] = True
+        st.session_state["_trip_countdown_seen_controlled"] = True
 
     if existing:
         st.markdown(
