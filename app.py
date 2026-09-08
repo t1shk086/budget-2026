@@ -3030,7 +3030,7 @@ if st.session_state["current_trip"] is None:
                     background:rgba(5,8,12,.96);
                     backdrop-filter:blur(12px);
                     -webkit-backdrop-filter:blur(12px);
-                    animation:tmCountdownFadeOut .55s ease max(0s, calc(var(--tm-countdown-seconds) * 1s - .55s)) forwards;
+                    animation:tmCountdownFadeOut var(--tm-countdown-seconds) ease forwards;
                     pointer-events:none;
                 }}
                 .tm-countdown-glow {{
