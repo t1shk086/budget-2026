@@ -2957,7 +2957,7 @@ if st.session_state["current_trip"] is None:
     # ПРАЗНИЧЕН COUNTDOWN — САМО ПРИ ПЪРВО ОТВАРЯНЕ НА HOME
     # Реални 10 секунди, като запазваме оригиналния дизайн.
     # =========================================================
-    COUNTDOWN_SECONDS = 3.7
+    COUNTDOWN_SECONDS = 10.0
 
     if not st.session_state.get("_trip_countdown_seen", False):
         _countdown_today = datetime.date.today()
@@ -3000,13 +3000,13 @@ if st.session_state["current_trip"] is None:
 
             if _countdown_days == 0:
                 _countdown_number = "ДНЕС"
-                _countdown_subtitle = "Време е за път!"
+                _countdown_subtitle = "Време е за пътуването ✈️"
             elif _countdown_days == 1:
                 _countdown_number = "1"
-                _countdown_subtitle = "ден до пътуването!"
+                _countdown_subtitle = "ден до пътуването ✈️"
             else:
                 _countdown_number = str(_countdown_days)
-                _countdown_subtitle = "дни до пътуването!"
+                _countdown_subtitle = "дни до пътуването ✈️"
 
             _countdown_html = f"""
             <div id="tm-trip-countdown">
@@ -3014,7 +3014,7 @@ if st.session_state["current_trip"] is None:
                 <div class="tm-countdown-card">
                     <div class="tm-countdown-number">{html.escape(_countdown_number)}</div>
                     <div class="tm-countdown-days">{html.escape(_countdown_subtitle)}</div>
-                    <div class="tm-countdown-trip">🚙 {html.escape(_countdown_name)}</div>
+                    <div class="tm-countdown-trip">✈️ {html.escape(_countdown_name)}</div>
                 </div>
             </div>
             <style>
@@ -3079,8 +3079,8 @@ if st.session_state["current_trip"] is None:
                     padding-top:17px;
                     border-top:1px solid rgba(255,255,255,.08);
                     color:#fff;
-                    font-size:20px;
-                    font-weight:750;
+                    font-size:17px;
+                    font-weight:800;
                     overflow-wrap:anywhere;
                 }}
                 @keyframes tmCountdownIn {{
@@ -3110,6 +3110,58 @@ if st.session_state["current_trip"] is None:
         st.session_state["_trip_countdown_seen"] = True
 
     if existing:
+        # ---------------------------------------------------------
+        # HOME — приключените пътувания не трябва да удължават
+        # началния екран безкрайно. По подразбиране показваме
+        # активните + последното приключено. Останалите се показват
+        # само при включване на "Виж всички приключени".
+        # ---------------------------------------------------------
+        _home_today = datetime.date.today()
+        _home_active_trips = []
+        _home_completed_trips = []
+
+        for _home_trip in existing:
+            try:
+                _home_s = get_trip_settings(str(_home_trip))
+                _home_car = str(_home_s.get("car_trip", "Не")).strip()
+                _home_end_km = float(_home_s.get("end_km", 0.0) or 0.0)
+                _home_manual_finished = str(
+                    _home_s.get("trip_finished", "Не")
+                ).strip().lower() in ["да", "yes", "true", "1"]
+                _home_finished = (
+                    _home_end_km > 0.0 if _home_car == "Да" else _home_manual_finished
+                )
+
+                _home_end_raw = str(_home_s.get("end_date", "") or "").strip()
+                _home_end_date = None
+                if _home_end_raw and _home_end_raw.lower() != "nan":
+                    _home_end_date = datetime.datetime.strptime(_home_end_raw, "%d.%m.%Y").date()
+
+                if _home_finished or (_home_end_date and _home_today > _home_end_date):
+                    _home_completed_trips.append((str(_home_trip), _home_end_date))
+                else:
+                    _home_active_trips.append(str(_home_trip))
+            except Exception:
+                _home_active_trips.append(str(_home_trip))
+
+        # Най-скорошното приключено пътуване е това с най-късна крайна дата.
+        _home_completed_trips.sort(
+            key=lambda x: x[1] or datetime.date.min,
+            reverse=True
+        )
+        _home_latest_completed = (
+            [_home_completed_trips[0][0]] if _home_completed_trips else []
+        )
+        _home_show_all_completed = bool(
+            st.session_state.get("home_show_all_completed", False)
+        )
+        _home_completed_to_show = (
+            [x[0] for x in _home_completed_trips]
+            if _home_show_all_completed
+            else _home_latest_completed
+        )
+        _home_trips_to_render = _home_active_trips + _home_completed_to_show
+
         st.markdown(
     f"<div id='my_trips_top' class='tm-home-trips-title'>"
     f"<span>Моите пътувания</span>"
@@ -3118,7 +3170,22 @@ if st.session_state["current_trip"] is None:
     unsafe_allow_html=True
 )
 
-        for _trip in existing:
+        # Контролът е само когато има повече от едно приключено.
+        if len(_home_completed_trips) > 1:
+            _home_toggle_label = (
+                f"▲ Скрий останалите приключени ({len(_home_completed_trips) - 1})"
+                if _home_show_all_completed
+                else f"▼ Виж всички приключени ({len(_home_completed_trips)})"
+            )
+            if st.button(
+                _home_toggle_label,
+                key="home_show_all_completed_btn",
+                use_container_width=True
+            ):
+                st.session_state["home_show_all_completed"] = not _home_show_all_completed
+                st.rerun()
+
+        for _trip in _home_trips_to_render:
             _trip_id = str(_trip)
             _trip_name = get_trip_display_name(_trip_id)
             _settings = get_trip_settings(_trip_id)
