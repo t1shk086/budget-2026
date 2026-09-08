@@ -2021,7 +2021,7 @@ export default function(component) {
         '<div>🚙  <span class="tm-home-trip-title">' + esc(title) + '</span></div>' +
         '<div>' + esc(status) + (dates ? ' · ' + esc(dates) : '') + '</div>' +
         (isCompleted
-            ? '<br><div>💰 Общо изхарчено: <span class="tm-home-trip-spent">€' + esc(spent) + '</span></div>'
+            ? '<br><div>💰 Общо разходи: <span class="tm-home-trip-spent">€' + esc(spent) + '</span></div>'
             : hasBudget
                 ? '<br><div><span class="tm-home-trip-spent">€' + esc(spent) + '</span> / €' + esc(budget) + '    <span class="tm-home-trip-pct">' + esc(pct) + '%</span></div>' +
                   '<div>💳 Остават <span class="tm-home-trip-remaining">€' + esc(remaining) + '</span></div>'
@@ -8441,7 +8441,7 @@ else:
         if(!items.length){
             const empty=document.createElement('div');
             empty.className='tm-memory-empty';
-            empty.textContent='Все още няма снимки. Добави до 10 спомена от това пътуване.';
+            empty.textContent='Все още няма снимки. Може да добавите до 10 спомена от това пътуване.';
             card.appendChild(empty);
         }else{
             const row=document.createElement('div');
