@@ -3014,7 +3014,7 @@ if st.session_state["current_trip"] is None:
                 <div class="tm-countdown-card">
                     <div class="tm-countdown-number">{html.escape(_countdown_number)}</div>
                     <div class="tm-countdown-days">{html.escape(_countdown_subtitle)}</div>
-                    <div class="tm-countdown-trip">✈️ {html.escape(_countdown_name)}</div>
+                    <div class="tm-countdown-trip">{html.escape(_countdown_name)}</div>
                 </div>
             </div>
             <style>
