@@ -1969,7 +1969,7 @@ _HOME_TRIP_CSS = """
 .tm-home-trip-row { position:relative; z-index:2; width:100%; min-height:108px; box-sizing:border-box; padding:14px 16px 24px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.085); border-left:3px solid rgba(0,242,254,.42); background:var(--tm-card-bg); box-shadow:0 8px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.025); color:#fff; text-align:left; font-family:inherit; font-size:14px; font-weight:500; line-height:1.45; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; touch-action:pan-y; user-select:none; -webkit-user-select:none; cursor:pointer; }
 .tm-home-trip-row:hover { border-color:rgba(0,242,254,.24); border-left-color:rgba(0,242,254,.82); background:var(--tm-card-hover-bg); box-shadow:0 12px 30px rgba(0,0,0,.30), 0 0 18px rgba(0,242,254,.055); transform:translateY(-2px); }
 .tm-home-trip-content { width:100%; white-space:pre-wrap; }
-.tm-home-trip-title { font-size:14px; font-weight:800; line-height:1.35; }
+.tm-home-trip-title { font-size:14px; font-weight:800; line-height:1.35; border-bottom:1px solid rgba(255,255,255,.30); padding-bottom:2px; text-shadow:0 1px 8px rgba(255,255,255,.12); }
 .tm-home-trip-spent { font-size:14px; font-weight:700; }
 .tm-home-trip-pct { font-size:14px; font-weight:700; }
 .tm-home-trip-remaining { font-size:14px; font-weight:700; }
