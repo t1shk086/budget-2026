@@ -3170,21 +3170,6 @@ if st.session_state["current_trip"] is None:
     unsafe_allow_html=True
 )
 
-        # Контролът е само когато има повече от едно приключено.
-        if len(_home_completed_trips) > 1:
-            _home_toggle_label = (
-                f"▲ Скрий останалите приключени ({len(_home_completed_trips) - 1})"
-                if _home_show_all_completed
-                else f"▼ Виж всички приключени ({len(_home_completed_trips)})"
-            )
-            if st.button(
-                _home_toggle_label,
-                key="home_show_all_completed_btn",
-                use_container_width=True
-            ):
-                st.session_state["home_show_all_completed"] = not _home_show_all_completed
-                st.rerun()
-
         for _trip in _home_trips_to_render:
             _trip_id = str(_trip)
             _trip_name = get_trip_display_name(_trip_id)
@@ -3517,6 +3502,22 @@ if st.session_state["current_trip"] is None:
                             st.session_state["home_trip_pending_delete"] = _trip_id
                             google_drive_sync()
                             st.rerun()
+
+        # Бутонът е непосредствено под приключеното пътуване,
+        # за да не заема място в горната част на началния екран.
+        if len(_home_completed_trips) > 1:
+            _home_toggle_label = (
+                f"▲ Скрий останалите приключени ({len(_home_completed_trips) - 1})"
+                if _home_show_all_completed
+                else f"▼ Виж всички приключени ({len(_home_completed_trips)})"
+            )
+            if st.button(
+                _home_toggle_label,
+                key="home_show_all_completed_btn",
+                use_container_width=True
+            ):
+                st.session_state["home_show_all_completed"] = not _home_show_all_completed
+                st.rerun()
 
         if st.session_state.get("home_trip_pending_delete"):
             confirm_delete_home_trip_dialog(st.session_state["home_trip_pending_delete"])
