@@ -3041,7 +3041,7 @@ if st.session_state["current_trip"] is None:
                     border-radius:50%;
                     background:rgba(0,242,254,.12);
                     filter:blur(55px);
-                    animation:tmCountdownPulse 4s ease-in-out infinite;
+                    animation:tmCountdownPulse .1s ease-in-out infinite;
                 }}
                 .tm-countdown-card {{
                     position:relative;
@@ -3052,7 +3052,7 @@ if st.session_state["current_trip"] is None:
                     text-align:center;
                     background:linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.018));
                     box-shadow:0 24px 80px rgba(0,0,0,.55),0 0 45px rgba(0,242,254,.08);
-                    animation:tmCountdownIn .55s cubic-bezier(.2,.8,.2,1) both;
+                    animation:tmCountdownIn .25s cubic-bezier(.2,.8,.2,1) both;
                     font-family:inherit;
                 }}
                 .tm-countdown-top {{
