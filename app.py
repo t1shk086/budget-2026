@@ -533,6 +533,43 @@ def _google_drive_find_or_create_trip_photos_folder(service, trip_id, photos_fol
     return folder["id"]
 
 
+def _google_drive_delete_trip_photos_folder(service, trip_id, photos_folder_id=None):
+    """Delete Photos/trip_<id> and all files inside it."""
+    try:
+        if photos_folder_id is None:
+            photos_folder_id = _google_drive_find_or_create_photos_folder(service)
+        safe = re.sub(r"[^\w.-]+", "_", str(trip_id).strip(), flags=re.UNICODE)
+        folder_name = f"trip_{safe}"
+        q = (
+            f"name = '{folder_name.replace(chr(39), chr(92)+chr(39))}' "
+            "and mimeType = 'application/vnd.google-apps.folder' "
+            f"and '{photos_folder_id}' in parents and trashed = false"
+        )
+        folders = service.files().list(
+            q=q, spaces="drive", fields="files(id,name)", pageSize=20
+        ).execute().get("files", [])
+        deleted = False
+        for folder in folders:
+            folder_id = folder.get("id")
+            if not folder_id:
+                continue
+            for child in _google_drive_find_files_in_folder(service, folder_id):
+                child_id = child.get("id")
+                if child_id:
+                    try:
+                        service.files().delete(fileId=child_id).execute()
+                    except Exception:
+                        pass
+            try:
+                service.files().delete(fileId=folder_id).execute()
+                deleted = True
+            except Exception:
+                pass
+        return deleted
+    except Exception:
+        return False
+
+
 def _gallery_trip_prefix(trip_id):
     safe = re.sub(
         r"[^\w.-]+",
@@ -661,6 +698,40 @@ def _gallery_sync_to_drive(service, trip_id=None):
                             seen.add(tid); trip_ids.append(tid)
 
         total_uploaded = total_deleted = total_failed = 0
+
+        # Remove trip folders for trips that no longer exist.
+        try:
+            active_trip_ids = {str(x).strip() for x in trip_ids if str(x).strip()}
+            trip_folders = service.files().list(
+                q=(f"'{photos_folder_id}' in parents and "
+                   "mimeType = 'application/vnd.google-apps.folder' and trashed = false"),
+                spaces="drive", fields="files(id,name)", pageSize=1000
+            ).execute().get("files", [])
+            for folder in trip_folders:
+                folder_name = str(folder.get("name", ""))
+                if not folder_name.startswith("trip_"):
+                    continue
+                safe_id = folder_name[5:].strip()
+                if not safe_id or safe_id in active_trip_ids:
+                    continue
+                folder_id = folder.get("id")
+                if not folder_id:
+                    continue
+                for child in _google_drive_find_files_in_folder(service, folder_id):
+                    child_id = child.get("id")
+                    if child_id:
+                        try:
+                            service.files().delete(fileId=child_id).execute()
+                        except Exception:
+                            total_failed += 1
+                try:
+                    service.files().delete(fileId=folder_id).execute()
+                    total_deleted += 1
+                except Exception:
+                    total_failed += 1
+        except Exception:
+            pass
+
         from googleapiclient.http import MediaFileUpload
         mime_map = {".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".png":"image/png", ".webp":"image/webp"}
 
@@ -5275,6 +5346,14 @@ else:
                                     )
                                 )
             
+                                # New structure: delete Photos/trip_<ID> and its contents.
+                                _google_drive_delete_trip_photos_folder(
+                                    _drive_service,
+                                    trip_id,
+                                    _photos_folder_id
+                                )
+
+                                # Backward compatibility: also remove old flat Photos files.
                                 _trip_photos = (
                                     _google_drive_find_files_in_folder(
                                         _drive_service,
