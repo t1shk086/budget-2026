@@ -498,6 +498,41 @@ def _google_drive_find_files_in_folder(service, folder_id):
     return result.get("files", [])
 
 
+def _google_drive_find_or_create_trip_photos_folder(service, trip_id, photos_folder_id=None):
+    """Find/create Photos/trip_<trip_id> in Google Drive."""
+    if photos_folder_id is None:
+        photos_folder_id = _google_drive_find_or_create_photos_folder(service)
+
+    safe = re.sub(r"[^\w.-]+", "_", str(trip_id).strip(), flags=re.UNICODE)
+    folder_name = f"trip_{safe}"
+
+    q = (
+        f"name = '{folder_name.replace(chr(39), chr(92)+chr(39))}' "
+        "and mimeType = 'application/vnd.google-apps.folder' "
+        f"and '{photos_folder_id}' in parents "
+        "and trashed = false"
+    )
+    result = service.files().list(
+        q=q,
+        spaces="drive",
+        fields="files(id,name)",
+        pageSize=20,
+    ).execute()
+    found = result.get("files", [])
+    if found:
+        return found[0]["id"]
+
+    folder = service.files().create(
+        body={
+            "name": folder_name,
+            "mimeType": "application/vnd.google-apps.folder",
+            "parents": [photos_folder_id],
+        },
+        fields="id",
+    ).execute()
+    return folder["id"]
+
+
 def _gallery_trip_prefix(trip_id):
     safe = re.sub(
         r"[^\w.-]+",
@@ -522,154 +557,70 @@ def _gallery_local_files(trip_id):
 
 
 def _gallery_save_uploads(trip_id, uploads):
-    """Save photos locally and immediately upload new photos to Google Drive."""
+    """Save photos locally and immediately upload them to Photos/trip_<id>."""
     try:
         existing = _gallery_local_files(trip_id)
-
-        room = max(
-            0,
-            MAX_GALLERY_PHOTOS - len(existing)
-        )
-
+        room = max(0, MAX_GALLERY_PHOTOS - len(existing))
         saved = 0
-
-        # -------------------------------------------------
-        # Google Drive service
-        # -------------------------------------------------
         drive_service = None
 
         if st.session_state.get("google_drive_service_ready"):
             try:
-                refresh_token = _google_drive_secret(
-                    "google_drive",
-                    "refresh_token"
-                )
-
-                token_info = st.session_state.get(
-                    "google_drive_token"
-                )
-
+                refresh_token = _google_drive_secret("google_drive", "refresh_token")
+                token_info = st.session_state.get("google_drive_token")
                 if refresh_token:
-                    drive_service = (
-                        _google_drive_get_service_from_refresh_token(
-                            refresh_token
-                        )
-                    )
-
+                    drive_service = _google_drive_get_service_from_refresh_token(refresh_token)
                 elif token_info:
-                    drive_service, _ = (
-                        _google_drive_get_service_from_token(
-                            token_info
-                        )
-                    )
-
+                    drive_service, _ = _google_drive_get_service_from_token(token_info)
             except Exception:
                 drive_service = None
 
-        # -------------------------------------------------
-        # Photos folder
-        # -------------------------------------------------
-        photos_folder_id = None
-
+        trip_folder_id = None
         if drive_service is not None:
             try:
-                photos_folder_id = (
-                    _google_drive_find_or_create_photos_folder(
-                        drive_service
-                    )
+                trip_folder_id = _google_drive_find_or_create_trip_photos_folder(
+                    drive_service, trip_id
                 )
             except Exception:
-                photos_folder_id = None
+                trip_folder_id = None
 
         from googleapiclient.http import MediaFileUpload
-
         mime_map = {
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".png": "image/png",
-            ".webp": "image/webp",
+            ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+            ".png": "image/png", ".webp": "image/webp",
         }
 
-        # -------------------------------------------------
-        # Save + upload
-        # -------------------------------------------------
         for upload in list(uploads)[:room]:
-
             raw = upload.getvalue()
-
             if not raw:
                 continue
-
-            ext = Path(
-                str(
-                    getattr(
-                        upload,
-                        "name",
-                        ""
-                    )
-                )
-            ).suffix.lower()
-
+            ext = Path(str(getattr(upload, "name", ""))).suffix.lower()
             if ext not in GALLERY_EXTENSIONS:
                 ext = ".jpg"
 
-            name = (
-                f"{_gallery_trip_prefix(trip_id)}"
-                f"{uuid.uuid4().hex}"
-                f"{ext}"
-            )
-
-            local_path = os.path.join(
-                PHOTOS_DIR,
-                name
-            )
-
-            # -----------------------------
-            # 1. Save locally
-            # -----------------------------
-            with open(
-                local_path,
-                "wb"
-            ) as f:
+            name = f"{_gallery_trip_prefix(trip_id)}{uuid.uuid4().hex}{ext}"
+            local_path = os.path.join(PHOTOS_DIR, name)
+            with open(local_path, "wb") as f:
                 f.write(raw)
-
             saved += 1
 
-            # -----------------------------
-            # 2. Upload immediately
-            # -----------------------------
-            if (
-                drive_service is not None
-                and photos_folder_id
-            ):
+            if drive_service is not None and trip_folder_id:
                 try:
                     media = MediaFileUpload(
                         local_path,
-                        mimetype=mime_map.get(
-                            ext,
-                            "image/jpeg"
-                        ),
+                        mimetype=mime_map.get(ext, "image/jpeg"),
                         resumable=False,
                     )
-
                     drive_service.files().create(
-                        body={
-                            "name": name,
-                            "parents": [
-                                photos_folder_id
-                            ],
-                        },
+                        body={"name": name, "parents": [trip_folder_id]},
                         media_body=media,
                         fields="id",
                     ).execute()
-
                 except Exception:
-                    # Оставяме локалния файл.
-                    # Следващият sync ще го качи.
+                    # Локалният файл остава; следващият sync ще го качи.
                     pass
 
         return saved
-
     except Exception:
         return 0
 
@@ -684,290 +635,131 @@ def _gallery_delete_local(path):
     return False
 
 
-def _gallery_sync_to_drive(service):
-    """
-    Синхронизира галерията с Google Drive.
-
-    Правило:
-    - локално съществува + в Drive липсва -> качва
-    - локално липсва + в Drive съществува -> изтрива от Drive
-    - и на двете места съществува -> нищо не прави
-
-    ВАЖНО:
-    Първо обработваме изтриванията, за да не може стара снимка
-    от Drive да бъде върната обратно при същия sync.
-    """
+def _gallery_sync_to_drive(service, trip_id=None):
+    """Sync gallery photos. New structure: Photos/trip_<trip_id>."""
     try:
         photos_folder_id = _google_drive_find_or_create_photos_folder(service)
 
-        # ---------------------------------------------------------
-        # 1. Списък на снимките в GOOGLE DRIVE
-        # ---------------------------------------------------------
-        remote_files = {
-            str(f.get("name", "")): f
-            for f in _google_drive_find_files_in_folder(
-                service,
-                photos_folder_id
-            )
-            if (
-                "__gallery__" in str(f.get("name", ""))
-                and Path(
-                    str(f.get("name", ""))
-                ).suffix.lower() in GALLERY_EXTENSIONS
-            )
-        }
-
-        # ---------------------------------------------------------
-        # 2. Списък на снимките ЛОКАЛНО
-        # ---------------------------------------------------------
-        local = {}
-
-        try:
-            for name in os.listdir(PHOTOS_DIR):
-                path = os.path.join(
-                    PHOTOS_DIR,
-                    name
-                )
-
-                if (
-                    os.path.isfile(path)
-                    and "__gallery__" in name
-                    and Path(name).suffix.lower()
-                    in GALLERY_EXTENSIONS
-                ):
-                    local[name] = path
-
-        except Exception:
-            pass
-
-        uploaded = 0
-        deleted = 0
-        delete_failed = 0
-
-        # ---------------------------------------------------------
-        # 3. ПЪРВО ИЗТРИВАМЕ ОТ DRIVE ТОВА,
-        #    КОЕТО ВЕЧЕ ГО НЯМА ЛОКАЛНО
-        # ---------------------------------------------------------
-        for name, meta in remote_files.items():
-
-            if name in local:
-                continue
-
+        # Determine which trips to sync.
+        trip_ids = []
+        if trip_id is not None:
+            trip_ids = [str(trip_id).strip()]
+        else:
+            seen = set()
             try:
-                file_id = meta.get("id")
-
-                if not file_id:
-                    delete_failed += 1
-                    continue
-
-                service.files().delete(
-                    fileId=file_id
-                ).execute()
-
-                deleted += 1
-
+                for t in st.session_state.get("trips", []) or []:
+                    tid = str(t.get("trip_id", "")).strip()
+                    if tid and tid not in seen:
+                        seen.add(tid); trip_ids.append(tid)
             except Exception:
-                # Не крием логическия проблем от брояча.
-                delete_failed += 1
+                pass
+            if not trip_ids:
+                for name in os.listdir(PHOTOS_DIR) if os.path.isdir(PHOTOS_DIR) else []:
+                    if "__gallery__" in name:
+                        tid = name.split("__gallery__", 1)[0].strip()
+                        if tid and tid not in seen:
+                            seen.add(tid); trip_ids.append(tid)
 
-        # ---------------------------------------------------------
-        # 4. СЛЕД ИЗТРИВАНИЯТА КАЧВАМЕ САМО НОВИТЕ
-        # ---------------------------------------------------------
+        total_uploaded = total_deleted = total_failed = 0
         from googleapiclient.http import MediaFileUpload
+        mime_map = {".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".png":"image/png", ".webp":"image/webp"}
 
-        mime_map = {
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".png": "image/png",
-            ".webp": "image/webp",
-        }
-
-        # Важно:
-        # След изтриването НЕ използваме стария remote_files
-        # като основание да възстановяваме снимки.
-        for name, path in local.items():
-
-            if name in remote_files:
-                continue
-
+        for tid in trip_ids:
+            folder_id = _google_drive_find_or_create_trip_photos_folder(
+                service, tid, photos_folder_id
+            )
+            remote_files = {
+                str(f.get("name", "")): f
+                for f in _google_drive_find_files_in_folder(service, folder_id)
+                if "__gallery__" in str(f.get("name", ""))
+                and Path(str(f.get("name", ""))).suffix.lower() in GALLERY_EXTENSIONS
+            }
+            local = {}
             try:
-                media = MediaFileUpload(
-                    path,
-                    mimetype=mime_map.get(
-                        Path(path).suffix.lower(),
-                        "image/jpeg"
-                    ),
-                    resumable=False,
-                )
-
-                service.files().create(
-                    body={
-                        "name": name,
-                        "parents": [
-                            photos_folder_id
-                        ],
-                    },
-                    media_body=media,
-                    fields="id",
-                ).execute()
-
-                uploaded += 1
-
+                for name in os.listdir(PHOTOS_DIR):
+                    path = os.path.join(PHOTOS_DIR, name)
+                    if (os.path.isfile(path) and name.startswith(_gallery_trip_prefix(tid))
+                            and Path(name).suffix.lower() in GALLERY_EXTENSIONS):
+                        local[name] = path
             except Exception:
                 pass
 
-        return uploaded, deleted, delete_failed
+            for name, meta in remote_files.items():
+                if name in local:
+                    continue
+                try:
+                    service.files().delete(fileId=meta.get("id")).execute()
+                    total_deleted += 1
+                except Exception:
+                    total_failed += 1
 
+            for name, path in local.items():
+                if name in remote_files:
+                    continue
+                try:
+                    media = MediaFileUpload(path, mimetype=mime_map.get(Path(path).suffix.lower(), "image/jpeg"), resumable=False)
+                    service.files().create(
+                        body={"name": name, "parents": [folder_id]},
+                        media_body=media,
+                        fields="id",
+                    ).execute()
+                    total_uploaded += 1
+                except Exception:
+                    total_failed += 1
+
+        return total_uploaded, total_deleted, total_failed
     except Exception:
         return 0, 0, 0
 
 
-def _google_drive_download_photos(service):
-    """Restore only gallery photos belonging to existing trips.
-    Old orphaned photos are removed from Google Drive.
-    """
+def _google_drive_download_photos(service, trip_id=None):
+    """Lazy restore for one trip. Legacy flat Photos files are supported too."""
     try:
         photos_folder_id = _google_drive_find_or_create_photos_folder(service)
-
-        managed = [
-            f for f in _google_drive_find_files_in_folder(
-                service,
-                photos_folder_id
-            )
-            if "__gallery__" in str(f.get("name", ""))
-            and Path(
-                str(f.get("name", ""))
-            ).suffix.lower() in GALLERY_EXTENSIONS
-        ]
-
-        # ---------------------------------------------------------
-        # 1. Вземаме всички реално съществуващи trip_id
-        # ---------------------------------------------------------
-        existing_trip_ids = set()
-
-        try:
-            if os.path.exists(SETTINGS_FILE):
-                df_settings = pd.read_csv(
-                    SETTINGS_FILE,
-                    encoding="utf-8"
-                )
-
-                if "trip_id" in df_settings.columns:
-                    existing_trip_ids = {
-                        str(x).strip()
-                        for x in df_settings["trip_id"].dropna()
-                        if str(x).strip()
-                    }
-        except Exception:
-            existing_trip_ids = set()
-
-        # За допълнителна сигурност вземаме и trip_id от основните данни
-        try:
-            if os.path.exists(DATA_FILE):
-                df_data = pd.read_csv(
-                    DATA_FILE,
-                    encoding="utf-8"
-                )
-
-                if "trip_id" in df_data.columns:
-                    existing_trip_ids.update(
-                        str(x).strip()
-                        for x in df_data["trip_id"].dropna()
-                        if str(x).strip()
-                    )
-        except Exception:
-            pass
-
         from io import BytesIO
         from googleapiclient.http import MediaIoBaseDownload
 
-        restored = 0
-        deleted_orphans = 0
+        # Specific trip = only that folder. No trip_id = backward-compatible all-trip sync.
+        if trip_id is not None:
+            tid = str(trip_id).strip()
+            folder_id = _google_drive_find_or_create_trip_photos_folder(service, tid, photos_folder_id)
+            managed = _google_drive_find_files_in_folder(service, folder_id)
 
-        # ---------------------------------------------------------
-        # 2. Проверяваме всяка снимка
-        # ---------------------------------------------------------
+            # Also read old flat Photos entries for this trip, but do not delete/migrate them here.
+            legacy = _google_drive_find_files_in_folder(service, photos_folder_id)
+            prefix = _gallery_trip_prefix(tid)
+            managed += [
+                f for f in legacy
+                if str(f.get("name", "")).startswith(prefix)
+                and Path(str(f.get("name", ""))).suffix.lower() in GALLERY_EXTENSIONS
+            ]
+        else:
+            managed = []
+            for f in _google_drive_find_files_in_folder(service, photos_folder_id):
+                if "__gallery__" in str(f.get("name", "")):
+                    managed.append(f)
+
+        restored = 0
         for meta in managed:
             name = str(meta.get("name", ""))
-
-            # Името е приблизително:
-            # trip_id__gallery__UUID.ext
-            photo_trip_id = None
-
-            if "__gallery__" in name:
-                photo_trip_id = name.split(
-                    "__gallery__",
-                    1
-                )[0].strip()
-
-            # -----------------------------------------------------
-            # Стара снимка от вече изтрито пътуване
-            # -----------------------------------------------------
-            if (
-                not photo_trip_id
-                or photo_trip_id not in existing_trip_ids
-            ):
-                try:
-                    service.files().delete(
-                        fileId=meta["id"]
-                    ).execute()
-
-                    deleted_orphans += 1
-                except Exception:
-                    pass
-
-                # Ако случайно е останала и локално — махаме я
-                try:
-                    local_orphan = os.path.join(
-                        PHOTOS_DIR,
-                        name
-                    )
-
-                    if os.path.exists(local_orphan):
-                        os.remove(local_orphan)
-                except Exception:
-                    pass
-
+            if "__gallery__" not in name or Path(name).suffix.lower() not in GALLERY_EXTENSIONS:
                 continue
-
-            # -----------------------------------------------------
-            # 3. Валидна снимка → сваляме я локално
-            # -----------------------------------------------------
-            path = os.path.join(
-                PHOTOS_DIR,
-                name
-            )
-
+            path = os.path.join(PHOTOS_DIR, name)
             if os.path.exists(path):
                 continue
-
             try:
-                request = service.files().get_media(
-                    fileId=meta["id"]
-                )
-
+                request = service.files().get_media(fileId=meta["id"])
                 buf = BytesIO()
-
-                downloader = MediaIoBaseDownload(
-                    buf,
-                    request
-                )
-
+                downloader = MediaIoBaseDownload(buf, request)
                 done = False
-
                 while not done:
                     _, done = downloader.next_chunk()
-
                 with open(path, "wb") as f:
                     f.write(buf.getvalue())
-
                 restored += 1
-
             except Exception:
                 pass
-
         return restored
-
     except Exception:
         return 0
 
@@ -1185,12 +977,16 @@ def _google_drive_bootstrap():
         )
         st.stop()
 
-def _google_drive_lazy_load_photos():
-    """Load gallery photos only when the trip gallery is actually opened."""
-    if st.session_state.get("google_drive_photos_loaded"):
+def _google_drive_lazy_load_photos(trip_id=None):
+    """Load only the selected trip gallery when its gallery is opened."""
+    if not st.session_state.get("google_drive_service_ready"):
         return
 
-    if not st.session_state.get("google_drive_service_ready"):
+    if trip_id is not None:
+        loaded = st.session_state.setdefault("google_drive_photos_loaded_trips", set())
+        if str(trip_id).strip() in loaded:
+            return
+    elif st.session_state.get("google_drive_photos_loaded"):
         return
 
     try:
@@ -1211,8 +1007,11 @@ def _google_drive_lazy_load_photos():
         else:
             return
 
-        _google_drive_download_photos(service)
-        st.session_state["google_drive_photos_loaded"] = True
+        _google_drive_download_photos(service, trip_id=trip_id)
+        if trip_id is None:
+            st.session_state["google_drive_photos_loaded"] = True
+        else:
+            st.session_state.setdefault("google_drive_photos_loaded_trips", set()).add(str(trip_id).strip())
 
     except Exception:
         # Gallery must never break the trip page if photo restore fails.
@@ -1237,10 +1036,10 @@ def google_drive_sync(force=False, include_photos=True):
             return 0
         csv_uploaded = _google_drive_upload_all(service, folder_id)
         photo_result = (
-    _gallery_sync_to_drive(service)
-    if include_photos
-    else (0, 0, 0)
-)
+            _gallery_sync_to_drive(service)
+            if include_photos
+            else (0, 0, 0)
+        )
         return csv_uploaded, photo_result
     except Exception:
         return 0
@@ -8592,7 +8391,7 @@ else:
     # =========================================================
     # 📸 СПОМЕНИ ОТ ПЪТУВАНЕТО — компактни тъмбове + viewer
     # =========================================================
-    _google_drive_lazy_load_photos()
+    _google_drive_lazy_load_photos(trip_id)
     _trip_gallery_files = _gallery_local_files(trip_id)
     _gallery_count = len(_trip_gallery_files)
 
