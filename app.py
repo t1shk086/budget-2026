@@ -19,22 +19,6 @@ import uuid
 from pathlib import Path
 import time
 
-# =========================================================
-# TEMP DIAGNOSTICS — GOOGLE DRIVE STARTUP
-# =========================================================
-if "_tm_diag_started_at" not in st.session_state:
-    st.session_state["_tm_diag_started_at"] = time.perf_counter()
-    st.session_state["_tm_diag_drive"] = {}
-
-_tm_diag_start = st.session_state["_tm_diag_started_at"]
-_tm_diag_drive = st.session_state.setdefault("_tm_diag_drive", {})
-
-def _tm_diag_mark(name):
-    if name not in _tm_diag_drive:
-        _tm_diag_drive[name] = time.perf_counter() - _tm_diag_start
-
-# =========================================================
-
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 # =========================================================
@@ -1117,11 +1101,9 @@ def _google_drive_bootstrap():
 
     try:
         if refresh_token:
-            _tm_diag_mark("before_get_drive_service")
             service = _google_drive_get_service_from_refresh_token(
                 refresh_token
             )
-            _tm_diag_mark("after_get_drive_service")
 
         elif token_info:
             service, _ = _google_drive_get_service_from_token(
@@ -1162,40 +1144,32 @@ def _google_drive_bootstrap():
         # ---------------------------------------------------------
         # ВАЖНОТО: намираме/създаваме папката и я запомняме
         # ---------------------------------------------------------
-        _tm_diag_mark("before_find_create_data_folder")
         folder_id = _google_drive_find_or_create_folder(service)
-        _tm_diag_mark("after_find_create_data_folder")
 
         st.session_state["google_drive_folder_id"] = folder_id
 
         # Ако вече има данни в Drive, първо ги сваляме.
         if not st.session_state.get("google_drive_data_loaded"):
 
-            _tm_diag_mark("before_drive_file_map")
             file_map = _google_drive_file_map(
                 service,
                 folder_id
             )
-            _tm_diag_mark("after_drive_file_map")
 
             if any(
                 name in file_map
                 for name in GOOGLE_DRIVE_FILES
             ):
-                _tm_diag_mark("before_drive_download_all")
                 _google_drive_download_all(
                     service,
                     folder_id
                 )
-                _tm_diag_mark("after_drive_download_all")
 
             st.session_state["google_drive_data_loaded"] = True
 
-        if not st.session_state.get("google_drive_photos_loaded"):
-            _tm_diag_mark("before_drive_download_photos")
-            _google_drive_download_photos(service)
-            _tm_diag_mark("after_drive_download_photos")
-            st.session_state["google_drive_photos_loaded"] = True
+        # Photos НЕ се синхронизират при startup.
+        # Зареждат се lazy само когато потребителят отвори галерията
+        # на конкретно пътуване.
 
         # ---------------------------------------------------------
         # ВАЖНОТО: това липсваше и затова sync() не правеше нищо
@@ -1210,6 +1184,40 @@ def _google_drive_bootstrap():
             f"❌ Google Drive не можа да бъде достъпен: {exc}"
         )
         st.stop()
+
+def _google_drive_lazy_load_photos():
+    """Load gallery photos only when the trip gallery is actually opened."""
+    if st.session_state.get("google_drive_photos_loaded"):
+        return
+
+    if not st.session_state.get("google_drive_service_ready"):
+        return
+
+    try:
+        refresh_token = _google_drive_secret(
+            "google_drive",
+            "refresh_token"
+        )
+        token_info = st.session_state.get("google_drive_token")
+
+        if refresh_token:
+            service = _google_drive_get_service_from_refresh_token(
+                refresh_token
+            )
+        elif token_info:
+            service, _ = _google_drive_get_service_from_token(
+                token_info
+            )
+        else:
+            return
+
+        _google_drive_download_photos(service)
+        st.session_state["google_drive_photos_loaded"] = True
+
+    except Exception:
+        # Gallery must never break the trip page if photo restore fails.
+        pass
+
 
 def google_drive_sync(force=False, include_photos=True):
     """Manual Google Drive sync. Normal app actions stay local for speed."""
@@ -3132,29 +3140,9 @@ if st.session_state["current_trip"] is None:
 
         # Важно: маркираме като "seen" едва след като е изтекло реалното време.
         # Това пази логиката от моментно прерисуване на Streamlit.
-        _tm_diag_mark("before_countdown")
         time.sleep(COUNTDOWN_SECONDS)
         st.session_state["_trip_countdown_seen"] = True
 
-    # =========================================================
-    # TEMP DIAGNOSTICS PANEL — GOOGLE DRIVE
-    # Values persist across Streamlit reruns.
-    # =========================================================
-    with st.expander("🧪 Google Drive startup diagnostics", expanded=True):
-        t = _tm_diag_drive
-    
-        def _tm_dur(a, b):
-            if a in t and b in t:
-                return f"{t[b] - t[a]:.3f} s"
-            return "—"
-    
-        st.write(f"**Получаване на Drive service:** {_tm_dur('before_get_drive_service', 'after_get_drive_service')}")
-        st.write(f"**Намиране на pixeapp_data:** {_tm_dur('before_find_create_data_folder', 'after_find_create_data_folder')}")
-        st.write(f"**Проверка на файловете:** {_tm_dur('before_drive_file_map', 'after_drive_file_map')}")
-        st.write(f"**Сваляне на основните файлове:** {_tm_dur('before_drive_download_all', 'after_drive_download_all')}")
-        st.write(f"**Photos — сваляне/проверка:** {_tm_dur('before_drive_download_photos', 'after_drive_download_photos')}")
-        st.write(f"**Общо до countdown:** {t.get('before_countdown', 0):.3f} s")
-    
     if existing:
         # ---------------------------------------------------------
         # HOME — приключените пътувания не трябва да удължават
@@ -8604,6 +8592,7 @@ else:
     # =========================================================
     # 📸 СПОМЕНИ ОТ ПЪТУВАНЕТО — компактни тъмбове + viewer
     # =========================================================
+    _google_drive_lazy_load_photos()
     _trip_gallery_files = _gallery_local_files(trip_id)
     _gallery_count = len(_trip_gallery_files)
 
