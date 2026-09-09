@@ -19,19 +19,23 @@ import uuid
 from pathlib import Path
 import time
 
-st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
+# =========================================================
+# TEMP DIAGNOSTICS — GOOGLE DRIVE STARTUP
+# =========================================================
+if "_tm_diag_started_at" not in st.session_state:
+    st.session_state["_tm_diag_started_at"] = time.perf_counter()
+    st.session_state["_tm_diag_drive"] = {}
 
-# =========================================================
-# TEMP STARTUP DIAGNOSTICS — НЕ ПРОМЕНЯ ФУНКЦИОНАЛНОСТТА
-# =========================================================
-# Само измерваме времето до различните етапи на първото зареждане.
-# Няма промяна в логиката на приложението.
-_tm_diag_start = time.perf_counter()
-_tm_diag_times = {}
+_tm_diag_start = st.session_state["_tm_diag_started_at"]
+_tm_diag_drive = st.session_state.setdefault("_tm_diag_drive", {})
 
 def _tm_diag_mark(name):
-    _tm_diag_times[name] = time.perf_counter() - _tm_diag_start
+    if name not in _tm_diag_drive:
+        _tm_diag_drive[name] = time.perf_counter() - _tm_diag_start
 
+# =========================================================
+
+st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 # =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
@@ -1113,9 +1117,11 @@ def _google_drive_bootstrap():
 
     try:
         if refresh_token:
+            _tm_diag_mark("before_get_drive_service")
             service = _google_drive_get_service_from_refresh_token(
                 refresh_token
             )
+            _tm_diag_mark("after_get_drive_service")
 
         elif token_info:
             service, _ = _google_drive_get_service_from_token(
@@ -1156,31 +1162,39 @@ def _google_drive_bootstrap():
         # ---------------------------------------------------------
         # ВАЖНОТО: намираме/създаваме папката и я запомняме
         # ---------------------------------------------------------
+        _tm_diag_mark("before_find_create_data_folder")
         folder_id = _google_drive_find_or_create_folder(service)
+        _tm_diag_mark("after_find_create_data_folder")
 
         st.session_state["google_drive_folder_id"] = folder_id
 
         # Ако вече има данни в Drive, първо ги сваляме.
         if not st.session_state.get("google_drive_data_loaded"):
 
+            _tm_diag_mark("before_drive_file_map")
             file_map = _google_drive_file_map(
                 service,
                 folder_id
             )
+            _tm_diag_mark("after_drive_file_map")
 
             if any(
                 name in file_map
                 for name in GOOGLE_DRIVE_FILES
             ):
+                _tm_diag_mark("before_drive_download_all")
                 _google_drive_download_all(
                     service,
                     folder_id
                 )
+                _tm_diag_mark("after_drive_download_all")
 
             st.session_state["google_drive_data_loaded"] = True
 
         if not st.session_state.get("google_drive_photos_loaded"):
+            _tm_diag_mark("before_drive_download_photos")
             _google_drive_download_photos(service)
+            _tm_diag_mark("after_drive_download_photos")
             st.session_state["google_drive_photos_loaded"] = True
 
         # ---------------------------------------------------------
@@ -1287,9 +1301,7 @@ def get_display_category(category):
         category_text = category_text.replace(canonical, label)
     return category_text
 
-_tm_diag_mark("Преди Google Drive bootstrap")
 _google_drive_bootstrap()
-_tm_diag_mark("След Google Drive bootstrap")
 
 if not os.path.exists(MAP_FILE):
     pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
@@ -2382,13 +2394,10 @@ if st.session_state["current_trip"] is None:
         list(pd.read_csv(CATEGORY_BUDGETS_FILE)["trip_id"].dropna().unique())
         if os.path.exists(CATEGORY_BUDGETS_FILE) else []
     )
-    _tm_diag_mark("Преди зареждане на списъка с пътувания")
     existing = list(dict.fromkeys(
         [str(t).strip() for t in (_trip_ids_settings + _trip_ids_budget + _trip_ids_data)
          if pd.notna(t) and str(t).strip() != ""]
     ))
-
-    _tm_diag_mark("След зареждане на списъка с пътувания")
 
     # ---------------------------------------------------------
     # НАЧАЛЕН ЕКРАН — запазваме визуалния език на приложението.
@@ -2968,15 +2977,12 @@ if st.session_state["current_trip"] is None:
         active_end = end_d or datetime.date.max
         return (0, active_end.toordinal(), (start_d or datetime.date.min).toordinal())
 
-    _tm_diag_mark("Преди сортиране на пътуванията")
     existing = sorted(existing, key=_trip_sort_key)
-    _tm_diag_mark("След сортиране на пътуванията")
 
     # =========================================================
     # ПРАЗНИЧЕН COUNTDOWN — САМО ПРИ ПЪРВО ОТВАРЯНЕ НА HOME
     # Реални 10 секунди, като запазваме оригиналния дизайн.
     # =========================================================
-    _tm_diag_mark("ТОЧНО ПРЕДИ COUNTDOWN")
     COUNTDOWN_SECONDS = 3.7
 
     if not st.session_state.get("_trip_countdown_seen", False):
@@ -3126,29 +3132,29 @@ if st.session_state["current_trip"] is None:
 
         # Важно: маркираме като "seen" едва след като е изтекло реалното време.
         # Това пази логиката от моментно прерисуване на Streamlit.
+        _tm_diag_mark("before_countdown")
         time.sleep(COUNTDOWN_SECONDS)
         st.session_state["_trip_countdown_seen"] = True
 
     # =========================================================
-    # TEMP STARTUP DIAGNOSTICS
-    # Показва само измерените времена; след теста този блок се маха.
+    # TEMP DIAGNOSTICS PANEL — GOOGLE DRIVE
+    # Values persist across Streamlit reruns.
     # =========================================================
-    try:
-        _tm_diag_total = time.perf_counter() - _tm_diag_start
-        st.markdown(
-            f"""<div style="margin:12px 0;padding:12px 14px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.04);font-size:12px;line-height:1.6;">
-            <b>🧪 STARTUP DIAGNOSTICS</b><br>
-            Google Drive bootstrap: <b>{_tm_diag_times.get('След Google Drive bootstrap', 0) - _tm_diag_times.get('Преди Google Drive bootstrap', 0):.2f}s</b><br>
-            Зареждане на пътувания: <b>{_tm_diag_times.get('След зареждане на списъка с пътувания', 0) - _tm_diag_times.get('Преди зареждане на списъка с пътувания', 0):.2f}s</b><br>
-            Сортиране на пътуванията: <b>{_tm_diag_times.get('След сортиране на пътуванията', 0) - _tm_diag_times.get('Преди сортиране на пътуванията', 0):.2f}s</b><br>
-            <b>Общо до countdown: {_tm_diag_times.get('ТОЧНО ПРЕДИ COUNTDOWN', _tm_diag_total):.2f}s</b><br>
-            Общо до тази точка: <b>{_tm_diag_total:.2f}s</b>
-            </div>""",
-            unsafe_allow_html=True
-        )
-    except Exception:
-        pass
-
+    with st.expander("🧪 Google Drive startup diagnostics", expanded=True):
+        t = _tm_diag_drive
+    
+        def _tm_dur(a, b):
+            if a in t and b in t:
+                return f"{t[b] - t[a]:.3f} s"
+            return "—"
+    
+        st.write(f"**Получаване на Drive service:** {_tm_dur('before_get_drive_service', 'after_get_drive_service')}")
+        st.write(f"**Намиране на pixeapp_data:** {_tm_dur('before_find_create_data_folder', 'after_find_create_data_folder')}")
+        st.write(f"**Проверка на файловете:** {_tm_dur('before_drive_file_map', 'after_drive_file_map')}")
+        st.write(f"**Сваляне на основните файлове:** {_tm_dur('before_drive_download_all', 'after_drive_download_all')}")
+        st.write(f"**Photos — сваляне/проверка:** {_tm_dur('before_drive_download_photos', 'after_drive_download_photos')}")
+        st.write(f"**Общо до countdown:** {t.get('before_countdown', 0):.3f} s")
+    
     if existing:
         # ---------------------------------------------------------
         # HOME — приключените пътувания не трябва да удължават
