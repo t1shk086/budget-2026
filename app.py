@@ -1167,8 +1167,20 @@ def _google_drive_bootstrap():
 
             st.session_state["google_drive_data_loaded"] = True
 
+        # Снимките не блокират първоначалното зареждане.
+        # Ако вече има локални снимки, не ги сваляме повторно от Drive.
         if not st.session_state.get("google_drive_photos_loaded"):
-            _google_drive_download_photos(service)
+            try:
+                _local_photo_files = [
+                    p for p in Path(PHOTOS_DIR).iterdir()
+                    if p.is_file() and p.suffix.lower() in GALLERY_EXTENSIONS
+                ]
+            except Exception:
+                _local_photo_files = []
+
+            if not _local_photo_files:
+                _google_drive_download_photos(service)
+
             st.session_state["google_drive_photos_loaded"] = True
 
         # ---------------------------------------------------------
@@ -2957,7 +2969,7 @@ if st.session_state["current_trip"] is None:
     # ПРАЗНИЧЕН COUNTDOWN — САМО ПРИ ПЪРВО ОТВАРЯНЕ НА HOME
     # Реални 10 секунди, като запазваме оригиналния дизайн.
     # =========================================================
-    COUNTDOWN_SECONDS = 3.7
+    COUNTDOWN_SECONDS = 10.0
 
     if not st.session_state.get("_trip_countdown_seen", False):
         _countdown_today = datetime.date.today()
@@ -3000,13 +3012,13 @@ if st.session_state["current_trip"] is None:
 
             if _countdown_days == 0:
                 _countdown_number = "ДНЕС"
-                _countdown_subtitle = "Време е за път!"
+                _countdown_subtitle = "Време е за пътуването ✈️"
             elif _countdown_days == 1:
                 _countdown_number = "1"
-                _countdown_subtitle = "ден до пътуването!"
+                _countdown_subtitle = "ден до пътуването ✈️"
             else:
                 _countdown_number = str(_countdown_days)
-                _countdown_subtitle = "дни до пътуването!"
+                _countdown_subtitle = "дни до пътуването ✈️"
 
             _countdown_html = f"""
             <div id="tm-trip-countdown">
@@ -3014,7 +3026,7 @@ if st.session_state["current_trip"] is None:
                 <div class="tm-countdown-card">
                     <div class="tm-countdown-number">{html.escape(_countdown_number)}</div>
                     <div class="tm-countdown-days">{html.escape(_countdown_subtitle)}</div>
-                    <div class="tm-countdown-trip">🚙 {html.escape(_countdown_name)}</div>
+                    <div class="tm-countdown-trip">✈️ {html.escape(_countdown_name)}</div>
                 </div>
             </div>
             <style>
@@ -3169,6 +3181,21 @@ if st.session_state["current_trip"] is None:
     f"</div>",
     unsafe_allow_html=True
 )
+
+        # Контролът е само когато има повече от едно приключено.
+        if len(_home_completed_trips) > 1:
+            _home_toggle_label = (
+                f"▲ Скрий останалите приключени ({len(_home_completed_trips) - 1})"
+                if _home_show_all_completed
+                else f"▼ Виж всички приключени ({len(_home_completed_trips)})"
+            )
+            if st.button(
+                _home_toggle_label,
+                key="home_show_all_completed_btn",
+                use_container_width=True
+            ):
+                st.session_state["home_show_all_completed"] = not _home_show_all_completed
+                st.rerun()
 
         for _trip in _home_trips_to_render:
             _trip_id = str(_trip)
@@ -3502,22 +3529,6 @@ if st.session_state["current_trip"] is None:
                             st.session_state["home_trip_pending_delete"] = _trip_id
                             google_drive_sync()
                             st.rerun()
-
-        # Бутонът е непосредствено под приключеното пътуване,
-        # за да не заема място в горната част на началния екран.
-        if len(_home_completed_trips) > 1:
-            _home_toggle_label = (
-                f"▲ Скрий останалите ({len(_home_completed_trips) - 1})"
-                if _home_show_all_completed
-                else f"▼ Виж всички ({len(_home_completed_trips)})"
-            )
-            if st.button(
-                _home_toggle_label,
-                key="home_show_all_completed_btn",
-                use_container_width=True
-            ):
-                st.session_state["home_show_all_completed"] = not _home_show_all_completed
-                st.rerun()
 
         if st.session_state.get("home_trip_pending_delete"):
             confirm_delete_home_trip_dialog(st.session_state["home_trip_pending_delete"])
