@@ -22,6 +22,18 @@ import time
 st.set_page_config(page_title="PixelApp", page_icon="🐾", layout="centered")
 
 # =========================================================
+# TEMP STARTUP DIAGNOSTICS — НЕ ПРОМЕНЯ ФУНКЦИОНАЛНОСТТА
+# =========================================================
+# Само измерваме времето до различните етапи на първото зареждане.
+# Няма промяна в логиката на приложението.
+_tm_diag_start = time.perf_counter()
+_tm_diag_times = {}
+
+def _tm_diag_mark(name):
+    _tm_diag_times[name] = time.perf_counter() - _tm_diag_start
+
+
+# =========================================================
 # FULLSCREEN BUTTON - PIXELAPP STYLE
 # =========================================================
 
@@ -822,47 +834,6 @@ def _gallery_sync_to_drive(service):
         return 0, 0, 0
 
 
-def _google_drive_download_trip_photos(service, trip_id):
-    """Зарежда от Drive само снимките на конкретното пътуване."""
-    try:
-        photos_folder_id = _google_drive_find_or_create_photos_folder(service)
-        remote_files = _google_drive_find_files_in_folder(service, photos_folder_id)
-        prefix = _gallery_trip_prefix(trip_id)
-
-        from io import BytesIO
-        from googleapiclient.http import MediaIoBaseDownload
-
-        restored = 0
-        for meta in remote_files:
-            name = str(meta.get("name", ""))
-            if not name.startswith(prefix):
-                continue
-            if Path(name).suffix.lower() not in GALLERY_EXTENSIONS:
-                continue
-
-            local_path = os.path.join(PHOTOS_DIR, name)
-            if os.path.exists(local_path):
-                continue
-
-            try:
-                request = service.files().get_media(fileId=meta["id"])
-                buf = BytesIO()
-                downloader = MediaIoBaseDownload(buf, request)
-                done = False
-                while not done:
-                    _, done = downloader.next_chunk()
-
-                with open(local_path, "wb") as f:
-                    f.write(buf.getvalue())
-                restored += 1
-            except Exception:
-                pass
-
-        return restored
-    except Exception:
-        return 0
-
-
 def _google_drive_download_photos(service):
     """Restore only gallery photos belonging to existing trips.
     Old orphaned photos are removed from Google Drive.
@@ -1208,9 +1179,9 @@ def _google_drive_bootstrap():
 
             st.session_state["google_drive_data_loaded"] = True
 
-        # Снимките НЕ се свалят при старт.
-        # Зареждат се само при отваряне на конкретно пътуване.
-        st.session_state["google_drive_photos_loaded"] = True
+        if not st.session_state.get("google_drive_photos_loaded"):
+            _google_drive_download_photos(service)
+            st.session_state["google_drive_photos_loaded"] = True
 
         # ---------------------------------------------------------
         # ВАЖНОТО: това липсваше и затова sync() не правеше нищо
@@ -1316,7 +1287,9 @@ def get_display_category(category):
         category_text = category_text.replace(canonical, label)
     return category_text
 
+_tm_diag_mark("Преди Google Drive bootstrap")
 _google_drive_bootstrap()
+_tm_diag_mark("След Google Drive bootstrap")
 
 if not os.path.exists(MAP_FILE):
     pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
@@ -2409,10 +2382,13 @@ if st.session_state["current_trip"] is None:
         list(pd.read_csv(CATEGORY_BUDGETS_FILE)["trip_id"].dropna().unique())
         if os.path.exists(CATEGORY_BUDGETS_FILE) else []
     )
+    _tm_diag_mark("Преди зареждане на списъка с пътувания")
     existing = list(dict.fromkeys(
         [str(t).strip() for t in (_trip_ids_settings + _trip_ids_budget + _trip_ids_data)
          if pd.notna(t) and str(t).strip() != ""]
     ))
+
+    _tm_diag_mark("След зареждане на списъка с пътувания")
 
     # ---------------------------------------------------------
     # НАЧАЛЕН ЕКРАН — запазваме визуалния език на приложението.
@@ -2992,12 +2968,15 @@ if st.session_state["current_trip"] is None:
         active_end = end_d or datetime.date.max
         return (0, active_end.toordinal(), (start_d or datetime.date.min).toordinal())
 
+    _tm_diag_mark("Преди сортиране на пътуванията")
     existing = sorted(existing, key=_trip_sort_key)
+    _tm_diag_mark("След сортиране на пътуванията")
 
     # =========================================================
     # ПРАЗНИЧЕН COUNTDOWN — САМО ПРИ ПЪРВО ОТВАРЯНЕ НА HOME
     # Реални 10 секунди, като запазваме оригиналния дизайн.
     # =========================================================
+    _tm_diag_mark("ТОЧНО ПРЕДИ COUNTDOWN")
     COUNTDOWN_SECONDS = 3.7
 
     if not st.session_state.get("_trip_countdown_seen", False):
@@ -3149,6 +3128,26 @@ if st.session_state["current_trip"] is None:
         # Това пази логиката от моментно прерисуване на Streamlit.
         time.sleep(COUNTDOWN_SECONDS)
         st.session_state["_trip_countdown_seen"] = True
+
+    # =========================================================
+    # TEMP STARTUP DIAGNOSTICS
+    # Показва само измерените времена; след теста този блок се маха.
+    # =========================================================
+    try:
+        _tm_diag_total = time.perf_counter() - _tm_diag_start
+        st.markdown(
+            f"""<div style="margin:12px 0;padding:12px 14px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.04);font-size:12px;line-height:1.6;">
+            <b>🧪 STARTUP DIAGNOSTICS</b><br>
+            Google Drive bootstrap: <b>{_tm_diag_times.get('След Google Drive bootstrap', 0) - _tm_diag_times.get('Преди Google Drive bootstrap', 0):.2f}s</b><br>
+            Зареждане на пътувания: <b>{_tm_diag_times.get('След зареждане на списъка с пътувания', 0) - _tm_diag_times.get('Преди зареждане на списъка с пътувания', 0):.2f}s</b><br>
+            Сортиране на пътуванията: <b>{_tm_diag_times.get('След сортиране на пътуванията', 0) - _tm_diag_times.get('Преди сортиране на пътуванията', 0):.2f}s</b><br>
+            <b>Общо до countdown: {_tm_diag_times.get('ТОЧНО ПРЕДИ COUNTDOWN', _tm_diag_total):.2f}s</b><br>
+            Общо до тази точка: <b>{_tm_diag_total:.2f}s</b>
+            </div>""",
+            unsafe_allow_html=True
+        )
+    except Exception:
+        pass
 
     if existing:
         # ---------------------------------------------------------
@@ -8599,35 +8598,6 @@ else:
     # =========================================================
     # 📸 СПОМЕНИ ОТ ПЪТУВАНЕТО — компактни тъмбове + viewer
     # =========================================================
-    if (
-        st.session_state.get("google_drive_service_ready")
-        and st.session_state.get("gallery_loaded_trip_id") != str(trip_id)
-    ):
-        try:
-            refresh_token = _google_drive_secret("google_drive", "refresh_token")
-            token_info = st.session_state.get("google_drive_token")
-
-            if refresh_token:
-                _gallery_drive_service = _google_drive_get_service_from_refresh_token(
-                    refresh_token
-                )
-            elif token_info:
-                _gallery_drive_service, _ = _google_drive_get_service_from_token(
-                    token_info
-                )
-            else:
-                _gallery_drive_service = None
-
-            if _gallery_drive_service is not None:
-                _google_drive_download_trip_photos(
-                    _gallery_drive_service,
-                    str(trip_id)
-                )
-
-            st.session_state["gallery_loaded_trip_id"] = str(trip_id)
-        except Exception:
-            st.session_state["gallery_loaded_trip_id"] = str(trip_id)
-
     _trip_gallery_files = _gallery_local_files(trip_id)
     _gallery_count = len(_trip_gallery_files)
 
