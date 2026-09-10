@@ -1193,8 +1193,6 @@ if not os.path.exists(TRIP_PLAN_FILE):
 if not os.path.exists(CUSTOM_CATEGORIES_FILE):
     pd.DataFrame(columns=["category"]).to_csv(CUSTOM_CATEGORIES_FILE, index=False, encoding="utf-8")
 
-# Презареждаме след Drive bootstrap, за да се използват и свалените персонални категории.
-KATEGORII = BASE_KATEGORII + get_custom_categories()
 
 for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters","current_km"]), 
                 (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date","trip_finished"])]:
@@ -2865,7 +2863,7 @@ if st.session_state["current_trip"] is None:
             except:
                 pass
             st.session_state["current_trip"] = target_id
-            google_drive_sync()
+            google_drive_sync(force=True, include_photos=False)
             st.rerun()
 
     # Ново пътуване — над списъка, но след основното действие.
@@ -6059,7 +6057,7 @@ else:
             
             save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, s_d_str, e_d_str)
             st.session_state["form_version"] += 1
-            google_drive_sync()
+            google_drive_sync(force=True, include_photos=False)
             st.rerun()
             
         # Автоматизирано нулиране на литри И премахване на паричните записи от хронологията
@@ -6129,7 +6127,7 @@ else:
                 m_fuel, st_date, en_date, "Да"
             )
             st.session_state["form_version"] += 1
-            google_drive_sync()
+            google_drive_sync(force=True, include_photos=False)
             st.rerun()
             return
 
@@ -6918,7 +6916,7 @@ else:
             
         st.markdown("---")
         if st.button("❌ Затвори", use_container_width=True, key="close_cat_popup_btn"):
-            google_drive_sync()
+            google_drive_sync(force=True, include_photos=False)
             st.rerun()
 
     if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
@@ -7010,7 +7008,7 @@ else:
         
         st.markdown("---")
         if st.button("❌ Затвори", use_container_width=True, key="close_hronologia_popup_btn"):
-            google_drive_sync()
+            google_drive_sync(force=True, include_photos=False)
             st.rerun()
 
 
@@ -7294,7 +7292,7 @@ else:
         st.markdown("<br>", unsafe_allow_html=True)
         # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
         if st.button("❌ Затвори", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
-            google_drive_sync()
+            google_drive_sync(force=True, include_photos=False)
             st.rerun()
 
     # === ПОДРЕДБА НА СТАНДАРТНИТЕ БУТОНИ НА ЕКРАНА ===
@@ -8054,7 +8052,7 @@ else:
             if map_data.get("zoom") is not None:
                 st.session_state["stable_zoom"] = map_data["zoom"]
             st.session_state["active_click"] = new_click
-            google_drive_sync()
+            google_drive_sync(force=True, include_photos=False)
             st.rerun()
             
     if "active_click" in st.session_state and st.session_state["active_click"] is not None and not trip_locked:
@@ -8469,7 +8467,7 @@ else:
         if _apply_fav_swipe_action(_fav_event):
             # Вече сме извън callback-а, затова rerun е валиден и
             # интерфейсът се обновява веднага след едно натискане.
-            google_drive_sync()
+            google_drive_sync(force=True, include_photos=False)
             st.rerun()
 
     # ---------------------------------------------------------
