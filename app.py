@@ -225,7 +225,9 @@ html, body, [data-testid="stAppViewContainer"] {
 </style>
 """, unsafe_allow_html=True)
 
-KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
+BASE_KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
+CUSTOM_CATEGORIES_FILE = "pixelapp_custom_categories_2026.csv"
+
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
@@ -292,6 +294,7 @@ GOOGLE_DRIVE_FILES = [
     TRIP_PLAN_FILE,
     LABELS_FILE,
     "trip_category_budgets_2026.csv",
+    CUSTOM_CATEGORIES_FILE,
 ]
 
 
@@ -1187,6 +1190,12 @@ if not os.path.exists(MAP_FILE):
 if not os.path.exists(TRIP_PLAN_FILE):
     pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"]).to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
 
+if not os.path.exists(CUSTOM_CATEGORIES_FILE):
+    pd.DataFrame(columns=["category"]).to_csv(CUSTOM_CATEGORIES_FILE, index=False, encoding="utf-8")
+
+# Презареждаме след Drive bootstrap, за да се използват и свалените персонални категории.
+KATEGORII = BASE_KATEGORII + get_custom_categories()
+
 for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters","current_km"]), 
                 (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date","trip_finished"])]:
     if not os.path.exists(f): 
@@ -1202,6 +1211,51 @@ try:
             _settings_migration.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
 except Exception:
     pass
+
+def get_custom_categories():
+    """Връща само добавените от потребителя категории. Базовите не се променят."""
+    result = []
+    try:
+        if not os.path.exists(CUSTOM_CATEGORIES_FILE):
+            return result
+        df = pd.read_csv(CUSTOM_CATEGORIES_FILE, encoding="utf-8")
+        if "category" not in df.columns:
+            return result
+        for value in df["category"].dropna().tolist():
+            cat = str(value).strip()
+            if cat and cat not in BASE_KATEGORII and cat not in result:
+                result.append(cat)
+    except Exception:
+        pass
+    return result
+
+
+def save_custom_category(category):
+    """Добавя персонална категория, без да променя оригиналните категории."""
+    category = str(category or "").strip()
+    if not category:
+        return False, "Въведи име на категория."
+    if category in BASE_KATEGORII:
+        return False, "Тази категория вече съществува в оригиналните категории."
+    existing = get_custom_categories()
+    if category in existing:
+        return False, "Тази категория вече е добавена."
+    try:
+        rows = [{"category": cat} for cat in existing]
+        rows.append({"category": category})
+        pd.DataFrame(rows, columns=["category"]).to_csv(
+            CUSTOM_CATEGORIES_FILE, index=False, encoding="utf-8"
+        )
+        return True, category
+    except Exception as exc:
+        return False, str(exc)
+
+
+# Динамичният списък запазва оригиналните категории 1:1 и добавя
+# персоналните след тях. Ако няма добавени категории, KATEGORII е
+# абсолютно същият като оригиналния списък.
+KATEGORII = BASE_KATEGORII + get_custom_categories()
+
 
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
@@ -8801,7 +8855,8 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         SETTINGS_FILE,
                         MAP_FILE,
                         LABELS_FILE,
-                        CATEGORY_BUDGETS_FILE
+                        CATEGORY_BUDGETS_FILE,
+                        CUSTOM_CATEGORIES_FILE
                     ]:
                         if os.path.exists(file_name):
                             zip_file.write(
@@ -8926,7 +8981,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         with zipfile.ZipFile(uploaded_zip) as zip_file:
                             namelist = zip_file.namelist()
                             restored_count = 0
-                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE]:
+                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE, CUSTOM_CATEGORIES_FILE]:
                                 if f_name in namelist:
                                     with open(f_name, "wb") as f_out:
                                         f_out.write(zip_file.read(f_name))
@@ -9071,6 +9126,24 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 index=accommodation_options.index(current_accommodation),
                 key="admin_accommodation_labels"
             )
+
+        st.markdown("##### ➕ Персонална категория")
+        st.caption("Добавената категория ще се появява при разходите и автоматично ще участва в бюджета по категории. Ако не добавиш нищо, оригиналните категории остават непроменени.")
+        custom_category_input = st.text_input(
+            "Име на новата категория:",
+            value="",
+            key="admin_custom_category_input",
+            placeholder="Напр. Пътни такси"
+        ).strip()
+
+        if st.button("➕ ДОБАВИ КАТЕГОРИЯ", use_container_width=True, type="secondary", key="admin_add_custom_category_btn"):
+            ok_custom, custom_result = save_custom_category(custom_category_input)
+            if ok_custom:
+                st.success(f"✅ Категорията „{custom_result}“ е добавена и ще бъде налична и в бюджета по категории.")
+                google_drive_sync()
+                st.rerun()
+            else:
+                st.warning(f"⚠️ {custom_result}")
 
         st.markdown("##### 🏷️ Имена за картата и запазените места")
         st.caption("Трите имена са само визуални. Вътрешните маркери на приложението не се променят.")
