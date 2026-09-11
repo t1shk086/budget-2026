@@ -1261,6 +1261,61 @@ def save_custom_category(t_id, category):
         return False, str(exc)
 
 
+def delete_custom_category(t_id, category):
+    """Изтрива персонална категория само ако не е използвана в разходи."""
+    t_id = str(t_id or "").strip()
+    category = str(category or "").strip()
+    if not t_id or not category:
+        return False, "Липсват данни за пътуването или категорията."
+    if category in BASE_KATEGORII:
+        return False, "Оригиналните категории не могат да бъдат изтрити."
+    if category not in get_custom_categories(t_id):
+        return False, "Категорията не съществува в това пътуване."
+
+    # Не позволяваме изтриване, ако категорията вече има разходи.
+    # Така никога не се губят или скриват стари разходи.
+    try:
+        if os.path.exists(DATA_FILE):
+            df_exp = pd.read_csv(DATA_FILE, encoding="utf-8")
+            if {"trip_id", "category"}.issubset(df_exp.columns):
+                used = df_exp[
+                    (df_exp["trip_id"].astype(str) == t_id) &
+                    (df_exp["category"].astype(str) == category)
+                ]
+                if not used.empty:
+                    return False, f"Категорията е използвана в {len(used)} разход(а) и не може да бъде изтрита."
+    except Exception:
+        return False, "Не успях да проверя дали категорията е използвана."
+
+    try:
+        if os.path.exists(CUSTOM_CATEGORIES_FILE):
+            df = pd.read_csv(CUSTOM_CATEGORIES_FILE, encoding="utf-8")
+            if {"trip_id", "category"}.issubset(df.columns):
+                df = df[
+                    ~(
+                        (df["trip_id"].astype(str) == t_id) &
+                        (df["category"].astype(str) == category)
+                    )
+                ]
+                df.to_csv(CUSTOM_CATEGORIES_FILE, index=False, encoding="utf-8")
+
+        # Премахваме и евентуалния бюджет за тази персонална категория.
+        if os.path.exists(CATEGORY_BUDGETS_FILE):
+            df_b = pd.read_csv(CATEGORY_BUDGETS_FILE, encoding="utf-8")
+            if {"trip_id", "category", "budget"}.issubset(df_b.columns):
+                df_b = df_b[
+                    ~(
+                        (df_b["trip_id"].astype(str) == t_id) &
+                        (df_b["category"].astype(str) == category)
+                    )
+                ]
+                df_b.to_csv(CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8")
+
+        return True, category
+    except Exception as exc:
+        return False, str(exc)
+
+
 # Само базовите категории са глобални.
 KATEGORII = BASE_KATEGORII
 
@@ -9158,7 +9213,34 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
         if current_trip_custom_categories:
             st.caption("Персонални категории в това пътуване:")
             for _custom_cat in current_trip_custom_categories:
-                st.markdown(f"• {get_emoji(_custom_cat)} {get_display_category(_custom_cat)}")
+                _confirm_key = f"confirm_delete_custom_category_{trip_id}_{_custom_cat}"
+                _delete_col1, _delete_col2 = st.columns([5, 1])
+                with _delete_col1:
+                    st.markdown(f"• {get_emoji(_custom_cat)} {get_display_category(_custom_cat)}")
+                with _delete_col2:
+                    if st.button("🗑️", key=f"delete_custom_category_{trip_id}_{_custom_cat}", help="Изтрий персоналната категория"):
+                        st.session_state[_confirm_key] = True
+
+                if st.session_state.get(_confirm_key, False):
+                    st.warning(
+                        f"Изтриване на „{_custom_cat}“? Ако категорията вече е използвана в разход, "
+                        "няма да бъде изтрита, за да не се губят данни."
+                    )
+                    _confirm_col1, _confirm_col2 = st.columns(2)
+                    with _confirm_col1:
+                        if st.button("✅ Потвърди изтриването", key=f"confirm_delete_btn_{trip_id}_{_custom_cat}", use_container_width=True):
+                            ok_delete, delete_result = delete_custom_category(trip_id, _custom_cat)
+                            st.session_state.pop(_confirm_key, None)
+                            if ok_delete:
+                                st.success(f"✅ „{delete_result}“ е изтрита от това пътуване.")
+                                google_drive_sync(force=True, include_photos=False)
+                                st.rerun()
+                            else:
+                                st.warning(f"⚠️ {delete_result}")
+                    with _confirm_col2:
+                        if st.button("Отказ", key=f"cancel_delete_btn_{trip_id}_{_custom_cat}", use_container_width=True):
+                            st.session_state.pop(_confirm_key, None)
+                            st.rerun()
 
         st.markdown("##### 🏷️ Имена за картата и запазените места")
         st.caption("Трите имена са само визуални. Вътрешните маркери на приложението не се променят.")
