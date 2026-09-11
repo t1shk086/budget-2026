@@ -702,38 +702,9 @@ def _gallery_sync_to_drive(service, trip_id=None):
 
         total_uploaded = total_deleted = total_failed = 0
 
-        # Remove trip folders for trips that no longer exist.
-        try:
-            active_trip_ids = {str(x).strip() for x in trip_ids if str(x).strip()}
-            trip_folders = service.files().list(
-                q=(f"'{photos_folder_id}' in parents and "
-                   "mimeType = 'application/vnd.google-apps.folder' and trashed = false"),
-                spaces="drive", fields="files(id,name)", pageSize=1000
-            ).execute().get("files", [])
-            for folder in trip_folders:
-                folder_name = str(folder.get("name", ""))
-                if not folder_name.startswith("trip_"):
-                    continue
-                safe_id = folder_name[5:].strip()
-                if not safe_id or safe_id in active_trip_ids:
-                    continue
-                folder_id = folder.get("id")
-                if not folder_id:
-                    continue
-                for child in _google_drive_find_files_in_folder(service, folder_id):
-                    child_id = child.get("id")
-                    if child_id:
-                        try:
-                            service.files().delete(fileId=child_id).execute()
-                        except Exception:
-                            total_failed += 1
-                try:
-                    service.files().delete(fileId=folder_id).execute()
-                    total_deleted += 1
-                except Exception:
-                    total_failed += 1
-        except Exception:
-            pass
+        # ВАЖНО: никога не изтриваме автоматично Drive папки за снимки.
+        # Локалното хранилище може временно да е празно след Streamlit restart,
+        # затова липсващ локален trip не означава изтрит trip в Drive.
 
         from googleapiclient.http import MediaFileUpload
         mime_map = {".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".png":"image/png", ".webp":"image/webp"}
@@ -758,14 +729,8 @@ def _gallery_sync_to_drive(service, trip_id=None):
             except Exception:
                 pass
 
-            for name, meta in remote_files.items():
-                if name in local:
-                    continue
-                try:
-                    service.files().delete(fileId=meta.get("id")).execute()
-                    total_deleted += 1
-                except Exception:
-                    total_failed += 1
+            # Никога не трий remote снимка само защото локално я няма.
+            # При restart локалната папка може да е празна; Drive е източникът на истината.
 
             for name, path in local.items():
                 if name in remote_files:
