@@ -225,9 +225,7 @@ html, body, [data-testid="stAppViewContainer"] {
 </style>
 """, unsafe_allow_html=True)
 
-BASE_KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
-CUSTOM_CATEGORIES_FILE = "pixelapp_custom_categories_2026.csv"
-
+KATEGORII = ["Храна и напитки", "Транспорт", "Куче", "Други", "Нощувки/Хотел", "Депозит/Резервация"]
 DATA_FILE, SETTINGS_FILE = "budget_data_2026.csv", "trip_settings_2026.csv"
 MAP_FILE = "trip_map_points_2026.csv"
 LABELS_FILE = "pixelapp_labels_2026.csv"
@@ -294,7 +292,6 @@ GOOGLE_DRIVE_FILES = [
     TRIP_PLAN_FILE,
     LABELS_FILE,
     "trip_category_budgets_2026.csv",
-    CUSTOM_CATEGORIES_FILE,
 ]
 
 
@@ -1190,10 +1187,6 @@ if not os.path.exists(MAP_FILE):
 if not os.path.exists(TRIP_PLAN_FILE):
     pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"]).to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
 
-if not os.path.exists(CUSTOM_CATEGORIES_FILE):
-    pd.DataFrame(columns=["trip_id", "category"]).to_csv(CUSTOM_CATEGORIES_FILE, index=False, encoding="utf-8")
-
-
 for f, cols in [(DATA_FILE, ["trip_id","date","amount","category","description","type","liters","current_km"]), 
                 (SETTINGS_FILE, ["trip_id","car_trip","track_fuel","start_km","end_km","manual_fuel","start_date","end_date","trip_finished"])]:
     if not os.path.exists(f): 
@@ -1209,61 +1202,6 @@ try:
             _settings_migration.to_csv(SETTINGS_FILE, index=False, encoding="utf-8")
 except Exception:
     pass
-
-def get_custom_categories(t_id=None):
-    """Връща персоналните категории само за конкретното пътуване."""
-    result = []
-    try:
-        if not os.path.exists(CUSTOM_CATEGORIES_FILE):
-            return result
-        df = pd.read_csv(CUSTOM_CATEGORIES_FILE, encoding="utf-8")
-        if not {"trip_id", "category"}.issubset(df.columns):
-            return result
-        if t_id is not None:
-            df = df[df["trip_id"].astype(str) == str(t_id)]
-        for value in df["category"].dropna().tolist():
-            cat = str(value).strip()
-            if cat and cat not in BASE_KATEGORII and cat not in result:
-                result.append(cat)
-    except Exception:
-        pass
-    return result
-
-
-def get_categories_for_trip(t_id):
-    return BASE_KATEGORII + get_custom_categories(t_id)
-
-
-def save_custom_category(t_id, category):
-    """Добавя персонална категория само към конкретното пътуване."""
-    t_id = str(t_id or "").strip()
-    category = str(category or "").strip()
-    if not t_id:
-        return False, "Не е избрано пътуване."
-    if not category:
-        return False, "Въведи име на категория."
-    if category in BASE_KATEGORII:
-        return False, "Тази категория вече съществува в оригиналните категории."
-    if category in get_custom_categories(t_id):
-        return False, "Тази категория вече е добавена към това пътуване."
-    try:
-        columns = ["trip_id", "category"]
-        if os.path.exists(CUSTOM_CATEGORIES_FILE):
-            df = pd.read_csv(CUSTOM_CATEGORIES_FILE, encoding="utf-8")
-            if not set(columns).issubset(df.columns):
-                df = pd.DataFrame(columns=columns)
-        else:
-            df = pd.DataFrame(columns=columns)
-        df = pd.concat([df[columns], pd.DataFrame([{"trip_id": t_id, "category": category}])], ignore_index=True)
-        df.to_csv(CUSTOM_CATEGORIES_FILE, index=False, encoding="utf-8")
-        return True, category
-    except Exception as exc:
-        return False, str(exc)
-
-
-# Само базовите категории са глобални.
-KATEGORII = BASE_KATEGORII
-
 
 def get_emoji(cat):
     m = {"Храна и напитки": "🍔", "Транспорт": "🚗", "Куче": "🐾", "Нощувки/Хотел": "🏨", "Депозит/Резервация": "📌", "Други": "🪙"}
@@ -1506,7 +1444,7 @@ def add_expense(t_id, amt, cat, desc, is_dep=False, lit=0.0, c_km=0.0):
 CATEGORY_BUDGETS_FILE = "trip_category_budgets_2026.csv"
 
 def get_category_budgets(t_id):
-    result = {cat: 0.0 for cat in get_categories_for_trip(t_id) if cat != "Депозит/Резервация"}
+    result = {cat: 0.0 for cat in KATEGORII if cat != "Депозит/Резервация"}
     try:
         if not os.path.exists(CATEGORY_BUDGETS_FILE):
             return result
@@ -1574,7 +1512,7 @@ def save_category_budgets(t_id, budgets):
         keep_mask = ~((df["trip_id"].astype(str) == str(t_id)) & (df["category"].astype(str) != "__GLOBAL__"))
         df = df[keep_mask]
         rows = []
-        for cat in get_categories_for_trip(t_id):
+        for cat in KATEGORII:
             if cat == "Депозит/Резервация":
                 continue
             try:
@@ -1629,7 +1567,7 @@ def save_budget_config(t_id, mode, total_amount=None, budgets=None):
 
         elif mode == "category":
             budgets = budgets or {}
-            for cat in get_categories_for_trip(t_id):
+            for cat in KATEGORII:
                 if cat == "Депозит/Резервация":
                     continue
                 raw_value = budgets.get(cat)
@@ -2873,7 +2811,7 @@ if st.session_state["current_trip"] is None:
             except:
                 pass
             st.session_state["current_trip"] = target_id
-            google_drive_sync(force=True, include_photos=False)
+            google_drive_sync()
             st.rerun()
 
     # Ново пътуване — над списъка, но след основното действие.
@@ -3917,7 +3855,7 @@ if st.session_state["current_trip"] is None:
 
         category_options = [
             cat
-            for cat in get_categories_for_trip(selected_trip)
+            for cat in KATEGORII
             if cat != "Депозит/Резервация"
         ]
 
@@ -5535,8 +5473,7 @@ else:
     depozit_hotel = float(df_trip[df_trip["type"] == "deposit"]["amount"].sum())
     df_expenses = df_trip[df_trip["type"] == "expense"]
     total_on_site = float(df_expenses["amount"].sum())
-    trip_categories = get_categories_for_trip(trip_id)
-    categories_totals = {k: 0.0 for k in trip_categories if k != "Депозит/Резервация"}
+    categories_totals = {k: 0.0 for k in KATEGORII if k != "Депозит/Резервация"}
     # Платеният депозит е свързан с настаняването, затова го включваме
     # директно в "Нощувки/Хотел" за анализа и категорийния бюджет.
     categories_totals["Нощувки/Хотел"] = depozit_hotel
@@ -5670,7 +5607,7 @@ else:
                 "Нощувки/Хотел": UI_LABELS["hotel"],
                 "Депозит/Резервация": UI_LABELS["deposit"]
             }
-            for i, kat in enumerate(trip_categories):
+            for i, kat in enumerate(KATEGORII):
                 with grid[i % 3]:
                     is_disabled = trip_locked
                     button_label = display_categories.get(kat, kat)
@@ -6068,7 +6005,7 @@ else:
             
             save_trip_settings(trip_id, str(v_car), "Да", sk_val, e_km, mf_val, s_d_str, e_d_str)
             st.session_state["form_version"] += 1
-            google_drive_sync(force=True, include_photos=False)
+            google_drive_sync()
             st.rerun()
             
         # Автоматизирано нулиране на литри И премахване на паричните записи от хронологията
@@ -6138,7 +6075,7 @@ else:
                 m_fuel, st_date, en_date, "Да"
             )
             st.session_state["form_version"] += 1
-            google_drive_sync(force=True, include_photos=False)
+            google_drive_sync()
             st.rerun()
             return
 
@@ -6317,7 +6254,7 @@ else:
                 else:
                     st.caption("Задай 0 EUR на категория, която не искаш да лимитираш.")
                     inputs = {}
-                    budget_cats = [cat for cat in trip_categories if cat != "Депозит/Резервация"]
+                    budget_cats = [cat for cat in KATEGORII if cat != "Депозит/Резервация"]
                     c1, c2 = st.columns(2)
                     for i, cat in enumerate(budget_cats):
                         with (c1 if i % 2 == 0 else c2):
@@ -6893,7 +6830,7 @@ else:
             else:
                 записани_категории = df_trip_rows["category"].unique()
                 
-                for кат in trip_categories:
+                for кат in KATEGORII:
                     if кат in записани_категории:
                         df_cat = df_trip_rows[df_trip_rows["category"] ==  кат]
                         cat_sum = float(df_cat["amount"].sum())
@@ -6927,7 +6864,7 @@ else:
             
         st.markdown("---")
         if st.button("❌ Затвори", use_container_width=True, key="close_cat_popup_btn"):
-            google_drive_sync(force=True, include_photos=False)
+            google_drive_sync()
             st.rerun()
 
     if st.button("📊 Разходи по Категории", use_container_width=True, key="open_categories_popup_trigger"):
@@ -7019,7 +6956,7 @@ else:
         
         st.markdown("---")
         if st.button("❌ Затвори", use_container_width=True, key="close_hronologia_popup_btn"):
-            google_drive_sync(force=True, include_photos=False)
+            google_drive_sync()
             st.rerun()
 
 
@@ -7303,7 +7240,7 @@ else:
         st.markdown("<br>", unsafe_allow_html=True)
         # БУТОН ЗА КРАЙНО ЗАТВАРЯНЕ НА ЦЕЛИЯ ПОПЪП ДИАЛОГ
         if st.button("❌ Затвори", use_container_width=True, type="primary", key="close_entire_popup_dialog_btn"):
-            google_drive_sync(force=True, include_photos=False)
+            google_drive_sync()
             st.rerun()
 
     # === ПОДРЕДБА НА СТАНДАРТНИТЕ БУТОНИ НА ЕКРАНА ===
@@ -8063,7 +8000,7 @@ else:
             if map_data.get("zoom") is not None:
                 st.session_state["stable_zoom"] = map_data["zoom"]
             st.session_state["active_click"] = new_click
-            google_drive_sync(force=True, include_photos=False)
+            google_drive_sync()
             st.rerun()
             
     if "active_click" in st.session_state and st.session_state["active_click"] is not None and not trip_locked:
@@ -8478,7 +8415,7 @@ else:
         if _apply_fav_swipe_action(_fav_event):
             # Вече сме извън callback-а, затова rerun е валиден и
             # интерфейсът се обновява веднага след едно натискане.
-            google_drive_sync(force=True, include_photos=False)
+            google_drive_sync()
             st.rerun()
 
     # ---------------------------------------------------------
@@ -8864,8 +8801,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         SETTINGS_FILE,
                         MAP_FILE,
                         LABELS_FILE,
-                        CATEGORY_BUDGETS_FILE,
-                        CUSTOM_CATEGORIES_FILE
+                        CATEGORY_BUDGETS_FILE
                     ]:
                         if os.path.exists(file_name):
                             zip_file.write(
@@ -8990,7 +8926,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                         with zipfile.ZipFile(uploaded_zip) as zip_file:
                             namelist = zip_file.namelist()
                             restored_count = 0
-                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE, CUSTOM_CATEGORIES_FILE]:
+                            for f_name in [DATA_FILE, SETTINGS_FILE, MAP_FILE, LABELS_FILE, CATEGORY_BUDGETS_FILE]:
                                 if f_name in namelist:
                                     with open(f_name, "wb") as f_out:
                                         f_out.write(zip_file.read(f_name))
@@ -9135,30 +9071,6 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                 index=accommodation_options.index(current_accommodation),
                 key="admin_accommodation_labels"
             )
-
-        st.markdown("##### ➕ Персонална категория за това пътуване")
-        st.caption("Категорията ще се появява само в това пътуване — при разходите и автоматично в бюджета по категории.")
-        custom_category_input = st.text_input(
-            "Име на новата категория:",
-            value="",
-            key="admin_custom_category_input",
-            placeholder="Напр. Пътни такси"
-        ).strip()
-
-        if st.button("➕ ДОБАВИ КАТЕГОРИЯ", use_container_width=True, type="secondary", key="admin_add_custom_category_btn"):
-            ok_custom, custom_result = save_custom_category(trip_id, custom_category_input)
-            if ok_custom:
-                st.success(f"✅ „{custom_result}“ е добавена само към това пътуване и ще бъде налична и в бюджета по категории.")
-                google_drive_sync(force=True, include_photos=False)
-                st.rerun()
-            else:
-                st.warning(f"⚠️ {custom_result}")
-
-        current_trip_custom_categories = get_custom_categories(trip_id)
-        if current_trip_custom_categories:
-            st.caption("Персонални категории в това пътуване:")
-            for _custom_cat in current_trip_custom_categories:
-                st.markdown(f"• {get_emoji(_custom_cat)} {get_display_category(_custom_cat)}")
 
         st.markdown("##### 🏷️ Имена за картата и запазените места")
         st.caption("Трите имена са само визуални. Вътрешните маркери на приложението не се променят.")
