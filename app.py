@@ -1262,7 +1262,7 @@ def save_custom_category(t_id, category):
 
 
 def delete_custom_category(t_id, category):
-    """Изтрива персонална категория само ако не е използвана в разходи."""
+    """Изтрива персонална категория; старите ѝ разходи се прехвърлят към „Други“."""
     t_id = str(t_id or "").strip()
     category = str(category or "").strip()
     if not t_id or not category:
@@ -1272,20 +1272,24 @@ def delete_custom_category(t_id, category):
     if category not in get_custom_categories(t_id):
         return False, "Категорията не съществува в това пътуване."
 
-    # Не позволяваме изтриване, ако категорията вече има разходи.
-    # Така никога не се губят или скриват стари разходи.
+    used_count = 0
     try:
         if os.path.exists(DATA_FILE):
             df_exp = pd.read_csv(DATA_FILE, encoding="utf-8")
             if {"trip_id", "category"}.issubset(df_exp.columns):
-                used = df_exp[
+                mask_used = (
                     (df_exp["trip_id"].astype(str) == t_id) &
                     (df_exp["category"].astype(str) == category)
-                ]
-                if not used.empty:
-                    return False, f"Категорията е използвана в {len(used)} разход(а) и не може да бъде изтрита."
+                )
+                used_count = int(mask_used.sum())
+                if used_count > 0:
+                    # Запазваме всички стари разходи, но ги прехвърляме
+                    # към стандартната категория „Други“, за да не изчезнат
+                    # от анализа след изтриването на персоналната категория.
+                    df_exp.loc[mask_used, "category"] = "Други"
+                    df_exp.to_csv(DATA_FILE, index=False, encoding="utf-8")
     except Exception:
-        return False, "Не успях да проверя дали категорията е използвана."
+        return False, "Не успях да прехвърля съществуващите разходи към „Други“."
 
     try:
         if os.path.exists(CUSTOM_CATEGORIES_FILE):
@@ -1311,6 +1315,8 @@ def delete_custom_category(t_id, category):
                 ]
                 df_b.to_csv(CATEGORY_BUDGETS_FILE, index=False, encoding="utf-8")
 
+        if used_count > 0:
+            return True, f"{category}|||{used_count}"
         return True, category
     except Exception as exc:
         return False, str(exc)
@@ -9223,8 +9229,8 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
 
                 if st.session_state.get(_confirm_key, False):
                     st.warning(
-                        f"Изтриване на „{_custom_cat}“? Ако категорията вече е използвана в разход, "
-                        "няма да бъде изтрита, за да не се губят данни."
+                        f"Изтриване на „{_custom_cat}“? Ако има вече въведени разходи, "
+                        "те ще бъдат запазени и автоматично преместени в „Други“."
                     )
                     _confirm_col1, _confirm_col2 = st.columns(2)
                     with _confirm_col1:
@@ -9232,7 +9238,14 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
                             ok_delete, delete_result = delete_custom_category(trip_id, _custom_cat)
                             st.session_state.pop(_confirm_key, None)
                             if ok_delete:
-                                st.success(f"✅ „{delete_result}“ е изтрита от това пътуване.")
+                                if "|||" in str(delete_result):
+                                    _deleted_cat, _used_count = str(delete_result).rsplit("|||", 1)
+                                    st.success(
+                                        f"✅ „{_deleted_cat}“ е изтрита. "
+                                        f"{_used_count} стар(и) разход(и) са запазени и преместени в „Други“."
+                                    )
+                                else:
+                                    st.success(f"✅ „{delete_result}“ е изтрита от това пътуване.")
                                 google_drive_sync(force=True, include_photos=False)
                                 st.rerun()
                             else:
