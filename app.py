@@ -2319,7 +2319,7 @@ if st.session_state.get("comparison_page", False):
     <div class='comparison-page-sub'>Виж общата картина или сравни две конкретни пътувания по избран критерий.</div>
     """, unsafe_allow_html=True)
 
-    if st.button("🔙 Начало", use_container_width=True, key="comparison_back_home_btn"):
+    if st.button("← Начало", use_container_width=True, key="comparison_back_home_btn"):
         st.session_state["comparison_page"] = False
         st.rerun()
 
@@ -2416,6 +2416,8 @@ if st.session_state.get("comparison_page", False):
     else:
         _cmp_df = pd.DataFrame(_cmp_metrics)
         _cmp_criteria = ["Общо", "€ / ден", "Цена / км", "Км", "Гориво", "л / 100 км", "Хотел", "Други"]
+        if comparison_mode == "Всички пътувания":
+            st.markdown("<div class='comparison-section-sub' style='margin:4px 0 8px 2px;'>Подреди всички пътувания по избрания показател.</div>", unsafe_allow_html=True)
         _cmp_criterion = st.segmented_control("Показател", _cmp_criteria, default="Общо", key="comparison_page_metric")
 
         _cmp_explanations = {
@@ -2445,7 +2447,7 @@ if st.session_state.get("comparison_page", False):
         )
 
         if comparison_mode == "Всички пътувания":
-            st.markdown("<div class='comparison-section'><div class='comparison-section-title'>Всички пътувания</div><div class='comparison-section-sub'>Подреди всички пътувания по избрания показател.</div></div>", unsafe_allow_html=True)
+            st.markdown("<div class='comparison-section'><div class='comparison-section-title'>Всички пътувания</div></div>", unsafe_allow_html=True)
             _plot_df = _cmp_df.copy()
             if _cmp_criterion == "Цена / км": _plot_df = _plot_df[_plot_df["DistValid"] == True]
             if _cmp_criterion == "л / 100 км": _plot_df = _plot_df[_plot_df["FuelValid"] == True]
@@ -4770,7 +4772,7 @@ elif st.session_state["current_trip"] is None:
     """)
 
     # 📊 Сравнение — отваря се като нормална страница, не като popup.
-    if st.button("📊  Сравнителен панел", use_container_width=True, key="comparison_home_btn"):
+    if st.button("📊  Сравнение на пътуванията\nВсички пътувания или две конкретни", use_container_width=True, key="comparison_home_btn"):
         st.session_state["comparison_page"] = True
         st.rerun()
 
