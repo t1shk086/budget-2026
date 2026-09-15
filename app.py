@@ -4772,7 +4772,7 @@ elif st.session_state["current_trip"] is None:
     """)
 
     # 📊 Сравнение — отваря се като нормална страница, не като popup.
-    if st.button("📊  Сравнение на пътуванията\nВсички пътувания или две конкретни", use_container_width=True, key="comparison_home_btn"):
+    if st.button("📊  Сравнителен панел", use_container_width=True, key="comparison_home_btn"):
         st.session_state["comparison_page"] = True
         st.rerun()
 
