@@ -2387,6 +2387,29 @@ if st.session_state.get("comparison_page", False):
         _cmp_df = pd.DataFrame(_cmp_metrics)
         _cmp_criterion = st.segmented_control("Показател", ["Цена / км", "€ / ден", "Общо", "Км", "Хотел"], default="Цена / км", key="comparison_page_metric")
 
+        _cmp_explanations = {
+            "Цена / км": "Разход за 1 изминат километър от пътуването.",
+            "€ / ден": "Средният общ разход за един ден от пътуването.",
+            "Общо": "Всички отчетени разходи за пътуването.",
+            "Км": "Общо изминатото разстояние по пътуването.",
+            "Хотел": "Общо разходи за хотелски такси и депозит за резервация.",
+        }
+        _cmp_units = {"Цена / км":"€/км", "€ / ден":"€/ден", "Общо":"€", "Км":"км", "Хотел":"€"}
+
+        def _cmp_fmt(value):
+            try:
+                _v = float(value)
+                if abs(_v - round(_v)) < 1e-9:
+                    return f"{int(round(_v)):,}"
+                return f"{_v:,.2f}".rstrip("0").rstrip(".")
+            except Exception:
+                return str(value)
+
+        st.markdown(
+            f"<div style='color:#858e9c;font-size:11px;margin:-6px 0 12px 2px;'>ⓘ {html.escape(_cmp_explanations[_cmp_criterion])}</div>",
+            unsafe_allow_html=True,
+        )
+
         if comparison_mode == "Всички пътувания":
             st.markdown("<div class='comparison-section'><div class='comparison-section-title'>Всички пътувания</div><div class='comparison-section-sub'>Подреди всички пътувания по избрания показател.</div></div>", unsafe_allow_html=True)
             _plot_df = _cmp_df.copy()
@@ -2394,14 +2417,15 @@ if st.session_state.get("comparison_page", False):
             if _plot_df.empty: _plot_df = _cmp_df.copy()
             _plot_df = _plot_df.sort_values(_cmp_criterion, ascending=_cmp_criterion in ["Цена / км", "€ / ден", "Общо", "Хотел"])
             import plotly.express as px
-            _fig = px.bar(_plot_df, x=_cmp_criterion, y="Пътуване", orientation="h", text=_cmp_criterion, color_discrete_sequence=["#6f7cff"])
+            _plot_df["_display_value"] = _plot_df[_cmp_criterion].map(_cmp_fmt)
+            _fig = px.bar(_plot_df, x=_cmp_criterion, y="Пътуване", orientation="h", text="_display_value", color_discrete_sequence=["#6f7cff"])
             _fig.update_traces(marker=dict(line=dict(width=0), cornerradius=9, opacity=.92), textposition="outside", cliponaxis=False)
             _fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", showlegend=False, margin=dict(l=10,r=95,t=20,b=10), height=max(300,58*len(_plot_df)+70), bargap=.28, xaxis=dict(showgrid=True,gridcolor="rgba(255,255,255,.075)",showticklabels=False,zeroline=False,title=""), yaxis=dict(showgrid=False,zeroline=False,title="",automargin=True,tickfont=dict(size=11,color="#dfe4eb")))
             st.plotly_chart(_fig, use_container_width=True, config={"displayModeBar":False,"scrollZoom":False})
             if not _plot_df.empty:
                 _best, _worst = _plot_df.iloc[0], _plot_df.iloc[-1]
-                _unit = {"Цена / км":"€/км","€ / ден":"€/ден","Общо":"€","Км":"км","Хотел":"€"}[_cmp_criterion]
-                st.markdown(f"<div class='comparison-result'><b>🏆 Най-добро:</b> {html.escape(str(_best['Пътуване']))} · {float(_best[_cmp_criterion]):,.2f} {_unit}<br><b>⚠️ Най-висока стойност:</b> {html.escape(str(_worst['Пътуване']))} · {float(_worst[_cmp_criterion]):,.2f} {_unit}</div>", unsafe_allow_html=True)
+                _unit = _cmp_units[_cmp_criterion]
+                st.markdown(f"<div class='comparison-result'><b>🏆 Най-добро:</b> {html.escape(str(_best['Пътуване']))} · {_cmp_fmt(_best[_cmp_criterion])} {_unit}<br><b>⚠️ Най-висока стойност:</b> {html.escape(str(_worst['Пътуване']))} · {_cmp_fmt(_worst[_cmp_criterion])} {_unit}</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='comparison-section'><div class='comparison-section-title'>Две пътувания</div><div class='comparison-section-sub'>Избери две пътувания и ги сравни директно по конкретен показател.</div></div>", unsafe_allow_html=True)
             _labels = {str(r["trip_id"]):str(r["Пътуване"]) for _,r in _cmp_df.iterrows()}
@@ -2414,15 +2438,16 @@ if st.session_state.get("comparison_page", False):
                 _b = st.selectbox("Пътуване 2", _b_options, format_func=lambda x:_labels[x], key="comparison_trip_b")
                 _ra = _cmp_df[_cmp_df["trip_id"] == _a].iloc[0]
                 _rb = _cmp_df[_cmp_df["trip_id"] == _b].iloc[0]
-                _unit = {"Цена / км":"€/км","€ / ден":"€/ден","Общо":"€","Км":"км","Хотел":"€"}[_cmp_criterion]
+                _unit = _cmp_units[_cmp_criterion]
                 _va, _vb = float(_ra[_cmp_criterion]), float(_rb[_cmp_criterion])
                 _higher_better = _cmp_criterion == "Км"
                 if _va == _vb: _winner_text = "Равен резултат"
                 else: _winner_text = str(_ra["Пътуване"]) if ((_va > _vb) == _higher_better) else str(_rb["Пътуване"])
-                st.markdown(f"<div class='comparison-result'><b>{html.escape(str(_ra['Пътуване']))}</b> → {_va:,.2f} {_unit}<br><b>{html.escape(str(_rb['Пътуване']))}</b> → {_vb:,.2f} {_unit}<br><br>🏆 <b>{html.escape(_winner_text)}</b></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='comparison-result'><b>{html.escape(str(_ra['Пътуване']))}</b> → {_cmp_fmt(_va)} {_unit}<br><b>{html.escape(str(_rb['Пътуване']))}</b> → {_cmp_fmt(_vb)} {_unit}<br><br>🏆 <b>{html.escape(_winner_text)}</b></div>", unsafe_allow_html=True)
                 import plotly.express as px
                 _pair_df = pd.DataFrame({"Пътуване":[str(_ra["Пътуване"]),str(_rb["Пътуване"])],"Стойност":[_va,_vb]})
-                _pair_fig = px.bar(_pair_df,x="Стойност",y="Пътуване",orientation="h",text="Стойност",color_discrete_sequence=["#6f7cff"])
+                _pair_df["_display_value"] = _pair_df["Стойност"].map(_cmp_fmt)
+                _pair_fig = px.bar(_pair_df,x="Стойност",y="Пътуване",orientation="h",text="_display_value",color_discrete_sequence=["#6f7cff"])
                 _pair_fig.update_traces(marker=dict(line=dict(width=0),cornerradius=9,opacity=.92),textposition="outside",cliponaxis=False)
                 _pair_fig.update_layout(plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)",showlegend=False,margin=dict(l=10,r=90,t=18,b=10),height=180,xaxis=dict(showgrid=True,gridcolor="rgba(255,255,255,.075)",showticklabels=False,zeroline=False,title=""),yaxis=dict(showgrid=False,zeroline=False,title="",automargin=True,tickfont=dict(size=11,color="#dfe4eb")))
                 st.plotly_chart(_pair_fig,use_container_width=True,config={"displayModeBar":False,"scrollZoom":False})
