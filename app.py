@@ -2358,8 +2358,23 @@ if st.session_state.get("comparison_page", False):
             _total = 0.0
         if not _td.empty and "category" in _td.columns and "amount" in _td.columns:
             _hotel = float(_td[_td["category"].isin(["Нощувки/Хотел", "Депозит/Резервация"])]["amount"].sum())
+            _other = float(_td[_td["category"] == "Други"]["amount"].sum())
+            _fuel_mask = (
+                (_td["category"].astype(str) == "Транспорт")
+                & (
+                    pd.to_numeric(_td.get("liters", 0), errors="coerce").fillna(0).gt(0)
+                    | _td["description"].astype(str).str.lower().apply(
+                        lambda x: any(k in x for k in ["газ", "гориво", "зареждане", "бензин", "дизел"])
+                    )
+                )
+            )
+            _fuel_cost = float(_td.loc[_fuel_mask, "amount"].sum())
+            _fuel_liters = float(pd.to_numeric(_td.loc[_fuel_mask, "liters"], errors="coerce").fillna(0).sum()) if "liters" in _td.columns else 0.0
         else:
             _hotel = 0.0
+            _other = 0.0
+            _fuel_cost = 0.0
+            _fuel_liters = 0.0
         _start_km = _end_km = 0.0
         _days = 1
         if not _ts.empty:
@@ -2378,14 +2393,30 @@ if st.session_state.get("comparison_page", False):
             except Exception: _max_km = 0.0
         _effective_end = _end_km if _end_km > 0 else _max_km
         _dist = _effective_end - _start_km if _effective_end > _start_km else 0.0
-        return {"Пътуване":_cmp_display_name(_tid), "Общо":_total, "Цена / км":(_total/_dist) if _dist>0 else 0.0, "€ / ден":_total/_days, "Км":_dist, "Хотел":_hotel, "Дни":_days, "trip_id":str(_tid), "DistValid":_dist>0}
+        _avg_consumption = (_fuel_liters / _dist * 100) if _dist > 0 and _fuel_liters > 0 else 0.0
+        return {
+            "Пътуване": _cmp_display_name(_tid),
+            "Общо": _total,
+            "Цена / км": (_total/_dist) if _dist > 0 else 0.0,
+            "€ / ден": _total/_days,
+            "Км": _dist,
+            "Хотел": _hotel,
+            "Гориво": _fuel_cost,
+            "Други": _other,
+            "л / 100 км": _avg_consumption,
+            "Дни": _days,
+            "trip_id": str(_tid),
+            "DistValid": _dist > 0,
+            "FuelValid": _avg_consumption > 0,
+        }
 
     _cmp_metrics = [_cmp_trip_metrics(_tid) for _tid in _cmp_ids]
     if not _cmp_metrics:
         st.info("Няма достатъчно данни за сравнение.")
     else:
         _cmp_df = pd.DataFrame(_cmp_metrics)
-        _cmp_criterion = st.segmented_control("Показател", ["Цена / км", "€ / ден", "Общо", "Км", "Хотел"], default="Цена / км", key="comparison_page_metric")
+        _cmp_criteria = ["Цена / км", "€ / ден", "Общо", "Км", "Хотел", "Гориво", "Други", "л / 100 км"]
+        _cmp_criterion = st.segmented_control("Показател", _cmp_criteria, default="Цена / км", key="comparison_page_metric")
 
         _cmp_explanations = {
             "Цена / км": "Разход за 1 изминат километър от пътуването.",
@@ -2393,8 +2424,11 @@ if st.session_state.get("comparison_page", False):
             "Общо": "Всички отчетени разходи за пътуването.",
             "Км": "Общо изминатото разстояние по пътуването.",
             "Хотел": "Общо разходи за хотелски такси и депозит за резервация.",
+            "Гориво": "Общо платената сума за зареждания и разходи за гориво.",
+            "Други": "Общо разходи, записани в категория „Други“.",
+            "л / 100 км": "Средният разход на гориво за 100 изминати километра.",
         }
-        _cmp_units = {"Цена / км":"€/км", "€ / ден":"€/ден", "Общо":"€", "Км":"км", "Хотел":"€"}
+        _cmp_units = {"Цена / км":"€/км", "€ / ден":"€/ден", "Общо":"€", "Км":"км", "Хотел":"€", "Гориво":"€", "Други":"€", "л / 100 км":"л/100 км"}
 
         def _cmp_fmt(value):
             try:
@@ -2414,8 +2448,9 @@ if st.session_state.get("comparison_page", False):
             st.markdown("<div class='comparison-section'><div class='comparison-section-title'>Всички пътувания</div><div class='comparison-section-sub'>Подреди всички пътувания по избрания показател.</div></div>", unsafe_allow_html=True)
             _plot_df = _cmp_df.copy()
             if _cmp_criterion == "Цена / км": _plot_df = _plot_df[_plot_df["DistValid"] == True]
+            if _cmp_criterion == "л / 100 км": _plot_df = _plot_df[_plot_df["FuelValid"] == True]
             if _plot_df.empty: _plot_df = _cmp_df.copy()
-            _plot_df = _plot_df.sort_values(_cmp_criterion, ascending=_cmp_criterion in ["Цена / км", "€ / ден", "Общо", "Хотел"])
+            _plot_df = _plot_df.sort_values(_cmp_criterion, ascending=_cmp_criterion != "Км")
             import plotly.express as px
             _plot_df["_display_value"] = _plot_df[_cmp_criterion].map(_cmp_fmt)
             _fig = px.bar(_plot_df, x=_cmp_criterion, y="Пътуване", orientation="h", text="_display_value", color_discrete_sequence=["#6f7cff"])
