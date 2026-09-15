@@ -2319,7 +2319,7 @@ if st.session_state.get("comparison_page", False):
     <div class='comparison-page-sub'>Виж общата картина или сравни две конкретни пътувания по избран критерий.</div>
     """, unsafe_allow_html=True)
 
-    if st.button("← Начало", use_container_width=True, key="comparison_back_home_btn"):
+    if st.button("🔙 Начало", use_container_width=True, key="comparison_back_home_btn"):
         st.session_state["comparison_page"] = False
         st.rerun()
 
@@ -4770,7 +4770,7 @@ elif st.session_state["current_trip"] is None:
     """)
 
     # 📊 Сравнение — отваря се като нормална страница, не като popup.
-    if st.button("📊  Сравнение на пътуванията\nВсички пътувания или две конкретни", use_container_width=True, key="comparison_home_btn"):
+    if st.button("📊  Сравнителен панел", use_container_width=True, key="comparison_home_btn"):
         st.session_state["comparison_page"] = True
         st.rerun()
 
