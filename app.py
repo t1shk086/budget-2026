@@ -900,11 +900,32 @@ def _google_drive_bootstrap():
                 "token": token.token,
                 "refresh_token": refresh_token,
             }
-
+            # =========================================================
+            # TEMP — ПОКАЗВАНЕ НА НОВИЯ GOOGLE DRIVE REFRESH TOKEN
+            # =========================================================
+            if refresh_token:
+                st.session_state["show_new_refresh_token"] = refresh_token
             # Важно:
             # След нов OAuth callback НЕ използваме стария token от Secrets
             # в тази сесия. Използваме току-що получения token.
             st.session_state["google_drive_force_session_token"] = True
+            # =========================================================
+            # TEMP — ПОКАЗВА НОВИЯ REFRESH TOKEN
+            # =========================================================
+            _new_rt = st.session_state.get("show_new_refresh_token")
+            
+            if _new_rt:
+                st.success("✅ Google Drive е свързан успешно.")
+                st.warning(
+                    "⚠️ Временно показване на новия Refresh Token. "
+                    "Не го споделяй с никого."
+                )
+                st.text_area(
+                    "Нов Google Drive Refresh Token:",
+                    value=_new_rt,
+                    height=120,
+                    key="temporary_refresh_token_display",
+                )
 
         except Exception as exc:
             st.query_params.clear()
