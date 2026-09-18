@@ -1211,39 +1211,113 @@ def _google_drive_lazy_load_photos(trip_id=None):
         return
 
     if trip_id is not None:
-        loaded = st.session_state.setdefault("google_drive_photos_loaded_trips", set())
+        loaded = st.session_state.setdefault(
+            "google_drive_photos_loaded_trips",
+            set()
+        )
+
         if str(trip_id).strip() in loaded:
             return
+
     elif st.session_state.get("google_drive_photos_loaded"):
         return
 
     try:
-        refresh_token = _google_drive_secret(
-            "google_drive",
-            "refresh_token"
+        # ---------------------------------------------------------
+        # Първо използваме новия OAuth token от текущата сесия.
+        # Това е важно след повторна Google авторизация.
+        # ---------------------------------------------------------
+        token_info = st.session_state.get(
+            "google_drive_token"
         )
-        token_info = st.session_state.get("google_drive_token")
 
-        if refresh_token:
-            service = _google_drive_get_service_from_refresh_token(
-                refresh_token
+        if (
+            token_info
+            and st.session_state.get(
+                "google_drive_force_session_token"
             )
-        elif token_info:
-            service, _ = _google_drive_get_service_from_token(
+        ):
+            service, creds = _google_drive_get_service_from_token(
                 token_info
             )
-        else:
-            return
 
-        _google_drive_download_photos(service, trip_id=trip_id)
+            # Ако access token е изтекъл, обновяваме го
+            # чрез refresh token-а от текущата OAuth сесия.
+            if not creds.valid:
+                from google.auth.transport.requests import Request
+                from googleapiclient.discovery import build
+
+                creds.refresh(Request())
+
+                service = build(
+                    "drive",
+                    "v3",
+                    credentials=creds
+                )
+
+                st.session_state["google_drive_token"] = {
+                    "token": creds.token,
+                    "refresh_token": creds.refresh_token,
+                }
+
+        else:
+            # -----------------------------------------------------
+            # Старият нормален режим — token от Streamlit Secrets.
+            # Използва се само ако няма нов session token.
+            # -----------------------------------------------------
+            refresh_token = _google_drive_secret(
+                "google_drive",
+                "refresh_token"
+            )
+
+            if refresh_token:
+                service = _google_drive_get_service_from_refresh_token(
+                    refresh_token
+                )
+
+            elif token_info:
+                service, _ = _google_drive_get_service_from_token(
+                    token_info
+                )
+
+            else:
+                return
+
+        # ---------------------------------------------------------
+        # Сега реално сваляме снимките от:
+        #
+        # PixelApp_Data
+        #     └── Photos
+        #           └── trip_<trip_id>
+        #
+        # Съществуващата функция вече знае как да ги намери.
+        # ---------------------------------------------------------
+        _google_drive_download_photos(
+            service,
+            trip_id=trip_id
+        )
+
         if trip_id is None:
-            st.session_state["google_drive_photos_loaded"] = True
-        else:
-            st.session_state.setdefault("google_drive_photos_loaded_trips", set()).add(str(trip_id).strip())
+            st.session_state[
+                "google_drive_photos_loaded"
+            ] = True
 
-    except Exception:
-        # Gallery must never break the trip page if photo restore fails.
-        pass
+        else:
+            st.session_state.setdefault(
+                "google_drive_photos_loaded_trips",
+                set()
+            ).add(
+                str(trip_id).strip()
+            )
+
+    except Exception as exc:
+        # Галерията не трябва да чупи цялата страница.
+        # Запазваме грешката за диагностика.
+        st.session_state[
+            "google_drive_photos_last_error"
+        ] = str(exc)
+
+        return
 
 
 def google_drive_sync(force=False, include_photos=True):
