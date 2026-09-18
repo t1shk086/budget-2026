@@ -859,11 +859,15 @@ def _google_drive_upload_all(service, folder_id):
 
 def _google_drive_bootstrap():
     """Authenticate once and load existing Drive data before local files initialize."""
+
     if st.session_state.get("google_drive_bootstrapped"):
         return True
 
-    # One-time callback from Google.
+    # =========================================================
+    # 1. CALLBACK FROM GOOGLE
+    # =========================================================
     code = st.query_params.get("code")
+
     if code:
         try:
             state = st.query_params.get("state")
@@ -871,6 +875,7 @@ def _google_drive_bootstrap():
 
             if expected_state and state != expected_state:
                 st.error("❌ Невалиден OAuth state. Опитай свързването отново.")
+                st.query_params.clear()
                 st.stop()
 
             flow = _google_drive_make_flow()
@@ -884,7 +889,11 @@ def _google_drive_bootstrap():
             if refresh_token:
                 st.session_state["google_drive_refresh_token_new"] = refresh_token
 
-                if not _google_drive_secret("google_drive", "refresh_token"):
+                # Ако няма token в Secrets, показваме го за еднократно записване.
+                if not _google_drive_secret(
+                    "google_drive",
+                    "refresh_token"
+                ):
                     st.session_state["google_drive_show_refresh_token"] = True
 
             st.session_state["google_drive_token"] = {
@@ -892,56 +901,165 @@ def _google_drive_bootstrap():
                 "refresh_token": refresh_token,
             }
 
+            # Важно:
+            # След нов OAuth callback НЕ използваме стария token от Secrets
+            # в тази сесия. Използваме току-що получения token.
+            st.session_state["google_drive_force_session_token"] = True
+
         except Exception as exc:
-            st.error(f"❌ Google авторизацията не успя: {exc}")
+            st.query_params.clear()
+
+            st.error(
+                f"❌ Google авторизацията не успя: {exc}"
+            )
             st.stop()
 
+    # =========================================================
+    # 2. TOKEN FROM STREAMLIT SECRETS
+    # =========================================================
     refresh_token = _google_drive_secret(
         "google_drive",
         "refresh_token"
     )
 
-    token_info = st.session_state.get("google_drive_token")
+    token_info = st.session_state.get(
+        "google_drive_token"
+    )
 
-    if st.session_state.get("google_drive_show_refresh_token") and not refresh_token:
+    # =========================================================
+    # 3. SHOW NEW REFRESH TOKEN AFTER SUCCESSFUL AUTH
+    # =========================================================
+    if (
+        st.session_state.get("google_drive_show_refresh_token")
+        and st.session_state.get("google_drive_refresh_token_new")
+    ):
         new_refresh_token = st.session_state.get(
             "google_drive_refresh_token_new",
             ""
         )
 
-        if new_refresh_token:
-            st.success("✅ Google Drive е свързан за тази сесия.")
+        st.success(
+            "✅ Google Drive е свързан за тази сесия."
+        )
 
-            st.warning(
-                "Еднократно копирай refresh token-а в "
-                "Streamlit → Settings → Secrets → "
-                "[google_drive] → refresh_token. "
-                "Не го изпращай в чата."
-            )
+        st.warning(
+            "Еднократно копирай новия refresh token в "
+            "Streamlit → Settings → Secrets → "
+            "[google_drive] → refresh_token. "
+            "Не го изпращай в чата."
+        )
 
-            st.text_area(
-                "Refresh token",
-                value=new_refresh_token,
-                height=110
-            )
+        st.text_area(
+            "Нов refresh token",
+            value=new_refresh_token,
+            height=110
+        )
 
-            st.info(
-                "След като го запазиш в Secrets, презареди приложението. "
-                "Оттам нататък Drive ще се използва автоматично и при рестарт."
-            )
+        st.info(
+            "След като го запазиш в Secrets, презареди приложението. "
+            "След това Drive ще се използва автоматично и при рестарт."
+        )
 
+    # =========================================================
+    # 4. TRY EXISTING TOKEN
+    # =========================================================
     try:
-        if refresh_token:
-            service = _google_drive_get_service_from_refresh_token(
-                refresh_token
-            )
 
-        elif token_info:
+        service = None
+
+        # -----------------------------------------------------
+        # Нов OAuth token от текущата сесия има предимство
+        # пред стария token от Secrets.
+        # -----------------------------------------------------
+        if (
+            token_info
+            and st.session_state.get(
+                "google_drive_force_session_token"
+            )
+        ):
             service, _ = _google_drive_get_service_from_token(
                 token_info
             )
 
-        else:
+            # Ако access token вече не е валиден, refresh-ваме
+            # през новия refresh token.
+            _, creds = _google_drive_get_service_from_token(
+                token_info
+            )
+
+            if not creds.valid:
+                from google.auth.transport.requests import Request
+
+                creds.refresh(Request())
+
+                from googleapiclient.discovery import build
+
+                service = build(
+                    "drive",
+                    "v3",
+                    credentials=creds
+                )
+
+                st.session_state["google_drive_token"] = {
+                    "token": creds.token,
+                    "refresh_token": creds.refresh_token,
+                }
+
+        # -----------------------------------------------------
+        # Нормален режим — token от Streamlit Secrets
+        # -----------------------------------------------------
+        elif refresh_token:
+
+            try:
+                service = _google_drive_get_service_from_refresh_token(
+                    refresh_token
+                )
+
+            except Exception as token_exc:
+
+                error_text = str(token_exc).lower()
+
+                # =================================================
+                # INVALID_GRANT = старият refresh token е
+                # изтекъл/отменен → започваме нов OAuth flow.
+                # =================================================
+                if (
+                    "invalid_grant" in error_text
+                    or "token has been expired or revoked" in error_text
+                ):
+                    st.session_state["google_drive_reauth_required"] = True
+
+                    # Не използваме повече стария token в тази сесия.
+                    st.session_state.pop(
+                        "google_drive_token",
+                        None
+                    )
+
+                    st.session_state.pop(
+                        "google_drive_service_ready",
+                        None
+                    )
+
+                    service = None
+
+                else:
+                    raise
+
+        # -----------------------------------------------------
+        # Ако имаме token от текущата сесия, но не е отбелязан
+        # като force token — използваме него.
+        # -----------------------------------------------------
+        elif token_info:
+
+            service, _ = _google_drive_get_service_from_token(
+                token_info
+            )
+
+        # =====================================================
+        # 5. REAUTH / FIRST AUTHORIZATION
+        # =====================================================
+        if service is None:
+
             flow = _google_drive_make_flow()
 
             authorization_url, state = flow.authorization_url(
@@ -952,12 +1070,32 @@ def _google_drive_bootstrap():
 
             st.session_state["google_drive_oauth_state"] = state
 
-            st.markdown("### ☁️ Свързване с Google Drive")
+            if st.session_state.get(
+                "google_drive_reauth_required"
+            ):
+                st.markdown(
+                    "### 🔄 Повторно свързване с Google Drive"
+                )
 
-            st.write(
-                "За да запазваме данните автоматично при рестарт, "
-                "първо разреши достъп до Google Drive."
-            )
+                st.write(
+                    "Предишната Google авторизация вече не е валидна. "
+                    "Свържи Google Drive отново, за да продължиш."
+                )
+
+                st.info(
+                    "Това е необходимо само когато Google отмени "
+                    "или направи невалиден стария refresh token."
+                )
+
+            else:
+                st.markdown(
+                    "### ☁️ Свързване с Google Drive"
+                )
+
+                st.write(
+                    "За да запазваме данните автоматично при рестарт, "
+                    "първо разреши достъп до Google Drive."
+                )
 
             st.link_button(
                 "🔐 Свържи Google Drive",
@@ -967,20 +1105,26 @@ def _google_drive_bootstrap():
 
             st.info(
                 "След разрешението ще се върнеш автоматично "
-                "в Travel Manager."
+                "в PixelApp."
             )
 
             st.stop()
 
-        # ---------------------------------------------------------
-        # ВАЖНОТО: намираме/създаваме папката и я запомняме
-        # ---------------------------------------------------------
-        folder_id = _google_drive_find_or_create_folder(service)
+        # =====================================================
+        # 6. FIND / CREATE MAIN DRIVE FOLDER
+        # =====================================================
+        folder_id = _google_drive_find_or_create_folder(
+            service
+        )
 
         st.session_state["google_drive_folder_id"] = folder_id
 
-        # Ако вече има данни в Drive, първо ги сваляме.
-        if not st.session_state.get("google_drive_data_loaded"):
+        # =====================================================
+        # 7. DOWNLOAD EXISTING DATA
+        # =====================================================
+        if not st.session_state.get(
+            "google_drive_data_loaded"
+        ):
 
             file_map = _google_drive_file_map(
                 service,
@@ -996,24 +1140,69 @@ def _google_drive_bootstrap():
                     folder_id
                 )
 
-            st.session_state["google_drive_data_loaded"] = True
+            st.session_state[
+                "google_drive_data_loaded"
+            ] = True
 
+        # =====================================================
+        # 8. PHOTOS ARE STILL LAZY-LOADED
+        # =====================================================
         # Photos НЕ се синхронизират при startup.
-        # Зареждат се lazy само когато потребителят отвори галерията
-        # на конкретно пътуване.
+        # Зареждат се само при отваряне на галерията.
 
-        # ---------------------------------------------------------
-        # ВАЖНОТО: това липсваше и затова sync() не правеше нищо
-        # ---------------------------------------------------------
-        st.session_state["google_drive_service_ready"] = True
-        st.session_state["google_drive_bootstrapped"] = True
+        # =====================================================
+        # 9. DRIVE READY
+        # =====================================================
+        st.session_state[
+            "google_drive_service_ready"
+        ] = True
+
+        st.session_state[
+            "google_drive_bootstrapped"
+        ] = True
+
+        # След успешна нова авторизация вече не сме в reauth режим.
+        st.session_state.pop(
+            "google_drive_reauth_required",
+            None
+        )
 
         return True
 
+    # =========================================================
+    # 10. OTHER DRIVE ERRORS
+    # =========================================================
     except Exception as exc:
+
+        error_text = str(exc).lower()
+
+        # Допълнителна защита:
+        # ако invalid_grant се появи на друго място в bootstrap,
+        # пак преминаваме към нов OAuth.
+        if (
+            "invalid_grant" in error_text
+            or "token has been expired or revoked" in error_text
+        ):
+            st.session_state[
+                "google_drive_reauth_required"
+            ] = True
+
+            st.session_state.pop(
+                "google_drive_token",
+                None
+            )
+
+            st.session_state.pop(
+                "google_drive_service_ready",
+                None
+            )
+
+            st.rerun()
+
         st.error(
             f"❌ Google Drive не можа да бъде достъпен: {exc}"
         )
+
         st.stop()
 
 def _google_drive_lazy_load_photos(trip_id=None):
