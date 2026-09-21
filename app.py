@@ -1414,7 +1414,17 @@ def get_display_category(category):
 _google_drive_bootstrap()
 
 if not os.path.exists(MAP_FILE):
-    pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
+    pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color", "distance_km"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
+else:
+    # Миграция на новото поле за ръчно въведено разстояние между спирките.
+    # Старите точки и данни не се променят.
+    try:
+        _map_distance_migration = pd.read_csv(MAP_FILE, encoding="utf-8")
+        if "distance_km" not in _map_distance_migration.columns:
+            _map_distance_migration["distance_km"] = ""
+            _map_distance_migration.to_csv(MAP_FILE, index=False, encoding="utf-8")
+    except Exception:
+        pass
 
 if not os.path.exists(TRIP_PLAN_FILE):
     pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"]).to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
@@ -2002,15 +2012,28 @@ def delete_trip_plan_item(item_id):
 def get_map_points(t_id):
     try:
         df = pd.read_csv(MAP_FILE, encoding="utf-8")
+        if "distance_km" not in df.columns:
+            df["distance_km"] = ""
         return df[df["trip_id"] == t_id].copy()
     except: 
-        return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
+        return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color", "distance_km"])
 
 def add_map_point(t_id, lat, lon, title, color="blue"):
     try:
         df = pd.read_csv(MAP_FILE, encoding="utf-8")
-        row = {"trip_id": t_id, "lat": float(lat), "lon": float(lon), "title": str(title), "color": str(color)}
-        pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(MAP_FILE, index=False, encoding="utf-8")
+        if "distance_km" not in df.columns:
+            df["distance_km"] = ""
+        row = {
+            "trip_id": t_id,
+            "lat": float(lat),
+            "lon": float(lon),
+            "title": str(title),
+            "color": str(color),
+            "distance_km": "",
+        }
+        pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(
+            MAP_FILE, index=False, encoding="utf-8"
+        )
         return True
     except: 
         return False
@@ -8072,16 +8095,91 @@ else:
             unsafe_allow_html=True,
         )
 
+        st.markdown(
+            "<div style='color:#7e8494;font-size:10px;margin:2px 0 8px;'>"
+            "Въведи ръчно разстоянието до всяка спирка. "
+            "Спирка 1 е от началната точка, а всяка следваща е от предходната спирка."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        _3b_distance_values = {}
+
         for _3b_i, (_3b_idx, _3b_row) in enumerate(_3b_stops.iterrows(), start=1):
             _3b_name = str(_3b_row.get("title", "3b: Спирка")).replace("3b:", "", 1).strip()
-            st.markdown(
-                f"<div style='border:1px solid rgba(255,255,255,.06);"
-                f"border-radius:11px;background:rgba(255,255,255,.025);"
-                f"padding:8px 10px;margin:3px 0;color:#fff;font-size:11px;'>"
-                f"<b>{_3b_i}.</b>&nbsp; {_3b_name}"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
+
+            try:
+                _3b_saved_distance = float(_3b_row.get("distance_km", 0) or 0)
+                if _3b_saved_distance < 0:
+                    _3b_saved_distance = 0.0
+            except (TypeError, ValueError):
+                _3b_saved_distance = 0.0
+
+            _3b_c1, _3b_c2 = st.columns([0.68, 0.32])
+            with _3b_c1:
+                _3b_from_label = "началната точка" if _3b_i == 1 else f"спирка {_3b_i - 1}"
+                st.markdown(
+                    f"<div style='border:1px solid rgba(255,255,255,.06);"
+                    f"border-radius:11px;background:rgba(255,255,255,.025);"
+                    f"padding:8px 10px;margin:3px 0;color:#fff;font-size:11px;"
+                    f"min-height:58px;box-sizing:border-box;'>"
+                    f"<b>{_3b_i}.</b>&nbsp; {html.escape(_3b_name)}"
+                    f"<br><span style='color:#7e8494;font-size:10px;'>"
+                    f"Разстояние от {_3b_from_label}</span>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+            with _3b_c2:
+                _3b_distance_values[_3b_idx] = st.number_input(
+                    "км",
+                    min_value=0.0,
+                    value=round(_3b_saved_distance, 1),
+                    step=0.1,
+                    format="%.1f",
+                    key=f"planned_3b_distance_{trip_id}_{_3b_idx}",
+                    disabled=trip_locked,
+                )
+
+        _3b_save_distances_key = f"planned_3b_save_distances_{trip_id}"
+        if st.button(
+            "💾 Запази разстоянията",
+            use_container_width=True,
+            key=_3b_save_distances_key,
+            disabled=trip_locked,
+        ):
+            try:
+                _3b_map_df = pd.read_csv(MAP_FILE, encoding="utf-8")
+                if "distance_km" not in _3b_map_df.columns:
+                    _3b_map_df["distance_km"] = ""
+
+                for _3b_idx, _3b_distance in _3b_distance_values.items():
+                    try:
+                        _3b_value = max(0.0, round(float(_3b_distance), 1))
+                    except (TypeError, ValueError):
+                        _3b_value = 0.0
+                    if _3b_idx in _3b_map_df.index:
+                        _3b_map_df.loc[_3b_idx, "distance_km"] = _3b_value
+
+                _3b_map_df.to_csv(MAP_FILE, index=False, encoding="utf-8")
+                google_drive_sync()
+                st.success("✅ Разстоянията са запазени.")
+                st.rerun()
+            except Exception as _3b_distance_exc:
+                st.error(f"❌ Не успях да запазя разстоянията: {_3b_distance_exc}")
+
+        _3b_total_distance = 0.0
+        for _3b_value in _3b_stops.get("distance_km", pd.Series(dtype=float)).tolist():
+            try:
+                _3b_total_distance += max(0.0, float(_3b_value or 0))
+            except (TypeError, ValueError):
+                pass
+
+        st.markdown(
+            f"<div style='color:#aeb7c1;font-size:11px;text-align:right;margin-top:5px;'>"
+            f"Общо по въведените отсечки: <b>{_3b_total_distance:.1f} км</b>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
         _3b_url = _build_3b_google_maps_url(trip_id)
         if _3b_url:
