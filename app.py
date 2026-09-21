@@ -7745,79 +7745,111 @@ else:
         except Exception:
             return False
 
-    def _get_3b_route_distances(t_id):
+    @st.cache_data(ttl=300, show_spinner=False)
+    def _calculate_3b_route_from_coordinates(_coordinates):
         """
-        Автоматично изчислява реалните автомобилни разстояния по реда на
-        планираните спирки. Началната точка е последната GPS локация,
-        записана чрез "Моята локация" (3b + червен маркер).
-
-        Връща списък от отсечки:
-            Начална точка -> Спирка 1
-            Спирка 1 -> Спирка 2
-            ...
-        както и общото разстояние.
+        Изчислява реалните автомобилни разстояния между последователните
+        точки чрез OSRM. Координатите са tuple от (lat, lon):
+        начална точка, спирка 1, спирка 2, ...
         """
         try:
-            df_route = get_map_points(t_id)
-            if df_route.empty:
+            if not _coordinates or len(_coordinates) < 2:
                 return None
 
-            # Начална точка: последната GPS локация, добавена през
-            # "Моята локация". Тя е червен 3b маркер.
-            start_points = df_route[
-                df_route["title"].astype(str).str.startswith("3b: 📍")
-                & (df_route["color"].astype(str) == "red")
-            ].copy()
-
-            # Планирани спирки: само лилавите 3b точки. Редът им е
-            # редът на добавяне в MAP_FILE.
-            stops = df_route[
-                df_route["title"].astype(str).str.startswith("3b:")
-                & (df_route["color"].astype(str) == "purple")
-            ].copy()
-
-            if start_points.empty or stops.empty:
-                return None
-
-            start = start_points.iloc[-1]
-            points = [start] + [row for _, row in stops.iterrows()]
-
-            coordinates = []
-            for row in points:
-                lat = float(row["lat"])
-                lon = float(row["lon"])
-                if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            _coords = []
+            for _lat, _lon in _coordinates:
+                _lat = float(_lat)
+                _lon = float(_lon)
+                if not (-90 <= _lat <= 90 and -180 <= _lon <= 180):
                     return None
-                coordinates.append(f"{lon:.6f},{lat:.6f}")
+                # OSRM очаква lon,lat
+                _coords.append(f"{_lon:.6f},{_lat:.6f}")
 
-            # OSRM изчислява автомобилния маршрут и връща разстояние
-            # за всяка отделна отсечка (legs), не по права линия.
-            url = (
+            _url = (
                 "https://router.project-osrm.org/route/v1/driving/"
-                + ";".join(coordinates)
+                + ";".join(_coords)
                 + "?overview=false&steps=false"
             )
 
-            response = requests.get(url, timeout=15)
-            response.raise_for_status()
-            data = response.json()
+            _response = requests.get(_url, timeout=15)
+            _response.raise_for_status()
+            _data = _response.json()
 
-            if data.get("code") != "Ok":
+            if _data.get("code") != "Ok":
                 return None
 
-            legs = data.get("routes", [{}])[0].get("legs", [])
-            if len(legs) != len(stops):
+            _routes = _data.get("routes") or []
+            if not _routes:
                 return None
 
-            segment_km = [
-                round(float(leg.get("distance", 0.0)) / 1000.0, 1)
-                for leg in legs
+            _legs = _routes[0].get("legs") or []
+            if len(_legs) != len(_coordinates) - 1:
+                return None
+
+            _segment_km = [
+                round(float(_leg.get("distance", 0.0)) / 1000.0, 1)
+                for _leg in _legs
             ]
 
             return {
-                "start_name": str(start.get("title", "Моята локация")).replace("3b: 📍", "", 1).strip() or "Начална точка",
-                "segment_km": segment_km,
-                "total_km": round(sum(segment_km), 1),
+                "segment_km": _segment_km,
+                "total_km": round(sum(_segment_km), 1),
+            }
+        except Exception:
+            return None
+
+    def _get_3b_route_distances(t_id):
+        """
+        Взема началната 3b локация (червена точка) и планираните
+        спирки (лилави точки) в записания им ред и изчислява:
+        Начало -> Спирка 1 -> Спирка 2 -> ...
+        """
+        try:
+            _df_route = get_map_points(t_id)
+            if _df_route.empty:
+                return None
+
+            _titles = _df_route["title"].astype(str)
+            _colors = _df_route["color"].astype(str)
+
+            _start_points = _df_route[
+                _titles.str.startswith("3b: 📍")
+                & (_colors == "red")
+            ].copy()
+
+            _stops = _df_route[
+                _titles.str.startswith("3b:")
+                & (_colors == "purple")
+            ].copy()
+
+            if _start_points.empty or _stops.empty:
+                return None
+
+            # Ако има повече от една текуща локация, използваме последната
+            # записана като актуална начална точка.
+            _start = _start_points.iloc[-1]
+            _points = [_start] + [_row for _, _row in _stops.iterrows()]
+
+            _coordinates = tuple(
+                (float(_row["lat"]), float(_row["lon"]))
+                for _row in _points
+            )
+
+            _route = _calculate_3b_route_from_coordinates(_coordinates)
+            if not _route:
+                return None
+
+            _start_name = (
+                str(_start.get("title", "3b: 📍 Начална точка"))
+                .replace("3b: 📍", "", 1)
+                .strip()
+                or "Начална точка"
+            )
+
+            return {
+                "start_name": _start_name,
+                "segment_km": _route["segment_km"],
+                "total_km": _route["total_km"],
             }
         except Exception:
             return None
@@ -8149,10 +8181,6 @@ else:
             unsafe_allow_html=True,
         )
 
-        # ---------------------------------------------------------
-        # АВТОМАТИЧНИ РАЗСТОЯНИЯ ПО МАРШРУТА
-        # Начална точка (последната "Моята локация") -> спирки -> ...
-        # ---------------------------------------------------------
         _3b_route = _get_3b_route_distances(trip_id)
 
         if _3b_route:
@@ -8165,16 +8193,21 @@ else:
 
         for _3b_i, (_3b_idx, _3b_row) in enumerate(_3b_stops.iterrows(), start=1):
             _3b_name = str(_3b_row.get("title", "3b: Спирка")).replace("3b:", "", 1).strip()
+
             _3b_distance_html = ""
             if _3b_route and (_3b_i - 1) < len(_3b_route["segment_km"]):
                 _3b_segment = _3b_route["segment_km"][_3b_i - 1]
                 _3b_from = (
-                    _3b_route["start_name"] if _3b_i == 1
-                    else str(_3b_stops.iloc[_3b_i - 2].get("title", "Спирка")).replace("3b:", "", 1).strip()
+                    _3b_route["start_name"]
+                    if _3b_i == 1
+                    else str(
+                        _3b_stops.iloc[_3b_i - 2].get("title", "Спирка")
+                    ).replace("3b:", "", 1).strip()
                 )
                 _3b_distance_html = (
                     f"<div style='margin-top:4px;color:#7e8494;font-size:10px;'>"
-                    f"{html.escape(_3b_from)} → <span style='color:#8bd5ff;font-weight:800;'>{_3b_segment:.1f} км</span>"
+                    f"{html.escape(_3b_from)} → "
+                    f"<span style='color:#8bd5ff;font-weight:800;'>{_3b_segment:.1f} км</span>"
                     f"</div>"
                 )
 
@@ -8182,7 +8215,7 @@ else:
                 f"<div style='border:1px solid rgba(255,255,255,.06);"
                 f"border-radius:11px;background:rgba(255,255,255,.025);"
                 f"padding:8px 10px;margin:3px 0;color:#fff;font-size:11px;'>"
-                f"<b>{_3b_i}.</b>&nbsp; {_3b_name}"
+                f"<b>{_3b_i}.</b>&nbsp; {html.escape(_3b_name)}"
                 f"{_3b_distance_html}"
                 f"</div>",
                 unsafe_allow_html=True,
@@ -8200,7 +8233,7 @@ else:
         else:
             st.markdown(
                 "<div style='color:#7e8494;font-size:10px;margin-top:6px;'>"
-                "За автоматично изчисляване на разстоянията първо добави начална точка чрез „Моята локация“."
+                "За автоматично изчисляване първо добави начална точка чрез „Моята локация“."
                 "</div>",
                 unsafe_allow_html=True,
             )
