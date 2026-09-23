@@ -8256,12 +8256,15 @@ else:
                 unsafe_allow_html=True,
             )
 
+        _3b_cumulative_km = 0.0
+
         for _3b_i, (_3b_idx, _3b_row) in enumerate(_3b_stops.iterrows(), start=1):
             _3b_name = str(_3b_row.get("title", "3b: Спирка")).replace("3b:", "", 1).strip()
 
             _3b_distance_html = ""
             if _3b_route and (_3b_i - 1) < len(_3b_route["segment_km"]):
                 _3b_segment = _3b_route["segment_km"][_3b_i - 1]
+                _3b_cumulative_km += _3b_segment
                 _3b_from = (
                     _3b_route["start_name"]
                     if _3b_i == 1
@@ -8273,6 +8276,10 @@ else:
                     f"<div style='margin-top:4px;color:#7e8494;font-size:10px;'>"
                     f"{html.escape(_3b_from)} → "
                     f"<span style='color:#8bd5ff;font-weight:800;'>{_3b_segment:.1f} км</span>"
+                    f"</div>"
+                    f"<div style='margin-top:2px;color:#7e8494;font-size:10px;'>"
+                    f"Общо до спирката: "
+                    f"<span style='color:#00f2fe;font-weight:800;'>{_3b_cumulative_km:.1f} км</span>"
                     f"</div>"
                 )
 
