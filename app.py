@@ -7745,6 +7745,119 @@ else:
         except Exception:
             return False
 
+    def _add_3b_start_point(t_id, place):
+        """Записва избраната от търсачката начална точка като червен 3b маркер."""
+        try:
+            # Премахваме старата начална точка, за да има само една.
+            df_start = get_map_points(t_id)
+            if not df_start.empty:
+                mask = (
+                    df_start["title"].astype(str).str.startswith("3b: 🏁")
+                    & (df_start["color"].astype(str) == "red")
+                )
+                if mask.any():
+                    df_start = df_start.loc[~mask].copy()
+                    df_start.to_csv(MAP_FILE, index=False, encoding="utf-8")
+
+            return add_map_point(
+                t_id,
+                place["lat"],
+                place["lon"],
+                f"3b: 🏁 {place['name']}",
+                "red"
+            )
+        except Exception:
+            return False
+
+    @st.cache_data(ttl=300, show_spinner=False)
+    def _route_3b_osrm(coords):
+        """Връща пътните километри за всяка последователна отсечка."""
+        try:
+            if not coords or len(coords) < 2:
+                return None
+
+            coordinate_text = ";".join(
+                f"{float(lon):.6f},{float(lat):.6f}"
+                for lat, lon in coords
+            )
+            url = (
+                "https://router.project-osrm.org/route/v1/driving/"
+                f"{coordinate_text}?overview=false&steps=false"
+            )
+            response = requests.get(url, timeout=15)
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("code") != "Ok":
+                return None
+
+            legs = data.get("routes", [{}])[0].get("legs", [])
+            if len(legs) != len(coords) - 1:
+                return None
+
+            segment_km = [
+                round(float(leg.get("distance", 0.0)) / 1000.0, 1)
+                for leg in legs
+            ]
+            return {
+                "segment_km": segment_km,
+                "total_km": round(sum(segment_km), 1),
+            }
+        except Exception:
+            return None
+
+    def _get_3b_route_distances(t_id):
+        """
+        Автоматично изчислява автомобилните разстояния:
+        Начална точка -> Спирка 1 -> Спирка 2 -> ...
+        """
+        try:
+            df_route = get_map_points(t_id)
+            if df_route.empty:
+                return None
+
+            starts = df_route[
+                df_route["title"].astype(str).str.startswith("3b:")
+                & (df_route["color"].astype(str) == "red")
+            ].copy()
+
+            stops = df_route[
+                df_route["title"].astype(str).str.startswith("3b:")
+                & (df_route["color"].astype(str) == "purple")
+            ].copy()
+
+            if starts.empty or stops.empty:
+                return None
+
+            start = starts.iloc[-1]
+            points = [start] + [row for _, row in stops.iterrows()]
+
+            coords = []
+            for row in points:
+                lat = float(row["lat"])
+                lon = float(row["lon"])
+                if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                    return None
+                coords.append((lat, lon))
+
+            route = _route_3b_osrm(tuple(coords))
+            if not route:
+                return None
+
+            return {
+                "start_name": (
+                    str(start.get("title", "3b: Начална точка"))
+                    .replace("3b: 🏁", "", 1)
+                    .replace("3b: 📍", "", 1)
+                    .strip()
+                    or "Начална точка"
+                ),
+                "segment_km": route["segment_km"],
+                "total_km": route["total_km"],
+            }
+        except Exception:
+            return None
+
     def _build_3b_google_maps_url(t_id):
         try:
             df_3b = get_map_points(t_id)
@@ -7956,8 +8069,68 @@ else:
         unsafe_allow_html=True
     )
 
-    # GPS бутонът е част от 3b и стои непосредствено под заглавието.
+    # ---------------------------------------------------------
+    # НАЧАЛНА ТОЧКА — населено място, адрес или обект.
+    # Може да се избере и текущата GPS локация от бутона по-долу.
+    # ---------------------------------------------------------
     if not trip_locked:
+        st.markdown(
+            "<div style='color:#aeb7c1;font-size:11px;margin:2px 0 6px;'>"
+            "Начална точка · населено място или точен адрес"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        _3b_start_input_key = f"planned_3b_start_search_{trip_id}"
+        _3b_start_query = st.text_input(
+            "Начална точка",
+            placeholder="напр. София или точен адрес",
+            key=_3b_start_input_key,
+            label_visibility="collapsed",
+        )
+
+        _3b_start_search_key = f"planned_3b_start_search_btn_{trip_id}"
+        if st.button(
+            "🔎 Търси начална точка",
+            use_container_width=True,
+            key=_3b_start_search_key,
+            disabled=trip_locked,
+        ):
+            st.session_state[f"planned_3b_start_results_{trip_id}"] = _search_3b_places(
+                _3b_start_query, 5
+            )
+
+        _3b_start_results = st.session_state.get(
+            f"planned_3b_start_results_{trip_id}", []
+        )
+
+        if _3b_start_results:
+            st.markdown(
+                "<div style='color:#7e8494;font-size:11px;margin:2px 0 7px;'>"
+                "Избери началната точка:</div>",
+                unsafe_allow_html=True,
+            )
+            for _3b_si, _3b_start_place in enumerate(_3b_start_results):
+                _3b_sc1, _3b_sc2 = st.columns([0.78, 0.22])
+                with _3b_sc1:
+                    st.markdown(
+                        f"<div style='font-size:11px;line-height:1.35;'>"
+                        f"<b style='color:#fff;'>{html.escape(_3b_start_place['name'])}</b><br>"
+                        f"<span style='color:#7e8494;'>{html.escape(_3b_start_place['address'])}</span>"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+                with _3b_sc2:
+                    if st.button(
+                        "➕",
+                        key=f"planned_3b_start_add_{trip_id}_{_3b_si}",
+                    ):
+                        if _add_3b_start_point(trip_id, _3b_start_place):
+                            st.session_state[f"planned_3b_start_results_{trip_id}"] = []
+                            google_drive_sync()
+                            st.rerun()
+
+        # GPS бутонът остава като втори начин за задаване на началната точка.
         _tm_current_location_component(
             key="tmCurrentLocation3b",
             on_location_change=_handle_current_location_3b,
@@ -8072,14 +8245,63 @@ else:
             unsafe_allow_html=True,
         )
 
+        _3b_route = _get_3b_route_distances(trip_id)
+
+        if _3b_route:
+            st.markdown(
+                f"<div style='color:#7e8494;font-size:10px;margin:2px 0 8px;'>"
+                f"Начална точка: <span style='color:#fff;font-weight:700;'>"
+                f"{html.escape(_3b_route['start_name'])}</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
         for _3b_i, (_3b_idx, _3b_row) in enumerate(_3b_stops.iterrows(), start=1):
             _3b_name = str(_3b_row.get("title", "3b: Спирка")).replace("3b:", "", 1).strip()
+
+            _3b_distance_html = ""
+            if _3b_route and (_3b_i - 1) < len(_3b_route["segment_km"]):
+                _3b_segment = _3b_route["segment_km"][_3b_i - 1]
+                _3b_from = (
+                    _3b_route["start_name"]
+                    if _3b_i == 1
+                    else str(
+                        _3b_stops.iloc[_3b_i - 2].get("title", "Спирка")
+                    ).replace("3b:", "", 1).strip()
+                )
+                _3b_distance_html = (
+                    f"<div style='margin-top:4px;color:#7e8494;font-size:10px;'>"
+                    f"{html.escape(_3b_from)} → "
+                    f"<span style='color:#8bd5ff;font-weight:800;'>{_3b_segment:.1f} км</span>"
+                    f"</div>"
+                )
+
             st.markdown(
                 f"<div style='border:1px solid rgba(255,255,255,.06);"
                 f"border-radius:11px;background:rgba(255,255,255,.025);"
                 f"padding:8px 10px;margin:3px 0;color:#fff;font-size:11px;'>"
-                f"<b>{_3b_i}.</b>&nbsp; {_3b_name}"
+                f"<b>{_3b_i}.</b>&nbsp; {html.escape(_3b_name)}"
+                f"{_3b_distance_html}"
                 f"</div>",
+                unsafe_allow_html=True,
+            )
+
+        if _3b_route:
+            st.markdown(
+                f"<div style='margin-top:8px;padding:9px 10px;border-radius:11px;"
+                f"background:rgba(0,242,254,.035);border:1px solid rgba(0,242,254,.10);"
+                f"color:#aeb7c1;font-size:11px;'>"
+                f"Общо разстояние: "
+                f"<span style='color:#00f2fe;font-size:13px;font-weight:900;'>"
+                f"{_3b_route['total_km']:.1f} км</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                "<div style='color:#7e8494;font-size:10px;margin-top:6px;'>"
+                "Първо задай начална точка чрез търсене или „📍 Моята локация“."
+                "</div>",
                 unsafe_allow_html=True,
             )
 
