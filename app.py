@@ -7745,8 +7745,8 @@ else:
         except Exception:
             return False
 
-    def _add_3b_start_point(t_id, place):
-        """Записва избраната от търсачката начална точка като червен 3b маркер."""
+    def _add_3b_start_point(t_id, place, custom_name=None):
+        """Записва избраната начална точка като червен 3b маркер."""
         try:
             # Премахваме старата начална точка, за да има само една.
             df_start = get_map_points(t_id)
@@ -7759,11 +7759,15 @@ else:
                     df_start = df_start.loc[~mask].copy()
                     df_start.to_csv(MAP_FILE, index=False, encoding="utf-8")
 
+            _display_name = str(custom_name or place.get("name") or "").strip()
+            if not _display_name:
+                _display_name = "Начална точка"
+
             return add_map_point(
                 t_id,
                 place["lat"],
                 place["lon"],
-                f"3b: 🏁 {place['name']}",
+                f"3b: 🏁 {_display_name}",
                 "red"
             )
         except Exception:
@@ -8125,10 +8129,75 @@ else:
                         "➕",
                         key=f"planned_3b_start_add_{trip_id}_{_3b_si}",
                     ):
-                        if _add_3b_start_point(trip_id, _3b_start_place):
-                            st.session_state[f"planned_3b_start_results_{trip_id}"] = []
-                            google_drive_sync()
-                            st.rerun()
+                        st.session_state[
+                            f"planned_3b_pending_start_{trip_id}"
+                        ] = dict(_3b_start_place)
+                        st.session_state.pop(
+                            f"planned_3b_custom_start_name_{trip_id}",
+                            None,
+                        )
+                        st.rerun()
+
+        # След избиране на резултат позволяваме собствено име на началната точка.
+        _3b_pending_start = st.session_state.get(
+            f"planned_3b_pending_start_{trip_id}"
+        )
+        if isinstance(_3b_pending_start, dict):
+            st.markdown(
+                "<div style='color:#aeb7c1;font-size:11px;margin:8px 0 5px;'>"
+                "Име на началната точка · по желание"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            _3b_custom_start_name = st.text_input(
+                "Име на началната точка",
+                value=str(
+                    _3b_pending_start.get("name")
+                    or _3b_pending_start.get("address", "").split(",")[0]
+                    or ""
+                ),
+                placeholder="напр. Дом, Хотел, Паркинг...",
+                key=f"planned_3b_custom_start_name_{trip_id}",
+                label_visibility="collapsed",
+            )
+
+            _3b_save_name_c1, _3b_save_name_c2 = st.columns([0.7, 0.3])
+            with _3b_save_name_c1:
+                if st.button(
+                    "💾 Запази началната точка",
+                    use_container_width=True,
+                    key=f"planned_3b_save_custom_start_{trip_id}",
+                ):
+                    _3b_custom_start_name = str(
+                        _3b_custom_start_name or ""
+                    ).strip()
+                    if _3b_custom_start_name and _add_3b_start_point(
+                        trip_id,
+                        _3b_pending_start,
+                        _3b_custom_start_name,
+                    ):
+                        st.session_state.pop(
+                            f"planned_3b_pending_start_{trip_id}", None
+                        )
+                        st.session_state.pop(
+                            f"planned_3b_custom_start_name_{trip_id}", None
+                        )
+                        st.session_state[f"planned_3b_start_results_{trip_id}"] = []
+                        google_drive_sync()
+                        st.rerun()
+            with _3b_save_name_c2:
+                if st.button(
+                    "Откажи",
+                    use_container_width=True,
+                    key=f"planned_3b_cancel_custom_start_{trip_id}",
+                ):
+                    st.session_state.pop(
+                        f"planned_3b_pending_start_{trip_id}", None
+                    )
+                    st.session_state.pop(
+                        f"planned_3b_custom_start_name_{trip_id}", None
+                    )
+                    st.rerun()
 
         # GPS бутонът остава като втори начин за задаване на началната точка.
         _tm_current_location_component(
