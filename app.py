@@ -7827,7 +7827,7 @@ else:
 
             stops = df_route[
                 df_route["title"].astype(str).str.startswith("3b:")
-                & (df_route["color"].astype(str) == "purple")
+                & df_route["color"].astype(str).isin(["purple", "orange"])
             ].copy()
 
             if starts.empty or stops.empty:
@@ -7870,7 +7870,7 @@ else:
 
             stops_3b = df_3b[
                 df_3b["title"].astype(str).str.startswith("3b:")
-                & (df_3b["color"].astype(str) == "purple")
+                & df_3b["color"].astype(str).isin(["purple", "orange"])
             ].copy()
 
             if stops_3b.empty:
@@ -8225,7 +8225,7 @@ else:
         _gps_choice_c1, _gps_choice_c2 = st.columns(2)
         with _gps_choice_c1:
             if st.button(
-                "🟣 Запиши като спирка",
+                "🟠 Запиши като непланирана спирка",
                 use_container_width=True,
                 key="tmCurrentLocation3bSaveStop",
             ):
@@ -8236,8 +8236,8 @@ else:
                         trip_id,
                         float(_pending_3b["lat"]),
                         float(_pending_3b["lon"]),
-                        f"3b: {_gps_name}",
-                        "purple"
+                        f"3b: ⚠️ {_gps_name}",
+                        "orange"
                     ):
                         st.session_state.pop("tmCurrentLocation3bPending", None)
                         st.session_state.pop("tmCurrentLocation3bPendingName", None)
@@ -8279,7 +8279,7 @@ else:
     _3b_points = get_map_points(trip_id)
     _3b_stops = _3b_points[
         _3b_points["title"].astype(str).str.startswith("3b:")
-        & (_3b_points["color"].astype(str) == "purple")
+        & _3b_points["color"].astype(str).isin(["purple", "orange"])
     ].copy()
 
     _3b_input_key = f"planned_3b_search_{trip_id}"
