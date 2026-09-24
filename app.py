@@ -1414,7 +1414,7 @@ def get_display_category(category):
 _google_drive_bootstrap()
 
 if not os.path.exists(MAP_FILE):
-    pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
+    pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color", "stop_type"]).to_csv(MAP_FILE, index=False, encoding="utf-8")
 
 if not os.path.exists(TRIP_PLAN_FILE):
     pd.DataFrame(columns=["trip_id", "item_id", "title", "done", "created"]).to_csv(TRIP_PLAN_FILE, index=False, encoding="utf-8")
@@ -2002,17 +2002,85 @@ def delete_trip_plan_item(item_id):
 def get_map_points(t_id):
     try:
         df = pd.read_csv(MAP_FILE, encoding="utf-8")
-        return df[df["trip_id"] == t_id].copy()
-    except: 
-        return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color"])
+        if "stop_type" not in df.columns:
+            df["stop_type"] = ""
+        legacy_mask = (
+            df["title"].astype(str).str.startswith("3b:")
+            & df["stop_type"].astype(str).str.strip().eq("")
+            & df["color"].astype(str).isin(["purple", "orange"])
+        )
+        df.loc[legacy_mask, "stop_type"] = "planned"
+        return df[df["trip_id"].astype(str) == str(t_id)].copy()
+    except:
+        return pd.DataFrame(columns=["trip_id", "lat", "lon", "title", "color", "stop_type"])
 
-def add_map_point(t_id, lat, lon, title, color="blue"):
+def add_map_point(t_id, lat, lon, title, color="blue", stop_type=""):
     try:
         df = pd.read_csv(MAP_FILE, encoding="utf-8")
-        row = {"trip_id": t_id, "lat": float(lat), "lon": float(lon), "title": str(title), "color": str(color)}
-        pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(MAP_FILE, index=False, encoding="utf-8")
+        if "stop_type" not in df.columns:
+            df["stop_type"] = ""
+        row = {
+            "trip_id": t_id,
+            "lat": float(lat),
+            "lon": float(lon),
+            "title": str(title),
+            "color": str(color),
+            "stop_type": str(stop_type or ""),
+        }
+        pd.concat([df, pd.DataFrame([row])], ignore_index=True).to_csv(
+            MAP_FILE, index=False, encoding="utf-8"
+        )
         return True
-    except: 
+    except:
+        return False
+
+def add_3b_stop_at_position(t_id, lat, lon, name, stop_type="planned", position="end"):
+    """Добавя 3b спирка на избрана позиция, без да променя началната точка или любимите места."""
+    try:
+        df = pd.read_csv(MAP_FILE, encoding="utf-8")
+        if "stop_type" not in df.columns:
+            df["stop_type"] = ""
+
+        legacy_mask = (
+            df["title"].astype(str).str.startswith("3b:")
+            & df["stop_type"].astype(str).str.strip().eq("")
+            & df["color"].astype(str).isin(["purple", "orange"])
+        )
+        df.loc[legacy_mask, "stop_type"] = "planned"
+
+        trip_mask = df["trip_id"].astype(str) == str(t_id)
+        stop_mask = (
+            trip_mask
+            & df["title"].astype(str).str.startswith("3b:")
+            & df["color"].astype(str).isin(["purple", "orange"])
+        )
+        stop_indices = list(df.index[stop_mask])
+
+        row = {
+            "trip_id": t_id,
+            "lat": float(lat),
+            "lon": float(lon),
+            "title": f"3b: {str(name).strip()}",
+            "color": "purple" if stop_type == "planned" else "orange",
+            "stop_type": "planned" if stop_type == "planned" else "unplanned",
+        }
+
+        if not stop_indices or position == "end":
+            df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+        else:
+            try:
+                target_idx = int(position)
+            except Exception:
+                target_idx = stop_indices[-1]
+            insert_at = target_idx + 1
+            df = pd.concat(
+                [df.iloc[:insert_at].copy(), pd.DataFrame([row]), df.iloc[insert_at:].copy()],
+                ignore_index=True,
+            )
+
+        df.to_csv(MAP_FILE, index=False, encoding="utf-8")
+        return True
+    except Exception:
         return False
 
 
@@ -7827,7 +7895,7 @@ else:
 
             stops = df_route[
                 df_route["title"].astype(str).str.startswith("3b:")
-                & (df_route["color"].astype(str) == "purple")
+                & df_route["color"].astype(str).isin(["purple", "orange"])
             ].copy()
 
             if starts.empty or stops.empty:
@@ -7870,7 +7938,7 @@ else:
 
             stops_3b = df_3b[
                 df_3b["title"].astype(str).str.startswith("3b:")
-                & (df_3b["color"].astype(str) == "purple")
+                & df_3b["color"].astype(str).isin(["purple", "orange"])
             ].copy()
 
             if stops_3b.empty:
@@ -8198,8 +8266,7 @@ else:
         )
 
     # След получаване на GPS винаги питаме как да бъде записано мястото.
-    # И двата типа остават видими в „Любими места“, но само спирката
-    # участва в автоматичния 3b маршрут.
+    # Потокът е: спирка/любимо → ако е спирка: планирана/непланирана → позиция.
     _pending_3b = st.session_state.get("tmCurrentLocation3bPending")
     if (not trip_locked) and isinstance(_pending_3b, dict):
         st.markdown(
@@ -8222,64 +8289,180 @@ else:
             label_visibility="collapsed",
         ).strip()
 
-        _gps_choice_c1, _gps_choice_c2 = st.columns(2)
-        with _gps_choice_c1:
-            if st.button(
-                "🟣 Запиши като спирка",
-                use_container_width=True,
-                key="tmCurrentLocation3bSaveStop",
-            ):
-                if not _gps_name:
-                    st.warning("Дай име на мястото преди записване.")
-                else:
-                    if add_map_point(
-                        trip_id,
-                        float(_pending_3b["lat"]),
-                        float(_pending_3b["lon"]),
-                        f"3b: {_gps_name}",
-                        "purple"
-                    ):
-                        st.session_state.pop("tmCurrentLocation3bPending", None)
-                        st.session_state.pop("tmCurrentLocation3bPendingName", None)
-                        st.session_state[f"planned_3b_results_{trip_id}"] = []
-                        google_drive_sync()
+        _save_mode = st.session_state.get("tmCurrentLocation3bSaveMode")
+
+        if _save_mode is None:
+            _gps_choice_c1, _gps_choice_c2 = st.columns(2)
+            with _gps_choice_c1:
+                if st.button(
+                    "🟣 Запиши като спирка",
+                    use_container_width=True,
+                    key="tmCurrentLocation3bSaveStop",
+                ):
+                    if not _gps_name:
+                        st.warning("Дай име на мястото преди записване.")
+                    else:
+                        st.session_state["tmCurrentLocation3bSaveMode"] = "stop"
+                        st.session_state["tmCurrentLocation3bPendingNameValue"] = _gps_name
                         st.rerun()
 
-        with _gps_choice_c2:
-            if st.button(
-                "⭐ Запиши като любимо",
-                use_container_width=True,
-                key="tmCurrentLocation3bSaveFavorite",
+            with _gps_choice_c2:
+                if st.button(
+                    "⭐ Запиши като любимо",
+                    use_container_width=True,
+                    key="tmCurrentLocation3bSaveFavorite",
+                ):
+                    if not _gps_name:
+                        st.warning("Дай име на мястото преди записване.")
+                    else:
+                        if add_map_point(
+                            trip_id,
+                            float(_pending_3b["lat"]),
+                            float(_pending_3b["lon"]),
+                            _gps_name,
+                            "green",
+                        ):
+                            st.session_state.pop("tmCurrentLocation3bPending", None)
+                            st.session_state.pop("tmCurrentLocation3bPendingName", None)
+                            st.session_state.pop("tmCurrentLocation3bSaveMode", None)
+                            st.session_state.pop("tmCurrentLocation3bPendingNameValue", None)
+                            st.session_state[f"planned_3b_results_{trip_id}"] = []
+                            google_drive_sync()
+                            st.rerun()
+
+        elif _save_mode == "stop":
+            _stop_type = st.radio(
+                "Какъв тип спирка е това?",
+                ["Планирана спирка", "Непланирана спирка"],
+                key="tmCurrentLocation3bStopType",
+            )
+
+            _type_c1, _type_c2 = st.columns([0.72, 0.28])
+            with _type_c1:
+                if st.button(
+                    "Продължи към позицията",
+                    use_container_width=True,
+                    key="tmCurrentLocation3bContinuePosition",
+                    type="primary",
+                ):
+                    st.session_state["tmCurrentLocation3bStopTypeValue"] = (
+                        "planned" if _stop_type == "Планирана спирка" else "unplanned"
+                    )
+                    st.session_state["tmCurrentLocation3bSaveMode"] = "position"
+                    st.rerun()
+            with _type_c2:
+                if st.button(
+                    "Назад",
+                    use_container_width=True,
+                    key="tmCurrentLocation3bBackToSaveMode",
+                ):
+                    st.session_state.pop("tmCurrentLocation3bSaveMode", None)
+                    st.rerun()
+
+        elif _save_mode == "position":
+            _stop_type_value = st.session_state.get(
+                "tmCurrentLocation3bStopTypeValue", "planned"
+            )
+
+            _existing_stops = get_map_points(trip_id)
+            _existing_stops = _existing_stops[
+                _existing_stops["title"].astype(str).str.startswith("3b:")
+                & _existing_stops["color"].astype(str).isin(["purple", "orange"])
+            ].copy()
+
+            _position_options = ["В края на маршрута"]
+            _position_values = {"В края на маршрута": "end"}
+
+            for _pos_i, (_pos_idx, _pos_row) in enumerate(
+                _existing_stops.iterrows(), start=1
             ):
-                if not _gps_name:
-                    st.warning("Дай име на мястото преди записване.")
-                else:
-                    if add_map_point(
+                _pos_name = (
+                    str(_pos_row.get("title", "Спирка"))
+                    .replace("3b:", "", 1)
+                    .strip()
+                )
+                _pos_label = f"След спирка {_pos_i}: {_pos_name}"
+                _position_options.append(_pos_label)
+                _position_values[_pos_label] = int(_pos_idx)
+
+            st.markdown(
+                "<div style='color:#aeb7c1;font-size:11px;margin:4px 0 5px;'>"
+                f"Тип: <b style='color:#fff;'>"
+                f"{'Планирана спирка' if _stop_type_value == 'planned' else 'Непланирана спирка'}"
+                "</b></div>",
+                unsafe_allow_html=True,
+            )
+
+            _selected_position = st.selectbox(
+                "Къде да бъде поставена спирката?",
+                _position_options,
+                key="tmCurrentLocation3bPosition",
+            )
+
+            _pos_c1, _pos_c2 = st.columns([0.7, 0.3])
+            with _pos_c1:
+                if st.button(
+                    "💾 Запиши спирката",
+                    use_container_width=True,
+                    type="primary",
+                    key="tmCurrentLocation3bSaveFinalStop",
+                ):
+                    _final_name = st.session_state.get(
+                        "tmCurrentLocation3bPendingNameValue", _gps_name
+                    )
+                    if not str(_final_name).strip():
+                        st.warning("Дай име на мястото преди записване.")
+                    elif add_3b_stop_at_position(
                         trip_id,
                         float(_pending_3b["lat"]),
                         float(_pending_3b["lon"]),
-                        _gps_name,
-                        "green"
+                        str(_final_name).strip(),
+                        stop_type=_stop_type_value,
+                        position=_position_values.get(_selected_position, "end"),
                     ):
-                        st.session_state.pop("tmCurrentLocation3bPending", None)
-                        st.session_state.pop("tmCurrentLocation3bPendingName", None)
+                        for _k in [
+                            "tmCurrentLocation3bPending",
+                            "tmCurrentLocation3bPendingName",
+                            "tmCurrentLocation3bPendingNameValue",
+                            "tmCurrentLocation3bSaveMode",
+                            "tmCurrentLocation3bStopType",
+                            "tmCurrentLocation3bStopTypeValue",
+                            "tmCurrentLocation3bPosition",
+                        ]:
+                            st.session_state.pop(_k, None)
                         st.session_state[f"planned_3b_results_{trip_id}"] = []
                         google_drive_sync()
                         st.rerun()
+            with _pos_c2:
+                if st.button(
+                    "Назад",
+                    use_container_width=True,
+                    key="tmCurrentLocation3bBackToType",
+                ):
+                    st.session_state["tmCurrentLocation3bSaveMode"] = "stop"
+                    st.rerun()
 
         if st.button(
             "Откажи",
             use_container_width=True,
             key="tmCurrentLocation3bCancelPending",
         ):
-            st.session_state.pop("tmCurrentLocation3bPending", None)
-            st.session_state.pop("tmCurrentLocation3bPendingName", None)
+            for _k in [
+                "tmCurrentLocation3bPending",
+                "tmCurrentLocation3bPendingName",
+                "tmCurrentLocation3bPendingNameValue",
+                "tmCurrentLocation3bSaveMode",
+                "tmCurrentLocation3bStopType",
+                "tmCurrentLocation3bStopTypeValue",
+                "tmCurrentLocation3bPosition",
+            ]:
+                st.session_state.pop(_k, None)
             st.rerun()
 
     _3b_points = get_map_points(trip_id)
     _3b_stops = _3b_points[
         _3b_points["title"].astype(str).str.startswith("3b:")
-        & (_3b_points["color"].astype(str) == "purple")
+        & _3b_points["color"].astype(str).isin(["purple", "orange"])
     ].copy()
 
     _3b_input_key = f"planned_3b_search_{trip_id}"
@@ -8900,12 +9083,23 @@ else:
                     if "📍" in _fav_right:
                         _fav_desc = UI_LABELS.get("my_location_label", "Моята локация")
                     else:
-                        _fav_desc = UI_LABELS.get("planned_stops_label", "3b")
+                        _fav_desc = (
+                            "Непланирана спирка"
+                            if str(_fav_row.get("stop_type", "")).strip() == "unplanned"
+                            else "Планирана спирка"
+                        )
                     _fav_title = _fav_right
 
             if str(_fav_row.get("title", "") or "").strip().lower().startswith("3b:"):
                 _fav_after = str(_fav_row.get("title", "") or "").split(":", 1)[1].strip()
-                _fav_pin_color = "red" if "📍" in _fav_after else "purple"
+                if "📍" in _fav_after:
+                    _fav_pin_color = "red"
+                else:
+                    _fav_pin_color = (
+                        "orange"
+                        if str(_fav_row.get("stop_type", "")).strip() == "unplanned"
+                        else "purple"
+                    )
             else:
                 _fav_pin_color = "green"
 
