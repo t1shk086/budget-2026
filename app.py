@@ -8033,7 +8033,6 @@ else:
                     _place_name_3b = str(
                         _raw_reverse_3b.get("name") or ""
                     ).strip()
-
                     if not _place_name_3b:
                         _place_name_3b = str(
                             getattr(_location_reverse_3b, "address", "") or ""
@@ -8041,26 +8040,13 @@ else:
             except Exception:
                 _place_name_3b = None
 
-            if not _place_name_3b:
-                st.session_state["tmCurrentLocation3bPending"] = {
-                    "event_id": _event_id,
-                    "lat": _lat,
-                    "lon": _lon,
-                }
-                st.session_state["tmCurrentLocation3bLastEvent"] = _event_id
-                return
-
-            _location_title_3b = f"3b: 📍 {_place_name_3b}"
-
-            if add_map_point(
-                trip_id,
-                _lat,
-                _lon,
-                _location_title_3b,
-                "red"
-            ):
-                st.session_state["tmCurrentLocation3bLastEvent"] = _event_id
-                st.session_state[f"planned_3b_results_{trip_id}"] = []
+            st.session_state["tmCurrentLocation3bPending"] = {
+                "event_id": _event_id,
+                "lat": _lat,
+                "lon": _lon,
+                "name": _place_name_3b or "",
+            }
+            st.session_state["tmCurrentLocation3bLastEvent"] = _event_id
         except Exception:
             pass
 
@@ -8211,13 +8197,14 @@ else:
             unsafe_allow_html=True,
         )
 
-    # Ако reverse geocoding не намери именувано място, потребителят може
-    # сам да даде име, като GPS координатите остават същите.
+    # След получаване на GPS винаги питаме как да бъде записано мястото.
+    # И двата типа остават видими в „Любими места“, но само спирката
+    # участва в автоматичния 3b маршрут.
     _pending_3b = st.session_state.get("tmCurrentLocation3bPending")
     if (not trip_locked) and isinstance(_pending_3b, dict):
         st.markdown(
             "<div style='margin:4px 0 6px;color:#fff;font-size:12px;font-weight:700;'>"
-            "📍 Не е намерено име на мястото"
+            "📍 Как да запиша това място?"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -8225,34 +8212,69 @@ else:
             f"GPS: {_pending_3b.get('lat', 0.0):.6f}, "
             f"{_pending_3b.get('lon', 0.0):.6f}"
         )
-        _manual_3b_name = st.text_input(
-            "Име на спирката",
-            key="tmCurrentLocation3bManualName",
+
+        _gps_default_name = str(_pending_3b.get("name", "") or "").strip()
+        _gps_name = st.text_input(
+            "Име на мястото",
+            value=_gps_default_name,
+            key="tmCurrentLocation3bPendingName",
             placeholder="напр. Паркинг пред езерото",
-        )
-        _manual_3b_cols = st.columns([1, 1])
-        with _manual_3b_cols[0]:
-            if st.button("➕ ЗАПИШИ СПИРКАТА", key="tmCurrentLocation3bSaveManual"):
-                _manual_3b_name = str(_manual_3b_name or "").strip()
-                if _manual_3b_name:
+            label_visibility="collapsed",
+        ).strip()
+
+        _gps_choice_c1, _gps_choice_c2 = st.columns(2)
+        with _gps_choice_c1:
+            if st.button(
+                "🟣 Запиши като спирка",
+                use_container_width=True,
+                key="tmCurrentLocation3bSaveStop",
+            ):
+                if not _gps_name:
+                    st.warning("Дай име на мястото преди записване.")
+                else:
                     if add_map_point(
                         trip_id,
                         float(_pending_3b["lat"]),
                         float(_pending_3b["lon"]),
-                        f"3b: 📍 {_manual_3b_name}",
-                        "red"
+                        f"3b: {_gps_name}",
+                        "purple"
                     ):
                         st.session_state.pop("tmCurrentLocation3bPending", None)
-                        st.session_state.pop("tmCurrentLocation3bManualName", None)
+                        st.session_state.pop("tmCurrentLocation3bPendingName", None)
                         st.session_state[f"planned_3b_results_{trip_id}"] = []
                         google_drive_sync()
                         st.rerun()
-        with _manual_3b_cols[1]:
-            if st.button("✖ ОТКАЖИ", key="tmCurrentLocation3bCancelManual"):
-                st.session_state.pop("tmCurrentLocation3bPending", None)
-                st.session_state.pop("tmCurrentLocation3bManualName", None)
-                google_drive_sync()
-                st.rerun()
+
+        with _gps_choice_c2:
+            if st.button(
+                "⭐ Запиши като любимо",
+                use_container_width=True,
+                key="tmCurrentLocation3bSaveFavorite",
+            ):
+                if not _gps_name:
+                    st.warning("Дай име на мястото преди записване.")
+                else:
+                    if add_map_point(
+                        trip_id,
+                        float(_pending_3b["lat"]),
+                        float(_pending_3b["lon"]),
+                        _gps_name,
+                        "green"
+                    ):
+                        st.session_state.pop("tmCurrentLocation3bPending", None)
+                        st.session_state.pop("tmCurrentLocation3bPendingName", None)
+                        st.session_state[f"planned_3b_results_{trip_id}"] = []
+                        google_drive_sync()
+                        st.rerun()
+
+        if st.button(
+            "Откажи",
+            use_container_width=True,
+            key="tmCurrentLocation3bCancelPending",
+        ):
+            st.session_state.pop("tmCurrentLocation3bPending", None)
+            st.session_state.pop("tmCurrentLocation3bPendingName", None)
+            st.rerun()
 
     _3b_points = get_map_points(trip_id)
     _3b_stops = _3b_points[
