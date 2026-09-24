@@ -8343,7 +8343,7 @@ else:
                 )
                 _3b_distance_html = (
                     f"<div style='margin-top:4px;color:#7e8494;font-size:10px;'>"
-                    f"{html.escape(_3b_from)} → "
+                    f"От {html.escape(_3b_from)} → "
                     f"<span style='color:#8bd5ff;font-weight:800;'>{_3b_segment:.1f} км</span>"
                     f"</div>"
                     f"<div style='margin-top:2px;color:#7e8494;font-size:10px;'>"
