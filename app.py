@@ -9282,7 +9282,7 @@ div[class*="st-key-trip_card_"] div[data-testid="stButton"] button {
         st.markdown("""
             <div class="twin-grid-wrapper">
                 <a href="#trip_top_anchor" target="_self">
-                    <button class="twin-premium-3d-btn"> style="font-weight: 300 !important;"🔝КЪМ РАЗХОДИТЕ</button>
+                    <button class="twin-premium-3d-btn"> style="font-weight: 300 !important;">🔝КЪМ РАЗХОДИТЕ</button>
                 </a>
             </div>
         """, unsafe_allow_html=True)
