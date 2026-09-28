@@ -7930,52 +7930,196 @@ else:
         except Exception:
             return None
 
-    def _build_3b_google_maps_url(t_id):
+    def _build_3b_google_maps_url_for_stage(t_id, stage_index=0):
+        """
+        Генерира Google Maps навигация за един етап.
+        Един етап е максимум:
+        начало -> 3 междинни спирки -> край.
+
+        За първия етап началото може да остане текущата GPS позиция.
+        За следващите етапи началото е последната спирка от предишния етап.
+        """
         try:
             df_3b = get_map_points(t_id)
             if df_3b.empty:
                 return None
 
-            stops_3b = df_3b[
+            starts = df_3b[
+                df_3b["title"].astype(str).str.startswith("3b:")
+                & (df_3b["color"].astype(str) == "red")
+            ].copy()
+
+            stops = df_3b[
                 df_3b["title"].astype(str).str.startswith("3b:")
                 & df_3b["color"].astype(str).isin(["purple", "orange"])
             ].copy()
 
-            if stops_3b.empty:
+            if stops.empty:
                 return None
 
-            # Последната спирка е дестинацията.
-            # Всички предходни са междинни спирки в същия ред.
-            destination_3b = stops_3b.iloc[-1]
-            intermediate_3b = stops_3b.iloc[:-1]
+            # Етапите се припокриват в крайната спирка:
+            # Начало -> 1 -> 2 -> 3 -> 4
+            # 4 -> 5 -> 6 -> 7 -> 8
+            # 8 -> 9 -> ...
+            stage_size = 4
+            stage_index = max(0, int(stage_index))
+            start_pos = stage_index * stage_size
 
-            destination_value_3b = (
-                f"{float(destination_3b['lat']):.6f},"
-                f"{float(destination_3b['lon']):.6f}"
-            )
+            if start_pos >= len(stops):
+                return None
 
-            params_3b = [
+            if stage_index == 0:
+                if starts.empty:
+                    # Ако няма записана начална точка, Google Maps
+                    # използва текущото местоположение на телефона.
+                    origin_value = None
+            else:
+                # Краят на предишния етап става начало на този.
+                previous_end_pos = min(start_pos - 1, len(stops) - 1)
+                previous_end = stops.iloc[previous_end_pos]
+                origin_value = (
+                    f"{float(previous_end['lat']):.6f},"
+                    f"{float(previous_end['lon']):.6f}"
+                )
+
+            # При първи етап с начална точка използваме нея като origin.
+            if stage_index == 0 and not starts.empty:
+                start_row = starts.iloc[-1]
+                origin_value = (
+                    f"{float(start_row['lat']):.6f},"
+                    f"{float(start_row['lon']):.6f}"
+                )
+
+            destination_pos = min(start_pos + stage_size - 1, len(stops) - 1)
+            destination = stops.iloc[destination_pos]
+
+            # Всичко между началото и крайната спирка са waypoints.
+            waypoint_rows = [
+                stops.iloc[i]
+                for i in range(start_pos, destination_pos)
+            ]
+
+            params = [
                 "api=1",
-                "destination=" + quote(destination_value_3b),
+                "destination="
+                + quote(
+                    f"{float(destination['lat']):.6f},"
+                    f"{float(destination['lon']):.6f}"
+                ),
                 "travelmode=driving",
                 "dir_action=navigate",
             ]
 
-            if not intermediate_3b.empty:
-                # Maps URLs поддържа до 3 waypoints в мобилен браузър.
-                # За навигация от телефона използваме първите 3 междинни спирки.
-                waypoint_values_3b = [
+            if origin_value:
+                params.insert(1, "origin=" + quote(origin_value))
+
+            if waypoint_rows:
+                waypoint_values = [
                     f"{float(row['lat']):.6f},{float(row['lon']):.6f}"
-                    for _, row in intermediate_3b.head(3).iterrows()
+                    for row in waypoint_rows[:3]
                 ]
-                if waypoint_values_3b:
-                    params_3b.append(
-                        "waypoints=" + quote("|".join(waypoint_values_3b))
+                if waypoint_values:
+                    params.append(
+                        "waypoints=" + quote("|".join(waypoint_values))
                     )
 
-            return "https://www.google.com/maps/dir/?" + "&".join(params_3b)
+            return "https://www.google.com/maps/dir/?" + "&".join(params)
         except Exception:
             return None
+
+    def _build_3b_navigation_stages(t_id, route=None):
+        """
+        Разделя целия маршрут на Google Maps етапи.
+        Всеки етап съдържа максимум 3 междинни спирки.
+        """
+        try:
+            df_3b = get_map_points(t_id)
+            if df_3b.empty:
+                return []
+
+            stops = df_3b[
+                df_3b["title"].astype(str).str.startswith("3b:")
+                & df_3b["color"].astype(str).isin(["purple", "orange"])
+            ].copy()
+
+            if stops.empty:
+                return []
+
+            starts = df_3b[
+                df_3b["title"].astype(str).str.startswith("3b:")
+                & (df_3b["color"].astype(str) == "red")
+            ].copy()
+
+            segment_km = []
+            if route:
+                segment_km = list(route.get("segment_km", []) or [])
+
+            stages = []
+            stage_size = 4
+            stage_index = 0
+
+            while stage_index * stage_size < len(stops):
+                start_pos = stage_index * stage_size
+                end_pos = min(start_pos + stage_size - 1, len(stops) - 1)
+
+                if stage_index == 0:
+                    if not starts.empty:
+                        start_name = (
+                            str(starts.iloc[-1].get("title", "Начална точка"))
+                            .replace("3b:", "", 1)
+                            .replace("🏁", "", 1)
+                            .strip()
+                            or "Начална точка"
+                        )
+                    else:
+                        start_name = "Моята локация"
+                else:
+                    previous = stops.iloc[start_pos - 1]
+                    start_name = (
+                        str(previous.get("title", "Спирка"))
+                        .replace("3b:", "", 1)
+                        .strip()
+                    )
+
+                stage_stop_rows = [
+                    stops.iloc[i]
+                    for i in range(start_pos, end_pos + 1)
+                ]
+
+                stage_names = [
+                    str(row.get("title", "Спирка"))
+                    .replace("3b:", "", 1)
+                    .strip()
+                    for row in stage_stop_rows
+                ]
+
+                # Сегментите са:
+                # етап 1: старт -> 1, 1 -> 2, 2 -> 3, 3 -> 4
+                # етап 2: 4 -> 5, 5 -> 6, 6 -> 7, 7 -> 8
+                # и т.н.
+                segment_start = start_pos
+                segment_end = end_pos + 1
+                stage_segments = segment_km[segment_start:segment_end]
+
+                stage_distance = round(sum(stage_segments), 1)
+
+                stages.append({
+                    "index": stage_index,
+                    "number": stage_index + 1,
+                    "start_name": start_name,
+                    "stop_names": stage_names,
+                    "end_name": stage_names[-1] if stage_names else start_name,
+                    "distance_km": stage_distance,
+                    "url": _build_3b_google_maps_url_for_stage(
+                        t_id, stage_index
+                    ),
+                })
+
+                stage_index += 1
+
+            return stages
+        except Exception:
+            return []
 
     # =========================================================
     # 3b — ТЕКУЩА ЛОКАЦИЯ ОТ ТЕЛЕФОНА
@@ -8586,25 +8730,90 @@ else:
                 unsafe_allow_html=True,
             )
 
-        _3b_url = _build_3b_google_maps_url(trip_id)
-        if _3b_url:
+        # ---------------------------------------------------------
+        # GOOGLE MAPS — ЕТАПИ НА МАРШРУТА
+        # Всеки етап е максимум:
+        # начало -> 3 междинни спирки -> край.
+        # Следващият етап започва от края на предишния.
+        # ---------------------------------------------------------
+        _3b_stages = _build_3b_navigation_stages(
+            trip_id,
+            route=_3b_route,
+        )
+
+        if _3b_stages:
+            _stage_count = len(_3b_stages)
+
             st.markdown(
-                f"<a href='{html.escape(_3b_url, quote=True)}' target='_blank' "
-                f"style='display:block;text-align:center;text-decoration:none;"
-                f"padding:11px 14px;margin-top:9px;border-radius:12px;"
-                f"background:linear-gradient(135deg,#252932,#16191f);"
-                f"border:1px solid rgba(255,255,255,.06);color:#fff;"
-                f"font-weight:700;font-size:12px;'>"
-                f"🧭 ОТВОРИ МАРШРУТА В GOOGLE MAPS"
-                f"</a>",
+                "<div style='margin-top:12px;margin-bottom:6px;'>"
+                "<div style='color:#fff;font-size:12px;font-weight:800;'>"
+                "🧭 Навигация по етапи"
+                "</div>"
+                "<div style='color:#7e8494;font-size:10px;margin-top:2px;'>"
+                "Маршрутът се разделя автоматично, за да може всеки етап "
+                "да се отвори директно в Google Maps."
+                "</div>"
+                "</div>",
                 unsafe_allow_html=True,
             )
 
-        if len(_3b_stops) > 3:
+            for _stage in _3b_stages:
+                _stage_number = _stage["number"]
+                _stage_distance = _stage["distance_km"]
+
+                _stage_route_parts = [
+                    html.escape(_stage["start_name"])
+                ]
+                for _stage_name in _stage["stop_names"]:
+                    _stage_route_parts.append(
+                        html.escape(_stage_name)
+                    )
+
+                _stage_route_text = " <span style='color:#596170;'>→</span> ".join(
+                    _stage_route_parts
+                )
+
+                st.markdown(
+                    f"<div style='margin-top:7px;padding:10px 10px 9px;"
+                    f"border-radius:12px;"
+                    f"background:rgba(255,255,255,.025);"
+                    f"border:1px solid rgba(255,255,255,.07);'>"
+                    f"<div style='display:flex;justify-content:space-between;"
+                    f"align-items:center;margin-bottom:5px;'>"
+                    f"<span style='color:#fff;font-size:11px;font-weight:800;'>"
+                    f"ЕТАП {_stage_number} / {_stage_count}"
+                    f"</span>"
+                    f"<span style='color:#00f2fe;font-size:11px;font-weight:900;'>"
+                    f"{_stage_distance:.1f} км"
+                    f"</span>"
+                    f"</div>"
+                    f"<div style='color:#aeb7c1;font-size:10px;line-height:1.55;'>"
+                    f"{_stage_route_text}"
+                    f"</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
+                if _stage.get("url"):
+                    st.markdown(
+                        f"<a href='{html.escape(_stage['url'], quote=True)}' "
+                        f"target='_blank' "
+                        f"style='display:block;text-align:center;"
+                        f"text-decoration:none;padding:9px 12px;"
+                        f"margin-top:3px;margin-bottom:7px;"
+                        f"border-radius:10px;"
+                        f"background:linear-gradient(135deg,#252932,#16191f);"
+                        f"border:1px solid rgba(255,255,255,.06);"
+                        f"color:#fff;font-weight:700;font-size:11px;'>"
+                        f"🧭 НАВИГАЦИЯ КЪМ ЕТАП {_stage_number}"
+                        f"</a>",
+                        unsafe_allow_html=True,
+                    )
+
+        else:
             st.markdown(
-                "<div style='color:#7e8494;font-size:10px;margin-top:5px;'>"
-                "За навигация от телефона Google Maps приема до 3 междинни спирки "
-                "чрез този линк. Всички планирани спирки остават записани в Travel Manager."
+                "<div style='color:#7e8494;font-size:10px;margin-top:8px;'>"
+                "Няма достатъчно данни за навигационни етапи."
                 "</div>",
                 unsafe_allow_html=True,
             )
