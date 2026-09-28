@@ -8676,8 +8676,8 @@ else:
                 f"padding:11px 14px;margin-top:9px;border-radius:12px;"
                 f"background:linear-gradient(135deg,#252932,#16191f);"
                 f"border:1px solid rgba(255,255,255,.06);color:#fff;"
-                f"font-family:Segoe UI,Roboto,sans-serif;font-weight:700;"
-                f"font-size:12px;line-height:1.2;letter-spacing:.5px;'>"
+                f"font-family:Segoe UI,Roboto,sans-serif;font-weight:600;"
+                f"font-size:11px;line-height:1.2;letter-spacing:.5px;'>"
                 f"🧭 ОТВОРИ МАРШРУТА В GOOGLE MAPS"
                 f"</a>",
                 unsafe_allow_html=True,
