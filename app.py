@@ -8676,7 +8676,8 @@ else:
                 f"padding:11px 14px;margin-top:9px;border-radius:12px;"
                 f"background:linear-gradient(135deg,#252932,#16191f);"
                 f"border:1px solid rgba(255,255,255,.06);color:#fff;"
-                f"font-weight:700;font-size:12px;'>"
+                f"font-family:Segoe UI,Roboto,sans-serif;font-weight:700;"
+                f"font-size:12px;line-height:1.2;letter-spacing:.5px;'>"
                 f"🧭 ОТВОРИ МАРШРУТА В GOOGLE MAPS"
                 f"</a>",
                 unsafe_allow_html=True,
@@ -8684,11 +8685,16 @@ else:
 
         # Етапите се показват/използват само при изпращане към телефона.
         # Не променяме основния изглед на маршрута.
-        # Изравняваме шрифта на този бутон с HTML бутона за Google Maps.
+        # Двата основни бутона са с напълно еднакъв шрифт.
         st.markdown(
             """<style>
-            div[data-testid="stButton"] button {
-                font-family: inherit !important;
+            /* Шрифт на бутона "Изпрати на телефон" */
+            div[class*="st-key-send_3b_phone_"] div[data-testid="stButton"] button {
+                font-family: "Segoe UI", Roboto, sans-serif !important;
+                font-size: 12px !important;
+                font-weight: 700 !important;
+                line-height: 1.2 !important;
+                letter-spacing: 0.5px !important;
             }
             </style>""",
             unsafe_allow_html=True,
