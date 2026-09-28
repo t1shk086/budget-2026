@@ -8691,7 +8691,7 @@ else:
             /* Шрифт на бутона "Изпрати на телефон" */
             div[class*="st-key-send_3b_phone_"] div[data-testid="stButton"] button {
                 font-family: "Segoe UI", Roboto, sans-serif !important;
-                font-size: 11px !important;
+                font-size: 10px !important;
                 font-weight: 600 !important;
                 line-height: 1.2 !important;
                 letter-spacing: 0.5px !important;
