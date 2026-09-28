@@ -8678,7 +8678,7 @@ else:
                 f"border:1px solid rgba(255,255,255,.06);color:#fff;"
                 f"font-family:Segoe UI,Roboto,sans-serif;font-weight:400;"
                 f"font-size:12px;line-height:1.2;letter-spacing:.5px;'>"
-                f"🧭 ОТВОРИ МАРШРУТА В GOOGLE MAPS"
+                f"🧭 ОТВОРИ В GOOGLE MAPS"
                 f"</a>",
                 unsafe_allow_html=True,
             )
