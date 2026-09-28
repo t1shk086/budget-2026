@@ -8684,6 +8684,15 @@ else:
 
         # Етапите се показват/използват само при изпращане към телефона.
         # Не променяме основния изглед на маршрута.
+        # Изравняваме шрифта на този бутон с HTML бутона за Google Maps.
+        st.markdown(
+            """<style>
+            div[data-testid="stButton"] button {
+                font-family: inherit !important;
+            }
+            </style>""",
+            unsafe_allow_html=True,
+        )
         if st.button(
             "📱 ИЗПРАТИ НА ТЕЛЕФОН",
             key=f"send_3b_phone_{trip_id}",
